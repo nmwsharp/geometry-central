@@ -91,14 +91,12 @@ add_subdirectory(deps)
 
 ### Includes from dependencies
 include_directories(deps/eigen)
-include_directories(deps/glm)
 include_directories(deps/RectangleBinPack/include)
 include_directories(deps/nanort)
 include_directories(deps/nanoflann)
 
 ### Includes from this project
-include_directories(core/include)
-include_directories(gui/include)
+include_directories(include)
 
 ### Compiler options
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 ) # Emit a compile flags file to support completion engines (YouCompleteMe in my case)
@@ -136,6 +134,5 @@ else()
 endif()
 
 
-### Recurse in to each of the subprojects
-add_subdirectory(core)
-add_subdirectory(projects)
+### Recurse to the source core
+add_subdirectory(src)
