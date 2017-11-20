@@ -1,3 +1,7 @@
+
+# Editor and OS things
+.DS_Store
+
 # Prerequisites
 *.d
 
