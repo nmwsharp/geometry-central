@@ -1,7 +1,4 @@
-#include <geometry.h>
-#include <halfedge_mesh.h>
-#include <polygon_soup_mesh.h>
-#include <timing.h>
+#include "geometrycentral/halfedge_mesh.h"
 
 #include <algorithm>
 #include <limits>
@@ -10,6 +7,10 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+
+#include "geometrycentral/geometry.h"
+#include <geometrycentral/polygon_soup_mesh.h>
+#include <geometrycentral/timing.h>
 
 namespace geometrycentral {
 

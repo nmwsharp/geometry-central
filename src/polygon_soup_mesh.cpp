@@ -1,10 +1,10 @@
-#include <halfedge_mesh.h>
-#include <polygon_soup_mesh.h>
-
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
+
+#include "geometrycentral/halfedge_mesh.h"
+#include "geometrycentral/polygon_soup_mesh.h"
 
 namespace geometrycentral {
 

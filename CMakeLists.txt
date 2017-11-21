@@ -92,8 +92,8 @@ add_subdirectory(deps)
 ### Includes from dependencies
 include_directories(deps/eigen)
 include_directories(deps/RectangleBinPack/include)
-include_directories(deps/nanort)
-include_directories(deps/nanoflann)
+include_directories(deps/nanort/include)
+include_directories(deps/nanoflann/include)
 
 ### Includes from this project
 include_directories(include)

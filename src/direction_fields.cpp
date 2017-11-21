@@ -1,4 +1,4 @@
-#include <direction_fields.h>
+#include <geometrycentral/direction_fields.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>

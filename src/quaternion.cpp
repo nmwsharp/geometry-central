@@ -1,8 +1,9 @@
+#include "geometrycentral/quaternion.h"
+
 #include <cmath>
 #include <iostream>
-using namespace std;
 
-#include "quaternion.h"
+using namespace std;
 
 namespace geometrycentral {
 

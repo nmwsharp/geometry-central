@@ -1,4 +1,4 @@
-#include <halfedge_mesh.h>
+#include "geometrycentral/halfedge_mesh.h"
 
 // Implementation of various methods to support iterators in the halfedge mesh.
 // Note that many functions are inlined, and just defined in

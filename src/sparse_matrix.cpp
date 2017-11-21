@@ -1,4 +1,4 @@
-#include "sparse_matrix.h"
+#include "geometrycentral/sparse_matrix.h"
 
 namespace geometrycentral {
 #ifdef HAVE_SUITESPARSE

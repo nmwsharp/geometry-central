@@ -1,7 +1,7 @@
-#include "detect_symmetry.h"
+#include "geometrycentral/detect_symmetry.h"
 
-#include "KDTreeVectorOfVectorsAdaptor.h"
-#include "nanoflann.hpp"
+#include "nanoflann/KDTreeVectorOfVectorsAdaptor.h"
+#include "nanoflann/nanoflann.hpp"
 
 #include <array>
 #include <vector>

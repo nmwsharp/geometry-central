@@ -1,6 +1,7 @@
-#include <meshio.h>
 #include <iostream>
 #include <limits>
+
+#include "geometrycentral/meshio.h"
 
 using namespace std;
 

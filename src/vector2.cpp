@@ -1,5 +1,5 @@
-#include <utilities.h>
-#include <vector2.h>
+#include <geometrycentral/utilities.h>
+#include "geometrycentral/vector2.h"
 
 #include <cmath>
 #include <iostream>

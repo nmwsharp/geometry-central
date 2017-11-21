@@ -1,5 +1,6 @@
-#include "dense_matrix.h"
-#include "quaternion.h"
+#include "geometrycentral/dense_matrix.h"
+
+#include "geometrycentral/quaternion.h"
 
 namespace geometrycentral {
 #ifdef HAVE_SUITESPARSE

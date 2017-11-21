@@ -1,4 +1,4 @@
-#include "suitesparse_wrapper/linear_context.h"
+#include "geometrycentral/suitesparse_wrapper/linear_context.h"
 
 #ifdef HAVE_SUITESPARSE
 namespace geometrycentral {

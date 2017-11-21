@@ -1,4 +1,4 @@
-#include "discrete_operators.h"
+#include "geometrycentral/discrete_operators.h"
 
 namespace geometrycentral {
 
