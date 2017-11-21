@@ -419,4 +419,4 @@ inline DualFacePtrRangeIterator DualFacePtrSet::end() {
   return DualFacePtrRangeIterator(endptr);
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

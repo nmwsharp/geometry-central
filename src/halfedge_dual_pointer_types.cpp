@@ -12,4 +12,4 @@ unsigned int DualVertexPtr::degree() {
   return k;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -16,8 +16,7 @@ DualVertexIncomingDualHalfedgeSet::end() {
   return DualVertexIncomingDualHalfedgeIterator(firstHe, false);
 }
 inline const DualVertexIncomingDualHalfedgeIterator&
-    DualVertexIncomingDualHalfedgeIterator::
-    operator++() {
+    DualVertexIncomingDualHalfedgeIterator::operator++() {
   justStarted = false;
   currHe = currHe.next().twin();
   return *this;
@@ -45,8 +44,7 @@ DualVertexOutgoingDualHalfedgeSet::end() {
   return DualVertexOutgoingDualHalfedgeIterator(firstHe, false);
 }
 inline const DualVertexOutgoingDualHalfedgeIterator&
-    DualVertexOutgoingDualHalfedgeIterator::
-    operator++() {
+    DualVertexOutgoingDualHalfedgeIterator::operator++() {
   justStarted = false;
   currHe = currHe.twin().next();
   return *this;
@@ -74,8 +72,7 @@ DualVertexAdjacentDualVertexSet::end() {
   return DualVertexAdjacentDualVertexIterator(firstHe, false);
 }
 inline const DualVertexAdjacentDualVertexIterator&
-    DualVertexAdjacentDualVertexIterator::
-    operator++() {
+    DualVertexAdjacentDualVertexIterator::operator++() {
   justStarted = false;
   currHe = currHe.next().twin();
   return *this;
@@ -101,8 +98,7 @@ inline DualVertexAdjacentDualFaceIterator DualVertexAdjacentDualFaceSet::end() {
   return DualVertexAdjacentDualFaceIterator(firstHe, false);
 }
 inline const DualVertexAdjacentDualFaceIterator&
-    DualVertexAdjacentDualFaceIterator::
-    operator++() {
+    DualVertexAdjacentDualFaceIterator::operator++() {
   justStarted = false;
   do {
     currHe = currHe.twin().next();
@@ -130,8 +126,7 @@ inline DualVertexAdjacentDualEdgeIterator DualVertexAdjacentDualEdgeSet::end() {
   return DualVertexAdjacentDualEdgeIterator(firstHe, false);
 }
 inline const DualVertexAdjacentDualEdgeIterator&
-    DualVertexAdjacentDualEdgeIterator::
-    operator++() {
+    DualVertexAdjacentDualEdgeIterator::operator++() {
   justStarted = false;
   currHe = currHe.twin().next();
   return *this;
@@ -162,8 +157,7 @@ DualFaceAdjacentDualHalfedgeSet::end() {
   return DualFaceAdjacentDualHalfedgeIterator(firstHe, false);
 }
 inline const DualFaceAdjacentDualHalfedgeIterator&
-    DualFaceAdjacentDualHalfedgeIterator::
-    operator++() {
+    DualFaceAdjacentDualHalfedgeIterator::operator++() {
   justStarted = false;
   currHe = currHe.next();
   return *this;
@@ -189,8 +183,7 @@ inline DualFaceAdjacentDualVertexIterator DualFaceAdjacentDualVertexSet::end() {
   return DualFaceAdjacentDualVertexIterator(firstHe, false);
 }
 inline const DualFaceAdjacentDualVertexIterator&
-    DualFaceAdjacentDualVertexIterator::
-    operator++() {
+    DualFaceAdjacentDualVertexIterator::operator++() {
   justStarted = false;
   currHe = currHe.next();
   return *this;
@@ -215,8 +208,7 @@ inline DualFaceAdjacentDualEdgeIterator DualFaceAdjacentDualEdgeSet::end() {
   return DualFaceAdjacentDualEdgeIterator(firstHe, false);
 }
 inline const DualFaceAdjacentDualEdgeIterator&
-    DualFaceAdjacentDualEdgeIterator::
-    operator++() {
+    DualFaceAdjacentDualEdgeIterator::operator++() {
   justStarted = false;
   currHe = currHe.next();
   return *this;
@@ -241,8 +233,7 @@ inline DualFaceAdjacentDualFaceIterator DualFaceAdjacentDualFaceSet::end() {
   return DualFaceAdjacentDualFaceIterator(firstHe, false);
 }
 inline const DualFaceAdjacentDualFaceIterator&
-    DualFaceAdjacentDualFaceIterator::
-    operator++() {
+    DualFaceAdjacentDualFaceIterator::operator++() {
   justStarted = false;
   do {
     currHe = currHe.next();
@@ -261,4 +252,4 @@ inline DualFacePtr DualFaceAdjacentDualFaceIterator::operator*() const {
   return currHe.twin().face();
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

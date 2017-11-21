@@ -1,7 +1,7 @@
 #pragma once
 
-#include <tuple>
 #include <array>
+#include <tuple>
 
 // Some useful hash functions that should really be in the standard library
 // WARNING: It is technically illegal to specialize things in std, so this might

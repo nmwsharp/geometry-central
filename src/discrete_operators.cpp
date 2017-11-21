@@ -12,7 +12,8 @@ geometrycentral::SparseMatrix<T> buildHodge0(Geometry<D>* geometry) {
   size_t nVerts = mesh->nVertices();
 
   // Reserve space in the sparse matrix
-  geometrycentral::SparseMatrix<T> hodge0 = geometrycentral::SparseMatrix<T>(nVerts, nVerts);
+  geometrycentral::SparseMatrix<T> hodge0 =
+      geometrycentral::SparseMatrix<T>(nVerts, nVerts);
 
   for (VertexPtr v : mesh->vertices()) {
     double primalArea = 1.0;
@@ -36,7 +37,8 @@ geometrycentral::SparseMatrix<T> buildHodge1(Geometry<D>* geometry) {
   EdgeData<size_t> eInd = mesh->getEdgeIndices();
   size_t nEdges = mesh->nEdges();
 
-  geometrycentral::SparseMatrix<T> hodge1 = geometrycentral::SparseMatrix<T>(nEdges, nEdges);
+  geometrycentral::SparseMatrix<T> hodge1 =
+      geometrycentral::SparseMatrix<T>(nEdges, nEdges);
 
   // Get the cotan weights all at once
   EdgeData<double> cotanWeights(mesh);
@@ -63,7 +65,8 @@ geometrycentral::SparseMatrix<T> buildHodge2(Geometry<D>* geometry) {
   size_t nFaces = mesh->nFaces();
 
   // Reserve space in the sparse matrix
-  geometrycentral::SparseMatrix<T> hodge2 = geometrycentral::SparseMatrix<T>(nFaces, nFaces);
+  geometrycentral::SparseMatrix<T> hodge2 =
+      geometrycentral::SparseMatrix<T>(nFaces, nFaces);
 
   for (FacePtr f : mesh->faces()) {
     double primalArea = geometry->area(f);
@@ -89,7 +92,8 @@ geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh) {
   size_t nVerts = mesh->nVertices();
   size_t nEdges = mesh->nEdges();
 
-  geometrycentral::SparseMatrix<T> d0 = geometrycentral::SparseMatrix<T>(nEdges, nVerts);
+  geometrycentral::SparseMatrix<T> d0 =
+      geometrycentral::SparseMatrix<T>(nEdges, nVerts);
 
   for (EdgePtr e : mesh->edges()) {
     size_t iEdge = eInd[e];
@@ -106,7 +110,8 @@ geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh) {
 
   return d0;
 }
-template geometrycentral::SparseMatrix<double> buildDerivative0<double>(HalfedgeMesh* mesh);
+template geometrycentral::SparseMatrix<double> buildDerivative0<double>(
+    HalfedgeMesh* mesh);
 template geometrycentral::SparseMatrix<Complex> buildDerivative0<Complex>(
     HalfedgeMesh* mesh);
 
@@ -118,7 +123,8 @@ geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh) {
   size_t nEdges = mesh->nEdges();
   size_t nFaces = mesh->nFaces();
 
-  geometrycentral::SparseMatrix<T> d1 = geometrycentral::SparseMatrix<T>(nFaces, nEdges);
+  geometrycentral::SparseMatrix<T> d1 =
+      geometrycentral::SparseMatrix<T>(nFaces, nEdges);
 
   for (FacePtr f : mesh->faces()) {
     size_t iFace = fInd[f];
@@ -132,7 +138,8 @@ geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh) {
 
   return d1;
 }
-template geometrycentral::SparseMatrix<double> buildDerivative1<double>(HalfedgeMesh* mesh);
+template geometrycentral::SparseMatrix<double> buildDerivative1<double>(
+    HalfedgeMesh* mesh);
 template geometrycentral::SparseMatrix<Complex> buildDerivative1<Complex>(
     HalfedgeMesh* mesh);
 }

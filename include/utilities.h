@@ -1,16 +1,16 @@
 #pragma once
 
-#include <complex>
 #include <cmath>
-#include <string>
-#include <random>
-#include <limits>
-#include <typeinfo>
-#include <exception>
 #include <complex>
+#include <complex>
+#include <exception>
+#include <limits>
+#include <random>
+#include <string>
+#include <typeinfo>
 
-#include <vector3.h>
 #include <vector2.h>
+#include <vector3.h>
 
 namespace geometrycentral {
 
@@ -34,7 +34,6 @@ inline double dot(Complex x, Complex y) {
 }
 
 inline Complex inv(Complex c) { return ::std::conj(c) / ::std::norm(c); }
-
 
 // Various functions
 template <typename T>
@@ -149,7 +148,7 @@ class FunctionalityException : public std::runtime_error {
       : std::runtime_error("Missing functionaliy: " + msg){};
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 namespace std {
 // NOTE: Technically, the lines below are illegal, because specializing standard

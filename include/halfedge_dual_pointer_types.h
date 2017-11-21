@@ -327,4 +327,4 @@ class DualFacePtrSet {
   DualFacePtr beginptr, endptr;
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

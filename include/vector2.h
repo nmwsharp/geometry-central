@@ -1,11 +1,11 @@
 #pragma once
 
-#include <iostream>
-#include <cmath>
 #include <vector3.h>
+#include <cmath>
+#include <iostream>
 
 namespace geometrycentral {
-  
+
 // Note: this class avoids any constructors so that it is a POD type
 struct Vector2 {
   double x, y;
@@ -61,6 +61,6 @@ bool isFinite(const Vector2& u);
 Vector2 componentwiseMin(const Vector2& u, const Vector2& v);
 Vector2 componentwiseMax(const Vector2& u, const Vector2& v);
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 #include <vector2.ipp>

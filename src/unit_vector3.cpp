@@ -14,4 +14,4 @@ UnitVector3 interpolate(UnitVector3& u0, UnitVector3& u1, double t) {
   return UnitVector3(r);
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

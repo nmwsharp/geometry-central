@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <cmath>
+#include <iostream>
 
 namespace geometrycentral {
 
@@ -12,8 +12,7 @@ SparseMatrix<T>::SparseMatrix(size_t m_, size_t n_)
 
 // copy constructor
 template <typename T>
-SparseMatrix<T>::SparseMatrix(const SparseMatrix<T>& B)
-    : factors(*this) {
+SparseMatrix<T>::SparseMatrix(const SparseMatrix<T>& B) : factors(*this) {
   *this = B;
 }
 

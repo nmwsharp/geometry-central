@@ -1,8 +1,8 @@
 #pragma once
 
 #include <stdio.h>
-#include <string>
 #include <chrono>
+#include <string>
 
 #define NOW (std::chrono::steady_clock::now())
 #define START_TIMING(name) auto generated_timer_777_##name = NOW;

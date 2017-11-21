@@ -21,8 +21,7 @@ T Curve<T>::operator()(double t, unsigned int k) const {
 // HermiteCurve ================================================================
 
 template <typename T>
-HermiteNode<T>::HermiteNode()
-    : value(T::zero()), derivative(T::zero()) {}
+HermiteNode<T>::HermiteNode() : value(T::zero()), derivative(T::zero()) {}
 
 template <typename T>
 HermiteNode<T>::HermiteNode(const T& value_, const T& derivative_)
@@ -141,4 +140,4 @@ BezierCurve<T> HermiteCurve<T>::toBezier() const {
 
 // TODO
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

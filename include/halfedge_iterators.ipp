@@ -1,7 +1,7 @@
 #pragma once
 
 namespace geometrycentral {
-  
+
 // ==========================================================
 // ================    Vertex Iterators    ==================
 // ==========================================================
@@ -43,8 +43,7 @@ VertexIncomingInteriorHalfedgeSet::end() {
   return VertexIncomingInteriorHalfedgeIterator(firstHe, false);
 }
 inline const VertexIncomingInteriorHalfedgeIterator&
-    VertexIncomingInteriorHalfedgeIterator::
-    operator++() {
+    VertexIncomingInteriorHalfedgeIterator::operator++() {
   justStarted = false;
   do {
     currHe = currHe.next().twin();
@@ -100,8 +99,7 @@ VertexOutgoingInteriorHalfedgeSet::end() {
   return VertexOutgoingInteriorHalfedgeIterator(firstHe, false);
 }
 inline const VertexOutgoingInteriorHalfedgeIterator&
-    VertexOutgoingInteriorHalfedgeIterator::
-    operator++() {
+    VertexOutgoingInteriorHalfedgeIterator::operator++() {
   justStarted = false;
   do {
     currHe = currHe.twin().next();
@@ -353,4 +351,4 @@ inline CornerPtr FaceAdjacentCornerIterator::operator*() const {
   return currHe.next().corner();
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -241,8 +241,7 @@ void smallestEigPositiveDefinite(SparseMatrix<T>& A, SparseMatrix<T>& B,
 
 // ## Sparse Factor methods
 template <class T>
-SparseFactor<T>::SparseFactor(void)
-    : L(NULL) {}
+SparseFactor<T>::SparseFactor(void) : L(NULL) {}
 
 template <class T>
 SparseFactor<T>::~SparseFactor(void) {

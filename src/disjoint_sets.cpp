@@ -85,4 +85,4 @@ void MarkedDisjointSets::merge(size_t x, size_t y) {
   }
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

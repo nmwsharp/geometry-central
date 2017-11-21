@@ -1,7 +1,7 @@
 #pragma once
 
-#include "eigen_wrapper/LLFactorization.h"
 #include "eigen_wrapper/LDLFactorization.h"
+#include "eigen_wrapper/LLFactorization.h"
 #include "eigen_wrapper/LUFactorization.h"
 #include "eigen_wrapper/QRFactorization.h"
 
@@ -24,5 +24,5 @@ class SparseFactorization {
 };
 }
 
-#include "sparse_matrix.h"
 #include "eigen_wrapper/sparse_factorization.ipp"
+#include "sparse_matrix.h"

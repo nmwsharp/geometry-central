@@ -344,4 +344,4 @@ class FaceAdjacentCornerSet {
   HalfedgePtr firstHe;
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <iostream>
 #include <cmath>
+#include <iostream>
 #include <limits>
 
 namespace geometrycentral {
@@ -65,8 +65,7 @@ bool isFinite(const Vector3& u);
 Vector3 componentwiseMin(const Vector3& u, const Vector3& v);
 Vector3 componentwiseMax(const Vector3& u, const Vector3& v);
 
-} // namespace geometrycentral
-
+}  // namespace geometrycentral
 
 namespace std {
 template <>

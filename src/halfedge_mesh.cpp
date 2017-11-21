@@ -1,15 +1,15 @@
+#include <geometry.h>
 #include <halfedge_mesh.h>
 #include <polygon_soup_mesh.h>
-#include <geometry.h>
 #include <timing.h>
 
 #include <algorithm>
+#include <limits>
 #include <map>
 #include <set>
+#include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
-#include <stdexcept>
-#include <limits>
 
 namespace geometrycentral {
 
@@ -683,5 +683,4 @@ HalfedgeMesh* HalfedgeMesh::copy() {
   return mesh;
 }
 
-
-} // namespace geometrycentral
+}  // namespace geometrycentral

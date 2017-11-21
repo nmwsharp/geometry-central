@@ -1,6 +1,6 @@
-#include <limits>
-#include <fstream>
 #include <geometry.h>
+#include <fstream>
+#include <limits>
 
 namespace geometrycentral {
 
@@ -27,4 +27,4 @@ void Geometry<Euclidean>::normalize() {
   }
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

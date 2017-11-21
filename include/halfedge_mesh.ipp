@@ -189,4 +189,4 @@ inline DualFacePtr HalfedgeDual::face(size_t index) {
   return DualFacePtr{&rawFaces[index]};
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -51,4 +51,4 @@ std::vector<Triangle> FacePtr::triangulation() {
   return triangles;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

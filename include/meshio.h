@@ -2,9 +2,9 @@
 
 // The MeshIO class provides a variety of methods for mesh input/output.
 
-#include <string>
-#include <fstream>
 #include <geometry.h>
+#include <fstream>
+#include <string>
 
 namespace geometrycentral {
 
@@ -33,4 +33,4 @@ class PLY {
 // TODO write halfedge mesh as a permutation, in binary format (for quicker
 // loading/smaller files)
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

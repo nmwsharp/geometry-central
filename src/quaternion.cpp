@@ -283,4 +283,4 @@ std::ostream& operator<<(std::ostream& os, const Quaternion& q)
   return os;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

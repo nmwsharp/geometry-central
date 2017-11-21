@@ -86,4 +86,4 @@ class DualHalfedgeData {
   GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(DualHalfedgeData)
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

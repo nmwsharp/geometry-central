@@ -3,8 +3,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include <Eigen/SparseQR>
 #include <Eigen/SparseLU>
+#include <Eigen/SparseQR>
 
 namespace geometrycentral {
 
@@ -309,7 +309,8 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
   else {
     std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
     throw FunctionalityException("not implemented");
-    // solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix); FIXME
+    // solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+    // FIXME
   }
 
   // Copy the result to a VertexData vector
@@ -521,4 +522,4 @@ FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry,
   return indices;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

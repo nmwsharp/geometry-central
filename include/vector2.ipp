@@ -99,4 +99,4 @@ inline Vector2 componentwiseMax(const Vector2& u, const Vector2& v) {
   return Vector2{fmax(u.x, v.x), fmax(u.y, v.y)};
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

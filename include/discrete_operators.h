@@ -46,4 +46,4 @@ geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh);
 template <typename T>
 geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh);
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

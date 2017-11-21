@@ -1,5 +1,5 @@
-#include <vector2.h>
 #include <utilities.h>
+#include <vector2.h>
 
 #include <cmath>
 #include <iostream>
@@ -11,4 +11,4 @@ std::ostream &operator<<(std::ostream &output, const Vector2 &v) {
   return output;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

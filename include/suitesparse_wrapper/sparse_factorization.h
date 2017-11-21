@@ -1,7 +1,7 @@
 #pragma once
 
-#include "suitesparse_wrapper/LLFactorization.h"
 #include "suitesparse_wrapper/LDLFactorization.h"
+#include "suitesparse_wrapper/LLFactorization.h"
 #include "suitesparse_wrapper/LUFactorization.h"
 #include "suitesparse_wrapper/QRFactorization.h"
 

@@ -50,13 +50,13 @@
 #include <iostream>
 
 #include <halfedge_mesh.h>
+#include <sparse_matrix.h>
+#include <unit_vector3.h>
 #include <vector2.h>
 #include <vector3.h>
-#include <unit_vector3.h>
-#include <sparse_matrix.h>
 
 namespace geometrycentral {
-    
+
 // Possible geometry types
 typedef Vector2 Planar;  // TODO change to Complex
 typedef Vector3 Euclidean;
@@ -184,8 +184,10 @@ geometrycentral::SparseMatrix<T> cotanMatrix(
                                      // is **not** the full Laplacian---for that
                                      // you need a mass matrix (below))
 template <typename T, typename G>
-geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
-                                size_t nC, bool faceAreaWeighted = false);
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry,
+                                             CornerData<size_t> index,
+                                             size_t nC,
+                                             bool faceAreaWeighted = false);
 
 template <typename T, typename G>
 geometrycentral::SparseMatrix<T> vertexMassMatrix(
@@ -198,6 +200,6 @@ geometrycentral::SparseMatrix<T> faceMassMatrix(
     Geometry<G>* geometry,
     FaceData<size_t> index);  // diagonal mass matrix containing face areas
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 #include <geometry.ipp>

@@ -71,7 +71,6 @@ inline bool Vector3::operator!=(const Vector3& other) const {
   return !(*this == other);
 }
 
-
 inline double norm(const Vector3& v) {
   return sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 }
@@ -129,11 +128,11 @@ inline Vector3 componentwiseMax(const Vector3& u, const Vector3& v) {
   return Vector3{fmax(u.x, v.x), fmax(u.y, v.y), fmax(u.z, v.z)};
 }
 
-
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 namespace std {
-inline std::size_t std::hash<geometrycentral::Vector3>::operator()(const geometrycentral::Vector3& v) const {
+inline std::size_t std::hash<geometrycentral::Vector3>::operator()(
+    const geometrycentral::Vector3& v) const {
   return std::hash<double>{}(v.x) ^
          (std::hash<double>{}(v.y) + (std::hash<double>{}(v.y) << 2)) ^
          (std::hash<double>{}(v.z) + (std::hash<double>{}(v.z) << 4));

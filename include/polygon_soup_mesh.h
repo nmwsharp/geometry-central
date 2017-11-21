@@ -1,14 +1,14 @@
 #pragma once
 
 #include <cstdlib>
-#include <vector>
-#include <memory>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
+#include <vector>
 
-#include <vector3.h>
-#include <utilities.h>
 #include <geometry.h>
+#include <utilities.h>
+#include <vector3.h>
 
 namespace geometrycentral {
 
@@ -30,4 +30,4 @@ class PolygonSoupMesh {
   void readMeshFromFile(std::string filename);
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

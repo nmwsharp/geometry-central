@@ -276,9 +276,10 @@ inline T Geometry<T>::circumcenter(FacePtr f) {
     throw std::domain_error("Circumcenter only defined for triangles");
   }
 
-  return a + (norm2(c - a) * cross(cross(b - a, c - a), b - a) +
-              norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
-                 (2. * norm2(cross(b - a, c - a)));
+  return a +
+         (norm2(c - a) * cross(cross(b - a, c - a), b - a) +
+          norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
+             (2. * norm2(cross(b - a, c - a)));
 }
 
 // Face attributes (dual)
@@ -793,4 +794,4 @@ geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
   return Mf;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

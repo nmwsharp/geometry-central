@@ -1,10 +1,10 @@
-#include <polygon_soup_mesh.h>
 #include <halfedge_mesh.h>
+#include <polygon_soup_mesh.h>
 
-#include <string>
-#include <sstream>
-#include <set>
 #include <map>
+#include <set>
+#include <sstream>
+#include <string>
 
 namespace geometrycentral {
 
@@ -141,4 +141,4 @@ void PolygonSoupMesh::triangulate() {
   polygons = newPolygons;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

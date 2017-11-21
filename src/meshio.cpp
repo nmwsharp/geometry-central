@@ -1,6 +1,6 @@
-#include <limits>
-#include <iostream>
 #include <meshio.h>
+#include <iostream>
+#include <limits>
 
 using namespace std;
 
@@ -168,4 +168,4 @@ bool PLY::write(std::string filename, Geometry<Euclidean>& geometry,
   return true;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

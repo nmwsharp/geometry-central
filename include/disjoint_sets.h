@@ -1,7 +1,7 @@
 #pragma once
 
-#include <vector>
 #include <cstddef>
+#include <vector>
 
 namespace geometrycentral {
 
@@ -51,4 +51,4 @@ class MarkedDisjointSets {
   std::vector<bool> marked;
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

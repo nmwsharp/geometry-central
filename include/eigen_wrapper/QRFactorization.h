@@ -2,8 +2,8 @@
 
 #include <Eigen/SparseQR>
 
-#include "utilities.h"
 #include "quaternion.h"
+#include "utilities.h"
 
 namespace geometrycentral {
 template <class T>
@@ -38,7 +38,8 @@ class QRFactorization {
 
   SparseMatrix<T>& A;
   Eigen::SparseQR<Eigen::SparseMatrix<T, Eigen::ColMajor>,
-                  Eigen::COLAMDOrdering<int>> solver;
+                  Eigen::COLAMDOrdering<int>>
+      solver;
 
   bool validSymbolic;
   bool validNumeric;

@@ -157,4 +157,4 @@ FaceAdjacentCornerIterator::FaceAdjacentCornerIterator(HalfedgePtr startingEdge,
                                                        bool justStarted_)
     : currHe(startingEdge), justStarted(justStarted_) {}
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

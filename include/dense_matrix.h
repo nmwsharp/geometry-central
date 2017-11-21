@@ -6,7 +6,8 @@
 // --THIS CLASS SHOULD *NOT* BE USED FOR LARGE, SPARSE MATRICES!--
 //             --PERFORMANCE **WILL** BE HORRIBLE---
 //
-// For matrices with many zeros, see geometrycentral::SparseMatrix.  geometrycentral::DenseMatrix is
+// For matrices with many zeros, see geometrycentral::SparseMatrix.
+// geometrycentral::DenseMatrix is
 // most commonly used to represent dense vectors in sparse linear systems
 // (i.e., the right hand side and the solution vector).
 //
@@ -20,21 +21,22 @@
 //    A(i,j) += 2;
 //    a = A(i,j);
 //
-// etc.  geometrycentral::SparseMatrix is interoperable with the Eigen numerical linear
-// algebra library.  In particular, the method geometrycentral::SparseMatrix::toEigen
+// etc.  geometrycentral::SparseMatrix is interoperable with the Eigen numerical
+// linear
+// algebra library.  In particular, the method
+// geometrycentral::SparseMatrix::toEigen
 // returns an Eigen::SparseMatrix which can be used by routines in Eigen.  For
 // basic operations, however, you should not need to perform this conversion
 // explicitly.
 //
 
+#include <vector3.h>
 #include <Eigen/Core>
 #include <vector>
-#include <vector3.h>
 
 #ifdef HAVE_SUITESPARSE
 #include <suitesparse_wrapper/linear_context.h>
 #endif
-
 
 // For real entry types we need to define a conjugation
 // operation (which does nothing) in order to implement
@@ -207,6 +209,6 @@ T inner(const DenseMatrix<T>& x, const DenseMatrix<T>& B,
 template <typename T>
 using DenseVector = DenseMatrix<T>;
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 #include "dense_matrix.ipp"

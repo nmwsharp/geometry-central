@@ -29,14 +29,14 @@ class PolygonSoupMesh;
 template <class T>
 class Geometry;
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
-#include <halfedge_pointer_types.h>
-#include <halfedge_dual_pointer_types.h>
 #include <halfedge_data_types.h>
 #include <halfedge_dual_data_types.h>
-#include <halfedge_iterators.h>
 #include <halfedge_dual_iterators.h>
+#include <halfedge_dual_pointer_types.h>
+#include <halfedge_iterators.h>
+#include <halfedge_pointer_types.h>
 
 namespace geometrycentral {
 
@@ -260,12 +260,12 @@ class Face {
 #endif
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
-#include <halfedge_mesh.ipp>
-#include <halfedge_iterators.ipp>
-#include <halfedge_dual_iterators.ipp>
 #include <halfedge_data_types.ipp>
 #include <halfedge_dual_data_types.ipp>
-#include <halfedge_pointer_types.ipp>
+#include <halfedge_dual_iterators.ipp>
 #include <halfedge_dual_pointer_types.ipp>
+#include <halfedge_iterators.ipp>
+#include <halfedge_mesh.ipp>
+#include <halfedge_pointer_types.ipp>

@@ -1,10 +1,10 @@
 #include "detect_symmetry.h"
 
-#include "nanoflann.hpp"
 #include "KDTreeVectorOfVectorsAdaptor.h"
+#include "nanoflann.hpp"
 
-#include <vector>
 #include <array>
+#include <vector>
 
 // Interal implementations that hide the NN lookup while allowing it to be
 // shared
@@ -410,4 +410,4 @@ SymmetryResult detectSymmetryDoubleMirror(Geometry<Euclidean>* geom) {
   return r;
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <cmath>
 
-#include <vector3.h>
 #include <utilities.h>
+#include <vector3.h>
 
 namespace geometrycentral {
 
@@ -35,4 +35,4 @@ inline double angle(UnitVector3& u0, UnitVector3& u1) {
 
 UnitVector3 interpolate(UnitVector3& u0, UnitVector3& u1, double t);
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

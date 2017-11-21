@@ -2,8 +2,8 @@
 
 #include <cassert>
 
-#include "halfedge_data_macros.h"
 #include "dense_matrix.h"
+#include "halfedge_data_macros.h"
 
 // === Datatypes which hold data stored on the mesh
 
@@ -20,8 +20,10 @@ class VertexData {
   VertexData() {}
   VertexData(HalfedgeMesh* parentMesh);
   VertexData(HalfedgeMesh* parentMesh, T initVal);
-  VertexData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector);
-  VertexData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector,
+  VertexData(HalfedgeMesh* parentMesh,
+             const geometrycentral::DenseMatrix<T>& vector);
+  VertexData(HalfedgeMesh* parentMesh,
+             const geometrycentral::DenseMatrix<T>& vector,
              const VertexData<size_t>& indexer);
 
   T& operator[](VertexPtr v);
@@ -29,7 +31,8 @@ class VertexData {
 
   void fill(T val);
   geometrycentral::DenseMatrix<T> toVector() const;
-  geometrycentral::DenseMatrix<T> toVector(const VertexData<size_t>& indexer) const;
+  geometrycentral::DenseMatrix<T> toVector(
+      const VertexData<size_t>& indexer) const;
   void fromVector(const geometrycentral::DenseMatrix<T>& vector);
   void fromVector(const geometrycentral::DenseMatrix<T>& vector,
                   const VertexData<size_t>& indexer);
@@ -48,8 +51,10 @@ class FaceData {
   FaceData() {}
   FaceData(HalfedgeMesh* parentMesh);
   FaceData(HalfedgeMesh* parentMesh, T initVal);
-  FaceData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector);
-  FaceData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector,
+  FaceData(HalfedgeMesh* parentMesh,
+           const geometrycentral::DenseMatrix<T>& vector);
+  FaceData(HalfedgeMesh* parentMesh,
+           const geometrycentral::DenseMatrix<T>& vector,
            const FaceData<size_t>& indexer);
 
   T& operator[](FacePtr f);
@@ -57,7 +62,8 @@ class FaceData {
 
   void fill(T val);
   geometrycentral::DenseMatrix<T> toVector() const;
-  geometrycentral::DenseMatrix<T> toVector(const FaceData<size_t>& indexer) const;
+  geometrycentral::DenseMatrix<T> toVector(
+      const FaceData<size_t>& indexer) const;
   void fromVector(const geometrycentral::DenseMatrix<T>& vector);
   void fromVector(const geometrycentral::DenseMatrix<T>& vector,
                   const FaceData<size_t>& indexer);
@@ -76,8 +82,10 @@ class EdgeData {
   EdgeData() {}
   EdgeData(HalfedgeMesh* parentMesh);
   EdgeData(HalfedgeMesh* parentMesh, T initVal);
-  EdgeData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector);
-  EdgeData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector,
+  EdgeData(HalfedgeMesh* parentMesh,
+           const geometrycentral::DenseMatrix<T>& vector);
+  EdgeData(HalfedgeMesh* parentMesh,
+           const geometrycentral::DenseMatrix<T>& vector,
            const EdgeData<size_t>& indexer);
 
   T& operator[](EdgePtr e);
@@ -85,7 +93,8 @@ class EdgeData {
 
   void fill(T val);
   geometrycentral::DenseMatrix<T> toVector() const;
-  geometrycentral::DenseMatrix<T> toVector(const EdgeData<size_t>& indexer) const;
+  geometrycentral::DenseMatrix<T> toVector(
+      const EdgeData<size_t>& indexer) const;
   void fromVector(const geometrycentral::DenseMatrix<T>& vector);
   void fromVector(const geometrycentral::DenseMatrix<T>& vector,
                   const EdgeData<size_t>& indexer);
@@ -105,8 +114,10 @@ class HalfedgeData {
   HalfedgeData() {}
   HalfedgeData(HalfedgeMesh* parentMesh);
   HalfedgeData(HalfedgeMesh* parentMesh, T initVal);
-  HalfedgeData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector);
-  HalfedgeData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector,
+  HalfedgeData(HalfedgeMesh* parentMesh,
+               const geometrycentral::DenseMatrix<T>& vector);
+  HalfedgeData(HalfedgeMesh* parentMesh,
+               const geometrycentral::DenseMatrix<T>& vector,
                const HalfedgeData<size_t>& indexer);
 
   T& operator[](HalfedgePtr he);
@@ -114,7 +125,8 @@ class HalfedgeData {
 
   void fill(T val);
   geometrycentral::DenseMatrix<T> toVector() const;
-  geometrycentral::DenseMatrix<T> toVector(const HalfedgeData<size_t>& indexer) const;
+  geometrycentral::DenseMatrix<T> toVector(
+      const HalfedgeData<size_t>& indexer) const;
   void fromVector(const geometrycentral::DenseMatrix<T>& vector);
   void fromVector(const geometrycentral::DenseMatrix<T>& vector,
                   const HalfedgeData<size_t>& indexer);
@@ -134,8 +146,10 @@ class CornerData {
   CornerData() {}
   CornerData(HalfedgeMesh* parentMesh);
   CornerData(HalfedgeMesh* parentMesh, T initVal);
-  CornerData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector);
-  CornerData(HalfedgeMesh* parentMesh, const geometrycentral::DenseMatrix<T>& vector,
+  CornerData(HalfedgeMesh* parentMesh,
+             const geometrycentral::DenseMatrix<T>& vector);
+  CornerData(HalfedgeMesh* parentMesh,
+             const geometrycentral::DenseMatrix<T>& vector,
              const CornerData<size_t>& indexer);
 
   T& operator[](CornerPtr c);
@@ -143,7 +157,8 @@ class CornerData {
 
   void fill(T val);
   geometrycentral::DenseMatrix<T> toVector() const;
-  geometrycentral::DenseMatrix<T> toVector(const CornerData<size_t>& indexer) const;
+  geometrycentral::DenseMatrix<T> toVector(
+      const CornerData<size_t>& indexer) const;
   void fromVector(const geometrycentral::DenseMatrix<T>& vector);
   void fromVector(const geometrycentral::DenseMatrix<T>& vector,
                   const CornerData<size_t>& indexer);
@@ -151,4 +166,4 @@ class CornerData {
   GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(CornerData)
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

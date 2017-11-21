@@ -8,8 +8,7 @@ namespace geometrycentral {
 
 // Data on vertices
 template <typename T>
-VertexData<T>::VertexData(HalfedgeMesh* parentMesh)
-    : mesh(parentMesh) {
+VertexData<T>::VertexData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
     data.resize(parentMesh->nVertices());
   }
@@ -110,8 +109,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(VertexData, mesh)
 
 // Data on edges
 template <typename T>
-EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh)
-    : mesh(parentMesh) {
+EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
     data.resize(parentMesh->nEdges());
   }
@@ -212,8 +210,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(EdgeData, mesh)
 
 // Data on (real) faces
 template <typename T>
-FaceData<T>::FaceData(HalfedgeMesh* parentMesh)
-    : mesh(parentMesh) {
+FaceData<T>::FaceData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
     data.resize(parentMesh->nFaces());
   }
@@ -314,8 +311,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(FaceData, mesh)
 
 // Data on (real and imaginary) halfedges
 template <typename T>
-HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh)
-    : mesh(parentMesh) {
+HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
     realSize = parentMesh->nHalfedges();
     size_t imaginarySize = parentMesh->nImaginaryHalfedges();
@@ -385,7 +381,8 @@ geometrycentral::DenseMatrix<T> HalfedgeData<T>::toVector(
 }
 
 template <typename T>
-void HalfedgeData<T>::fromVector(const geometrycentral::DenseMatrix<T>& vector) {
+void HalfedgeData<T>::fromVector(
+    const geometrycentral::DenseMatrix<T>& vector) {
   if (vector.nRows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
     throw std::runtime_error("Vector size does not match mesh size.");
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
@@ -446,8 +443,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(HalfedgeData, mesh)
 
 // Data on corners
 template <typename T>
-CornerData<T>::CornerData(HalfedgeMesh* parentMesh)
-    : mesh(parentMesh) {
+CornerData<T>::CornerData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
     realSize = parentMesh->nHalfedges();
     data.resize(realSize);
@@ -547,4 +543,4 @@ inline const T& CornerData<T>::operator[](CornerPtr c) const {
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(CornerData, mesh)
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <cmath>
 #include <utility>
+#include <vector>
 
-#include "utilities.h"
 #include "geometry.h"
+#include "utilities.h"
 
 // TODO: Split obtuse triangles instead of being wrong.
 namespace geometrycentral {
@@ -22,5 +22,4 @@ VertexData<double> FMMDistance(
 double eikonalDistanceSubroutine(double a, double b, double theta, double dA,
                                  double dB);
 
-
-} // namespace geometrycentral
+}  // namespace geometrycentral

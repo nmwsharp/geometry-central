@@ -1,6 +1,7 @@
 #pragma once
 
-// geometrycentral::SparseMatrix represents an m by n matrix where only nonzero entries are
+// geometrycentral::SparseMatrix represents an m by n matrix where only nonzero
+// entries are
 // stored explicitly.  This class is most commonly used to represent the linear
 // term in sparse linear systems (i.e., the matrix part).
 //
@@ -14,8 +15,10 @@
 //     A(i,j) += 2;
 //     a = A(i,j);
 //
-// etc.  geometrycentral::SparseMatrix is interoperable with the Eigen numerical linear
-// algebra library.  In particular, the method geometrycentral::SparseMatrix::toEigen
+// etc.  geometrycentral::SparseMatrix is interoperable with the Eigen numerical
+// linear
+// algebra library.  In particular, the method
+// geometrycentral::SparseMatrix::toEigen
 // returns an Eigen::SparseMatrix which can be used by routines in Eigen.  For
 // basic operations, however, you should not need to perform this conversion
 // explicitly.
@@ -25,11 +28,11 @@
 // putting the matrix in compressed-column order.
 //
 
-#include <map>
 #include <dense_matrix.h>
 #include <quaternion.h>
 #include <Eigen/Core>
 #include <Eigen/Sparse>
+#include <map>
 
 #include "timing.h"
 

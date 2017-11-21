@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cassert>
-#include <iostream>
 #include <cmath>
+#include <iostream>
 
 namespace geometrycentral {
 

@@ -46,12 +46,20 @@ inline bool HalfedgePtr::operator<(const HalfedgePtr& other) const {
 inline bool HalfedgePtr::operator<=(const HalfedgePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool HalfedgePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
-inline bool HalfedgePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool HalfedgePtr::operator==(::std::nullptr_t n) const {
+  return ptr == n;
+}
+inline bool HalfedgePtr::operator!=(::std::nullptr_t n) const {
+  return ptr != n;
+}
 inline bool HalfedgePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool HalfedgePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool HalfedgePtr::operator>=(::std::nullptr_t n) const {
+  return ptr >= n;
+}
 inline bool HalfedgePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool HalfedgePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
+inline bool HalfedgePtr::operator<=(::std::nullptr_t n) const {
+  return ptr <= n;
+}
 inline unsigned int HalfedgePtr::operator-(const HalfedgePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -76,11 +84,11 @@ inline HalfedgePtr HalfedgePtr::operator--(int) {
   return HalfedgePtr(ptr + 1);
 }
 
-inline ::std::ostream& operator<<(::std::ostream& output, const HalfedgePtr& he) {
+inline ::std::ostream& operator<<(::std::ostream& output,
+                                  const HalfedgePtr& he) {
   output << "he_" << he.ptr;
   return output;
 }
-
 
 inline HalfedgePtrRangeIterator::HalfedgePtrRangeIterator(
     HalfedgePtr startingHalfedge)
@@ -329,7 +337,6 @@ inline ::std::ostream& operator<<(::std::ostream& output, const VertexPtr& v) {
   return output;
 }
 
-
 inline VertexPtrRangeIterator::VertexPtrRangeIterator(VertexPtr startingVertex)
     : currVertex(startingVertex) {}
 inline const VertexPtrRangeIterator& VertexPtrRangeIterator::operator++() {
@@ -422,7 +429,6 @@ inline ::std::ostream& operator<<(::std::ostream& output, const EdgePtr& e) {
   output << "e_" << e.ptr;
   return output;
 }
-
 
 inline EdgePtrRangeIterator::EdgePtrRangeIterator(EdgePtr startingEdge)
     : currEdge(startingEdge) {}
@@ -561,7 +567,7 @@ inline FacePtrRangeIterator FacePtrSet::end() {
   return FacePtrRangeIterator(endptr);
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
 
 namespace std {
 template <>
@@ -592,4 +598,3 @@ struct hash<geometrycentral::FacePtr> {
   }
 };
 }
-

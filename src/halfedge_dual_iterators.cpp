@@ -81,4 +81,4 @@ DualFaceAdjacentDualFaceIterator::DualFaceAdjacentDualFaceIterator(
     DualHalfedgePtr startingDualEdge, bool justStarted_)
     : currHe(startingDualEdge), justStarted(justStarted_) {}
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

@@ -4,8 +4,8 @@
 
 #include <SuiteSparseQR.hpp>
 
-#include "utilities.h"
 #include "quaternion.h"
+#include "utilities.h"
 
 namespace geometrycentral {
 template <class T>

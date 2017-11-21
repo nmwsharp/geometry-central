@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstddef>
-#include <iostream>
 #include <functional>
+#include <iostream>
 
 namespace geometrycentral {
 
@@ -475,4 +475,4 @@ typedef FacePtr BoundaryPtr;
 typedef FacePtrSet BoundaryPtrSet;
 typedef FacePtrRangeIterator BoundaryRangeIterator;
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

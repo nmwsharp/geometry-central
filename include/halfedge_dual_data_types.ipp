@@ -48,8 +48,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(DualVertexData, dualMesh)
 
 // Data on edges
 template <typename T>
-DualEdgeData<T>::DualEdgeData(HalfedgeDual* parentMesh)
-    : dualMesh(parentMesh) {
+DualEdgeData<T>::DualEdgeData(HalfedgeDual* parentMesh) : dualMesh(parentMesh) {
   if (parentMesh != nullptr) {
     data.resize(parentMesh->nEdges());
   }
@@ -90,8 +89,7 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(DualEdgeData, dualMesh)
 
 // Data on (real) faces
 template <typename T>
-DualFaceData<T>::DualFaceData(HalfedgeDual* parentMesh)
-    : dualMesh(parentMesh) {
+DualFaceData<T>::DualFaceData(HalfedgeDual* parentMesh) : dualMesh(parentMesh) {
   if (parentMesh != nullptr) {
     data.resize(parentMesh->nFaces());
   }
@@ -172,4 +170,4 @@ inline const T& DualHalfedgeData<T>::operator[](DualHalfedgePtr he) const {
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(DualHalfedgeData, dualMesh)
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

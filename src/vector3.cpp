@@ -34,4 +34,4 @@ Vector3 Vector3::rotate_around(Vector3 axis, double theta) {
   }
 }
 
-} // namespace geometrycentral
+}  // namespace geometrycentral

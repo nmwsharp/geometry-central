@@ -235,4 +235,4 @@ class DualFaceAdjacentDualFaceSet {
   DualHalfedgePtr firstHe;
 };
 
-} // namespace geometrycentral
+}  // namespace geometrycentral
