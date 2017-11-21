@@ -9,6 +9,8 @@
 // Interal implementations that hide the NN lookup while allowing it to be
 // shared
 
+namespace geometrycentral {
+
 namespace {
 
 // Stupid nanoflann wrapper
@@ -407,3 +409,5 @@ SymmetryResult detectSymmetryDoubleMirror(Geometry<Euclidean>* geom) {
   delete tree;
   return r;
 }
+
+} // namespace geometrycentral

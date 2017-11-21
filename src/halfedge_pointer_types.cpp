@@ -1,5 +1,7 @@
 #include <halfedge_mesh.h>
 
+namespace geometrycentral {
+
 unsigned int VertexPtr::degree() {
   unsigned int k = 0;
 
@@ -48,3 +50,5 @@ std::vector<Triangle> FacePtr::triangulation() {
 
   return triangles;
 }
+
+} // namespace geometrycentral

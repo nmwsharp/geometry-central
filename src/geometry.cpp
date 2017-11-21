@@ -2,6 +2,8 @@
 #include <fstream>
 #include <geometry.h>
 
+namespace geometrycentral {
+
 template <>
 void Geometry<Euclidean>::normalize() {
   // compute center of mass
@@ -24,3 +26,5 @@ void Geometry<Euclidean>::normalize() {
     position(v) /= rMax;
   }
 }
+
+} // namespace geometrycentral

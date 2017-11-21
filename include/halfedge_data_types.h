@@ -7,6 +7,8 @@
 
 // === Datatypes which hold data stored on the mesh
 
+namespace geometrycentral {
+
 // Data on vertices
 template <typename T>
 class VertexData {
@@ -148,3 +150,5 @@ class CornerData {
 
   GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(CornerData)
 };
+
+} // namespace geometrycentral

@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstddef>
 
+namespace geometrycentral {
+
 class DisjointSets {
  public:
   // Constructor
@@ -48,3 +50,5 @@ class MarkedDisjointSets {
   std::vector<size_t> rank;
   std::vector<bool> marked;
 };
+
+} // namespace geometrycentral

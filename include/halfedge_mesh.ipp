@@ -1,5 +1,7 @@
 #pragma once
 
+namespace geometrycentral {
+
 inline HalfedgeDual HalfedgeMesh::dual() { return HalfedgeDual(*this); }
 
 // Methods for getting number of mesh elements
@@ -186,3 +188,5 @@ inline DualEdgePtr HalfedgeDual::edge(size_t index) {
 inline DualFacePtr HalfedgeDual::face(size_t index) {
   return DualFacePtr{&rawFaces[index]};
 }
+
+} // namespace geometrycentral

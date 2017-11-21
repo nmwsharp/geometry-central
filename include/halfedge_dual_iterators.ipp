@@ -1,5 +1,7 @@
 #pragma once
 
+namespace geometrycentral {
+
 // ==============================================================
 // ================    DualVertex Iterators    ==================
 // ==============================================================
@@ -258,3 +260,5 @@ inline bool DualFaceAdjacentDualFaceIterator::operator!=(
 inline DualFacePtr DualFaceAdjacentDualFaceIterator::operator*() const {
   return currHe.twin().face();
 }
+
+} // namespace geometrycentral

@@ -2,6 +2,8 @@
 
 // Implementations for halfedge_mesh_types.ipp
 
+namespace geometrycentral {
+
 // Halfedge
 inline HalfedgePtr::HalfedgePtr() : ptr(nullptr) {}
 inline HalfedgePtr::HalfedgePtr(Halfedge* ptr_) : ptr(ptr_) {}
@@ -44,12 +46,12 @@ inline bool HalfedgePtr::operator<(const HalfedgePtr& other) const {
 inline bool HalfedgePtr::operator<=(const HalfedgePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool HalfedgePtr::operator==(std::nullptr_t n) const { return ptr == n; }
-inline bool HalfedgePtr::operator!=(std::nullptr_t n) const { return ptr != n; }
-inline bool HalfedgePtr::operator>(std::nullptr_t n) const { return ptr > n; }
-inline bool HalfedgePtr::operator>=(std::nullptr_t n) const { return ptr >= n; }
-inline bool HalfedgePtr::operator<(std::nullptr_t n) const { return ptr < n; }
-inline bool HalfedgePtr::operator<=(std::nullptr_t n) const { return ptr <= n; }
+inline bool HalfedgePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
+inline bool HalfedgePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool HalfedgePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
+inline bool HalfedgePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool HalfedgePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
+inline bool HalfedgePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
 inline unsigned int HalfedgePtr::operator-(const HalfedgePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -74,19 +76,11 @@ inline HalfedgePtr HalfedgePtr::operator--(int) {
   return HalfedgePtr(ptr + 1);
 }
 
-inline std::ostream& operator<<(std::ostream& output, const HalfedgePtr& he) {
+inline ::std::ostream& operator<<(::std::ostream& output, const HalfedgePtr& he) {
   output << "he_" << he.ptr;
   return output;
 }
 
-namespace std {
-template <>
-struct hash<HalfedgePtr> {
-  std::size_t operator()(const HalfedgePtr& he) const {
-    return std::hash<Halfedge*>{}(he.ptr);
-  }
-};
-}
 
 inline HalfedgePtrRangeIterator::HalfedgePtrRangeIterator(
     HalfedgePtr startingHalfedge)
@@ -182,12 +176,12 @@ inline bool CornerPtr::operator<(const CornerPtr& other) const {
 inline bool CornerPtr::operator<=(const CornerPtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool CornerPtr::operator==(std::nullptr_t n) const { return ptr == n; }
-inline bool CornerPtr::operator!=(std::nullptr_t n) const { return ptr != n; }
-inline bool CornerPtr::operator>(std::nullptr_t n) const { return ptr > n; }
-inline bool CornerPtr::operator>=(std::nullptr_t n) const { return ptr >= n; }
-inline bool CornerPtr::operator<(std::nullptr_t n) const { return ptr < n; }
-inline bool CornerPtr::operator<=(std::nullptr_t n) const { return ptr <= n; }
+inline bool CornerPtr::operator==(::std::nullptr_t n) const { return ptr == n; }
+inline bool CornerPtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool CornerPtr::operator>(::std::nullptr_t n) const { return ptr > n; }
+inline bool CornerPtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool CornerPtr::operator<(::std::nullptr_t n) const { return ptr < n; }
+inline bool CornerPtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
 inline unsigned int CornerPtr::operator-(const CornerPtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -300,12 +294,12 @@ inline bool VertexPtr::operator<(const VertexPtr& other) const {
 inline bool VertexPtr::operator<=(const VertexPtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool VertexPtr::operator==(std::nullptr_t n) const { return ptr == n; }
-inline bool VertexPtr::operator!=(std::nullptr_t n) const { return ptr != n; }
-inline bool VertexPtr::operator>(std::nullptr_t n) const { return ptr > n; }
-inline bool VertexPtr::operator>=(std::nullptr_t n) const { return ptr >= n; }
-inline bool VertexPtr::operator<(std::nullptr_t n) const { return ptr < n; }
-inline bool VertexPtr::operator<=(std::nullptr_t n) const { return ptr <= n; }
+inline bool VertexPtr::operator==(::std::nullptr_t n) const { return ptr == n; }
+inline bool VertexPtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool VertexPtr::operator>(::std::nullptr_t n) const { return ptr > n; }
+inline bool VertexPtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool VertexPtr::operator<(::std::nullptr_t n) const { return ptr < n; }
+inline bool VertexPtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
 inline unsigned int VertexPtr::operator-(const VertexPtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -330,19 +324,11 @@ inline VertexPtr VertexPtr::operator--(int) {
   return VertexPtr(ptr + 1);
 }
 
-inline std::ostream& operator<<(std::ostream& output, const VertexPtr& v) {
+inline ::std::ostream& operator<<(::std::ostream& output, const VertexPtr& v) {
   output << "v_" << v.ptr;
   return output;
 }
 
-namespace std {
-template <>
-struct hash<VertexPtr> {
-  std::size_t operator()(const VertexPtr& v) const {
-    return std::hash<Vertex*>{}(v.ptr);
-  }
-};
-}
 
 inline VertexPtrRangeIterator::VertexPtrRangeIterator(VertexPtr startingVertex)
     : currVertex(startingVertex) {}
@@ -402,12 +388,12 @@ inline bool EdgePtr::operator<(const EdgePtr& other) const {
 inline bool EdgePtr::operator<=(const EdgePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool EdgePtr::operator==(std::nullptr_t n) const { return ptr == n; }
-inline bool EdgePtr::operator!=(std::nullptr_t n) const { return ptr != n; }
-inline bool EdgePtr::operator>(std::nullptr_t n) const { return ptr > n; }
-inline bool EdgePtr::operator>=(std::nullptr_t n) const { return ptr >= n; }
-inline bool EdgePtr::operator<(std::nullptr_t n) const { return ptr < n; }
-inline bool EdgePtr::operator<=(std::nullptr_t n) const { return ptr <= n; }
+inline bool EdgePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
+inline bool EdgePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool EdgePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
+inline bool EdgePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool EdgePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
+inline bool EdgePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
 inline unsigned int EdgePtr::operator-(const EdgePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -432,19 +418,11 @@ inline EdgePtr EdgePtr::operator--(int) {
   return EdgePtr(ptr + 1);
 }
 
-inline std::ostream& operator<<(std::ostream& output, const EdgePtr& e) {
+inline ::std::ostream& operator<<(::std::ostream& output, const EdgePtr& e) {
   output << "e_" << e.ptr;
   return output;
 }
 
-namespace std {
-template <>
-struct hash<EdgePtr> {
-  std::size_t operator()(const EdgePtr& e) const {
-    return std::hash<Edge*>{}(e.ptr);
-  }
-};
-}
 
 inline EdgePtrRangeIterator::EdgePtrRangeIterator(EdgePtr startingEdge)
     : currEdge(startingEdge) {}
@@ -523,12 +501,12 @@ inline bool FacePtr::operator<(const FacePtr& other) const {
 inline bool FacePtr::operator<=(const FacePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool FacePtr::operator==(std::nullptr_t n) const { return ptr == n; }
-inline bool FacePtr::operator!=(std::nullptr_t n) const { return ptr != n; }
-inline bool FacePtr::operator>(std::nullptr_t n) const { return ptr > n; }
-inline bool FacePtr::operator>=(std::nullptr_t n) const { return ptr >= n; }
-inline bool FacePtr::operator<(std::nullptr_t n) const { return ptr < n; }
-inline bool FacePtr::operator<=(std::nullptr_t n) const { return ptr <= n; }
+inline bool FacePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
+inline bool FacePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
+inline bool FacePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
+inline bool FacePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
+inline bool FacePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
+inline bool FacePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
 inline unsigned int FacePtr::operator-(const FacePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -553,18 +531,9 @@ inline FacePtr FacePtr::operator--(int) {
   return FacePtr(ptr + 1);
 }
 
-inline std::ostream& operator<<(std::ostream& output, const FacePtr& f) {
+inline ::std::ostream& operator<<(::std::ostream& output, const FacePtr& f) {
   output << "f_" << f.ptr;
   return output;
-}
-
-namespace std {
-template <>
-struct hash<FacePtr> {
-  std::size_t operator()(const FacePtr& f) const {
-    return std::hash<Face*>{}(f.ptr);
-  }
-};
 }
 
 inline FacePtrRangeIterator::FacePtrRangeIterator(FacePtr startingFace)
@@ -591,3 +560,36 @@ inline FacePtrRangeIterator FacePtrSet::begin() {
 inline FacePtrRangeIterator FacePtrSet::end() {
   return FacePtrRangeIterator(endptr);
 }
+
+} // namespace geometrycentral
+
+namespace std {
+template <>
+struct hash<geometrycentral::HalfedgePtr> {
+  std::size_t operator()(const geometrycentral::HalfedgePtr& he) const {
+    return std::hash<geometrycentral::Halfedge*>{}(he.ptr);
+  }
+};
+
+template <>
+struct hash<geometrycentral::VertexPtr> {
+  std::size_t operator()(const geometrycentral::VertexPtr& v) const {
+    return std::hash<geometrycentral::Vertex*>{}(v.ptr);
+  }
+};
+
+template <>
+struct hash<geometrycentral::EdgePtr> {
+  std::size_t operator()(const geometrycentral::EdgePtr& e) const {
+    return std::hash<geometrycentral::Edge*>{}(e.ptr);
+  }
+};
+
+template <>
+struct hash<geometrycentral::FacePtr> {
+  std::size_t operator()(const geometrycentral::FacePtr& f) const {
+    return std::hash<geometrycentral::Face*>{}(f.ptr);
+  }
+};
+}
+

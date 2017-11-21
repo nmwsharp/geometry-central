@@ -4,6 +4,8 @@
 // Note that many functions are inlined, and just defined in
 // halfedge_iterators.ipp
 
+namespace geometrycentral {
+
 // ==========================================================
 // ================    Vertex Iterators    ==================
 // ==========================================================
@@ -154,3 +156,5 @@ FaceAdjacentCornerSet::FaceAdjacentCornerSet(HalfedgePtr he) : firstHe(he) {}
 FaceAdjacentCornerIterator::FaceAdjacentCornerIterator(HalfedgePtr startingEdge,
                                                        bool justStarted_)
     : currHe(startingEdge), justStarted(justStarted_) {}
+
+} // namespace geometrycentral

@@ -55,6 +55,8 @@
 #include <unit_vector3.h>
 #include <sparse_matrix.h>
 
+namespace geometrycentral {
+    
 // Possible geometry types
 typedef Vector2 Planar;  // TODO change to Complex
 typedef Vector3 Euclidean;
@@ -195,5 +197,7 @@ template <typename T, typename G>
 geometrycentral::SparseMatrix<T> faceMassMatrix(
     Geometry<G>* geometry,
     FaceData<size_t> index);  // diagonal mass matrix containing face areas
+
+} // namespace geometrycentral
 
 #include <geometry.ipp>

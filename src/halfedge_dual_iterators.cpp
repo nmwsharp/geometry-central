@@ -4,6 +4,8 @@
 // mesh.
 // Note that many functions are inlined, and defined in halfedge_iterators.ipp
 
+namespace geometrycentral {
+
 // ==============================================================
 // ================    DualVertex Iterators    ==================
 // ==============================================================
@@ -78,3 +80,5 @@ DualFaceAdjacentDualFaceSet::DualFaceAdjacentDualFaceSet(DualHalfedgePtr he)
 DualFaceAdjacentDualFaceIterator::DualFaceAdjacentDualFaceIterator(
     DualHalfedgePtr startingDualEdge, bool justStarted_)
     : currHe(startingDualEdge), justStarted(justStarted_) {}
+
+} // namespace geometrycentral

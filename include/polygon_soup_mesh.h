@@ -10,6 +10,8 @@
 #include <utilities.h>
 #include <geometry.h>
 
+namespace geometrycentral {
+
 class PolygonSoupMesh {
  public:
   PolygonSoupMesh();
@@ -27,3 +29,5 @@ class PolygonSoupMesh {
  private:
   void readMeshFromFile(std::string filename);
 };
+
+} // namespace geometrycentral

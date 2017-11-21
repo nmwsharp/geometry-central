@@ -32,6 +32,8 @@
 #include <vector3.h>
 #include <ostream>
 
+namespace geometrycentral {
+
 class Quaternion {
  public:
   Quaternion(void);
@@ -158,3 +160,5 @@ Quaternion operator*(double c, const Quaternion& q);
 
 std::ostream& operator<<(std::ostream& os, const Quaternion& q);
 // prints components
+
+} // namespace geometrycentral

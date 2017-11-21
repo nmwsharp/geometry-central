@@ -4,6 +4,8 @@
 
 using namespace std;
 
+namespace geometrycentral {
+
 bool WavefrontOBJ::write(string filename, Geometry<Euclidean>& geometry) {
   ofstream out;
   if (!openStream(out, filename)) return false;
@@ -165,3 +167,5 @@ bool PLY::write(std::string filename, Geometry<Euclidean>& geometry,
 
   return true;
 }
+
+} // namespace geometrycentral

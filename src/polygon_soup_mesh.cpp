@@ -6,6 +6,8 @@
 #include <set>
 #include <map>
 
+namespace geometrycentral {
+
 PolygonSoupMesh::PolygonSoupMesh() {}
 
 PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename) {
@@ -138,3 +140,5 @@ void PolygonSoupMesh::triangulate() {
 
   polygons = newPolygons;
 }
+
+} // namespace geometrycentral

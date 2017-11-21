@@ -4,6 +4,8 @@
 
 // === Implementations for datatypes which hold data stored on the mesh
 
+namespace geometrycentral {
+
 // Data on vertices
 template <typename T>
 VertexData<T>::VertexData(HalfedgeMesh* parentMesh)
@@ -544,3 +546,5 @@ inline const T& CornerData<T>::operator[](CornerPtr c) const {
 }
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(CornerData, mesh)
+
+} // namespace geometrycentral

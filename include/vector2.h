@@ -4,6 +4,8 @@
 #include <cmath>
 #include <vector3.h>
 
+namespace geometrycentral {
+  
 // Note: this class avoids any constructors so that it is a POD type
 struct Vector2 {
   double x, y;
@@ -46,7 +48,7 @@ struct Vector2 {
 
 Vector2 operator*(const double s, const Vector2& v);
 
-std::ostream& operator<<(std::ostream& output, const Vector2& v);
+::std::ostream& operator<<(std::ostream& output, const Vector2& v);
 
 double norm(const Vector2& v);
 double norm2(const Vector2& v);
@@ -58,5 +60,7 @@ Vector3 cross(const Vector2& u,
 bool isFinite(const Vector2& u);
 Vector2 componentwiseMin(const Vector2& u, const Vector2& v);
 Vector2 componentwiseMax(const Vector2& u, const Vector2& v);
+
+} // namespace geometrycentral
 
 #include <vector2.ipp>

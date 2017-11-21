@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 
+namespace geometrycentral {
+
 // Note: this class avoids any constructors so that it is a POD type
 struct Vector3 {
   // Components
@@ -35,12 +37,12 @@ struct Vector3 {
   static Vector3 zero() { return Vector3{0., 0., 0.}; }
 
   static Vector3 infinity() {
-    const double inf = std::numeric_limits<double>::infinity();
+    const double inf = ::std::numeric_limits<double>::infinity();
     return Vector3{inf, inf, inf};
   }
 
   static Vector3 undefined() {
-    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const double nan = ::std::numeric_limits<double>::quiet_NaN();
     return Vector3{nan, nan, nan};
   }
 
@@ -50,7 +52,7 @@ struct Vector3 {
 
 Vector3 operator*(const double s, const Vector3& v);
 
-std::ostream& operator<<(std::ostream& output, const Vector3& v);
+::std::ostream& operator<<(::std::ostream& output, const Vector3& v);
 
 double norm(const Vector3& v);
 double norm2(const Vector3& v);
@@ -63,10 +65,13 @@ bool isFinite(const Vector3& u);
 Vector3 componentwiseMin(const Vector3& u, const Vector3& v);
 Vector3 componentwiseMax(const Vector3& u, const Vector3& v);
 
+} // namespace geometrycentral
+
+
 namespace std {
 template <>
-struct hash<Vector3> {
-  std::size_t operator()(const Vector3& v) const;
+struct hash<geometrycentral::Vector3> {
+  std::size_t operator()(const geometrycentral::Vector3& v) const;
 };
 }
 

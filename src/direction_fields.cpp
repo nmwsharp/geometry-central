@@ -6,7 +6,7 @@
 #include <Eigen/SparseQR>
 #include <Eigen/SparseLU>
 
-#include <solvers.h>
+namespace geometrycentral {
 
 // Forward declare "private" helper functions
 VertexData<Complex> computeSmoothestDirectionField_boundary(
@@ -302,12 +302,14 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
     Eigen::VectorXcd RHS = dirVec;
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
         energyMatrix - lambdaT * massMatrix;
-    solution = solveSquare(LHS, RHS);
+    throw FunctionalityException("not implemented");
+    // solution = solveSquare(LHS, RHS); FIXME
   }
   // Otherwise find the smallest eigenvector
   else {
     std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
-    solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+    throw FunctionalityException("not implemented");
+    // solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix); FIXME
   }
 
   // Copy the result to a VertexData vector
@@ -448,7 +450,8 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
     Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
         massMatrix * energyMatrix;
-    solution = solveSquare(LHS, RHS);
+    throw FunctionalityException("not implemented");
+    // solution = solveSquare(LHS, RHS); FIXME
   }
   // Otherwise find the general closest solution
   else {
@@ -457,7 +460,8 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
         massMatrix * energyMatrix;  // can be simplified
     Eigen::VectorXcd RHS = massMatrix * b;
-    solution = solveSquare(LHS, RHS);
+    throw FunctionalityException("not implemented");
+    // solution = solveSquare(LHS, RHS); FIXME
   }
 
   // Copy the result to a VertexData vector for both the boudary and interior
@@ -516,3 +520,5 @@ FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry,
 
   return indices;
 }
+
+} // namespace geometrycentral

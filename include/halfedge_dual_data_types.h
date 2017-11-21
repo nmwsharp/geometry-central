@@ -4,6 +4,8 @@
 
 #include "halfedge_data_macros.h"
 
+namespace geometrycentral {
+
 // Data on dual vertices
 template <typename T>
 class DualVertexData {
@@ -83,3 +85,5 @@ class DualHalfedgeData {
 
   GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(DualHalfedgeData)
 };
+
+} // namespace geometrycentral

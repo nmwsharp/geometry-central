@@ -11,6 +11,8 @@
 #include <stdexcept>
 #include <limits>
 
+namespace geometrycentral {
+
 // Cache some basic information that may be queried many
 // times, but require O(n) computation to determine.
 void HalfedgeMesh::cacheInfo() {
@@ -680,3 +682,6 @@ HalfedgeMesh* HalfedgeMesh::copy() {
 
   return mesh;
 }
+
+
+} // namespace geometrycentral

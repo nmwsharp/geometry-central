@@ -4,6 +4,8 @@
 
 #include <halfedge_mesh.h>
 
+namespace geometrycentral {
+
 // ===============================================================
 // ================    Dual Vertex Iterators    ==================
 // ===============================================================
@@ -232,3 +234,5 @@ class DualFaceAdjacentDualFaceSet {
  private:
   DualHalfedgePtr firstHe;
 };
+
+} // namespace geometrycentral

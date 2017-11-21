@@ -2,6 +2,8 @@
 
 using std::vector;
 
+namespace geometrycentral {
+
 // Constructor
 DisjointSets::DisjointSets(size_t n_) : n(n_), parent(n + 1), rank(n + 1) {
   // Initialize all elements to be in different sets and to have rank 0
@@ -82,3 +84,5 @@ void MarkedDisjointSets::merge(size_t x, size_t y) {
     marked[y] = true;
   }
 }
+
+} // namespace geometrycentral

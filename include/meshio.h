@@ -6,6 +6,8 @@
 #include <fstream>
 #include <geometry.h>
 
+namespace geometrycentral {
+
 class WavefrontOBJ {
  public:
   static bool write(std::string filename, Geometry<Euclidean>& geometry);
@@ -30,3 +32,5 @@ class PLY {
 
 // TODO write halfedge mesh as a permutation, in binary format (for quicker
 // loading/smaller files)
+
+} // namespace geometrycentral

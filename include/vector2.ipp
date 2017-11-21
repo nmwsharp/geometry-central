@@ -1,4 +1,6 @@
 
+namespace geometrycentral {
+
 inline Vector2 Vector2::operator+(const Vector2& v) const {
   return Vector2{x + v.x, y + v.y};
 }
@@ -96,3 +98,5 @@ inline Vector2 componentwiseMin(const Vector2& u, const Vector2& v) {
 inline Vector2 componentwiseMax(const Vector2& u, const Vector2& v) {
   return Vector2{fmax(u.x, v.x), fmax(u.y, v.y)};
 }
+
+} // namespace geometrycentral

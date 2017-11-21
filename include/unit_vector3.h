@@ -6,6 +6,8 @@
 #include <vector3.h>
 #include <utilities.h>
 
+namespace geometrycentral {
+
 class UnitVector3 : public Vector3 {
  public:
   UnitVector3(void) : Vector3{1., 0., 0.} {}
@@ -32,3 +34,5 @@ inline double angle(UnitVector3& u0, UnitVector3& u1) {
 }
 
 UnitVector3 interpolate(UnitVector3& u0, UnitVector3& u1, double t);
+
+} // namespace geometrycentral

@@ -1,5 +1,7 @@
 #pragma once
 
+namespace geometrycentral {
+
 // Dual Halfedge
 inline DualHalfedgePtr::DualHalfedgePtr() : ptr(nullptr) {}
 inline DualHalfedgePtr::DualHalfedgePtr(Halfedge* ptr_) : ptr(ptr_) {}
@@ -416,3 +418,5 @@ inline DualFacePtrRangeIterator DualFacePtrSet::begin() {
 inline DualFacePtrRangeIterator DualFacePtrSet::end() {
   return DualFacePtrRangeIterator(endptr);
 }
+
+} // namespace geometrycentral

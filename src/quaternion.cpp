@@ -4,6 +4,8 @@ using namespace std;
 
 #include "quaternion.h"
 
+namespace geometrycentral {
+
 // CONSTRUCTORS ----------------------------------------------------------
 
 Quaternion::Quaternion(void)
@@ -280,3 +282,5 @@ std::ostream& operator<<(std::ostream& os, const Quaternion& q)
 
   return os;
 }
+
+} // namespace geometrycentral

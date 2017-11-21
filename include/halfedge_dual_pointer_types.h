@@ -2,6 +2,8 @@
 
 #include <cstddef>
 
+namespace geometrycentral {
+
 // === Types and inline methods for the halfedge mesh pointer and datatypes
 
 // === Forward declare dual iterator set types (pointers may need to return
@@ -324,3 +326,5 @@ class DualFacePtrSet {
  private:
   DualFacePtr beginptr, endptr;
 };
+
+} // namespace geometrycentral

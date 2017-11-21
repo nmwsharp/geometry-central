@@ -7,12 +7,14 @@
 #include <limits>
 #include <typeinfo>
 #include <exception>
+#include <complex>
 
 #include <vector3.h>
 #include <vector2.h>
 
-#define PI 3.1415926535897932384
-typedef int Bool;
+namespace geometrycentral {
+
+const double PI = 3.1415926535897932384;
 
 // Lightweight class for holding 3-tuples of unsigned ints
 union uint3 {
@@ -25,23 +27,14 @@ union uint3 {
 };
 
 // Complex numbers are useful
-using Complex = std::complex<double>;
+using Complex = ::std::complex<double>;
 const Complex IM_I(0.0, 1.0);
 inline double dot(Complex x, Complex y) {
   return x.real() * y.real() + x.imag() * y.imag();
 }
 
-inline Complex inv(Complex c) { return std::conj(c) / std::norm(c); }
+inline Complex inv(Complex c) { return ::std::conj(c) / ::std::norm(c); }
 
-namespace std {
-// NOTE: Technically, the lines below are illegal, because specializing standard
-// library functions is ONLY allowed for
-// user-defined types. That being said, I don't think this will crash any
-// planes.
-inline bool isfinite(const std::complex<double> c) {
-  return isfinite(c.real()) && isfinite(c.imag());
-}
-}
 
 // Various functions
 template <typename T>
@@ -72,9 +65,9 @@ inline Vector3 clamp(Vector3 val, Vector3 low, Vector3 high) {
 
 template <typename T>
 inline bool approxEqualsAbsolute(T a, T b, double eps) {
-  double absA = std::abs(a);
-  double absB = std::abs(b);
-  double absDiff = std::abs(a - b);
+  double absA = ::std::abs(a);
+  double absB = ::std::abs(b);
+  double absDiff = ::std::abs(a - b);
 
   if (a == b) {
     return true;
@@ -84,7 +77,7 @@ inline bool approxEqualsAbsolute(T a, T b, double eps) {
 }
 
 inline double regularizeAngle(double theta) {
-  return theta - 2 * PI * std::floor(theta / (2 * PI));
+  return theta - 2 * PI * ::std::floor(theta / (2 * PI));
 }
 
 template <typename T>
@@ -150,10 +143,20 @@ inline std::string to_string(std::vector<T> const& v) {
 }
 
 // === Custom error types
-namespace geometrycentral {
 class FunctionalityException : public std::runtime_error {
  public:
   FunctionalityException(std::string msg)
       : std::runtime_error("Missing functionaliy: " + msg){};
 };
+
+} // namespace geometrycentral
+
+namespace std {
+// NOTE: Technically, the lines below are illegal, because specializing standard
+// library functions is ONLY allowed for
+// user-defined types. That being said, I don't think this will crash any
+// planes.
+inline bool isfinite(const ::std::complex<double> c) {
+  return isfinite(c.real()) && isfinite(c.imag());
+}
 }

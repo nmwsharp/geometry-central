@@ -1,5 +1,7 @@
 #include <unit_vector3.h>
 
+namespace geometrycentral {
+
 UnitVector3 interpolate(UnitVector3& u0, UnitVector3& u1, double t) {
   double theta = angle(u0, u1);
   Vector3 w = cross(u0, u1);
@@ -11,3 +13,5 @@ UnitVector3 interpolate(UnitVector3& u0, UnitVector3& u1, double t) {
 
   return UnitVector3(r);
 }
+
+} // namespace geometrycentral

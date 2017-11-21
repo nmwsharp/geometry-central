@@ -4,6 +4,8 @@
 
 #include <halfedge_mesh.h>
 
+namespace geometrycentral {
+
 // TODO add const interators across the board
 
 // NOTE: These iterators are not STL compliant (so you can use them with
@@ -341,3 +343,5 @@ class FaceAdjacentCornerSet {
  private:
   HalfedgePtr firstHe;
 };
+
+} // namespace geometrycentral

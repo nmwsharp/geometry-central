@@ -1,5 +1,7 @@
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+
+namespace geometrycentral {
 
 // Generic methods =============================================================
 
@@ -274,10 +276,9 @@ inline T Geometry<T>::circumcenter(FacePtr f) {
     throw std::domain_error("Circumcenter only defined for triangles");
   }
 
-  return a +
-         (norm2(c - a) * cross(cross(b - a, c - a), b - a) +
-          norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
-             (2. * norm2(cross(b - a, c - a)));
+  return a + (norm2(c - a) * cross(cross(b - a, c - a), b - a) +
+              norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
+                 (2. * norm2(cross(b - a, c - a)));
 }
 
 // Face attributes (dual)
@@ -306,7 +307,7 @@ inline double Geometry<T>::angle(HalfedgePtr h) {
   T t1 = vector(h.next().next());
   T t2 = -vector(h.next());
 
-  return ::angle(t1, t2);
+  return geometrycentral::angle(t1, t2);
 }
 
 template <class T>
@@ -358,7 +359,7 @@ inline double Geometry<Spherical>::length(EdgePtr e) {
   UnitVector3 u0 = p[e.halfedge().vertex()];
   UnitVector3 u1 = p[e.halfedge().twin().vertex()];
 
-  return ::angle(u0, u1);
+  return geometrycentral::angle(u0, u1);
 }
 
 template <>
@@ -393,9 +394,9 @@ inline Vector3 Geometry<Spherical>::normal(FacePtr f) {
   h = h.next();
   Vector3 pk = p[h.vertex()];
 
-  double thetaIJ = ::angle(pi, pj);
-  double thetaJK = ::angle(pj, pk);
-  double thetaKI = ::angle(pk, pi);
+  double thetaIJ = geometrycentral::angle(pi, pj);
+  double thetaJK = geometrycentral::angle(pj, pk);
+  double thetaKI = geometrycentral::angle(pk, pi);
 
   return thetaIJ * unit(cross(pj, pi)) + thetaJK * unit(cross(pk, pj)) +
          thetaKI * unit(cross(pi, pk));
@@ -419,7 +420,7 @@ inline UnitVector3 Geometry<Spherical>::barycenter(FacePtr f) {
     for (HalfedgePtr h : f.adjacentHalfedges()) {
       Vector3 q = p[h.vertex()];
 
-      double theta = ::angle(c, q);
+      double theta = geometrycentral::angle(c, q);
       Vector3 w = cross(c, q);
       double m = norm(w);
       if (m > eps) {
@@ -685,8 +686,9 @@ void Geometry<T>::getAngularCoordinates(
 // Common matrices =============================================================
 
 template <typename T, typename G>
-geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<size_t> index,
-                                bool faceAreaWeighted) {
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry,
+                                             VertexData<size_t> index,
+                                             bool faceAreaWeighted) {
   HalfedgeMesh& mesh(geometry->mesh);
   int nV = mesh.nVertices();
   geometrycentral::SparseMatrix<T> C(nV, nV);
@@ -707,8 +709,9 @@ geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<s
 }
 
 template <typename T, typename G>
-geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
-                                size_t nC, bool faceAreaWeighted) {
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry,
+                                             CornerData<size_t> index,
+                                             size_t nC, bool faceAreaWeighted) {
   HalfedgeMesh& mesh(geometry->mesh);
   geometrycentral::SparseMatrix<T> C(nC, nC);
 
@@ -757,7 +760,7 @@ geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<s
 
 template <typename T, typename G>
 geometrycentral::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
-                                     VertexData<size_t> index) {
+                                                  VertexData<size_t> index) {
   if (geometry->dualType != DualType::Barycentric) {
     throw std::domain_error(
         "Vertex mass matrix currently implemented only for barycentric dual");
@@ -777,7 +780,7 @@ geometrycentral::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
 
 template <typename T, typename G>
 geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
-                                   FaceData<size_t> index) {
+                                                FaceData<size_t> index) {
   HalfedgeMesh& mesh(geometry->mesh);
   int nF = mesh.nFaces();
   geometrycentral::SparseMatrix<T> Mf(nF, nF);
@@ -789,3 +792,5 @@ geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
 
   return Mf;
 }
+
+} // namespace geometrycentral

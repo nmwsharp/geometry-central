@@ -4,6 +4,8 @@
 #include <iostream>
 #include <functional>
 
+namespace geometrycentral {
+
 // === Types and inline methods for the halfedge mesh pointer and datatypes
 
 // === Forward declare iterator set types (pointers may need to return these to
@@ -472,3 +474,5 @@ typedef Face Boundary;
 typedef FacePtr BoundaryPtr;
 typedef FacePtrSet BoundaryPtrSet;
 typedef FacePtrRangeIterator BoundaryRangeIterator;
+
+} // namespace geometrycentral

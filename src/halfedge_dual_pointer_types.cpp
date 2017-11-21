@@ -1,5 +1,7 @@
 #include <halfedge_mesh.h>
 
+namespace geometrycentral {
+
 unsigned int DualVertexPtr::degree() {
   unsigned int k = 0;
 
@@ -9,3 +11,5 @@ unsigned int DualVertexPtr::degree() {
 
   return k;
 }
+
+} // namespace geometrycentral

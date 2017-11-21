@@ -2,6 +2,8 @@
 
 #include "halfedge_data_macros.h"
 
+namespace geometrycentral {
+
 // Data on vertices
 template <typename T>
 DualVertexData<T>::DualVertexData(HalfedgeDual* parentMesh)
@@ -169,3 +171,5 @@ inline const T& DualHalfedgeData<T>::operator[](DualHalfedgePtr he) const {
 }
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(DualHalfedgeData, dualMesh)
+
+} // namespace geometrycentral

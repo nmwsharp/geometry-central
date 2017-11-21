@@ -1,5 +1,7 @@
 #pragma once
 
+namespace geometrycentral {
+  
 // ==========================================================
 // ================    Vertex Iterators    ==================
 // ==========================================================
@@ -350,3 +352,5 @@ inline bool FaceAdjacentCornerIterator::operator!=(
 inline CornerPtr FaceAdjacentCornerIterator::operator*() const {
   return currHe.next().corner();
 }
+
+} // namespace geometrycentral

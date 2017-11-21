@@ -6,6 +6,8 @@
 #include <vector3.h>
 // NOTE: More includes at bottom of file
 
+namespace geometrycentral {
+
 // A HalfedgeMesh encodes the connectivity---but not the geometry---of a
 // manifold surface, possibly with boundary.
 
@@ -27,12 +29,16 @@ class PolygonSoupMesh;
 template <class T>
 class Geometry;
 
+} // namespace geometrycentral
+
 #include <halfedge_pointer_types.h>
 #include <halfedge_dual_pointer_types.h>
 #include <halfedge_data_types.h>
 #include <halfedge_dual_data_types.h>
 #include <halfedge_iterators.h>
 #include <halfedge_dual_iterators.h>
+
+namespace geometrycentral {
 
 class HalfedgeDual;
 
@@ -253,6 +259,8 @@ class Face {
   HalfedgeMesh* parentMesh;
 #endif
 };
+
+} // namespace geometrycentral
 
 #include <halfedge_mesh.ipp>
 #include <halfedge_iterators.ipp>
