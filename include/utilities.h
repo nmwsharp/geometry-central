@@ -152,9 +152,8 @@ class FunctionalityException : public std::runtime_error {
 
 namespace std {
 // NOTE: Technically, the lines below are illegal, because specializing standard
-// library functions is ONLY allowed for
-// user-defined types. That being said, I don't think this will crash any
-// planes.
+// library functions is ONLY allowed for user-defined types. That being said, I
+// don't think this will crash any planes.
 inline bool isfinite(const ::std::complex<double> c) {
   return isfinite(c.real()) && isfinite(c.imag());
 }
