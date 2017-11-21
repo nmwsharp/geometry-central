@@ -4,6 +4,8 @@
 
 #include <vector>
 
+namespace geometrycentral {
+    
 struct SymmetryResult {
   bool symmetryFound = false;  // was a symmetry found? is this data valid?
   std::vector<VertexPtr> canonicalVertices;  // a representative entry from each
@@ -32,3 +34,5 @@ SymmetryResult detectSymmetryAutoMirror(
 
 // Look for symmetry which is mirrored over the y and z planes
 SymmetryResult detectSymmetryDoubleMirror(Geometry<Euclidean>* geom);
+
+} // namespace geometrycentral

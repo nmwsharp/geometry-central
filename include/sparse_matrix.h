@@ -1,6 +1,6 @@
 #pragma once
 
-// GC::SparseMatrix represents an m by n matrix where only nonzero entries are
+// geometrycentral::SparseMatrix represents an m by n matrix where only nonzero entries are
 // stored explicitly.  This class is most commonly used to represent the linear
 // term in sparse linear systems (i.e., the matrix part).
 //
@@ -14,8 +14,8 @@
 //     A(i,j) += 2;
 //     a = A(i,j);
 //
-// etc.  GC::SparseMatrix is interoperable with the Eigen numerical linear
-// algebra library.  In particular, the method GC::SparseMatrix::toEigen
+// etc.  geometrycentral::SparseMatrix is interoperable with the Eigen numerical linear
+// algebra library.  In particular, the method geometrycentral::SparseMatrix::toEigen
 // returns an Eigen::SparseMatrix which can be used by routines in Eigen.  For
 // basic operations, however, you should not need to perform this conversion
 // explicitly.
@@ -40,7 +40,7 @@
 #include "eigen_wrapper/sparse_factorization.h"
 #endif
 
-namespace GC {
+namespace geometrycentral {
 // XXX dummy class; still need to port from libDDG
 template <typename T>
 class SparseMatrix;
@@ -371,7 +371,7 @@ T rayleighQuotient(const SparseMatrix<T>& A, const SparseMatrix<T>& B,
                    const DenseMatrix<T>& E, const DenseMatrix<T>& x);
 // returns <Ax,x>/<(B-EE^T)x,x>
 
-}  // namespace GC
+}  // namespace geometrycentral
 
 #ifdef HAVE_SUITESPARSE
 #include "suitesparse_wrapper/sparse_matrix_suitesparse.ipp"

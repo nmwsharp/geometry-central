@@ -3,7 +3,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace GC {
+namespace geometrycentral {
 extern LinearContext context;
 
 template <class T>

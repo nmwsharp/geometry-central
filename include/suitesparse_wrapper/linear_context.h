@@ -15,7 +15,7 @@
 #ifdef HAVE_SUITESPARSE
 #include <cholmod.h>
 
-namespace GC {
+namespace geometrycentral {
 class LinearContext {
  public:
   LinearContext(void);

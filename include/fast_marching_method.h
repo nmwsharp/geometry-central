@@ -8,7 +8,7 @@
 #include "geometry.h"
 
 // TODO: Split obtuse triangles instead of being wrong.
-namespace GC {
+namespace geometrycentral {
 
 VertexData<double> FMMDistance(
     Geometry<Euclidean>* geometry,
@@ -21,4 +21,6 @@ VertexData<double> FMMDistance(
 
 double eikonalDistanceSubroutine(double a, double b, double theta, double dA,
                                  double dB);
-}
+
+
+} // namespace geometrycentral

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace GC {
+namespace geometrycentral {
 
 const int DEFAULT_MAX_EIG_ITER = 32;
 // maximum number of iterations used to solve eigenvalue problems

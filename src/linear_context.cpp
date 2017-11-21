@@ -1,7 +1,7 @@
 #include "suitesparse_wrapper/linear_context.h"
 
 #ifdef HAVE_SUITESPARSE
-namespace GC {
+namespace geometrycentral {
 // global context for linear solvers
 LinearContext context;
 

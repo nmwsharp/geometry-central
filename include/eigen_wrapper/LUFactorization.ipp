@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace GC {
+namespace geometrycentral {
 
 template <class T>
 LUFactorization<T>::LUFactorization(SparseMatrix<T>& A_)

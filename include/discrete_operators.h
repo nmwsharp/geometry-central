@@ -2,7 +2,7 @@
 
 #include "geometry.h"
 
-namespace GC {
+namespace geometrycentral {
 
 /*
     === Standard operators from DDG, using circumcentric dual, defined over the
@@ -28,21 +28,22 @@ namespace GC {
 
 // Hodge star on 0-forms. Returns a (nVerts, nVerts) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge0(Geometry<D>* geometry);
+geometrycentral::SparseMatrix<T> buildHodge0(Geometry<D>* geometry);
 
 // Hodge star on 1-forms. Returns a (nEdges, nEdges) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge1(Geometry<D>* geometry);
+geometrycentral::SparseMatrix<T> buildHodge1(Geometry<D>* geometry);
 
 // Hodge star on 2-forms. Returns a (nFaces, nFaces) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge2(Geometry<D>* geometry);
+geometrycentral::SparseMatrix<T> buildHodge2(Geometry<D>* geometry);
 
 // Derivative on 0-forms. Returns a (nEdges, nVerts) matrix
 template <typename T>
-GC::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh);
+geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh);
 
 // Derivative on 1-forms. Returns a (nFaces, nEdges) matrix
 template <typename T>
-GC::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh);
-}
+geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh);
+
+} // namespace geometrycentral

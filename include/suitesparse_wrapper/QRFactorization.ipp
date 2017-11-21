@@ -12,7 +12,7 @@
 
 #include <iostream>
 
-namespace GC {
+namespace geometrycentral {
 extern LinearContext context;
 
 template <class T>

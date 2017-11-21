@@ -5,7 +5,7 @@
 #include <iostream>
 using namespace std;
 
-namespace GC {
+namespace geometrycentral {
 #ifdef HAVE_SUITESPARSE
 extern LinearContext context;
 #endif

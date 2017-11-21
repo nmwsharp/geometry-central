@@ -150,7 +150,7 @@ inline std::string to_string(std::vector<T> const& v) {
 }
 
 // === Custom error types
-namespace GC {
+namespace geometrycentral {
 class FunctionalityException : public std::runtime_error {
  public:
   FunctionalityException(std::string msg)

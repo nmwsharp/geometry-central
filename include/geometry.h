@@ -176,23 +176,23 @@ class Geometry : public VertexData<T> {
 };
 
 template <typename T, typename G>
-GC::SparseMatrix<T> cotanMatrix(
+geometrycentral::SparseMatrix<T> cotanMatrix(
     Geometry<G>* geometry, VertexData<size_t> index,
     bool faceAreaWeighted = false);  // usual symmetric cotan matrix (note this
                                      // is **not** the full Laplacian---for that
                                      // you need a mass matrix (below))
 template <typename T, typename G>
-GC::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
                                 size_t nC, bool faceAreaWeighted = false);
 
 template <typename T, typename G>
-GC::SparseMatrix<T> vertexMassMatrix(
+geometrycentral::SparseMatrix<T> vertexMassMatrix(
     Geometry<G>* geometry,
     VertexData<size_t> index);  // diagonal lumped mass/finite volume mass
                                 // matrix, where the geometry of dual cells is
                                 // determined by Geometry::dualType
 template <typename T, typename G>
-GC::SparseMatrix<T> faceMassMatrix(
+geometrycentral::SparseMatrix<T> faceMassMatrix(
     Geometry<G>* geometry,
     FaceData<size_t> index);  // diagonal mass matrix containing face areas
 

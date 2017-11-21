@@ -4,6 +4,8 @@
 #include <cmath>
 #include <iostream>
 
+namespace geometrycentral {
+
 // Curve =======================================================================
 
 template <typename T>
@@ -138,3 +140,5 @@ BezierCurve<T> HermiteCurve<T>::toBezier() const {
 // BezierCurve =================================================================
 
 // TODO
+
+} // namespace geometrycentral

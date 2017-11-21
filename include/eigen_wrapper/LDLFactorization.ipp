@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace GC {
+namespace geometrycentral {
 
 template <class T>
 LDLFactorization<T>::LDLFactorization(SparseMatrix<T>& A_)

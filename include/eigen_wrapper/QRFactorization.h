@@ -5,7 +5,7 @@
 #include "utilities.h"
 #include "quaternion.h"
 
-namespace GC {
+namespace geometrycentral {
 template <class T>
 class SparseMatrix;
 

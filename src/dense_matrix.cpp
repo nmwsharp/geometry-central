@@ -1,7 +1,7 @@
 #include "dense_matrix.h"
 #include "quaternion.h"
 
-namespace GC {
+namespace geometrycentral {
 #ifdef HAVE_SUITESPARSE
 template <>
 cholmod_dense* DenseMatrix<double>::to_cholmod(void)

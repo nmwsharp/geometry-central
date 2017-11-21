@@ -37,6 +37,8 @@
 
 #include <vector>
 
+namespace geometrycentral {
+
 template <typename T>
 class Curve {
  public:
@@ -109,6 +111,8 @@ class BezierCurve : public Curve<T> {
 
   std::vector<T> nodes;
 };
+
+}  // namespace geometrycentral
 
 // Implementation
 #include <curve.ipp>

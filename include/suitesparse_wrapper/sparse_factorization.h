@@ -5,7 +5,7 @@
 #include "suitesparse_wrapper/LUFactorization.h"
 #include "suitesparse_wrapper/QRFactorization.h"
 
-namespace GC {
+namespace geometrycentral {
 template <class T>
 class SparseMatrix;
 

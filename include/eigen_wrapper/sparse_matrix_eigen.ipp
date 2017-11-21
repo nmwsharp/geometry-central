@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cmath>
 
-namespace GC {
+namespace geometrycentral {
 
 // initialize an mxn matrix
 template <typename T>

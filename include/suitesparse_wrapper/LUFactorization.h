@@ -5,7 +5,7 @@
 
 #include "utilities.h"
 
-namespace GC {
+namespace geometrycentral {
 template <class T>
 class SparseMatrix;
 

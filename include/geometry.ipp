@@ -685,11 +685,11 @@ void Geometry<T>::getAngularCoordinates(
 // Common matrices =============================================================
 
 template <typename T, typename G>
-GC::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<size_t> index,
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<size_t> index,
                                 bool faceAreaWeighted) {
   HalfedgeMesh& mesh(geometry->mesh);
   int nV = mesh.nVertices();
-  GC::SparseMatrix<T> C(nV, nV);
+  geometrycentral::SparseMatrix<T> C(nV, nV);
 
   for (VertexPtr v : mesh.vertices()) {
     int i = index[v];
@@ -707,10 +707,10 @@ GC::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<size_t> index,
 }
 
 template <typename T, typename G>
-GC::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
+geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
                                 size_t nC, bool faceAreaWeighted) {
   HalfedgeMesh& mesh(geometry->mesh);
-  GC::SparseMatrix<T> C(nC, nC);
+  geometrycentral::SparseMatrix<T> C(nC, nC);
 
   for (FacePtr f : mesh.faces()) {
     for (CornerPtr c : f.adjacentCorners()) {
@@ -756,7 +756,7 @@ GC::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index,
 }
 
 template <typename T, typename G>
-GC::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
+geometrycentral::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
                                      VertexData<size_t> index) {
   if (geometry->dualType != DualType::Barycentric) {
     throw std::domain_error(
@@ -765,7 +765,7 @@ GC::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
 
   HalfedgeMesh& mesh(geometry->mesh);
   int nV = mesh.nVertices();
-  GC::SparseMatrix<T> Mv(nV, nV);
+  geometrycentral::SparseMatrix<T> Mv(nV, nV);
 
   for (VertexPtr v : mesh.vertices()) {
     int i = index[v];
@@ -776,11 +776,11 @@ GC::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
 }
 
 template <typename T, typename G>
-GC::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
+geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
                                    FaceData<size_t> index) {
   HalfedgeMesh& mesh(geometry->mesh);
   int nF = mesh.nFaces();
-  GC::SparseMatrix<T> Mf(nF, nF);
+  geometrycentral::SparseMatrix<T> Mf(nF, nF);
 
   for (FacePtr f : mesh.faces()) {
     int i = index[f];

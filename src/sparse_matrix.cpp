@@ -1,6 +1,6 @@
 #include "sparse_matrix.h"
 
-namespace GC {
+namespace geometrycentral {
 #ifdef HAVE_SUITESPARSE
 // This routine has been used during debugging to make sure I'm
 // not doing anything stupid during memory allocation.

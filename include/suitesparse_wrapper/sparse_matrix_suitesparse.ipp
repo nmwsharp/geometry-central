@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cmath>
 
-namespace GC {
+namespace geometrycentral {
 
 template <class T>
 class SparseFactor {

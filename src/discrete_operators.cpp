@@ -1,18 +1,18 @@
 #include "discrete_operators.h"
 
-namespace GC {
+namespace geometrycentral {
 
 using namespace Eigen;
 
 // Hodge star on 0-forms. Returns a (nVerts, nVerts) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge0(Geometry<D>* geometry) {
+geometrycentral::SparseMatrix<T> buildHodge0(Geometry<D>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   VertexData<size_t> vInd = mesh->getVertexIndices();
   size_t nVerts = mesh->nVertices();
 
   // Reserve space in the sparse matrix
-  GC::SparseMatrix<T> hodge0 = GC::SparseMatrix<T>(nVerts, nVerts);
+  geometrycentral::SparseMatrix<T> hodge0 = geometrycentral::SparseMatrix<T>(nVerts, nVerts);
 
   for (VertexPtr v : mesh->vertices()) {
     double primalArea = 1.0;
@@ -24,19 +24,19 @@ GC::SparseMatrix<T> buildHodge0(Geometry<D>* geometry) {
 
   return hodge0;
 }
-template GC::SparseMatrix<double> buildHodge0<double, Euclidean>(
+template geometrycentral::SparseMatrix<double> buildHodge0<double, Euclidean>(
     Geometry<Euclidean>* geometry);
-template GC::SparseMatrix<Complex> buildHodge0<Complex, Euclidean>(
+template geometrycentral::SparseMatrix<Complex> buildHodge0<Complex, Euclidean>(
     Geometry<Euclidean>* geometry);
 
 // Hodge star on 1-forms. Returns a (nEdges, nEdges) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge1(Geometry<D>* geometry) {
+geometrycentral::SparseMatrix<T> buildHodge1(Geometry<D>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   EdgeData<size_t> eInd = mesh->getEdgeIndices();
   size_t nEdges = mesh->nEdges();
 
-  GC::SparseMatrix<T> hodge1 = GC::SparseMatrix<T>(nEdges, nEdges);
+  geometrycentral::SparseMatrix<T> hodge1 = geometrycentral::SparseMatrix<T>(nEdges, nEdges);
 
   // Get the cotan weights all at once
   EdgeData<double> cotanWeights(mesh);
@@ -50,20 +50,20 @@ GC::SparseMatrix<T> buildHodge1(Geometry<D>* geometry) {
 
   return hodge1;
 }
-template GC::SparseMatrix<double> buildHodge1<double, Euclidean>(
+template geometrycentral::SparseMatrix<double> buildHodge1<double, Euclidean>(
     Geometry<Euclidean>* geometry);
-template GC::SparseMatrix<Complex> buildHodge1<Complex, Euclidean>(
+template geometrycentral::SparseMatrix<Complex> buildHodge1<Complex, Euclidean>(
     Geometry<Euclidean>* geometry);
 
 // Hodge star on 2-forms. Returns a (nFaces, nFaces) matrix.
 template <typename T, typename D>
-GC::SparseMatrix<T> buildHodge2(Geometry<D>* geometry) {
+geometrycentral::SparseMatrix<T> buildHodge2(Geometry<D>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   FaceData<size_t> fInd = mesh->getFaceIndices();
   size_t nFaces = mesh->nFaces();
 
   // Reserve space in the sparse matrix
-  GC::SparseMatrix<T> hodge2 = GC::SparseMatrix<T>(nFaces, nFaces);
+  geometrycentral::SparseMatrix<T> hodge2 = geometrycentral::SparseMatrix<T>(nFaces, nFaces);
 
   for (FacePtr f : mesh->faces()) {
     double primalArea = geometry->area(f);
@@ -76,20 +76,20 @@ GC::SparseMatrix<T> buildHodge2(Geometry<D>* geometry) {
 
   return hodge2;
 }
-template GC::SparseMatrix<double> buildHodge2<double, Euclidean>(
+template geometrycentral::SparseMatrix<double> buildHodge2<double, Euclidean>(
     Geometry<Euclidean>* geometry);
-template GC::SparseMatrix<Complex> buildHodge2<Complex, Euclidean>(
+template geometrycentral::SparseMatrix<Complex> buildHodge2<Complex, Euclidean>(
     Geometry<Euclidean>* geometry);
 
 // Derivative on 0-forms. Returns a (nEdges, nVerts) matrix
 template <typename T>
-GC::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh) {
+geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh) {
   VertexData<size_t> vInd = mesh->getVertexIndices();
   EdgeData<size_t> eInd = mesh->getEdgeIndices();
   size_t nVerts = mesh->nVertices();
   size_t nEdges = mesh->nEdges();
 
-  GC::SparseMatrix<T> d0 = GC::SparseMatrix<T>(nEdges, nVerts);
+  geometrycentral::SparseMatrix<T> d0 = geometrycentral::SparseMatrix<T>(nEdges, nVerts);
 
   for (EdgePtr e : mesh->edges()) {
     size_t iEdge = eInd[e];
@@ -106,19 +106,19 @@ GC::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh) {
 
   return d0;
 }
-template GC::SparseMatrix<double> buildDerivative0<double>(HalfedgeMesh* mesh);
-template GC::SparseMatrix<Complex> buildDerivative0<Complex>(
+template geometrycentral::SparseMatrix<double> buildDerivative0<double>(HalfedgeMesh* mesh);
+template geometrycentral::SparseMatrix<Complex> buildDerivative0<Complex>(
     HalfedgeMesh* mesh);
 
 // Derivative on 1-forms. Returns a (nFaces, nEdges) matrix
 template <typename T>
-GC::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh) {
+geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh) {
   EdgeData<size_t> eInd = mesh->getEdgeIndices();
   FaceData<size_t> fInd = mesh->getFaceIndices();
   size_t nEdges = mesh->nEdges();
   size_t nFaces = mesh->nFaces();
 
-  GC::SparseMatrix<T> d1 = GC::SparseMatrix<T>(nFaces, nEdges);
+  geometrycentral::SparseMatrix<T> d1 = geometrycentral::SparseMatrix<T>(nFaces, nEdges);
 
   for (FacePtr f : mesh->faces()) {
     size_t iFace = fInd[f];
@@ -132,7 +132,7 @@ GC::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh) {
 
   return d1;
 }
-template GC::SparseMatrix<double> buildDerivative1<double>(HalfedgeMesh* mesh);
-template GC::SparseMatrix<Complex> buildDerivative1<Complex>(
+template geometrycentral::SparseMatrix<double> buildDerivative1<double>(HalfedgeMesh* mesh);
+template geometrycentral::SparseMatrix<Complex> buildDerivative1<Complex>(
     HalfedgeMesh* mesh);
 }

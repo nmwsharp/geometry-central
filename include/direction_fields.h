@@ -16,6 +16,9 @@
 //     conform to the boundary.
 //     Otherwise, computes the unit-norm solution
 //     t \in [0,1] controls the strength of alignment with principal directions
+
+namespace geometrycentral {
+    
 VertexData<Complex> computeSmoothestDirectionField(
     Geometry<Euclidean>* geometry, int nSym = 1, bool alignCurvature = false);
 
@@ -45,3 +48,5 @@ VertexData<Vector3> convertTangentAnglesToR3Vectors(
 VertexData<Vector3> convertComplexDirectionsToR3Vectors(
     Geometry<Euclidean>* geometry, const VertexData<Complex>& directionField,
     int nSym = 1);
+
+} // namespace geometrycentral

@@ -3,7 +3,7 @@
 #include <queue>
 #include <tuple>
 
-namespace GC {
+namespace geometrycentral {
 
 VertexData<double> FMMDistance(
     Geometry<Euclidean>* geometry,
@@ -159,4 +159,4 @@ double eikonalDistanceSubroutine(double a, double b, double theta, double dA,
   }
 }
 
-}  // namespace GC
+}  // namespace geometrycentral

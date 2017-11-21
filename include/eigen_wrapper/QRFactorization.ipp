@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace GC {
+namespace geometrycentral {
 
 template <class T>
 QRFactorization<T>::QRFactorization(SparseMatrix<T>& A_)

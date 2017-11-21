@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-namespace GC {
+namespace geometrycentral {
 template <class T>
 LLFactorization<T>::LLFactorization(SparseMatrix<T>& A_)
     : A(A_), validSymbolic(false), validNumeric(false) {}

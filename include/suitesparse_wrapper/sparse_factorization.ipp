@@ -1,4 +1,4 @@
-namespace GC {
+namespace geometrycentral {
 template <class T>
 SparseFactorization<T>::SparseFactorization(SparseMatrix<T>& A)
     : ll(A), ldl(A), lu(A), qr(A) {}

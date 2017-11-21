@@ -1,6 +1,6 @@
 #pragma once
 
-namespace GC {
+namespace geometrycentral {
 
 const int DEFAULT_MAX_EIG_ITER = 32;
 // maximum number of iterations used to solve eigenvalue problems
@@ -56,7 +56,7 @@ void solveIndefinite(SparseMatrix<T>& A, DenseMatrix<T>& x, DenseMatrix<T> b) {
 template <typename T>
 void solveModifiedIndefinite(SparseMatrix<T>& A, DenseMatrix<T>& x,
                              DenseMatrix<T> b) {
-  throw GC::FunctionalityException("Not implmented with this matrix backend");
+  throw geometrycentral::FunctionalityException("Not implmented with this matrix backend");
 }
 
 // solves the sparse linear system Ax = b, yielding the least-squares
