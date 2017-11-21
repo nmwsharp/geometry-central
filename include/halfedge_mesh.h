@@ -31,12 +31,16 @@ class Geometry;
 
 }  // namespace geometrycentral
 
+// Order MATTERS for these includes
+// 1
+#include <halfedge_pointer_types.h>
+// 2
+#include <halfedge_dual_pointer_types.h>
+// rest
 #include <halfedge_data_types.h>
 #include <halfedge_dual_data_types.h>
 #include <halfedge_dual_iterators.h>
-#include <halfedge_dual_pointer_types.h>
 #include <halfedge_iterators.h>
-#include <halfedge_pointer_types.h>
 
 namespace geometrycentral {
 
