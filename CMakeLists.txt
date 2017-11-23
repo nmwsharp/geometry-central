@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.9)
 
-project(grand-central)
+project(geometry-central)
 
 ### Policy settings
 cmake_policy(SET CMP0054 NEW)   # don't implicitly dereference inside if()
@@ -17,8 +17,8 @@ endif()
 
 ### Resolve optional dependencies
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake") # look for stuff in the /cmake directory
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/deps/eigen/cmake") # look for stuff in the Eigen/cmake directory
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") # look for stuff in the /cmake directory
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen/cmake") # look for stuff in the Eigen/cmake directory
 include(UpdateCacheVariable)
 
 # Work with non-standard homebrew installations
@@ -90,13 +90,15 @@ endif()
 add_subdirectory(deps)
 
 ### Includes from dependencies
-include_directories(deps/eigen)
-include_directories(deps/RectangleBinPack/include)
-include_directories(deps/nanort/include)
-include_directories(deps/nanoflann/include)
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/eigen")
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/RectangleBinPack/include")
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanort/include")
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanoflann/include")
 
 ### Includes from this project
-include_directories(include)
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "include")
+
+include_directories(${GEOMETRY_CENTRAL_INCLUDE_DIRS})
 
 ### Compiler options
 set( CMAKE_EXPORT_COMPILE_COMMANDS 1 ) # Emit a compile flags file to support completion engines (YouCompleteMe in my case)
@@ -136,3 +138,14 @@ endif()
 
 ### Recurse to the source core
 add_subdirectory(src)
+
+
+### Export variables up the stack
+
+# Convert paths to absolute
+foreach(rel_path ${GEOMETRY_CENTRAL_INCLUDE_DIRS})
+  get_filename_component(abs_path "${rel_path}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  list(APPEND GEOMETRY_CENTRAL_ABS_INCLUDE_DIRS ${abs_path})
+endforeach(rel_path)
+
+set(GEOMETRY_CENTRAL_INCLUDE_DIRS ${GEOMETRY_CENTRAL_ABS_INCLUDE_DIRS} PARENT_SCOPE)
