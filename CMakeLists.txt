@@ -94,6 +94,7 @@ list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/eigen")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/RectangleBinPack/include")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanort/include")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanoflann/include")
+list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/glm")
 
 ### Includes from this project
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "include")
