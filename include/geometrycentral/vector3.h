@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <array>
 
 namespace geometrycentral {
 
@@ -46,6 +47,12 @@ struct Vector3 {
     return Vector3{nan, nan, nan};
   }
 
+  inline std::array<float, 3> toFloatArray() const {
+    return {{static_cast<float>(x),
+             static_cast<float>(y),
+             static_cast<float>(z)}};
+  }
+
   bool isFinite() const;
   bool isDefined() const;
 };
@@ -72,6 +79,6 @@ template <>
 struct hash<geometrycentral::Vector3> {
   std::size_t operator()(const geometrycentral::Vector3& v) const;
 };
-}
+}  // namespace std
 
 #include "vector3.ipp"
