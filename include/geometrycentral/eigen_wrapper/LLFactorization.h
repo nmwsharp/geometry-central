@@ -2,7 +2,7 @@
 
 #include <Eigen/SparseCholesky>
 
-#include "utilities.h"
+#include "geometrycentral/utilities.h"
 
 namespace geometrycentral {
 template <class T>
@@ -40,4 +40,4 @@ class LLFactorization {
 };
 }
 
-#include "eigen_wrapper/LLFactorization.ipp"
+#include "geometrycentral/eigen_wrapper/LLFactorization.ipp"

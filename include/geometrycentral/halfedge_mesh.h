@@ -36,11 +36,13 @@ class Geometry;
 #include "geometrycentral/halfedge_pointer_types.h"
 // 2
 #include "geometrycentral/halfedge_dual_pointer_types.h"
-// rest
+// 3 
 #include "geometrycentral/halfedge_data_types.h"
 #include "geometrycentral/halfedge_dual_data_types.h"
 #include "geometrycentral/halfedge_dual_iterators.h"
 #include "geometrycentral/halfedge_iterators.h"
+// 4
+#include "geometrycentral/halfedge_mesh_data_transfer.h"
 
 namespace geometrycentral {
 
@@ -107,8 +109,8 @@ class HalfedgeMesh {
                                  // triangulation determined by
                                  // Face::triangulate()
   size_t longestBoundaryLoop();
-  HalfedgeMesh*
-  copy();  // returns a deep copy (note: might not preserve all indices)
+  HalfedgeMesh* copy();  // returns a deep copy 
+  HalfedgeMesh* copy(HalfedgeMeshDataTransfer& t);  // returns a deep copy 
 
  private:
   // The contiguous chunks of memory which hold the actual structs.
@@ -273,3 +275,4 @@ class Face {
 #include "geometrycentral/halfedge_iterators.ipp"
 #include "geometrycentral/halfedge_mesh.ipp"
 #include "geometrycentral/halfedge_pointer_types.ipp"
+#include "geometrycentral/halfedge_mesh_data_transfer.ipp"

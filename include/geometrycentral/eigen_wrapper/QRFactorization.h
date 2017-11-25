@@ -2,8 +2,8 @@
 
 #include <Eigen/SparseQR>
 
-#include "quaternion.h"
-#include "utilities.h"
+#include "geometrycentral/quaternion.h"
+#include "geometrycentral/utilities.h"
 
 namespace geometrycentral {
 template <class T>
@@ -46,4 +46,4 @@ class QRFactorization {
 };
 }
 
-#include "eigen_wrapper/QRFactorization.ipp"
+#include "geometrycentral/eigen_wrapper/QRFactorization.ipp"

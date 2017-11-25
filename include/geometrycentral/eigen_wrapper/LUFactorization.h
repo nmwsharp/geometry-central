@@ -2,7 +2,7 @@
 
 #include <Eigen/SparseLU>
 
-#include "utilities.h"
+#include "geometrycentral/utilities.h"
 
 namespace geometrycentral {
 template <class T>
@@ -43,4 +43,4 @@ template <>
 void LUFactorization<Complex>::update(void);
 }
 
-#include "eigen_wrapper/LUFactorization.ipp"
+#include "geometrycentral/eigen_wrapper/LUFactorization.ipp"

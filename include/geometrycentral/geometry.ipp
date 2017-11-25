@@ -9,6 +9,19 @@ template <class T>
 inline HalfedgeMesh* Geometry<T>::getMesh(void) {
   return &mesh;
 }
+  
+template <class T>
+Geometry<T>* Geometry<T>::copyUsingTransfer(HalfedgeMeshDataTransfer& transfer) {
+
+  VertexData<T> newCoords = transfer.transfer(p);
+  Geometry<T>* newGeom = new Geometry<T>(*transfer.newMesh);
+
+  for(VertexPtr v : transfer.newMesh->vertices()) {
+    newGeom->position(v) = newCoords[v];
+  }
+
+  return newGeom;
+}
 
 // Vertex attributes (primal)
 

@@ -11,6 +11,7 @@
 #include "geometrycentral/geometry.h"
 #include <geometrycentral/polygon_soup_mesh.h>
 #include <geometrycentral/timing.h>
+#include <geometrycentral/halfedge_mesh_data_transfer.h>
 
 namespace geometrycentral {
 
@@ -542,9 +543,9 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
 }
 
 bool Edge::flip() {
-  //                         b b
-  //                         * *
-  //                        /|\                                                          / \
+//                         b b
+//                         * *
+//                        /|\                                                          / \
 //                       / | \                                                        /   \
 //                      /  |  \                                                      /     \
 //                     /   |   \                                                    /       \
@@ -652,6 +653,82 @@ bool Edge::flip() {
 }
 
 HalfedgeMesh* HalfedgeMesh::copy() {
+
+  HalfedgeMeshDataTransfer t;
+  return copy(t);
+
+}
+
+
+HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
+
+  HalfedgeMesh* newMesh = new HalfedgeMesh();
+
+  // Copy vectors 
+  newMesh->rawHalfedges = rawHalfedges;
+  newMesh->rawVertices = rawVertices;
+  newMesh->rawEdges = rawEdges;
+  newMesh->rawFaces = rawFaces;
+  newMesh->rawImaginaryHalfedges = rawImaginaryHalfedges;
+  newMesh->rawBoundaryLoops = rawBoundaryLoops;
+
+  // Create the data transfer object
+  dataTransfer = HalfedgeMeshDataTransfer(this, newMesh);
+
+  // Build maps
+  for(size_t i = 0; i < rawHalfedges.size(); i++) { dataTransfer.heMap[halfedge(i)] = &newMesh->rawHalfedges[i]; }
+  for(size_t i = 0; i < rawImaginaryHalfedges.size(); i++) { dataTransfer.heMap[imaginaryHalfedge(i)] = &newMesh->rawImaginaryHalfedges[i]; }
+  for(size_t i = 0; i < rawVertices.size(); i++) { dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i]; }
+  for(size_t i = 0; i < rawEdges.size(); i++) { dataTransfer.eMap[edge(i)] = &newMesh->rawEdges[i]; }
+  for(size_t i = 0; i < rawFaces.size(); i++) { dataTransfer.fMap[face(i)] = &newMesh->rawFaces[i]; }
+  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) { dataTransfer.fMap[boundaryLoop(i)] = &newMesh->rawBoundaryLoops[i]; }
+
+  // Shift pointers
+  for(size_t i = 0; i < rawHalfedges.size(); i++) {
+    newMesh->rawHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
+    newMesh->rawHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
+    newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
+    newMesh->rawHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
+    newMesh->rawHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
+  }
+  for(size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
+    newMesh->rawImaginaryHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
+    newMesh->rawImaginaryHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
+    newMesh->rawImaginaryHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
+    newMesh->rawImaginaryHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
+    newMesh->rawImaginaryHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
+  }
+  for(size_t i = 0; i < rawVertices.size(); i++) {
+    newMesh->rawVertices[i].halfedge = dataTransfer.heMap[vertex(i).halfedge()].ptr;
+  }
+  for(size_t i = 0; i < rawEdges.size(); i++) {
+    newMesh->rawEdges[i].halfedge = dataTransfer.heMap[edge(i).halfedge()].ptr;
+  }
+  for(size_t i = 0; i < rawFaces.size(); i++) {
+    newMesh->rawFaces[i].halfedge = dataTransfer.heMap[face(i).halfedge()].ptr;
+  }
+  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) {
+    newMesh->rawBoundaryLoops[i].halfedge = dataTransfer.heMap[boundaryLoop(i).halfedge()].ptr;
+  }
+  
+
+#ifndef NDEBUG
+  // Set the parent mesh pointers to point to the correct mesh
+  for(size_t i = 0; i < newMesh->rawHalfedges.size(); i++) { newMesh->rawHalfedges[i].parentMesh = newMesh; }
+  for(size_t i = 0; i < newMesh->rawImaginaryHalfedges.size(); i++) { newMesh->rawImaginaryHalfedges[i].parentMesh = newMesh; }
+  for(size_t i = 0; i < newMesh->rawVertices.size(); i++) { newMesh->rawVertices[i].parentMesh = newMesh; }
+  for(size_t i = 0; i < newMesh->rawEdges.size(); i++) { newMesh->rawEdges[i].parentMesh = newMesh; }
+  for(size_t i = 0; i < newMesh->rawFaces.size(); i++) { newMesh->rawFaces[i].parentMesh = newMesh; }
+  for(size_t i = 0; i < newMesh->rawBoundaryLoops.size(); i++) { newMesh->rawBoundaryLoops[i].parentMesh = newMesh; }
+#endif
+
+  newMesh->cacheInfo();
+  
+  return newMesh;
+}
+
+/*
+HalfedgeMesh* HalfedgeMesh::copy() {
   // Copy the lazy way: Build a polygon soup mesh and construct a new halfedge
   // mesh
 
@@ -683,5 +760,6 @@ HalfedgeMesh* HalfedgeMesh::copy() {
 
   return mesh;
 }
+*/
 
 }  // namespace geometrycentral

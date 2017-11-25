@@ -2,7 +2,7 @@
 
 #include <Eigen/SparseCholesky>
 
-#include "utilities.h"
+#include "geometrycentral/utilities.h"
 
 namespace geometrycentral {
 template <class T>
@@ -40,4 +40,4 @@ class LDLFactorization {
 };
 }
 
-#include "eigen_wrapper/LDLFactorization.ipp"
+#include "geometrycentral/eigen_wrapper/LDLFactorization.ipp"

@@ -78,6 +78,7 @@ class Geometry : public VertexData<T> {
       : VertexData<T>(&mesh_), mesh(mesh_), dualMesh(mesh_), p(*this) {}
 
   HalfedgeMesh* getMesh(void);  // Returns a pointer to the domain
+  Geometry<T>* copyUsingTransfer(HalfedgeMeshDataTransfer& transfer);
 
   DualType dualType =
       DualType::Barycentric;  // determines geometry of dual cells

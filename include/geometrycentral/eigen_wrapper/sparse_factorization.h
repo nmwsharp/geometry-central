@@ -1,9 +1,9 @@
 #pragma once
 
-#include "eigen_wrapper/LDLFactorization.h"
-#include "eigen_wrapper/LLFactorization.h"
-#include "eigen_wrapper/LUFactorization.h"
-#include "eigen_wrapper/QRFactorization.h"
+#include "geometrycentral/eigen_wrapper/LDLFactorization.h"
+#include "geometrycentral/eigen_wrapper/LLFactorization.h"
+#include "geometrycentral/eigen_wrapper/LUFactorization.h"
+#include "geometrycentral/eigen_wrapper/QRFactorization.h"
 
 namespace geometrycentral {
 template <class T>
@@ -24,5 +24,5 @@ class SparseFactorization {
 };
 }
 
-#include "eigen_wrapper/sparse_factorization.ipp"
+#include "geometrycentral/eigen_wrapper/sparse_factorization.ipp"
 #include "geometrycentral/sparse_matrix.h"
