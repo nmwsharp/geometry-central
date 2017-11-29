@@ -46,6 +46,7 @@ class FaceData {
  private:
   HalfedgeMesh* mesh;
   std::vector<T> data;
+  size_t realSize;
 
  public:
   FaceData() {}

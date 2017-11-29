@@ -681,7 +681,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
   for(size_t i = 0; i < rawVertices.size(); i++) { dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i]; }
   for(size_t i = 0; i < rawEdges.size(); i++) { dataTransfer.eMap[edge(i)] = &newMesh->rawEdges[i]; }
   for(size_t i = 0; i < rawFaces.size(); i++) { dataTransfer.fMap[face(i)] = &newMesh->rawFaces[i]; }
-  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) { dataTransfer.fMap[boundaryLoop(i)] = &newMesh->rawBoundaryLoops[i]; }
+  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) { dataTransfer.fMap[boundaryLoop(i)] = &newMesh->rawBoundaryLoops[i]; } 
 
   // Shift pointers
   for(size_t i = 0; i < rawHalfedges.size(); i++) {
@@ -692,11 +692,11 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
     newMesh->rawHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
   }
   for(size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
-    newMesh->rawImaginaryHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
-    newMesh->rawImaginaryHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
-    newMesh->rawImaginaryHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
-    newMesh->rawImaginaryHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
-    newMesh->rawImaginaryHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
+    newMesh->rawImaginaryHalfedges[i].next = dataTransfer.heMap[imaginaryHalfedge(i).next()].ptr;
+    newMesh->rawImaginaryHalfedges[i].twin = dataTransfer.heMap[imaginaryHalfedge(i).twin()].ptr;
+    newMesh->rawImaginaryHalfedges[i].vertex = dataTransfer.vMap[imaginaryHalfedge(i).vertex()].ptr;
+    newMesh->rawImaginaryHalfedges[i].edge = dataTransfer.eMap[imaginaryHalfedge(i).edge()].ptr;
+    newMesh->rawImaginaryHalfedges[i].face = dataTransfer.fMap[imaginaryHalfedge(i).face()].ptr;
   }
   for(size_t i = 0; i < rawVertices.size(); i++) {
     newMesh->rawVertices[i].halfedge = dataTransfer.heMap[vertex(i).halfedge()].ptr;

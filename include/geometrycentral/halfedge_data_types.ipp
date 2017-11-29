@@ -212,7 +212,9 @@ GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(EdgeData, mesh)
 template <typename T>
 FaceData<T>::FaceData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
-    data.resize(parentMesh->nFaces());
+    realSize = parentMesh->nFaces();
+    size_t imaginarySize = parentMesh->nBoundaryLoops();
+    data.resize(realSize + imaginarySize);
   }
 }
 
@@ -293,8 +295,13 @@ inline T& FaceData<T>::operator[](FacePtr f) {
   assert(f->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  size_t i = f - mesh->face(0);
-  return data[i];
+  if (f.isReal()) {
+    size_t i = f - mesh->face(0);
+    return data[i];
+  } else {
+    size_t i = f - mesh->boundaryLoop(0);
+    return data[realSize + i];
+  }
 }
 
 template <typename T>
@@ -303,8 +310,13 @@ inline const T& FaceData<T>::operator[](FacePtr f) const {
   assert(f->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  size_t i = f - mesh->face(0);
-  return data[i];
+  if (f.isReal()) {
+    size_t i = f - mesh->face(0);
+    return data[i];
+  } else {
+    size_t i = f - mesh->boundaryLoop(0);
+    return data[realSize + i];
+  }
 }
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(FaceData, mesh)

@@ -18,6 +18,9 @@ template<class T> FaceData<T> HalfedgeMeshDataTransfer::transfer(FaceData<T>& in
     for(FacePtr f : oldMesh->faces()) {
         outData[fMap[f]] = inData[f];
     }
+    for(FacePtr f : oldMesh->boundaryLoops()) {
+        outData[fMap[f]] = inData[f];
+    }
 
     return outData;
 }
@@ -36,6 +39,9 @@ template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transfer(HalfedgeDat
 
     HalfedgeData<T> outData(newMesh);
     for(HalfedgePtr he : oldMesh->halfedges()) {
+        outData[heMap[he]] = inData[he];
+    }
+    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
         outData[heMap[he]] = inData[he];
     }
 
