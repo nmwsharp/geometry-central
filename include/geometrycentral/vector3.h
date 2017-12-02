@@ -5,6 +5,8 @@
 #include <limits>
 #include <array>
 
+#include "glm/vec3.hpp"
+
 namespace geometrycentral {
 
 // Note: this class avoids any constructors so that it is a POD type
@@ -71,6 +73,9 @@ double dot(const Vector3& u, const Vector3& v);
 bool isFinite(const Vector3& u);
 Vector3 componentwiseMin(const Vector3& u, const Vector3& v);
 Vector3 componentwiseMax(const Vector3& u, const Vector3& v);
+
+Vector3 fromGLM(const glm::vec3& v);
+
 
 }  // namespace geometrycentral
 

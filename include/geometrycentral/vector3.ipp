@@ -128,6 +128,10 @@ inline Vector3 componentwiseMax(const Vector3& u, const Vector3& v) {
   return Vector3{fmax(u.x, v.x), fmax(u.y, v.y), fmax(u.z, v.z)};
 }
 
+inline Vector3 fromGLM(const glm::vec3& v) {
+  return Vector3{v.x, v.y, v.z};
+}
+
 }  // namespace geometrycentral
 
 namespace std {
