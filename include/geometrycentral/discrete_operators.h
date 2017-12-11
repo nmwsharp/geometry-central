@@ -46,4 +46,11 @@ geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh);
 template <typename T>
 geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh);
 
+// Eigen variants
+Eigen::SparseMatrix<double> buildHodge0Eigen(Geometry<Euclidean>* geometry);
+Eigen::SparseMatrix<double> buildHodge1Eigen(Geometry<Euclidean>* geometry);
+Eigen::SparseMatrix<double> buildHodge2Eigen(Geometry<Euclidean>* geometry);
+Eigen::SparseMatrix<double> buildDerivative0Eigen(HalfedgeMesh* mesh);
+Eigen::SparseMatrix<double> buildDerivative1Eigen(HalfedgeMesh* mesh);
+
 }  // namespace geometrycentral
