@@ -31,15 +31,11 @@ class VertexPtr;
 class EdgePtr;
 class FacePtr;
 class BoundaryLoopPtr;
-class DualHalfedgePtr;
-class DualVertexPtr;
-class DualEdgePtr;
-class DualFacePtr;
 
 // Halfedge
 class HalfedgePtr {
- public:
-  HalfedgePtr();  // defaults to nullptr
+public:
+  HalfedgePtr(); // defaults to nullptr
   HalfedgePtr(Halfedge* ptr);
 
   // Connectivity
@@ -51,8 +47,6 @@ class HalfedgePtr {
   FacePtr face() const;
   CornerPtr corner() const;
 
-  // Duality
-  DualHalfedgePtr dual() const;
 
   // Properties
   bool isReal() const;
@@ -86,7 +80,7 @@ class HalfedgePtr {
   HalfedgePtr& operator--();
   HalfedgePtr operator--(int);
 
- protected:
+protected:
   Halfedge* ptr = nullptr;
 
   friend class HalfedgeMesh;
@@ -96,52 +90,52 @@ class HalfedgePtr {
 std::ostream& operator<<(std::ostream& output, const HalfedgePtr& he);
 
 class HalfedgePtrRangeIterator {
- public:
+public:
   HalfedgePtrRangeIterator(HalfedgePtr startingHalfedge);
   const HalfedgePtrRangeIterator& operator++();
   bool operator==(const HalfedgePtrRangeIterator& other) const;
   bool operator!=(const HalfedgePtrRangeIterator& other) const;
   HalfedgePtr operator*() const;
 
- private:
+private:
   HalfedgePtr currHalfedge;
 };
 class HalfedgePtrSet {
- public:
+public:
   HalfedgePtrSet(HalfedgePtr beginptr_, HalfedgePtr endptr_);
   HalfedgePtrRangeIterator begin();
   HalfedgePtrRangeIterator end();
 
- private:
+private:
   HalfedgePtr beginptr, endptr;
 };
 
 class CutPtrRangeIterator {
- public:
+public:
   CutPtrRangeIterator(HalfedgePtr startingHalfedge, bool justStarted_);
   const CutPtrRangeIterator& operator++();
   bool operator==(const CutPtrRangeIterator& other) const;
   bool operator!=(const CutPtrRangeIterator& other) const;
   HalfedgePtr operator*() const;
 
- private:
+private:
   HalfedgePtr currHalfedge;
   bool justStarted;
 };
 class CutPtrSet {
- public:
+public:
   CutPtrSet(HalfedgePtr he);
   CutPtrRangeIterator begin();
   CutPtrRangeIterator end();
 
- private:
+private:
   HalfedgePtr firstHe;
 };
 
 // Corner
 class CornerPtr {
- public:
-  CornerPtr();  // defaults to nullptr
+public:
+  CornerPtr(); // defaults to nullptr
   CornerPtr(Halfedge* ptr);
 
   // Connectivity
@@ -180,44 +174,42 @@ class CornerPtr {
   CornerPtr& operator--();
   CornerPtr operator--(int);
 
- protected:
+protected:
   Halfedge* ptr = nullptr;
 
   friend class HalfedgeMesh;
 };
 class CornerPtrRangeIterator {
- public:
+public:
   CornerPtrRangeIterator(CornerPtr startingCorner);
   const CornerPtrRangeIterator& operator++();
   bool operator==(const CornerPtrRangeIterator& other) const;
   bool operator!=(const CornerPtrRangeIterator& other) const;
   CornerPtr operator*() const;
 
- private:
+private:
   CornerPtr currCorner;
 };
 class CornerPtrSet {
- public:
+public:
   CornerPtrSet(CornerPtr beginptr_, CornerPtr endptr_);
   CornerPtrRangeIterator begin();
   CornerPtrRangeIterator end();
 
- private:
+private:
   CornerPtr beginptr, endptr;
 };
 
 // Vertex
 class VertexPtr {
- public:
-  VertexPtr();  // defaults to nullptr
+public:
+  VertexPtr(); // defaults to nullptr
   VertexPtr(Vertex* ptr);
 
   // Connectivity
   HalfedgePtr halfedge() const;
   CornerPtr corner() const;
 
-  // Duality
-  DualFacePtr dual() const;
 
   // Properties
   bool isBoundary() const;
@@ -262,7 +254,7 @@ class VertexPtr {
   VertexPtr& operator--();
   VertexPtr operator--(int);
 
- protected:
+protected:
   Vertex* ptr = nullptr;
 
   friend class HalfedgeMesh;
@@ -272,37 +264,35 @@ class VertexPtr {
 std::ostream& operator<<(std::ostream& output, const VertexPtr& v);
 
 class VertexPtrRangeIterator {
- public:
+public:
   VertexPtrRangeIterator(VertexPtr startingVertex);
   const VertexPtrRangeIterator& operator++();
   bool operator==(const VertexPtrRangeIterator& other) const;
   bool operator!=(const VertexPtrRangeIterator& other) const;
   VertexPtr operator*() const;
 
- private:
+private:
   VertexPtr currVertex;
 };
 class VertexPtrSet {
- public:
+public:
   VertexPtrSet(VertexPtr beginptr_, VertexPtr endptr_);
   VertexPtrRangeIterator begin();
   VertexPtrRangeIterator end();
 
- private:
+private:
   VertexPtr beginptr, endptr;
 };
 
 // Edge
 class EdgePtr {
- public:
-  EdgePtr();  // defaults to nullptr
+public:
+  EdgePtr(); // defaults to nullptr
   EdgePtr(Edge* ptr);
 
   // Connectivity
   HalfedgePtr halfedge() const;
 
-  // Duality
-  DualEdgePtr dual() const;
 
   // Properties
   bool isBoundary() const;
@@ -310,8 +300,8 @@ class EdgePtr {
   void markCut(bool isCut);
 
   // Remeshing
-  bool flip();  // flips a triangle pair, returning false if the faces aren't
-                // triangles or the edge is on the boundary
+  bool flip(); // flips a triangle pair, returning false if the faces aren't
+               // triangles or the edge is on the boundary
 
   // Accessors
   Edge operator*();
@@ -342,7 +332,7 @@ class EdgePtr {
   EdgePtr& operator--();
   EdgePtr operator--(int);
 
- protected:
+protected:
   Edge* ptr = nullptr;
 
   friend class HalfedgeMesh;
@@ -352,23 +342,23 @@ class EdgePtr {
 std::ostream& operator<<(std::ostream& output, const EdgePtr& e);
 
 class EdgePtrRangeIterator {
- public:
+public:
   EdgePtrRangeIterator(EdgePtr startingEdge);
   const EdgePtrRangeIterator& operator++();
   bool operator==(const EdgePtrRangeIterator& other) const;
   bool operator!=(const EdgePtrRangeIterator& other) const;
   EdgePtr operator*() const;
 
- private:
+private:
   EdgePtr currEdge;
 };
 class EdgePtrSet {
- public:
+public:
   EdgePtrSet(EdgePtr beginptr_, EdgePtr endptr_);
   EdgePtrRangeIterator begin();
   EdgePtrRangeIterator end();
 
- private:
+private:
   EdgePtr beginptr, endptr;
 };
 
@@ -382,16 +372,14 @@ struct Triangle {
 
 // Face
 class FacePtr {
- public:
-  FacePtr();  // defaults to nullptr
+public:
+  FacePtr(); // defaults to nullptr
   FacePtr(Face* ptr);
 
   // Connectivity
   HalfedgePtr halfedge() const;
   CornerPtr corner() const;
 
-  // Duality
-  DualVertexPtr dual() const;
 
   // Utility
   std::vector<Triangle> triangulation();
@@ -437,7 +425,7 @@ class FacePtr {
   FacePtr& operator--();
   FacePtr operator--(int);
 
- protected:
+protected:
   Face* ptr = nullptr;
 
   friend class HalfedgeMesh;
@@ -447,23 +435,23 @@ class FacePtr {
 std::ostream& operator<<(std::ostream& output, const FacePtr& f);
 
 class FacePtrRangeIterator {
- public:
+public:
   FacePtrRangeIterator(FacePtr startingFace);
   const FacePtrRangeIterator& operator++();
   bool operator==(const FacePtrRangeIterator& other) const;
   bool operator!=(const FacePtrRangeIterator& other) const;
   FacePtr operator*() const;
 
- private:
+private:
   FacePtr currFace;
 };
 class FacePtrSet {
- public:
+public:
   FacePtrSet(FacePtr beginptr_, FacePtr endptr_);
   FacePtrRangeIterator begin();
   FacePtrRangeIterator end();
 
- private:
+private:
   FacePtr beginptr, endptr;
 };
 
@@ -475,4 +463,4 @@ typedef FacePtr BoundaryPtr;
 typedef FacePtrSet BoundaryPtrSet;
 typedef FacePtrRangeIterator BoundaryRangeIterator;
 
-}  // namespace geometrycentral
+} // namespace geometrycentral

@@ -18,12 +18,6 @@ class Vertex;
 class Edge;
 class Face;
 
-class HalfedgeDual;
-class DualHalfedge;
-class DualVertex;
-class DualEdge;
-class DualFace;
-
 // Forward declare classes used for conversion from other mesh types
 class PolygonSoupMesh;
 template <class T>
@@ -34,28 +28,21 @@ class Geometry;
 // Order MATTERS for these includes
 // 1
 #include "geometrycentral/halfedge_pointer_types.h"
-// 2
-#include "geometrycentral/halfedge_dual_pointer_types.h"
 // 3 
 #include "geometrycentral/halfedge_data_types.h"
-#include "geometrycentral/halfedge_dual_data_types.h"
-#include "geometrycentral/halfedge_dual_iterators.h"
 #include "geometrycentral/halfedge_iterators.h"
 // 4
 #include "geometrycentral/halfedge_mesh_data_transfer.h"
 
 namespace geometrycentral {
 
-class HalfedgeDual;
 
 class HalfedgeMesh {
-  friend class HalfedgeDual;
 
  public:
   HalfedgeMesh();
   HalfedgeMesh(const PolygonSoupMesh& soup, Geometry<Vector3>*& geometry);
 
-  HalfedgeDual dual();
 
   // Number of mesh elements of each type
   size_t nHalfedges() const;
@@ -141,50 +128,10 @@ class HalfedgeMesh {
   size_t _nInteriorVertices;
 };
 
-class HalfedgeDual {
- public:
-  HalfedgeDual(HalfedgeMesh& mesh);
-
-  // Number of mesh elements of each type
-  size_t nHalfedges() const;
-  size_t nVertices() const;
-  size_t nEdges() const;
-  size_t nFaces() const;
-
-  // Methods for range-based for loops
-  // Example: for(DualVertexPtr v : mesh.vertices()) { ... }
-  DualHalfedgePtrSet halfedges();
-  DualVertexPtrSet vertices();
-  DualEdgePtrSet edges();
-  DualFacePtrSet faces();
-
-  // Methods for accessing elements by index
-  // Example: VertexPtr v = mesh.vertex[123];
-  DualHalfedgePtr halfedge(size_t index);
-  DualVertexPtr vertex(size_t index);
-  DualEdgePtr edge(size_t index);
-  DualFacePtr face(size_t index);
-
- private:
-#ifndef NDEBUG
- public:
-#endif
-  // References to primal data
-  HalfedgeMesh* mesh = nullptr;
-  std::vector<Halfedge>& rawHalfedges;
-  std::vector<Face>& rawVertices;
-  std::vector<Edge>& rawEdges;
-  std::vector<Vertex>& rawFaces;
-  // Notice that vertices and faces are swapped---the hope is that
-  // by doing this swap once (here), it avoids subsequent errors where
-  // methods forget to interchange vertices and faces.
-};
-
 class Halfedge {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class HalfedgePtr;
-  friend class DualHalfedgePtr;
 
  protected:
   Halfedge* twin;
@@ -207,7 +154,6 @@ class Vertex {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class VertexPtr;
-  friend class DualFacePtr;
 
  protected:
   // Data structure
@@ -228,7 +174,6 @@ class Vertex {
 class Edge {
   friend class HalfedgeMesh;
   friend class EdgePtr;
-  friend class DualEdgePtr;
 
  protected:
   Halfedge* halfedge;
@@ -250,7 +195,6 @@ class Face {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class FacePtr;
-  friend class DualVertexPtr;
 
  protected:
   Halfedge* halfedge;
@@ -269,9 +213,6 @@ class Face {
 }  // namespace geometrycentral
 
 #include "geometrycentral/halfedge_data_types.ipp"
-#include "geometrycentral/halfedge_dual_data_types.ipp"
-#include "geometrycentral/halfedge_dual_iterators.ipp"
-#include "geometrycentral/halfedge_dual_pointer_types.ipp"
 #include "geometrycentral/halfedge_iterators.ipp"
 #include "geometrycentral/halfedge_mesh.ipp"
 #include "geometrycentral/halfedge_pointer_types.ipp"

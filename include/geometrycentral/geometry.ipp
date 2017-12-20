@@ -39,6 +39,15 @@ template <class T>
 inline double Geometry<T>::volume(VertexPtr v) {
   return 1.;
 }
+  
+template <class T>
+inline double Geometry<T>::dualArea(VertexPtr v) {
+  double sum = 0;
+  for(FacePtr f : v.adjacentFaces()) {
+    sum += area(f);
+  }
+  return sum / 3.0;
+}
 
 template <class T>
 inline double Geometry<T>::angleDefect(VertexPtr v) {
@@ -133,33 +142,6 @@ Complex Geometry<T>::principalDirection(VertexPtr v) {
   return principalDir / 4.0;
 }
 
-// Vertex attributes (dual)
-
-template <class T>
-inline T Geometry<T>::position(DualVertexPtr v) {
-  if (dualType == DualType::Barycentric) {
-    T sum = T::zero();
-
-    for (DualFacePtr f : v.adjacentFaces()) {
-      sum += position(f.dual());
-    }
-
-    return sum / 3.;
-  }
-
-  if (dualType == DualType::Circumcentric) {
-    return circumcenter(v.dual());
-  }
-
-  throw std::domain_error(
-      "Dual vertex position currently implemented only for barycentric and "
-      "circumcentric dual");
-}
-
-template <class T>
-inline double Geometry<T>::volume(DualVertexPtr v) {
-  return 1.;
-}
 
 // Edge attributes (primal)
 
@@ -205,20 +187,6 @@ inline double Geometry<T>::dihedralAngle(EdgePtr e) {
   return atan2(dot(edgeV, cross(N1, N2)), dot(N1, N2));
 }
 
-// Edge attributes (dual)
-
-template <class T>
-inline double Geometry<T>::length(DualEdgePtr e) {
-  if (dualType != DualType::Circumcentric) {
-    throw std::domain_error(
-        "Dual edge length currently implemented only for circumcentric dual");
-  }
-
-  double w = cotanWeight(e.dual());
-  double l = length(e.dual());
-
-  return w * l;
-}
 
 // Face attributes (primal)
 
@@ -295,24 +263,6 @@ inline T Geometry<T>::circumcenter(FacePtr f) {
              (2. * norm2(cross(b - a, c - a)));
 }
 
-// Face attributes (dual)
-
-template <class T>
-inline double Geometry<T>::area(DualFacePtr f) {
-  if (dualType != DualType::Barycentric) {
-    throw std::domain_error(
-        "Dual face area currently implemented only for barycentric dual");
-  }
-
-  double A = 0.;
-
-  for (DualVertexPtr v : f.adjacentVertices()) {
-    double k = v.degree();
-    if (v.isReal()) A += area(v.dual()) / k;
-  }
-
-  return A;
-}
 
 // Halfedge attributes (primal)
 
@@ -590,28 +540,12 @@ void Geometry<T>::getPrincipalDirections(
   }
 }
 
-template <class T>
-void Geometry<T>::getDualVertexPositions(
-    DualVertexData<T>& dualVertexPosition) {
-  dualVertexPosition = DualVertexData<T>(&mesh);
-  for (DualVertexPtr v : mesh.dual().vertices()) {
-    dualVertexPosition[v] = position(v);
-  }
-}
 
 template <class T>
 void Geometry<T>::getEdgeLengths(EdgeData<double>& edgeLength) {
   edgeLength = EdgeData<double>(&mesh);
   for (EdgePtr e : mesh.edges()) {
     edgeLength[e] = length(e);
-  }
-}
-
-template <class T>
-void Geometry<T>::getDualEdgeLengths(DualEdgeData<double>& dualEdgeLength) {
-  dualEdgeLength = DualEdgeData<double>(&dualMesh);
-  for (DualEdgePtr e : dualMesh.edges()) {
-    dualEdgeLength[e] = length(e);
   }
 }
 
@@ -632,13 +566,6 @@ void Geometry<T>::getFaceAreas(FaceData<double>& faceArea) {
   }
 }
 
-template <class T>
-void Geometry<T>::getDualFaceAreas(DualFaceData<double>& dualFaceArea) {
-  dualFaceArea = DualFaceData<double>(&dualMesh);
-  for (DualFacePtr f : dualMesh.faces()) {
-    dualFaceArea[f] = area(f);
-  }
-}
 
 template <class T>
 void Geometry<T>::getFaceNormals(FaceData<Vector3>& faceNormal) {
@@ -772,39 +699,5 @@ geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry,
   return C;
 }
 
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T> vertexMassMatrix(Geometry<G>* geometry,
-                                                  VertexData<size_t> index) {
-  if (geometry->dualType != DualType::Barycentric) {
-    throw std::domain_error(
-        "Vertex mass matrix currently implemented only for barycentric dual");
-  }
-
-  HalfedgeMesh& mesh(geometry->mesh);
-  int nV = mesh.nVertices();
-  geometrycentral::SparseMatrix<T> Mv(nV, nV);
-
-  for (VertexPtr v : mesh.vertices()) {
-    int i = index[v];
-    Mv(i, i) = geometry->area(v.dual());
-  }
-
-  return Mv;
-}
-
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
-                                                FaceData<size_t> index) {
-  HalfedgeMesh& mesh(geometry->mesh);
-  int nF = mesh.nFaces();
-  geometrycentral::SparseMatrix<T> Mf(nF, nF);
-
-  for (FacePtr f : mesh.faces()) {
-    int i = index[f];
-    Mf(i, i) = geometry->area(f);
-  }
-
-  return Mf;
-}
 
 }  // namespace geometrycentral

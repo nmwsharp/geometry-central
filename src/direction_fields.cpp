@@ -243,7 +243,7 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
   // Build the mass matrix
   for (VertexPtr v : mesh->vertices()) {
     size_t i = vertInd[v];
-    massMatrix.insert(i, i) = geometry->area(v.dual());
+    massMatrix.insert(i, i) = geometry->dualArea(v);
   }
 
   // Build the energy matrix
@@ -379,7 +379,7 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
     }
     size_t i = vertInd[v];
     b(i) = 0.0;
-    massMatrix.insert(i, i) = geometry->area(v.dual());
+    massMatrix.insert(i, i) = geometry->dualArea(v);
   }
 
   // Build the energy matrix

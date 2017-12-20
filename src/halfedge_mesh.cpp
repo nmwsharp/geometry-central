@@ -86,13 +86,6 @@ void HalfedgeMesh::cache_longestBoundaryLoop() {
   }
 }
 
-HalfedgeDual::HalfedgeDual(HalfedgeMesh& mesh_)
-    : mesh(&mesh_),
-      rawHalfedges(mesh_.rawHalfedges),
-      rawVertices(mesh_.rawFaces),
-      rawEdges(mesh_.rawEdges),
-      rawFaces(mesh_.rawVertices) {}
-
 VertexData<size_t> HalfedgeMesh::getVertexIndices() {
   VertexData<size_t> indices(this);
   size_t i = 0;

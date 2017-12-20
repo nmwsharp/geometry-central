@@ -20,9 +20,6 @@ inline VertexPtr HalfedgePtr::vertex() const { return ptr->vertex; }
 inline EdgePtr HalfedgePtr::edge() const { return ptr->edge; }
 inline FacePtr HalfedgePtr::face() const { return ptr->face; }
 inline CornerPtr HalfedgePtr::corner() const { return CornerPtr{ptr}; }
-inline DualHalfedgePtr HalfedgePtr::dual() const {
-  return DualHalfedgePtr{ptr};
-}
 inline bool HalfedgePtr::isReal() const { return ptr->isReal; }
 inline Halfedge HalfedgePtr::operator*() { return *ptr; }
 inline Halfedge HalfedgePtr::operator*() const { return *ptr; }
@@ -250,7 +247,6 @@ inline CornerPtr VertexPtr::corner() const {
   if (!h.isReal()) h = h.twin().next();
   return h.next().corner();
 }
-inline DualFacePtr VertexPtr::dual() const { return DualFacePtr{ptr}; }
 inline bool VertexPtr::isBoundary() const { return ptr->isBoundary; }
 inline VertexIncomingHalfedgeSet VertexPtr::incomingHalfedges() {
   return VertexIncomingHalfedgeSet(halfedge().twin());
@@ -368,7 +364,6 @@ inline VertexPtrRangeIterator VertexPtrSet::end() {
 inline EdgePtr::EdgePtr() : ptr(nullptr) {}
 inline EdgePtr::EdgePtr(Edge* ptr_) : ptr(ptr_) {}
 inline HalfedgePtr EdgePtr::halfedge() const { return ptr->halfedge; }
-inline DualEdgePtr EdgePtr::dual() const { return DualEdgePtr{ptr}; }
 inline bool EdgePtr::flip() { return ptr->flip(); }
 inline bool EdgePtr::isBoundary() const { return ptr->isBoundary; }
 inline bool EdgePtr::isCut() const { return ptr->isCut; }
@@ -460,7 +455,6 @@ inline FacePtr::FacePtr() : ptr(nullptr) {}
 inline FacePtr::FacePtr(Face* ptr_) : ptr(ptr_) {}
 inline HalfedgePtr FacePtr::halfedge() const { return ptr->halfedge; }
 inline CornerPtr FacePtr::corner() const { return halfedge().next().corner(); }
-inline DualVertexPtr FacePtr::dual() const { return DualVertexPtr{ptr}; }
 inline unsigned int FacePtr::degree() {
   unsigned int k = 0;
   for (HalfedgePtr h : adjacentHalfedges()) {

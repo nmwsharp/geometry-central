@@ -17,7 +17,7 @@ geometrycentral::SparseMatrix<T> buildHodge0(Geometry<D>* geometry) {
 
   for (VertexPtr v : mesh->vertices()) {
     double primalArea = 1.0;
-    double dualArea = geometry->area(v.dual());
+    double dualArea = geometry->dualArea(v);
     double ratio = dualArea / primalArea;
     size_t iV = vInd[v];
     hodge0(iV, iV) = ratio;
@@ -155,7 +155,7 @@ Eigen::SparseMatrix<double> buildHodge0Eigen(Geometry<Euclidean>* geometry) {
 
   for (VertexPtr v : mesh->vertices()) {
     double primalArea = 1.0;
-    double dualArea = geometry->area(v.dual());
+    double dualArea = geometry->dualArea(v);
     double ratio = dualArea / primalArea;
     size_t iV = vInd[v];
     tripletList.emplace_back(iV, iV, ratio);
