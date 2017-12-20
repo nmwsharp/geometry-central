@@ -9,6 +9,8 @@
 // Interal implementations that hide the NN lookup while allowing it to be
 // shared
 
+using std::cout; using std::endl;
+
 namespace geometrycentral {
 
 namespace {
@@ -40,7 +42,7 @@ bool findPoint(KdTree* tree, Vector3 target, double toleranceRadius,
   nanoflann::KNNResultSet<double> resultSet(1);
   resultSet.init(&ret_indexes[0], &out_dists_sqr[0]);
 
-  vector<double> query = {target.x, target.y, target.z};
+  std::vector<double> query = {target.x, target.y, target.z};
 
   bool success = tree->index->findNeighbors(resultSet, &query[0],
                                             nanoflann::SearchParams());
@@ -65,7 +67,7 @@ SymmetryResult detectSymmetryMirror(Geometry<Euclidean>* geom,
 
   SymmetryResult result;
   result.symmetryFound = false;
-  result.symmetrySet = VertexData<vector<VertexPtr>>(mesh, vector<VertexPtr>());
+  result.symmetrySet = VertexData<std::vector<VertexPtr>>(mesh, std::vector<VertexPtr>());
 
   for (VertexPtr v : mesh->vertices()) {
     // Compute the symmetric point
@@ -116,7 +118,7 @@ SymmetryResult detectSymmetryRotation(Geometry<Euclidean>* geom,
 
   SymmetryResult result;
   result.symmetryFound = false;
-  result.symmetrySet = VertexData<vector<VertexPtr>>(mesh, vector<VertexPtr>());
+  result.symmetrySet = VertexData<std::vector<VertexPtr>>(mesh, std::vector<VertexPtr>());
 
   for (VertexPtr v : mesh->vertices()) {
     // Compute the symmetric point
@@ -165,7 +167,7 @@ SymmetryResult detectSymmetryDoubleMirror(Geometry<Euclidean>* geom,
 
   SymmetryResult result;
   result.symmetryFound = false;
-  result.symmetrySet = VertexData<vector<VertexPtr>>(mesh, vector<VertexPtr>());
+  result.symmetrySet = VertexData<std::vector<VertexPtr>>(mesh, std::vector<VertexPtr>());
 
   for (VertexPtr v : mesh->vertices()) {
     // Compute the symmetric point
@@ -230,7 +232,7 @@ SymmetryResult detectSymmetryRotation(Geometry<Euclidean>* geom,
 }
 
 SymmetryResult detectSymmetryAuto(Geometry<Euclidean>* geom) {
-  cout << "Attempting to automatically detect symmetry..." << endl;
+  std::cout << "Attempting to automatically detect symmetry..." << std::endl;
 
   KdTree* tree = buildKDTree(geom);
 

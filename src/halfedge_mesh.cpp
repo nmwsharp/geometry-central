@@ -13,6 +13,8 @@
 #include <geometrycentral/timing.h>
 #include <geometrycentral/halfedge_mesh_data_transfer.h>
 
+using std::cout; using std::endl;
+
 namespace geometrycentral {
 
 // Cache some basic information that may be queried many

@@ -50,7 +50,6 @@
 #include <iostream>
 
 #include "geometrycentral/halfedge_mesh.h"
-#include "geometrycentral/sparse_matrix.h"
 #include "geometrycentral/unit_vector3.h"
 #include "geometrycentral/vector2.h"
 #include "geometrycentral/vector3.h"
@@ -156,23 +155,6 @@ public:
 protected:
   VertexData<T>& p; // convenience reference to "this"
 };
-
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, VertexData<size_t> index,
-                                             bool faceAreaWeighted = false); // usual symmetric cotan matrix (note this
-                                                                             // is **not** the full Laplacian---for that
-                                                                             // you need a mass matrix (below))
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T> cotanMatrix(Geometry<G>* geometry, CornerData<size_t> index, size_t nC,
-                                             bool faceAreaWeighted = false);
-
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T>
-vertexMassMatrix(Geometry<G>* geometry,
-                 VertexData<size_t> index); // diagonal lumped mass/finite volume mass matrix
-template <typename T, typename G>
-geometrycentral::SparseMatrix<T> faceMassMatrix(Geometry<G>* geometry,
-                                                FaceData<size_t> index); // diagonal mass matrix containing face areas
 
 } // namespace geometrycentral
 

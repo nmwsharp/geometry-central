@@ -2,6 +2,8 @@
 
 #include "geometry.h"
 
+#include "Eigen/SparseCore"
+
 namespace geometrycentral {
 
 /*
@@ -27,30 +29,19 @@ namespace geometrycentral {
 // saving recomputation
 
 // Hodge star on 0-forms. Returns a (nVerts, nVerts) matrix.
-template <typename T, typename D>
-geometrycentral::SparseMatrix<T> buildHodge0(Geometry<D>* geometry);
+Eigen::SparseMatrix<double> buildHodge0(Geometry<Euclidean>* geometry);
 
 // Hodge star on 1-forms. Returns a (nEdges, nEdges) matrix.
-template <typename T, typename D>
-geometrycentral::SparseMatrix<T> buildHodge1(Geometry<D>* geometry);
+Eigen::SparseMatrix<double> buildHodge1(Geometry<Euclidean>* geometry);
 
 // Hodge star on 2-forms. Returns a (nFaces, nFaces) matrix.
-template <typename T, typename D>
-geometrycentral::SparseMatrix<T> buildHodge2(Geometry<D>* geometry);
+Eigen::SparseMatrix<double> buildHodge2(Geometry<Euclidean>* geometry);
 
 // Derivative on 0-forms. Returns a (nEdges, nVerts) matrix
-template <typename T>
-geometrycentral::SparseMatrix<T> buildDerivative0(HalfedgeMesh* mesh);
+Eigen::SparseMatrix<double> buildDerivative0(HalfedgeMesh* mesh);
 
 // Derivative on 1-forms. Returns a (nFaces, nEdges) matrix
-template <typename T>
-geometrycentral::SparseMatrix<T> buildDerivative1(HalfedgeMesh* mesh);
+Eigen::SparseMatrix<double> buildDerivative1(HalfedgeMesh* mesh);
 
-// Eigen variants
-Eigen::SparseMatrix<double> buildHodge0Eigen(Geometry<Euclidean>* geometry);
-Eigen::SparseMatrix<double> buildHodge1Eigen(Geometry<Euclidean>* geometry);
-Eigen::SparseMatrix<double> buildHodge2Eigen(Geometry<Euclidean>* geometry);
-Eigen::SparseMatrix<double> buildDerivative0Eigen(HalfedgeMesh* mesh);
-Eigen::SparseMatrix<double> buildDerivative1Eigen(HalfedgeMesh* mesh);
 
 }  // namespace geometrycentral

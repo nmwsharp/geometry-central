@@ -2,6 +2,8 @@
 
 #include <vector>
 
+using std::cout; using std::endl;
+
 namespace geometrycentral {
 
 MeshRayTracer::MeshRayTracer(Geometry<Euclidean>* geometry_) {
