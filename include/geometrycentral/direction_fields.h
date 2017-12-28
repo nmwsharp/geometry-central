@@ -11,15 +11,18 @@
 // tangent space
 // are measured against vertex.halfedge.
 
+namespace geometrycentral {
+
 // === Completely compute direction fields
 //     If the mesh has boundary, imposes dirichlet boundary conditions to
 //     conform to the boundary.
 //     Otherwise, computes the unit-norm solution
 //     t \in [0,1] controls the strength of alignment with principal directions
 
-namespace geometrycentral {
+VertexData<Complex> computeSmoothestVertexDirectionField(
+    Geometry<Euclidean>* geometry, int nSym = 1, bool alignCurvature = false);
 
-VertexData<Complex> computeSmoothestDirectionField(
+VertexData<Complex> computeSmoothestFaceDirectionField(
     Geometry<Euclidean>* geometry, int nSym = 1, bool alignCurvature = false);
 
 // Find singularities in direction fields

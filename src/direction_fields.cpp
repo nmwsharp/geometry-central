@@ -1,5 +1,7 @@
 #include <geometrycentral/direction_fields.h>
 
+#include "geometrycentral/linear_solvers.h"
+
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
@@ -7,12 +9,6 @@
 #include <Eigen/SparseQR>
 
 namespace geometrycentral {
-
-// Forward declare "private" helper functions
-VertexData<Complex> computeSmoothestDirectionField_boundary(
-    Geometry<Euclidean>* geometry, int nSym, bool alignCurvature);
-VertexData<Complex> computeSmoothestDirectionField_noBoundary(
-    Geometry<Euclidean>* geometry, int nSym, bool alignCurvature);
 
 VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
@@ -28,8 +24,7 @@ VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
         Vector3 a = unit(-geometry->vector(he));
         Vector3 b = unit(-geometry->vector(prevHe));
 
-        double angle = acos(
-            clamp(dot(a, b), -1.0, 1.0));  // clamp to deal with numerical error
+        double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
 
         // acos() can choose the wrong inverse for very sharp angles (only
         // happens with boundary vertices, assuming no triangles are degenerate)
@@ -46,8 +41,7 @@ VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
     // Do the last one, which we missed above
     Vector3 a = unit(-geometry->vector(v.halfedge().twin()));
     Vector3 b = unit(-geometry->vector(prevHe));
-    double angle = acos(
-        clamp(dot(a, b), -1.0, 1.0));  // clamp to deal with numerical error
+    double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
     if (dot(cross(a, b), geometry->normal(v)) < 0) {
       angle = 2 * PI - angle;
     }
@@ -59,15 +53,14 @@ VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
   return defect;
 }
 
-HalfedgeData<double> computeRescaledHalfedgeAngles(
-    Geometry<Euclidean>* geometry) {
+HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   VertexData<double> defects = computeAngleDefects(geometry);
   return computeRescaledHalfedgeAngles(geometry, defects);
 }
 
-HalfedgeData<double> computeRescaledHalfedgeAngles(
-    Geometry<Euclidean>* geometry, const VertexData<double>& angleDefects) {
+HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry,
+                                                   const VertexData<double>& angleDefects) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   HalfedgeData<double> edgeAngles(mesh);
@@ -88,8 +81,7 @@ HalfedgeData<double> computeRescaledHalfedgeAngles(
         Vector3 a = unit(-geometry->vector(he));
         Vector3 b = unit(-geometry->vector(prevHe));
 
-        double angle = acos(
-            clamp(dot(a, b), -1.0, 1.0));  // clamp to deal with numerical error
+        double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
 
         // acos() can choose the wrong inverse for very sharp angles (only
         // happens with boundary vertices)
@@ -97,12 +89,10 @@ HalfedgeData<double> computeRescaledHalfedgeAngles(
           angle = 2 * PI - angle;
         }
         cumulativeAngleSum += angle;
-        edgeAngles[he] =
-            2 * PI *
-            (1.0 - cumulativeAngleSum / totalAngleSum);  // subtract because we
-                                                         // measure angles in
-                                                         // the wrong direction
-                                                         // with this loop
+        edgeAngles[he] = 2 * PI * (1.0 - cumulativeAngleSum / totalAngleSum); // subtract because we
+                                                                              // measure angles in
+                                                                              // the wrong direction
+                                                                              // with this loop
       }
 
       prevHe = he;
@@ -118,27 +108,24 @@ HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry) {
   return computeTransportAngles(geometry, edgeAngles);
 }
 
-HalfedgeData<double> computeTransportAngles(
-    Geometry<Euclidean>* geometry,
-    const HalfedgeData<double>& rescaledHalfedgeAngles) {
+HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry,
+                                            const HalfedgeData<double>& rescaledHalfedgeAngles) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   HalfedgeData<double> transportAngles(mesh);
 
   for (HalfedgePtr he : mesh->halfedges()) {
-    transportAngles[he] = regularizeAngle(
-        rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
+    transportAngles[he] = regularizeAngle(rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
   }
   for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
-    transportAngles[he] = regularizeAngle(
-        rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
+    transportAngles[he] = regularizeAngle(rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
   }
 
   return transportAngles;
 }
 
-VertexData<Vector3> convertTangentAnglesToR3Vectors(
-    Geometry<Euclidean>* geometry, const VertexData<double>& tangentAngles) {
+VertexData<Vector3> convertTangentAnglesToR3Vectors(Geometry<Euclidean>* geometry,
+                                                    const VertexData<double>& tangentAngles) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   VertexData<Vector3> r3Vectors(mesh);
@@ -156,9 +143,8 @@ VertexData<Vector3> convertTangentAnglesToR3Vectors(
   return r3Vectors;
 }
 
-VertexData<Vector3> convertComplexDirectionsToR3Vectors(
-    Geometry<Euclidean>* geometry, const VertexData<Complex>& directionField,
-    int nSym) {
+VertexData<Vector3> convertComplexDirectionsToR3Vectors(Geometry<Euclidean>* geometry,
+                                                        const VertexData<Complex>& directionField, int nSym) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   VertexData<Vector3> r3Vectors(mesh);
@@ -173,46 +159,17 @@ VertexData<Vector3> convertComplexDirectionsToR3Vectors(
     Vector3 referenceInTangentSpace = unit(r - dot(r, N) * N);
 
     // Rotate the reference vector to get the desired direction
-    r3Vectors[v] = referenceInTangentSpace.rotate_around(N, tangentAngle) *
-                   std::abs(solVal);  // preserve scale
+    r3Vectors[v] = referenceInTangentSpace.rotate_around(N, tangentAngle) * std::abs(solVal); // preserve scale
   }
 
   return r3Vectors;
 }
 
-VertexData<Complex> computeSmoothestDirectionField(
-    Geometry<Euclidean>* geometry, int nSym, bool alignCurvature) {
-  std::cout << "Computing globally optimal direction field" << std::endl;
+// Anonymous namespace for helper functions
+namespace {
 
-  if (alignCurvature && !(nSym == 2 || nSym == 4)) {
-    throw std::runtime_error(
-        "ERROR: It only makes sense to align with curvature when nSym = 2 or "
-        "4");
-  }
-
-  // Dispatch to either the boundary of no boundary variant depending on the
-  // mesh type
-  bool hasBoundary = false;
-  for (VertexPtr v : geometry->getMesh()->vertices()) {
-    hasBoundary |= v.isBoundary();
-  }
-
-  if (hasBoundary) {
-    std::cout
-        << "Mesh has boundary, computing dirichlet boundary condition solution"
-        << std::endl;
-    return computeSmoothestDirectionField_boundary(geometry, nSym,
-                                                   alignCurvature);
-  } else {
-    std::cout << "Mesh has no boundary, computing unit-norm solution"
-              << std::endl;
-    return computeSmoothestDirectionField_noBoundary(geometry, nSym,
-                                                     alignCurvature);
-  }
-}
-
-VertexData<Complex> computeSmoothestDirectionField_noBoundary(
-    Geometry<Euclidean>* geometry, int nSym, bool alignCurvature) {
+VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euclidean>* geometry, int nSym,
+                                                                    bool alignCurvature) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   size_t N = mesh->nVertices();
@@ -225,7 +182,7 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
 
   // Energy matrix
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
-      N, N);  // have to use ColMajor because LU solver below demands it
+      N, N); // have to use ColMajor because LU solver below demands it
   // Supposedly reserving space in the matrix makes construction real zippy
   // below
   Eigen::VectorXi nEntries(N);
@@ -254,8 +211,7 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
     for (HalfedgePtr he : v.incomingHalfedges()) {
       size_t j = vertInd[he.vertex()];
 
-      std::complex<double> rBar =
-          std::exp(-nSym * transportAngles[he.twin()] * IM_I);
+      std::complex<double> rBar = std::exp(-nSym * transportAngles[he.twin()] * IM_I);
 
       double weight = geometry->cotanWeight(he.edge());
       energyMatrix.insert(i, j) = -weight * rBar;
@@ -291,26 +247,21 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
     }
 
     // Normalize the alignment field
-    double scale =
-        std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+    double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
     dirVec /= scale;
 
-    double lambdaT = 0.0;  // this is something of a magical constant, see
-                           // "Globally Optimal Direction Fields", eqn 16
+    double lambdaT = 0.0; // this is something of a magical constant, see
+                          // "Globally Optimal Direction Fields", eqn 16
 
     // Eigen::VectorXcd RHS = massMatrix * dirVec;
     Eigen::VectorXcd RHS = dirVec;
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
-        energyMatrix - lambdaT * massMatrix;
-    throw FunctionalityException("not implemented");
-    // solution = solveSquare(LHS, RHS); FIXME
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+    solution = SquareSolver<Complex>::solve(LHS, RHS);
   }
   // Otherwise find the smallest eigenvector
   else {
     std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
-    throw FunctionalityException("not implemented");
-    // solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
-    // FIXME
+    solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
   }
 
   // Copy the result to a VertexData vector
@@ -323,8 +274,8 @@ VertexData<Complex> computeSmoothestDirectionField_noBoundary(
   return toReturn;
 }
 
-VertexData<Complex> computeSmoothestDirectionField_boundary(
-    Geometry<Euclidean>* geometry, int nSym, bool alignCurvature) {
+VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Euclidean>* geometry, int nSym,
+                                                                  bool alignCurvature) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   size_t nInterior = mesh->nInteriorVertices();
@@ -334,8 +285,7 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
   for (VertexPtr v : mesh->vertices()) {
     if (v.isBoundary()) {
       Vector3 b = geometry->boundaryNormal(v);
-      boundaryValues[v] =
-          std::pow(geometry->tangentVectorToComplexAngle(v, b), nSym);
+      boundaryValues[v] = std::pow(geometry->tangentVectorToComplexAngle(v, b), nSym);
     } else {
       boundaryValues[v] = 0;
     }
@@ -350,7 +300,7 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
   // Energy matrix
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
       nInterior,
-      nInterior);  // have to use ColMajor because LU solver below demands it
+      nInterior); // have to use ColMajor because LU solver below demands it
   // Supposedly reserving space in the matrix makes construction real zippy
   // below
   Eigen::VectorXi nEntries(nInterior);
@@ -363,8 +313,7 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
   energyMatrix.reserve(nEntries);
 
   // Mass matrix
-  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(
-      nInterior, nInterior);
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(nInterior, nInterior);
   massMatrix.reserve(1);
 
   // RHS
@@ -391,15 +340,14 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
 
     std::complex<double> weightISum = 0;
     for (HalfedgePtr he : v.incomingHalfedges()) {
-      std::complex<double> rBar =
-          std::exp(-nSym * transportAngles[he.twin()] * IM_I);
+      std::complex<double> rBar = std::exp(-nSym * transportAngles[he.twin()] * IM_I);
       double w = geometry->cotanWeight(he.edge());
 
       // Interior-boundary term
       if (he.vertex().isBoundary()) {
         std::complex<double> bVal = boundaryValues[he.vertex()];
         b(i) += w * rBar * bVal;
-      } else {  // Interior-interior term
+      } else { // Interior-interior term
 
         size_t j = vertInd[he.vertex()];
         energyMatrix.insert(i, j) = -w * rBar;
@@ -445,24 +393,20 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
       dirVec[vertInd[v]] = directionVal / std::abs(directionVal);
     }
 
-    double t = 0.01;  // this is something of a magical constant, see "Globally
-                      // Optimal Direction Fields", eqn 9
+    double t = 0.01; // this is something of a magical constant, see "Globally
+                     // Optimal Direction Fields", eqn 9
 
     Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
-        massMatrix * energyMatrix;
-    throw FunctionalityException("not implemented");
-    // solution = solveSquare(LHS, RHS); FIXME
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix;
+    solution = SquareSolver<Complex>::solve(LHS, RHS);
   }
   // Otherwise find the general closest solution
   else {
     std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
 
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS =
-        massMatrix * energyMatrix;  // can be simplified
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix; // can be simplified
     Eigen::VectorXcd RHS = massMatrix * b;
-    throw FunctionalityException("not implemented");
-    // solution = solveSquare(LHS, RHS); FIXME
+    solution = SquareSolver<Complex>::solve(LHS, RHS);
   }
 
   // Copy the result to a VertexData vector for both the boudary and interior
@@ -477,9 +421,32 @@ VertexData<Complex> computeSmoothestDirectionField_boundary(
 
   return toReturn;
 }
+}; // namespace
 
-FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry,
-                               VertexData<Complex> directionField, int nSym) {
+VertexData<Complex> computeSmoothestVertexDirectionField(Geometry<Euclidean>* geometry, int nSym, bool alignCurvature) {
+  std::cout << "Computing globally optimal direction field" << std::endl;
+
+  if (alignCurvature && !(nSym == 2 || nSym == 4)) {
+    throw std::runtime_error("ERROR: It only makes sense to align with curvature when nSym = 2 or "
+                             "4");
+  }
+
+  // Dispatch to either the boundary of no boundary variant depending on the
+  // mesh type
+  bool hasBoundary = false;
+  for (VertexPtr v : geometry->getMesh()->vertices()) {
+    hasBoundary |= v.isBoundary();
+  }
+
+  if (hasBoundary) {
+    std::cout << "Mesh has boundary, computing dirichlet boundary condition solution" << std::endl;
+    return computeSmoothestVertexDirectionField_boundary(geometry, nSym, alignCurvature);
+  } else {
+    std::cout << "Mesh has no boundary, computing unit-norm solution" << std::endl;
+    return computeSmoothestVertexDirectionField_noBoundary(geometry, nSym, alignCurvature);
+  }
+}
+FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex> directionField, int nSym) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
   // Precompute transport angles
@@ -507,19 +474,17 @@ FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry,
       // Find the difference in angle
       double theta0 = std::arg(transport * x0);
       double theta1 = std::arg(x1);
-      double deltaTheta =
-          regularizeAngle(theta1 - theta0 + PI) - PI;  // regularize to [-PI,PI]
+      double deltaTheta = regularizeAngle(theta1 - theta0 + PI) - PI; // regularize to [-PI,PI]
 
-      totalRot += deltaTheta;  // accumulate
+      totalRot += deltaTheta; // accumulate
     }
 
     // Compute the net rotation and corresponding index
-    int index = static_cast<int>(std::round(
-        totalRot / (2 * PI)));  // should be very close to a multiple of 2PI
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
     indices[f] = index;
   }
 
   return indices;
 }
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
