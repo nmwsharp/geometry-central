@@ -49,6 +49,7 @@
 
 #include <iostream>
 
+#include "geometrycentral/geometry_cache.h"
 #include "geometrycentral/halfedge_mesh.h"
 #include "geometrycentral/unit_vector3.h"
 #include "geometrycentral/vector2.h"
@@ -70,11 +71,10 @@ template <class T> class Geometry : public VertexData<T> {
   // vertex
 
 public:
-  Geometry(HalfedgeMesh& mesh_) : VertexData<T>(&mesh_), mesh(mesh_), p(*this) {}
+  Geometry(HalfedgeMesh& mesh_) : VertexData<T>(&mesh_), mesh(mesh_), cache(this), p(*this) {}
 
   HalfedgeMesh* getMesh(void); // Returns a pointer to the domain
   Geometry<T>* copyUsingTransfer(HalfedgeMeshDataTransfer& transfer);
-
 
   // Vertex attributes
   T& position(VertexPtr p); // TODO get rid of this method; all write access
@@ -82,7 +82,7 @@ public:
                             // distinguish it from all other named accessors
                             // (which are read-only)
   T position(VertexPtr p) const;
-  double dualArea(VertexPtr v);          // always equal to 1
+  double dualArea(VertexPtr v);
   double volume(VertexPtr v);          // always equal to 1
   double angleDefect(VertexPtr v);     // 2π minus sum of incident angles
   Vector3 normal(VertexPtr v);         // area-weighted average of incident face normals
@@ -151,6 +151,7 @@ public:
 
   // members
   HalfedgeMesh& mesh;
+  GeometryCache<T> cache;
 
 protected:
   VertexData<T>& p; // convenience reference to "this"

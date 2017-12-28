@@ -1,6 +1,12 @@
 #pragma once
 
-#include "geometrycentral/geometry.h"
+#include "geometrycentral/halfedge_mesh.h"
+#include "geometrycentral/unit_vector3.h"
+#include "geometrycentral/vector2.h"
+#include "geometrycentral/vector3.h"
+
+#include <functional>
+#include <vector>
 
 namespace geometrycentral {
 
@@ -34,12 +40,11 @@ public:
   std::function<void()> evaluateFunc;
 };
 
-
-class GeometryCache {
+template <typename G> class GeometryCache {
 
 public:
   // Create a new cache
-  GeometryCache(Geometry<Euclidean>* geometry_);
+  GeometryCache(Geometry<G>* geometry_);
 
   // Clear out the cache and immediately recompute all required quantities. Should be called after modifying mesh or
   // geometry.
@@ -49,14 +54,13 @@ public:
   HalfedgeMesh* getMesh();
 
   // Get the geometry
-  Geometry<Euclidean>* getGeometry();
+  Geometry<G>* getGeometry();
 
   // Hide copy and move constructors, they are unlikely to be what is actually wanted and shouldn't be used accidentally
   GeometryCache(const GeometryCache& other) = delete;
   GeometryCache& operator=(const GeometryCache& other) = delete;
   GeometryCache(GeometryCache&& other) = delete;
   GeometryCache& operator=(GeometryCache&& other) = delete;
-
 
   // === Cached quantities
   // Convention is that the dependent quantity management object is postfixed by 'Q'.
@@ -70,7 +74,6 @@ public:
 
   // To implement a new quantity, follow the pattern below. For a hypothetical quantity called 'XX', the necessary
   // quantities are, for example
-  //   - VertexData<double> XXRaw; (private)
   //   - void computeXX(); (private)
   //   - const VertexData<double> XX = XXRaw; (public)
   //   - DependentQuantity XXQ{); (public)
@@ -83,47 +86,37 @@ public:
 private:
   // The mesh for which this cache applies
   HalfedgeMesh* mesh;
-  Geometry<Euclidean>* geometry;
+  Geometry<G>* geometry;
 
   std::vector<DependentQuantity*> allQuantities;
 
   // == Internal interface for all quantities
-
-  FaceData<Vector3> faceAreaNormalsRaw;
   void computeFaceAreaNormals();
-
-  FaceData<double> faceAreasRaw;
   void computeFaceAreas();
-
-  FaceData<Vector3> faceNormalsRaw;
   void computeFaceNormals();
-
-  VertexData<Vector3> vertexNormalsRaw;
   void computeVertexNormals();
-
-  VertexData<double> vertexDualAreasRaw;
   void computeVertexDualAreas();
 
 public:
   // face area normals
   // vector which points in the normal direction and has magnitude equal to area of face
-  const FaceData<Vector3> faceAreaNormals = faceAreaNormalsRaw;
+  FaceData<Vector3> faceAreaNormals;
   DependentQuantity faceAreaNormalsQ;
 
   // face areas
-  const FaceData<double> faceAreas = faceAreasRaw;
+  FaceData<double> faceAreas;
   DependentQuantity faceAreasQ;
 
   // face normals
-  const FaceData<Vector3> faceNormals = faceNormalsRaw;
+  FaceData<Vector3> faceNormals;
   DependentQuantity faceNormalsQ;
 
   // vertex normals
-  const VertexData<Vector3> vertexNormals = vertexNormalsRaw;
+  VertexData<Vector3> vertexNormals;
   DependentQuantity vertexNormalsQ;
 
   // vertex dual areas
-  const VertexData<double> vertexDualAreas = vertexDualAreasRaw;
+  VertexData<double> vertexDualAreas;
   DependentQuantity vertexDualAreasQ;
 };
 

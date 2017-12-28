@@ -1,5 +1,9 @@
 #include "geometrycentral/geometry_cache.h"
 
+#include "geometrycentral/geometry.h"
+
+using std::cout; using std::endl;
+
 namespace geometrycentral {
 
 void DependentQuantity::ensureHaveIfRequired() {
@@ -40,24 +44,26 @@ void DependentQuantity::unrequire() {
   }
 }
 
-GeometryCache::GeometryCache(Geometry<Euclidean>* geometry_) : geometry(geometry_) {
+template <typename G>
+GeometryCache<G>::GeometryCache(Geometry<G>* geometry_) : geometry(geometry_) {
   mesh = geometry->getMesh();
 
   // Helper to add a quantity, binding this instance to its compute function and adding it to the list of all quantities
-  auto addQuantity = [&](DependentQuantity& q, std::vector<DependentQuantity*> deps, std::function<void(GeometryCache*)> func) { 
+  auto addQuantity = [&](DependentQuantity& q, std::vector<DependentQuantity*> deps, std::function<void(GeometryCache<G>*)> func) { 
     q = DependentQuantity(deps, std::bind(func, this));
     allQuantities.push_back(&q); 
   };
 
   // ALL the quantities
-  addQuantity(faceAreaNormalsQ,       {},                                 &GeometryCache::computeFaceAreaNormals);
-  addQuantity(faceAreasQ,             {&faceAreaNormalsQ},                &GeometryCache::computeFaceAreas);
-  addQuantity(faceNormalsQ,           {&faceAreaNormalsQ},                &GeometryCache::computeFaceNormals);
-  addQuantity(vertexNormalsQ,         {&faceAreaNormalsQ},                &GeometryCache::computeVertexNormals);
-  addQuantity(vertexDualAreasQ,       {&faceAreasQ},                      &GeometryCache::computeVertexDualAreas);
+  addQuantity(faceAreaNormalsQ,       {},                                 &GeometryCache<G>::computeFaceAreaNormals);
+  addQuantity(faceAreasQ,             {&faceAreaNormalsQ},                &GeometryCache<G>::computeFaceAreas);
+  addQuantity(faceNormalsQ,           {&faceAreaNormalsQ},                &GeometryCache<G>::computeFaceNormals);
+  addQuantity(vertexNormalsQ,         {&faceAreaNormalsQ},                &GeometryCache<G>::computeVertexNormals);
+  addQuantity(vertexDualAreasQ,       {&faceAreasQ},                      &GeometryCache<G>::computeVertexDualAreas);
 }
 
-void GeometryCache::repopulate() {
+template <typename G>
+void GeometryCache<G>::repopulate() {
 
   for(DependentQuantity* q : allQuantities) {
     q->computed = false;
@@ -79,8 +85,10 @@ void checkTriangular(HalfedgeMesh* m) {
 
 // === Quantity implementations
 
-void GeometryCache::computeFaceAreaNormals() {
-  faceAreaNormalsRaw = FaceData<Vector3>(mesh);
+// Specialization for euclidean
+template <>
+void GeometryCache<Euclidean>::computeFaceAreaNormals() {
+  faceAreaNormals = FaceData<Vector3>(mesh);
   for (FacePtr f : mesh->faces()) {
     Vector3 AN{0., 0., 0.};
     for (HalfedgePtr h : f.adjacentHalfedges()) {
@@ -88,47 +96,57 @@ void GeometryCache::computeFaceAreaNormals() {
       Vector3 pj = geometry->position(h.twin().vertex());
       AN += cross(pi, pj);
     }
-    faceAreaNormalsRaw[f] = AN * 0.5;
+    faceAreaNormals[f] = AN * 0.5;
+  }
+
+}
+
+template <>
+void GeometryCache<Euclidean>::computeFaceAreas() {
+  faceAreas = FaceData<double>(mesh);
+  for (FacePtr f : mesh->faces()) {
+    faceAreas[f] = norm(faceAreaNormals[f]);
   }
 }
 
-void GeometryCache::computeFaceAreas() {
-  faceAreasRaw = FaceData<double>(mesh);
+template <>
+void GeometryCache<Euclidean>::computeFaceNormals() {
+  faceNormals = FaceData<Vector3>(mesh);
   for (FacePtr f : mesh->faces()) {
-    faceAreasRaw[f] = norm(faceAreaNormals[f]);
-  }
-}
-
-void GeometryCache::computeFaceNormals() {
-  faceNormalsRaw = FaceData<Vector3>(mesh);
-  for (FacePtr f : mesh->faces()) {
-    faceNormalsRaw[f] = unit(faceAreaNormals[f]);
+    faceNormals[f] = unit(faceAreaNormals[f]);
   }
 }
 
 // Area-weighted vertex normals
-void GeometryCache::computeVertexNormals() {
-  vertexNormalsRaw = VertexData<Vector3>(mesh);
+template <>
+void GeometryCache<Euclidean>::computeVertexNormals() {
+  vertexNormals = VertexData<Vector3>(mesh);
   for (VertexPtr v : mesh->vertices()) {
     Vector3 n{0., 0., 0.};
     for (FacePtr f : v.adjacentFaces()) {
       n += faceAreaNormals[f];
     }
-    vertexNormalsRaw[v] = unit(n);
+    vertexNormals[v] = unit(n);
   }
 }
 
-void GeometryCache::computeVertexDualAreas() {
-  vertexDualAreasRaw = VertexData<double>(mesh);
+template <>
+void GeometryCache<Euclidean>::computeVertexDualAreas() {
+  vertexDualAreas = VertexData<double>(mesh);
   for (VertexPtr v : mesh->vertices()) {
     double A = 0;
     for (FacePtr f : v.adjacentFaces()) {
       A += faceAreas[f];
     }
-    vertexDualAreasRaw[v] = A / 3.0;
+    vertexDualAreas[v] = A / 3.0;
   }
 }
 
+// Explicit template instantions
+// Note: inherits problems with Geometry<T>, only works for Euclidean
+template class GeometryCache<Euclidean>;
+// template class GeometryCache<Planar>;
+// template class GeometryCache<Spherical>;
 
 
 } // namespace geometrycentral
