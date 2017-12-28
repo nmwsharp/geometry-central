@@ -40,7 +40,8 @@ public:
   std::function<void()> evaluateFunc;
 };
 
-template <typename G> class GeometryCache {
+template <typename G>
+class GeometryCache {
 
 public:
   // Create a new cache
@@ -96,6 +97,10 @@ private:
   void computeFaceNormals();
   void computeVertexNormals();
   void computeVertexDualAreas();
+  void computeEdgeLengths();
+  void computeFaceBasis();
+  void computeFaceTransportCoefs();
+  void computeDihedralAngle();
 
 public:
   // face area normals
@@ -118,6 +123,22 @@ public:
   // vertex dual areas
   VertexData<double> vertexDualAreas;
   DependentQuantity vertexDualAreasQ;
+
+  // edge lengths
+  EdgeData<double> edgeLengths;
+  DependentQuantity edgeLengthsQ;
+  
+  // extrinsic basis vector pair in each face 
+  FaceData<std::array<Vector3,2>> faceBasis;
+  DependentQuantity faceBasisQ;
+  
+  // edge lengths
+  HalfedgeData<Complex> faceTransportCoefs;
+  DependentQuantity faceTransportCoefsQ;
+  
+  // dihedral angle 
+  EdgeData<double> dihedralAngle;
+  DependentQuantity dihedralAngleQ;
 };
 
 }; // namespace geometrycentral

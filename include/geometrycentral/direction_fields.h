@@ -19,37 +19,32 @@ namespace geometrycentral {
 //     Otherwise, computes the unit-norm solution
 //     t \in [0,1] controls the strength of alignment with principal directions
 
-VertexData<Complex> computeSmoothestVertexDirectionField(
-    Geometry<Euclidean>* geometry, int nSym = 1, bool alignCurvature = false);
+VertexData<Complex> computeSmoothestVertexDirectionField(Geometry<Euclidean>* geometry, int nSym = 1,
+                                                         bool alignCurvature = false);
 
-VertexData<Complex> computeSmoothestFaceDirectionField(
-    Geometry<Euclidean>* geometry, int nSym = 1, bool alignCurvature = false);
+FaceData<Complex> computeSmoothestFaceDirectionField(Geometry<Euclidean>* geometry, int nSym = 1,
+                                                     bool alignCurvature = false);
 
 // Find singularities in direction fields
-FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry,
-                               VertexData<Complex> directionField,
-                               int nSym = 1);
+FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex> directionField, int nSym = 1);
 
 // === Compute intermediate vaues useful for transport and direction fields
 
 VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry);
 
-HalfedgeData<double> computeRescaledHalfedgeAngles(
-    Geometry<Euclidean>* geometry);
-HalfedgeData<double> computeRescaledHalfedgeAngles(
-    Geometry<Euclidean>* geometry, const VertexData<double>& angleDefects);
+HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry);
+HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry,
+                                                   const VertexData<double>& angleDefects);
 
 HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry);
-HalfedgeData<double> computeTransportAngles(
-    Geometry<Euclidean>* geometry,
-    const HalfedgeData<double>& rescaledHalfedgeAngles);
+HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry,
+                                            const HalfedgeData<double>& rescaledHalfedgeAngles);
 
 // === Conversion functions
 
-VertexData<Vector3> convertTangentAnglesToR3Vectors(
-    Geometry<Euclidean>* geometry, const VertexData<double>& tangentAngles);
-VertexData<Vector3> convertComplexDirectionsToR3Vectors(
-    Geometry<Euclidean>* geometry, const VertexData<Complex>& directionField,
-    int nSym = 1);
+VertexData<Vector3> convertTangentAnglesToR3Vectors(Geometry<Euclidean>* geometry,
+                                                    const VertexData<double>& tangentAngles);
+VertexData<Vector3> convertComplexDirectionsToR3Vectors(Geometry<Euclidean>* geometry,
+                                                        const VertexData<Complex>& directionField, int nSym = 1);
 
-}  // namespace geometrycentral
+} // namespace geometrycentral

@@ -427,8 +427,8 @@ VertexData<Complex> computeSmoothestVertexDirectionField(Geometry<Euclidean>* ge
   std::cout << "Computing globally optimal direction field" << std::endl;
 
   if (alignCurvature && !(nSym == 2 || nSym == 4)) {
-    throw std::runtime_error("ERROR: It only makes sense to align with curvature when nSym = 2 or "
-                             "4");
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or "
+                           "4");
   }
 
   // Dispatch to either the boundary of no boundary variant depending on the
@@ -446,6 +446,169 @@ VertexData<Complex> computeSmoothestVertexDirectionField(Geometry<Euclidean>* ge
     return computeSmoothestVertexDirectionField_noBoundary(geometry, nSym, alignCurvature);
   }
 }
+
+// Helpers for computing face-based direction fields
+namespace {
+
+FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclidean>* geometry, int nSym,
+                                                                bool alignCurvature) {
+
+  HalfedgeMesh* mesh = geometry->getMesh();
+  unsigned int N = mesh->nFaces();
+
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.faceTransportCoefsQ.require();
+  gc.faceNormalsQ.require();
+  gc.dihedralAngleQ.require();
+
+  // === Allocate matrices
+  FaceData<size_t> faceInd = mesh->getFaceIndices();
+
+  // Energy matrix
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
+      N, N); // use ColMajor because LU solver below demands it
+  energyMatrix.reserve(
+      Eigen::VectorXi::Constant(N, 4)); // Reserving space in the matrix makes construction real zippy below
+
+  // Mass matrix
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(N, N);
+  massMatrix.reserve(Eigen::VectorXi::Constant(N, 1));
+
+
+  // === Build matrices
+
+  // Build the mass matrix
+  for (FacePtr f : mesh->faces()) {
+    size_t i = faceInd[f];
+    massMatrix.insert(i, i) = geometry->area(f);
+  }
+
+  // Build the energy matrix
+  for (FacePtr f : mesh->faces()) {
+    size_t i = faceInd[f];
+
+    std::complex<double> weightISum = 0;
+    for (HalfedgePtr he : f.adjacentHalfedges()) {
+
+      if (!he.twin().isReal()) {
+        continue;
+      }
+
+      FacePtr neighFace = he.twin().face();
+      unsigned int j = faceInd[neighFace];
+
+      // LC connection between the faces
+      Complex rBar = std::pow(gc.faceTransportCoefs[he.twin()], nSym);
+
+      double weight = 1; // TODO figure out weights
+      energyMatrix.insert(i, j) = -weight * rBar;
+      weightISum += weight;
+    }
+
+    energyMatrix.insert(i, i) = weightISum;
+  }
+
+  // Shift to avoid singularity
+  energyMatrix = energyMatrix + 0.001 * massMatrix;
+
+  // Store the solution here
+  Eigen::VectorXcd solution;
+
+  // If requested, align to principal curvatures
+  if (alignCurvature) {
+
+    Eigen::VectorXcd dirVec(N);
+    for (FacePtr f : mesh->faces()) {
+
+      // Compute something like the principal directions
+      double weightSum = 0;
+      Complex sum = 0;
+
+      for (HalfedgePtr he : f.adjacentHalfedges()) {
+
+        double dihedralAngle = std::abs(gc.dihedralAngle[he.edge()]);
+        double weight = norm(geometry->vector(he));
+        weightSum += weight;
+        double angleCoord = angleInPlane(geometry->vector(f.halfedge()), geometry->vector(he), gc.faceNormals[f]);
+        Complex coord =
+            std::exp(angleCoord * IM_I * (double)nSym); // nsym should be 2 or 4, checked in the funciton which calls this
+
+        sum += coord * weight * dihedralAngle;
+      }
+
+      sum /= weightSum;
+
+      dirVec[faceInd[f]] = sum;
+    }
+
+    // Normalize the alignment field
+    double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+    dirVec /= scale;
+
+    double lambdaT = 0.0; // this is something of a magical constant, see "Globally Optimal Direction Fields", eqn 16
+
+    // Eigen::VectorXcd RHS = massMatrix * dirVec;
+    Eigen::VectorXcd RHS = dirVec;
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+    solution = SquareSolver<Complex>::solve(LHS, RHS);
+
+  }
+  // Otherwise find the smallest eigenvector
+  else {
+    std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
+    solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+  }
+
+
+  // Copy the result to a FaceData object
+  FaceData<Complex> field(mesh);
+  for (FacePtr f : mesh->faces()) {
+    field[f] = solution[faceInd[f]] / std::abs(solution[faceInd[f]]);
+  }
+
+  return field;
+}
+
+FaceData<Complex> computeSmoothestFaceDirectionField_boundary(Geometry<Euclidean>* geometry, int nSym,
+                                                              bool alignCurvature) {
+
+  // TODO implement
+  HalfedgeMesh* mesh = geometry->getMesh();
+  FaceData<Complex> field(mesh);
+
+  throw std::runtime_error("Boundary fields not implemented");
+
+  return field;
+}
+
+} // namespace
+
+FaceData<Complex> computeSmoothestFaceDirectionField(Geometry<Euclidean>* geometry, int nSym, bool alignCurvature) {
+
+  std::cout << "Computing globally optimal direction field in faces" << std::endl;
+
+  if (alignCurvature && !(nSym == 2 || nSym == 4)) {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or "
+                           "4");
+  }
+
+  // Dispatch to either the boundary of no boundary variant depending on the mesh type
+  bool hasBoundary = false;
+  for (VertexPtr v : geometry->getMesh()->vertices()) {
+    hasBoundary |= v.isBoundary();
+  }
+
+
+  if (hasBoundary) {
+    std::cout << "Mesh has boundary, computing dirichlet boundary condition solution" << std::endl;
+    return computeSmoothestFaceDirectionField_boundary(geometry, nSym, alignCurvature);
+  } else {
+    std::cout << "Mesh has no boundary, computing unit-norm solution" << std::endl;
+    return computeSmoothestFaceDirectionField_noBoundary(geometry, nSym, alignCurvature);
+  }
+}
+
+
 FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex> directionField, int nSym) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
