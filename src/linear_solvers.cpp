@@ -2,6 +2,10 @@
 
 #include "geometrycentral/linear_algebra_utilities.h"
 
+
+// This control various safety chceks in linear algebra code and solvers
+// #define NLINALG_DEBUG;
+
 using namespace Eigen;
 
 namespace geometrycentral {
@@ -57,7 +61,7 @@ void PositiveDefiniteSolver<T>::prepare() {
   size_t N = this->mat.rows();
 
 // Check some sanity
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   assert(this->mat.cols() == static_cast<int>(N) && "Matrix is square");
   checkFinite(this->mat);
   checkHermitian(this->mat);
@@ -77,7 +81,7 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
   size_t N = this->mat.rows();
 
   // Check some sanity
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   assert(rhs.rows() == static_cast<int>(N) && "Vector is the right length");
   checkFinite(rhs);
 #endif
@@ -91,7 +95,7 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
   }
 
     // Compute residual to spot bad solves
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   Matrix<T, Dynamic, 1> residual = this->mat * x - rhs;
   double residualNorm = residual.norm();
   double relativeResidualNorm = residualNorm / rhs.norm();
@@ -127,7 +131,7 @@ void SquareSolver<T>::prepare() {
   size_t N = this->mat.rows();
 
 // Check some sanity
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   assert(this->mat.cols() == static_cast<int>(N) && "Matrix is square");
   checkFinite(this->mat);
 #endif
@@ -146,7 +150,7 @@ void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
   size_t N = this->mat.rows();
 
   // Check some sanity
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   assert(rhs.rows() == static_cast<int>(N) && "Vector is the right length");
   checkFinite(rhs);
 #endif
@@ -160,7 +164,7 @@ void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
   }
 
     // Compute residual to spot bad solves
-#ifndef NDEBUG
+#ifndef NLINALG_DEBUG
   Matrix<T, Dynamic, 1> residual = this->mat * x - rhs;
   double residualNorm = residual.norm();
   double relativeResidualNorm = residualNorm / rhs.norm();
