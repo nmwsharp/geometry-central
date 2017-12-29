@@ -68,7 +68,7 @@ void checkHermitian(const Eigen::SparseMatrix<T>& m) {
   double sum = 0;
   size_t nEntries = 0;
   for (int k = 0; k < m.outerSize(); ++k) {
-    for (Eigen::SparseMatrix<double>::InnerIterator it(m, k); it; ++it) {
+    for (typename Eigen::SparseMatrix<T>::InnerIterator it(m, k); it; ++it) {
       sum += std::abs(it.value());
       nEntries++;
     }
@@ -78,10 +78,10 @@ void checkHermitian(const Eigen::SparseMatrix<T>& m) {
 
   // Test each symmtric pair in the matrix (actually tests each twice)
   for (int k = 0; k < m.outerSize(); ++k) {
-    for (Eigen::SparseMatrix<double>::InnerIterator it(m, k); it; ++it) {
+    for (typename Eigen::SparseMatrix<T>::InnerIterator it(m, k); it; ++it) {
 
-      double thisVal = it.value();
-      double otherVal = m.coeff(it.col(), it.row());
+      T thisVal = it.value();
+      T otherVal = m.coeff(it.col(), it.row());
 
       if (!approxEqualsAbsolute(thisVal, otherVal, eps)) {
         std::cerr << std::endl

@@ -78,8 +78,8 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 
   // Check some sanity
 #ifndef NDEBUG
-  assert(b.rows() == static_cast<int>(N) && "Vector is the right length");
-  checkFinite(b);
+  assert(rhs.rows() == static_cast<int>(N) && "Vector is the right length");
+  checkFinite(rhs);
 #endif
 
   // Solve
@@ -92,9 +92,9 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 
     // Compute residual to spot bad solves
 #ifndef NDEBUG
-  Matrix<T, Dynamic, 1> residual = A * x - b;
+  Matrix<T, Dynamic, 1> residual = this->mat * x - rhs;
   double residualNorm = residual.norm();
-  double relativeResidualNorm = residualNorm / b.norm();
+  double relativeResidualNorm = residualNorm / rhs.norm();
   std::cout << "  -- Residual norm: " << residualNorm << "   relative residual norm: " << relativeResidualNorm
             << std::endl;
 #endif
@@ -147,8 +147,8 @@ void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 
   // Check some sanity
 #ifndef NDEBUG
-  assert(b.rows() == static_cast<int>(N) && "Vector is the right length");
-  checkFinite(b);
+  assert(rhs.rows() == static_cast<int>(N) && "Vector is the right length");
+  checkFinite(rhs);
 #endif
 
   // Solve
@@ -161,9 +161,9 @@ void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 
     // Compute residual to spot bad solves
 #ifndef NDEBUG
-  Matrix<T, Dynamic, 1> residual = A * x - b;
+  Matrix<T, Dynamic, 1> residual = this->mat * x - rhs;
   double residualNorm = residual.norm();
-  double relativeResidualNorm = residualNorm / b.norm();
+  double relativeResidualNorm = residualNorm / rhs.norm();
   std::cout << "  -- Residual norm: " << residualNorm << "   relative residual norm: " << relativeResidualNorm
             << std::endl;
 #endif
