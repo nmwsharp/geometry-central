@@ -36,17 +36,6 @@ inline HalfedgePtrSet HalfedgeMesh::imaginaryHalfedges(void) {
   return HalfedgePtrSet(beginptr, endptr);
 }
 
-inline CutPtrSet HalfedgeMesh::cutBoundary(int loop) {
-  if (nBoundaryLoops() == 0) {
-    for (EdgePtr e : edges()) {
-      if (e.isCut()) return CutPtrSet(e.halfedge());
-    }
-  }
-
-  HalfedgePtr he = loop == -1 ? boundaryLoop(longestBoundaryLoop()).halfedge() : boundaryLoop(loop).halfedge();
-  return CutPtrSet(he);
-}
-
 inline CornerPtrSet HalfedgeMesh::corners(void) {
   size_t nC = rawHalfedges.size();
   CornerPtr beginptr(&rawHalfedges[0]);

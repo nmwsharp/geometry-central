@@ -110,28 +110,6 @@ private:
   HalfedgePtr beginptr, endptr;
 };
 
-class CutPtrRangeIterator {
-public:
-  CutPtrRangeIterator(HalfedgePtr startingHalfedge, bool justStarted_);
-  const CutPtrRangeIterator& operator++();
-  bool operator==(const CutPtrRangeIterator& other) const;
-  bool operator!=(const CutPtrRangeIterator& other) const;
-  HalfedgePtr operator*() const;
-
-private:
-  HalfedgePtr currHalfedge;
-  bool justStarted;
-};
-class CutPtrSet {
-public:
-  CutPtrSet(HalfedgePtr he);
-  CutPtrRangeIterator begin();
-  CutPtrRangeIterator end();
-
-private:
-  HalfedgePtr firstHe;
-};
-
 // Corner
 class CornerPtr {
 public:
@@ -296,8 +274,6 @@ public:
 
   // Properties
   bool isBoundary() const;
-  bool isCut() const;
-  void markCut(bool isCut);
 
   // Remeshing
   bool flip(); // flips a triangle pair, returning false if the faces aren't

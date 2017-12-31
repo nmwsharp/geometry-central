@@ -116,38 +116,6 @@ inline HalfedgePtrRangeIterator HalfedgePtrSet::end() {
   return HalfedgePtrRangeIterator(endptr);
 }
 
-// Cut
-inline CutPtrRangeIterator::CutPtrRangeIterator(HalfedgePtr startingHalfedge,
-                                                bool justStarted_)
-    : currHalfedge(startingHalfedge), justStarted(justStarted_) {}
-inline const CutPtrRangeIterator& CutPtrRangeIterator::operator++() {
-  justStarted = false;
-  HalfedgePtr h = currHalfedge.twin();
-  do {
-    h = h.prev().twin();  // Loop around one ring counter clockwise
-  } while (h.isReal() && !h.edge().isCut());
-  currHalfedge = h;
-  return *this;
-}
-inline bool CutPtrRangeIterator::operator==(
-    const CutPtrRangeIterator& other) const {
-  return currHalfedge == other.currHalfedge && justStarted == other.justStarted;
-}
-inline bool CutPtrRangeIterator::operator!=(
-    const CutPtrRangeIterator& other) const {
-  return !(*this == other);
-}
-inline HalfedgePtr CutPtrRangeIterator::operator*() const {
-  return currHalfedge;
-}
-
-inline CutPtrSet::CutPtrSet(HalfedgePtr he) : firstHe(he) {}
-inline CutPtrRangeIterator CutPtrSet::begin() {
-  return CutPtrRangeIterator(firstHe, true);
-}
-inline CutPtrRangeIterator CutPtrSet::end() {
-  return CutPtrRangeIterator(firstHe, false);
-}
 
 // Corner
 inline CornerPtr::CornerPtr() : ptr(nullptr) {}
@@ -366,8 +334,6 @@ inline EdgePtr::EdgePtr(Edge* ptr_) : ptr(ptr_) {}
 inline HalfedgePtr EdgePtr::halfedge() const { return ptr->halfedge; }
 inline bool EdgePtr::flip() { return ptr->flip(); }
 inline bool EdgePtr::isBoundary() const { return ptr->isBoundary; }
-inline bool EdgePtr::isCut() const { return ptr->isCut; }
-inline void EdgePtr::markCut(bool isCut) { ptr->isCut = isCut; }
 inline Edge EdgePtr::operator*() { return *ptr; }
 inline Edge EdgePtr::operator*() const { return *ptr; }
 inline Edge* EdgePtr::operator->() { return ptr; }

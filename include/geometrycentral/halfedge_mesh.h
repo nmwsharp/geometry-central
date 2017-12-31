@@ -2,8 +2,8 @@
 
 #include <vector>
 
-#include <geometrycentral/utilities.h>
 #include "geometrycentral/vector3.h"
+#include <geometrycentral/utilities.h>
 // NOTE: More includes at bottom of file
 
 namespace geometrycentral {
@@ -23,12 +23,12 @@ class PolygonSoupMesh;
 template <class T>
 class Geometry;
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
 
 // Order MATTERS for these includes
 // 1
 #include "geometrycentral/halfedge_pointer_types.h"
-// 3 
+// 3
 #include "geometrycentral/halfedge_data_types.h"
 #include "geometrycentral/halfedge_iterators.h"
 // 4
@@ -39,7 +39,7 @@ namespace geometrycentral {
 
 class HalfedgeMesh {
 
- public:
+public:
   HalfedgeMesh();
   HalfedgeMesh(const PolygonSoupMesh& soup, Geometry<Vector3>*& geometry);
 
@@ -48,8 +48,7 @@ class HalfedgeMesh {
   size_t nHalfedges() const;
   size_t nCorners() const;
   size_t nVertices() const;
-  size_t
-  nInteriorVertices();  // WARNING: O(n) at the moment TODO make this const
+  size_t nInteriorVertices() const;
   size_t nEdges() const;
   size_t nFaces() const;
   size_t nBoundaryLoops() const;
@@ -64,11 +63,6 @@ class HalfedgeMesh {
   FacePtrSet faces();
   BoundaryPtrSet boundaryLoops();
   HalfedgePtrSet imaginaryHalfedges();
-  CutPtrSet cutBoundary(
-      int loop = -1);  // NOTE: Designed for 1 boundary loop. With more
-                       // than 1 loop, only halfedges on the longest loop
-                       // and its associated cuts are visited if loop is not
-                       // specified
 
   // Methods for accessing elements by index
   // Example: VertexPtr v = mesh.vertex(123);
@@ -90,16 +84,17 @@ class HalfedgeMesh {
   CornerData<size_t> getCornerIndices();
 
   // Utility functions
-  bool isSimplicial();  // returns true if and only if all faces are triangles
-  bool hasCut();        // returns true if any edge is marked as a cut edge
-  size_t nFacesTriangulation();  // returns the number of triangles in the
-                                 // triangulation determined by
-                                 // Face::triangulate()
-  size_t longestBoundaryLoop();
-  HalfedgeMesh* copy();  // returns a deep copy 
-  HalfedgeMesh* copy(HalfedgeMeshDataTransfer& t);  // returns a deep copy 
+  bool isSimplicial() const;          // returns true if and only if all faces are triangles
+  size_t nFacesTriangulation() const; // returns the number of triangles in the
+                                      // triangulation determined by
+                                      // Face::triangulate()
+  size_t longestBoundaryLoop() const;
+  int eulerCharacteristic() const;
+  size_t nConnectedComponents() const;
+  HalfedgeMesh* copy();                            // returns a deep copy
+  HalfedgeMesh* copy(HalfedgeMeshDataTransfer& t); // returns a deep copy
 
- private:
+private:
   // The contiguous chunks of memory which hold the actual structs.
   // Don't modify them after construction.
   std::vector<Halfedge> rawHalfedges;
@@ -122,10 +117,12 @@ class HalfedgeMesh {
   void cache_nFacesTriangulation();
   void cache_longestBoundaryLoop();
   void cache_nInteriorVertices();
+  void cache_nConnectedComponents();
   bool _isSimplicial;
   size_t _nFacesTriangulation;
   size_t _longestBoundaryLoop;
   size_t _nInteriorVertices;
+  size_t _nConnectedComponents;
 };
 
 class Halfedge {
@@ -133,7 +130,7 @@ class Halfedge {
   friend class HalfedgeMesh;
   friend class HalfedgePtr;
 
- protected:
+protected:
   Halfedge* twin;
   Halfedge* next;
   Vertex* vertex;
@@ -143,7 +140,7 @@ class Halfedge {
   bool isReal = true;
 
 #ifndef NDEBUG
- public:
+public:
   // The mesh that this is a part of. Should only be used for debugging, so
   // exclude it unless debug is enabled.
   HalfedgeMesh* parentMesh;
@@ -155,14 +152,14 @@ class Vertex {
   friend class HalfedgeMesh;
   friend class VertexPtr;
 
- protected:
+protected:
   // Data structure
-  Halfedge* halfedge;  // some halfedge that emanates from this vertex
-                       // (guaranteed to be real)
+  Halfedge* halfedge; // some halfedge that emanates from this vertex
+                      // (guaranteed to be real)
   bool isBoundary = false;
 
 #ifndef NDEBUG
- public:
+public:
   // The mesh that this is a part of. Should only be used for debugging, so
   // exclude it unless debug is enabled.
   HalfedgeMesh* parentMesh;
@@ -175,16 +172,15 @@ class Edge {
   friend class HalfedgeMesh;
   friend class EdgePtr;
 
- protected:
+protected:
   Halfedge* halfedge;
 
   bool flip(void);
 
   bool isBoundary = false;
-  bool isCut = false;
 
 #ifndef NDEBUG
- public:
+public:
   // The mesh that this is a part of. Should only be used for debugging, so
   // exclude it unless debug is enabled.
   HalfedgeMesh* parentMesh;
@@ -196,24 +192,24 @@ class Face {
   friend class HalfedgeMesh;
   friend class FacePtr;
 
- protected:
+protected:
   Halfedge* halfedge;
 
   bool isBoundary = false;
   bool isReal = false;
 
 #ifndef NDEBUG
- public:
+public:
   // The mesh that this is a part of. Should only be used for debugging, so
   // exclude it unless debug is enabled.
   HalfedgeMesh* parentMesh;
 #endif
 };
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
 
 #include "geometrycentral/halfedge_data_types.ipp"
 #include "geometrycentral/halfedge_iterators.ipp"
 #include "geometrycentral/halfedge_mesh.ipp"
-#include "geometrycentral/halfedge_pointer_types.ipp"
 #include "geometrycentral/halfedge_mesh_data_transfer.ipp"
+#include "geometrycentral/halfedge_pointer_types.ipp"

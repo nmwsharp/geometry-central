@@ -9,11 +9,13 @@
 #include <unordered_set>
 
 #include "geometrycentral/geometry.h"
+#include <geometrycentral/disjoint_sets.h>
+#include <geometrycentral/halfedge_mesh_data_transfer.h>
 #include <geometrycentral/polygon_soup_mesh.h>
 #include <geometrycentral/timing.h>
-#include <geometrycentral/halfedge_mesh_data_transfer.h>
 
-using std::cout; using std::endl;
+using std::cout;
+using std::endl;
 
 namespace geometrycentral {
 
@@ -24,27 +26,34 @@ void HalfedgeMesh::cacheInfo() {
   cache_nFacesTriangulation();
   cache_longestBoundaryLoop();
   cache_nInteriorVertices();
+  cache_nConnectedComponents();
 }
 
 // Returns true if and only if all faces are triangles
-bool HalfedgeMesh::isSimplicial() { return _isSimplicial; }
+bool HalfedgeMesh::isSimplicial() const { return _isSimplicial; }
 
 void HalfedgeMesh::cache_isSimplicial() {
   _isSimplicial = true;
-  //    for(FacePtr f : faces()) { FIXME
-  //       if(f.degree() != 3) {
-  //          _isSimplicial = false;
-  //          return;
-  //       }
-  //    }
+  for (FacePtr f : faces()) {
+    if (f.degree() != 3) {
+      _isSimplicial = false;
+      return;
+    }
+  }
 }
 
-bool HalfedgeMesh::hasCut() {
-  for (EdgePtr e : edges()) {
-    if (e.isCut()) return true;
-  }
+void HalfedgeMesh::cache_nConnectedComponents() {
 
-  return false;
+  VertexData<size_t> vertInd = getVertexIndices();
+  DisjointSets dj(nVertices());
+  for (EdgePtr e : edges()) {
+    dj.merge(vertInd[e.halfedge().vertex()], vertInd[e.halfedge().twin().vertex()]);
+  }
+  std::unordered_set<size_t> distinctComponents;
+  for (size_t i = 0; i < nVertices(); i++) {
+    distinctComponents.insert(dj.find(i));
+  }
+  _nConnectedComponents = distinctComponents.size();
 }
 
 void HalfedgeMesh::cache_nInteriorVertices() {
@@ -58,7 +67,7 @@ void HalfedgeMesh::cache_nInteriorVertices() {
 
 // Counts the total number of faces in a triangulation of this mesh,
 // corresponding to the triangulation given by Face::triangulate().
-size_t HalfedgeMesh::nFacesTriangulation() { return _nFacesTriangulation; }
+size_t HalfedgeMesh::nFacesTriangulation() const { return _nFacesTriangulation; }
 
 void HalfedgeMesh::cache_nFacesTriangulation() {
   _nFacesTriangulation = 0;
@@ -67,7 +76,13 @@ void HalfedgeMesh::cache_nFacesTriangulation() {
   }
 }
 
-size_t HalfedgeMesh::longestBoundaryLoop() { return _longestBoundaryLoop; }
+size_t HalfedgeMesh::longestBoundaryLoop() const { return _longestBoundaryLoop; }
+
+int HalfedgeMesh::eulerCharacteristic() const {
+  // be sure to do intermediate arithmetic with large, signed integers
+  return static_cast<int>(static_cast<long long int>(nVertices()) - static_cast<long long int>(nEdges()) +
+                          static_cast<long long int>(nFaces()));
+}
 
 void HalfedgeMesh::cache_longestBoundaryLoop() {
   int max = 0;
@@ -156,14 +171,14 @@ CornerData<size_t> HalfedgeMesh::getCornerIndices() {
   return indices;
 }
 
-size_t HalfedgeMesh::nInteriorVertices() { return _nInteriorVertices; }
+size_t HalfedgeMesh::nInteriorVertices() const { return _nInteriorVertices; }
 
-HalfedgeMesh::HalfedgeMesh()
-    : _isSimplicial(true), _nFacesTriangulation(0), _longestBoundaryLoop(0) {}
+size_t HalfedgeMesh::nConnectedComponents() const { return _nConnectedComponents; }
+
+HalfedgeMesh::HalfedgeMesh() : _isSimplicial(true), _nFacesTriangulation(0), _longestBoundaryLoop(0) {}
 
 // Helper for below
-size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target,
-                      size_t start, size_t end) {
+size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target, size_t start, size_t end) {
   // Linear search is fast for small searches
   if (end - start < 20) {
     for (size_t i = start; i < end; i++) {
@@ -176,8 +191,7 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target,
   // ...but we don't want to degrade to O(N^2) for really high valence vertices,
   // so fall back to a binary search
   else {
-    auto loc = std::lower_bound(compressedList.begin() + start,
-                                compressedList.begin() + end, target);
+    auto loc = std::lower_bound(compressedList.begin() + start, compressedList.begin() + end, target);
 
     if (loc != (compressedList.begin() + end) && (target == *loc)) {
       return loc - compressedList.begin();
@@ -187,8 +201,7 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target,
   }
 }
 
-HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
-                           Geometry<Euclidean>*& geometry) {
+HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& geometry) {
   /*   High-level outline of this algorithm:
    *
    *      0. Count how many of each object we will need so we can pre-allocate
@@ -258,8 +271,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
   // Populate the compressed list
   // Each vertex's neighbors are stored between vertexNeighborsStart[i] and
   // vertexNeighborsStart[i+1]
-  std::vector<size_t> vertexNeighborsInd(vertexNeighborsStart.begin(),
-                                         vertexNeighborsStart.end() - 1);
+  std::vector<size_t> vertexNeighborsInd(vertexNeighborsStart.begin(), vertexNeighborsStart.end() - 1);
   std::vector<size_t> allVertexNeighbors(nDirected);
   for (size_t iFace = 0; iFace < input.polygons.size(); iFace++) {
     auto poly = input.polygons[iFace];
@@ -291,8 +303,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
 
       // Search for the j --> i edge
       size_t searchResult =
-          halfedgeLookup(allVertexNeighbors, iVert, vertexNeighborsStart[jVert],
-                         vertexNeighborsStart[jVert + 1]);
+          halfedgeLookup(allVertexNeighbors, iVert, vertexNeighborsStart[jVert], vertexNeighborsStart[jVert + 1]);
       twinInd[jInd] = searchResult;
       if (searchResult == INVALID_IND) {
         nUnpairedEdges++;
@@ -350,17 +361,14 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
       he->vertex->halfedge = he.ptr;
       he->face = f.ptr;
       thisFaceHalfedges[iPolyEdge] = he;
-      he->twin =
-          nullptr;  // ensure this is null so we can detect boundaries below
+      he->twin = nullptr; // ensure this is null so we can detect boundaries below
 
       // Get a reference to the edge shared by this and its twin, creating the
       // object if needed
       size_t myHeInd =
-          halfedgeLookup(allVertexNeighbors, ind2, vertexNeighborsStart[ind1],
-                         vertexNeighborsStart[ind1 + 1]);
+          halfedgeLookup(allVertexNeighbors, ind2, vertexNeighborsStart[ind1], vertexNeighborsStart[ind1 + 1]);
       size_t twinHeInd = twinInd[myHeInd];
-      bool edgeAlreadyCreated =
-          (twinHeInd != INVALID_IND) && (sharedEdges[twinHeInd] != EdgePtr());
+      bool edgeAlreadyCreated = (twinHeInd != INVALID_IND) && (sharedEdges[twinHeInd] != EdgePtr());
 
       if (edgeAlreadyCreated) {
         EdgePtr sharedEdge = sharedEdges[twinHeInd];
@@ -378,8 +386,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
 
     // Do one more lap around the face to set next pointers
     for (size_t iPolyEdge = 0; iPolyEdge < degree; iPolyEdge++) {
-      thisFaceHalfedges[iPolyEdge]->next =
-          thisFaceHalfedges[(iPolyEdge + 1) % degree].ptr;
+      thisFaceHalfedges[iPolyEdge]->next = thisFaceHalfedges[(iPolyEdge + 1) % degree].ptr;
     }
 
     f->halfedge = thisFaceHalfedges[0].ptr;
@@ -401,8 +408,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
   size_t nBoundaryLoops = 0;
   std::set<HalfedgePtr> walkedHalfedges;
   for (size_t iHe = 0; iHe < nHalfedges(); iHe++) {
-    if (halfedge(iHe)->twin == nullptr &&
-        walkedHalfedges.find(halfedge(iHe)) == walkedHalfedges.end()) {
+    if (halfedge(iHe)->twin == nullptr && walkedHalfedges.find(halfedge(iHe)) == walkedHalfedges.end()) {
       nBoundaryLoops++;
       HalfedgePtr currHe = halfedge(iHe);
       walkedHalfedges.insert(currHe);
@@ -492,8 +498,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
     }
   }
 
-  std::cout << "    and " << nBoundaryLoops << " boundary components. "
-            << std::endl;
+  std::cout << "    and " << nBoundaryLoops << " boundary components. " << std::endl;
 
 // When in debug mode, mesh elements know what mesh they are a part of so
 // we can do assertions for saftey checks.
@@ -530,17 +535,16 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input,
     }
   }
 
-  cout << "Construction took " << pretty_time(FINISH_TIMING(construction))
-       << endl;
+  cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << endl;
 
   // Compute some basic information about the mesh
   cacheInfo();
 }
 
 bool Edge::flip() {
-//                         b b
-//                         * *
-//                        /|\                                                          / \
+  //                         b b
+  //                         * *
+  //                        /|\                                                          / \
 //                       / | \                                                        /   \
 //                      /  |  \                                                      /     \
 //                     /   |   \                                                    /       \
@@ -600,17 +604,17 @@ bool Edge::flip() {
 
   // Get halfedges of first face
   Halfedge* ha1 = e->halfedge;
-  if (!ha1->isReal) return false;  // don't flip boundary edges
+  if (!ha1->isReal) return false; // don't flip boundary edges
   Halfedge* ha2 = ha1->next;
   Halfedge* ha3 = ha2->next;
-  if (ha3->next != ha1) return false;  // not a triangle
+  if (ha3->next != ha1) return false; // not a triangle
 
   // Get halfedges of second face
   Halfedge* hb1 = ha1->twin;
-  if (!hb1->isReal) return false;  // don't flip boundary edges
+  if (!hb1->isReal) return false; // don't flip boundary edges
   Halfedge* hb2 = hb1->next;
   Halfedge* hb3 = hb2->next;
-  if (hb3->next != hb1) return false;  // not a triangle
+  if (hb3->next != hb1) return false; // not a triangle
 
   // Get vertices and faces
   Vertex* va = ha1->vertex;
@@ -651,7 +655,6 @@ HalfedgeMesh* HalfedgeMesh::copy() {
 
   HalfedgeMeshDataTransfer t;
   return copy(t);
-
 }
 
 
@@ -659,7 +662,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   HalfedgeMesh* newMesh = new HalfedgeMesh();
 
-  // Copy vectors 
+  // Copy vectors
   newMesh->rawHalfedges = rawHalfedges;
   newMesh->rawVertices = rawVertices;
   newMesh->rawEdges = rawEdges;
@@ -671,54 +674,78 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
   dataTransfer = HalfedgeMeshDataTransfer(this, newMesh);
 
   // Build maps
-  for(size_t i = 0; i < rawHalfedges.size(); i++) { dataTransfer.heMap[halfedge(i)] = &newMesh->rawHalfedges[i]; }
-  for(size_t i = 0; i < rawImaginaryHalfedges.size(); i++) { dataTransfer.heMap[imaginaryHalfedge(i)] = &newMesh->rawImaginaryHalfedges[i]; }
-  for(size_t i = 0; i < rawVertices.size(); i++) { dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i]; }
-  for(size_t i = 0; i < rawEdges.size(); i++) { dataTransfer.eMap[edge(i)] = &newMesh->rawEdges[i]; }
-  for(size_t i = 0; i < rawFaces.size(); i++) { dataTransfer.fMap[face(i)] = &newMesh->rawFaces[i]; }
-  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) { dataTransfer.fMap[boundaryLoop(i)] = &newMesh->rawBoundaryLoops[i]; } 
+  for (size_t i = 0; i < rawHalfedges.size(); i++) {
+    dataTransfer.heMap[halfedge(i)] = &newMesh->rawHalfedges[i];
+  }
+  for (size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
+    dataTransfer.heMap[imaginaryHalfedge(i)] = &newMesh->rawImaginaryHalfedges[i];
+  }
+  for (size_t i = 0; i < rawVertices.size(); i++) {
+    dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i];
+  }
+  for (size_t i = 0; i < rawEdges.size(); i++) {
+    dataTransfer.eMap[edge(i)] = &newMesh->rawEdges[i];
+  }
+  for (size_t i = 0; i < rawFaces.size(); i++) {
+    dataTransfer.fMap[face(i)] = &newMesh->rawFaces[i];
+  }
+  for (size_t i = 0; i < rawBoundaryLoops.size(); i++) {
+    dataTransfer.fMap[boundaryLoop(i)] = &newMesh->rawBoundaryLoops[i];
+  }
 
   // Shift pointers
-  for(size_t i = 0; i < rawHalfedges.size(); i++) {
+  for (size_t i = 0; i < rawHalfedges.size(); i++) {
     newMesh->rawHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
     newMesh->rawHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
     newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
     newMesh->rawHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
     newMesh->rawHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
   }
-  for(size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
+  for (size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
     newMesh->rawImaginaryHalfedges[i].next = dataTransfer.heMap[imaginaryHalfedge(i).next()].ptr;
     newMesh->rawImaginaryHalfedges[i].twin = dataTransfer.heMap[imaginaryHalfedge(i).twin()].ptr;
     newMesh->rawImaginaryHalfedges[i].vertex = dataTransfer.vMap[imaginaryHalfedge(i).vertex()].ptr;
     newMesh->rawImaginaryHalfedges[i].edge = dataTransfer.eMap[imaginaryHalfedge(i).edge()].ptr;
     newMesh->rawImaginaryHalfedges[i].face = dataTransfer.fMap[imaginaryHalfedge(i).face()].ptr;
   }
-  for(size_t i = 0; i < rawVertices.size(); i++) {
+  for (size_t i = 0; i < rawVertices.size(); i++) {
     newMesh->rawVertices[i].halfedge = dataTransfer.heMap[vertex(i).halfedge()].ptr;
   }
-  for(size_t i = 0; i < rawEdges.size(); i++) {
+  for (size_t i = 0; i < rawEdges.size(); i++) {
     newMesh->rawEdges[i].halfedge = dataTransfer.heMap[edge(i).halfedge()].ptr;
   }
-  for(size_t i = 0; i < rawFaces.size(); i++) {
+  for (size_t i = 0; i < rawFaces.size(); i++) {
     newMesh->rawFaces[i].halfedge = dataTransfer.heMap[face(i).halfedge()].ptr;
   }
-  for(size_t i = 0; i < rawBoundaryLoops.size(); i++) {
+  for (size_t i = 0; i < rawBoundaryLoops.size(); i++) {
     newMesh->rawBoundaryLoops[i].halfedge = dataTransfer.heMap[boundaryLoop(i).halfedge()].ptr;
   }
-  
+
 
 #ifndef NDEBUG
   // Set the parent mesh pointers to point to the correct mesh
-  for(size_t i = 0; i < newMesh->rawHalfedges.size(); i++) { newMesh->rawHalfedges[i].parentMesh = newMesh; }
-  for(size_t i = 0; i < newMesh->rawImaginaryHalfedges.size(); i++) { newMesh->rawImaginaryHalfedges[i].parentMesh = newMesh; }
-  for(size_t i = 0; i < newMesh->rawVertices.size(); i++) { newMesh->rawVertices[i].parentMesh = newMesh; }
-  for(size_t i = 0; i < newMesh->rawEdges.size(); i++) { newMesh->rawEdges[i].parentMesh = newMesh; }
-  for(size_t i = 0; i < newMesh->rawFaces.size(); i++) { newMesh->rawFaces[i].parentMesh = newMesh; }
-  for(size_t i = 0; i < newMesh->rawBoundaryLoops.size(); i++) { newMesh->rawBoundaryLoops[i].parentMesh = newMesh; }
+  for (size_t i = 0; i < newMesh->rawHalfedges.size(); i++) {
+    newMesh->rawHalfedges[i].parentMesh = newMesh;
+  }
+  for (size_t i = 0; i < newMesh->rawImaginaryHalfedges.size(); i++) {
+    newMesh->rawImaginaryHalfedges[i].parentMesh = newMesh;
+  }
+  for (size_t i = 0; i < newMesh->rawVertices.size(); i++) {
+    newMesh->rawVertices[i].parentMesh = newMesh;
+  }
+  for (size_t i = 0; i < newMesh->rawEdges.size(); i++) {
+    newMesh->rawEdges[i].parentMesh = newMesh;
+  }
+  for (size_t i = 0; i < newMesh->rawFaces.size(); i++) {
+    newMesh->rawFaces[i].parentMesh = newMesh;
+  }
+  for (size_t i = 0; i < newMesh->rawBoundaryLoops.size(); i++) {
+    newMesh->rawBoundaryLoops[i].parentMesh = newMesh;
+  }
 #endif
 
   newMesh->cacheInfo();
-  
+
   return newMesh;
 }
 
@@ -757,4 +784,4 @@ HalfedgeMesh* HalfedgeMesh::copy() {
 }
 */
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
