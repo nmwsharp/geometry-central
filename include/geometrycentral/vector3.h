@@ -32,7 +32,7 @@ struct Vector3 {
   const Vector3 operator-() const;
 
   // Other functions
-  Vector3 rotate_around(Vector3 axis, double theta);
+  Vector3 rotate_around(Vector3 axis, double theta) const;
   void normalize();
 
   static Vector3 constant(double c) { return Vector3{c, c, c}; }

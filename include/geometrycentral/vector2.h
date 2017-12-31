@@ -27,6 +27,8 @@ struct Vector2 {
   bool operator!=(const Vector2& v) const;
   const Vector2 operator-() const;
   void normalize(void);
+  Vector2 rotate(double theta) const;
+
 
   static Vector2 constant(double c) { return Vector2{c, c}; }
 
@@ -56,11 +58,11 @@ Vector2 unit(const Vector2& v);
 double angle(const Vector2& u, const Vector2& v);
 double dot(const Vector2& u, const Vector2& v);
 Vector3 cross(const Vector2& u,
-              const Vector2& v);  // assumes arguments are in x-y plane
+              const Vector2& v); // assumes arguments are in x-y plane
 bool isFinite(const Vector2& u);
 Vector2 componentwiseMin(const Vector2& u, const Vector2& v);
 Vector2 componentwiseMax(const Vector2& u, const Vector2& v);
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
 
 #include "geometrycentral/vector2.ipp"
