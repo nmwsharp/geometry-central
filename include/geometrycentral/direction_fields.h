@@ -27,6 +27,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField(Geometry<Euclidean>* geomet
 
 // Find singularities in direction fields
 FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex> directionField, int nSym = 1);
+VertexData<int> computeVertexIndex(Geometry<Euclidean>* geometry, FaceData<Complex> directionField, int nSym = 1);
 
 // === Compute intermediate vaues useful for transport and direction fields
 

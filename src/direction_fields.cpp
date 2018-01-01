@@ -8,6 +8,9 @@
 #include <Eigen/SparseLU>
 #include <Eigen/SparseQR>
 
+using std::cout;
+using std::endl;
+
 namespace geometrycentral {
 
 VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
@@ -222,7 +225,9 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
   }
 
   // Shift to avoid singularity
-  energyMatrix = energyMatrix + 0.001 * massMatrix;
+  Eigen::SparseMatrix<Complex> eye(N, N);
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
 
   // Store the solution here
   Eigen::VectorXcd solution;
@@ -359,7 +364,9 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
   }
 
   // Shift to avoid singularities
-  energyMatrix = energyMatrix + 0.001 * massMatrix;
+  Eigen::SparseMatrix<Complex> eye(nInterior, nInterior);
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
 
   // Compute the actual solution
   std::cout << "Solving linear problem..." << std::endl;
@@ -509,7 +516,9 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
   }
 
   // Shift to avoid singularity
-  energyMatrix = energyMatrix + 0.001 * massMatrix;
+  Eigen::SparseMatrix<Complex> eye(N, N);
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
 
   // Store the solution here
   Eigen::VectorXcd solution;
@@ -530,8 +539,8 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
         double weight = norm(geometry->vector(he));
         weightSum += weight;
         double angleCoord = angleInPlane(geometry->vector(f.halfedge()), geometry->vector(he), gc.faceNormals[f]);
-        Complex coord =
-            std::exp(angleCoord * IM_I * (double)nSym); // nsym should be 2 or 4, checked in the funciton which calls this
+        Complex coord = std::exp(angleCoord * IM_I *
+                                 (double)nSym); // nsym should be 2 or 4, checked in the funciton which calls this
 
         sum += coord * weight * dihedralAngle;
       }
@@ -645,6 +654,46 @@ FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex
     // Compute the net rotation and corresponding index
     int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
     indices[f] = index;
+  }
+
+  return indices;
+}
+
+
+VertexData<int> computeVertexIndex(Geometry<Euclidean>* geometry, FaceData<Complex> directionField, int nSym) {
+
+  HalfedgeMesh* mesh = geometry->getMesh();
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.faceTransportCoefsQ.require();
+
+  // Store the result here
+  VertexData<int> indices(mesh);
+
+  // TODO haven't tested that this correctly reports the index when it is larger
+  // than +-1
+
+  for (VertexPtr v : mesh->vertices()) {
+    // Trace the direction field around the face and see how many times it
+    // spins!
+    double totalRot = 0;
+
+    for (HalfedgePtr he : v.incomingHalfedges()) {
+      // Compute the rotation along the halfedge implied by the field
+      Complex x0 = directionField[he.face()];
+      Complex x1 = directionField[he.twin().face()];
+      Complex transport = std::pow(gc.faceTransportCoefs[he], nSym);
+
+      // Find the difference in angle
+      double theta0 = std::arg(transport * x0);
+      double theta1 = std::arg(x1);
+      double deltaTheta = regularizeAngle(theta1 - theta0 + PI) - PI; // regularize to [-PI,PI]
+
+      totalRot += deltaTheta; // accumulate
+    }
+
+    // Compute the net rotation and corresponding index
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
+    indices[v] = index;
   }
 
   return indices;

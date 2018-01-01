@@ -132,7 +132,8 @@ public:
   FaceData<std::array<Vector3,2>> faceBasis;
   DependentQuantity faceBasisQ;
   
-  // edge lengths
+  // transport angle in he.face() to he.twin().face() by multiplying
+  // complex e^(theta I) 
   HalfedgeData<Complex> faceTransportCoefs;
   DependentQuantity faceTransportCoefsQ;
   
