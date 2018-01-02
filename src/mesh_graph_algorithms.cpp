@@ -103,7 +103,7 @@ EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry,
   }
 
   // Trim the tree until there is nothing more to trim
-  while (degree1Verts.size() > 1) {
+  while (degree1Verts.size() > 0) {
 
     VertexPtr currV = degree1Verts.back();
     degree1Verts.pop_back();
