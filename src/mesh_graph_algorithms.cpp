@@ -108,6 +108,11 @@ EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry,
     VertexPtr currV = degree1Verts.back();
     degree1Verts.pop_back();
 
+    // Keep needed vertices
+    if(vertexNeeded[currV]) {
+      continue;
+    }
+
     // Find that one edge
     HalfedgePtr treeHe;
     for (HalfedgePtr he : currV.incomingHalfedges()) {
