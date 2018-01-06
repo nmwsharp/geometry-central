@@ -2,6 +2,16 @@
 
 #include "Eigen/Sparse"
 
+// Suitesparse includes, as needed
+#ifdef HAVE_SUITESPARSE
+#include "geometrycentral/suitesparse_utilities.h"
+#include <cholmod.h>
+#endif
+
+
+// This disables various safety chceks in linear algebra code and solvers
+#define GC_NLINALG_DEBUG
+
 // Note: actual solvers implemented with explicit template instantiation in solvers.cpp
 
 // Utilitiy typedef
@@ -22,9 +32,7 @@ template <typename T>
 class LinearSolver {
 
 public:
-  LinearSolver(const Eigen::SparseMatrix<T>& mat_) {
-    mat = Eigen::SparseMatrix<T, Eigen::ColMajor>(mat_);
-  }
+  LinearSolver(const Eigen::SparseMatrix<T>& mat_) { mat = Eigen::SparseMatrix<T, Eigen::ColMajor>(mat_); }
 
   // Solve for a particular right hand side
   Vector<T> operator()(const Vector<T>& rhs);
@@ -37,7 +45,6 @@ public:
 
 protected:
   Eigen::SparseMatrix<T, Eigen::ColMajor> mat;
-
 };
 
 
@@ -45,9 +52,8 @@ template <typename T>
 class PositiveDefiniteSolver : public LinearSolver<T> {
 
 public:
-  PositiveDefiniteSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) {
-    prepare(); 
-  }
+  PositiveDefiniteSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
+  ~PositiveDefiniteSolver();
 
   // Solve!
   virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
@@ -58,22 +64,22 @@ public:
 
 protected:
   void prepare();
-  
-  // Implementation-specific quantities
-  // #ifdef HAVE_SUITESPARSE
 
-  // #else
+// Implementation-specific quantities
+#ifdef HAVE_SUITESPARSE
+  CholmodContext context;
+  cholmod_sparse* cMat = nullptr;
+  cholmod_factor* factorization = nullptr;
+#else
   Eigen::SimplicialLDLT<Eigen::SparseMatrix<T>> solver;
-  // #endif
+#endif
 };
 
 template <typename T>
 class SquareSolver : public LinearSolver<T> {
 
 public:
-  SquareSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) {
-    prepare(); 
-  }
+  SquareSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
 
   // Solve!
   virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
@@ -84,7 +90,7 @@ public:
 
 protected:
   void prepare();
-  
+
   // Implementation-specific quantities
   // #ifdef HAVE_SUITESPARSE
 

@@ -62,7 +62,7 @@ inline void checkFinite(const Eigen::Matrix<T, R, 1>& m) {
 }
 
 template <typename T>
-void checkHermitian(const Eigen::SparseMatrix<T>& m) {
+inline void checkHermitian(const Eigen::SparseMatrix<T>& m) {
 
   // Compute a scale factor for the matrix to use for closeness tests
   double sum = 0;
@@ -98,7 +98,7 @@ void checkHermitian(const Eigen::SparseMatrix<T>& m) {
 }
 
 template<>
-void checkHermitian(const Eigen::SparseMatrix<std::complex<double>>& m) {
+inline void checkHermitian(const Eigen::SparseMatrix<std::complex<double>>& m) {
 
   // Compute a scale factor for the matrix to use for closeness tests
   double sum = 0;
