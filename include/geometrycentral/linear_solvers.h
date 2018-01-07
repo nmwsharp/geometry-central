@@ -80,6 +80,7 @@ class SquareSolver : public LinearSolver<T> {
 
 public:
   SquareSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
+  ~SquareSolver();
 
   // Solve!
   virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
@@ -92,11 +93,14 @@ protected:
   void prepare();
 
   // Implementation-specific quantities
-  // #ifdef HAVE_SUITESPARSE
-
-  // #else
+#ifdef HAVE_SUITESPARSE
+  CholmodContext context;
+  cholmod_sparse* cMat = nullptr;
+  void* symbolicFactorization = nullptr;
+  void* numericFactorization = nullptr;
+#else
   Eigen::SparseLU<Eigen::SparseMatrix<T>> solver;
-  // #endif
+#endif
 };
 
 } // namespace geometrycentral
