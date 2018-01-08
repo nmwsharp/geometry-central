@@ -166,7 +166,14 @@ void toEigen(cholmod_dense* cVec, CholmodContext& context, Eigen::Matrix<T, Eige
   }
   size_t N = cVec->nrow;
 
-  T* cVecPtr = (T*)cVec->x;
+  // Ensure output is large enough
+  xOut = Eigen::Matrix<T, Eigen::Dynamic, 1>(N);
+
+  // Type wizardry. This type is 'double' if T == 'float', and T otherwise
+  // Needed because cholmod always uses double precision
+  typedef typename std::conditional<std::is_same<T, float>::value, double, T>::type SCALAR_TYPE;
+
+  SCALAR_TYPE* cVecPtr = (SCALAR_TYPE*)cVec->x;
   for (size_t i = 0; i < N; i++) {
     xOut(i) = cVecPtr[i];
   }

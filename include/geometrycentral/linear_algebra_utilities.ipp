@@ -10,7 +10,7 @@ inline void checkFinite(const Eigen::SparseMatrix<T>& m) {
                           << std::endl
                           << std::endl;
 
-                throw std::invalid_argument("Matrix has non-finite entries");
+                throw std::logic_error("Matrix has non-finite entries");
             }
         }
     }
@@ -27,7 +27,7 @@ inline void checkFinite(const Eigen::Matrix<T, R, C>& m) {
                 std::cerr << std::endl
                           << "Uh oh. Non-finite vector entry [" << i << "," << j << "] = " << m(i, j) << std::endl
                           << std::endl;
-                throw std::invalid_argument("Matrix has non-finite entries");
+                throw std::logic_error("Matrix has non-finite entries");
             }
         }
     }
@@ -42,7 +42,7 @@ inline void checkFinite(const Eigen::Matrix<T, 1, C>& m) {
             std::cerr << std::endl
                       << "Uh oh. Non-finite row vector entry [" << j << "] = " << m(j) << std::endl
                       << std::endl;
-            throw std::invalid_argument("Matrix has non-finite entries");
+            throw std::logic_error("Matrix has non-finite entries");
         }
     }
 }
@@ -56,7 +56,7 @@ inline void checkFinite(const Eigen::Matrix<T, R, 1>& m) {
             std::cerr << std::endl
                       << "Uh oh. Non-finite column vector entry [" << i << "] = " << m(i, 1) << std::endl
                       << std::endl;
-            throw std::invalid_argument("Matrix has non-finite entries");
+            throw std::logic_error("Matrix has non-finite entries");
         }
     }
 }

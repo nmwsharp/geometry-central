@@ -31,7 +31,9 @@ void PositiveDefiniteSolver<T>::prepare() {
 
 // Check some sanity
 #ifndef GC_NLINALG_DEBUG
-  assert(this->mat.cols() == static_cast<int>(N) && "Matrix is square");
+  if ((size_t)this->mat.cols() != N) {
+    throw std::logic_error("Matrix must be square");
+  }
   checkFinite(this->mat);
   checkHermitian(this->mat);
 #endif
@@ -68,7 +70,9 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 
   // Check some sanity
 #ifndef GC_NLINALG_DEBUG
-  assert(rhs.rows() == static_cast<int>(N) && "Vector is the right length");
+  if ((size_t)rhs.rows() != N) {
+    throw std::logic_error("Vector is not the right length");
+  }
   checkFinite(rhs);
 #endif
 
