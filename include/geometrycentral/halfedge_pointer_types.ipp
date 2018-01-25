@@ -43,18 +43,18 @@ inline bool HalfedgePtr::operator<(const HalfedgePtr& other) const {
 inline bool HalfedgePtr::operator<=(const HalfedgePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool HalfedgePtr::operator==(::std::nullptr_t n) const {
+inline bool HalfedgePtr::operator==(void* n) const {
   return ptr == n;
 }
-inline bool HalfedgePtr::operator!=(::std::nullptr_t n) const {
+inline bool HalfedgePtr::operator!=(void* n) const {
   return ptr != n;
 }
-inline bool HalfedgePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool HalfedgePtr::operator>=(::std::nullptr_t n) const {
+inline bool HalfedgePtr::operator>(void* n) const { return ptr > n; }
+inline bool HalfedgePtr::operator>=(void* n) const {
   return ptr >= n;
 }
-inline bool HalfedgePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool HalfedgePtr::operator<=(::std::nullptr_t n) const {
+inline bool HalfedgePtr::operator<(void* n) const { return ptr < n; }
+inline bool HalfedgePtr::operator<=(void* n) const {
   return ptr <= n;
 }
 inline unsigned int HalfedgePtr::operator-(const HalfedgePtr& other) const {
@@ -149,12 +149,12 @@ inline bool CornerPtr::operator<(const CornerPtr& other) const {
 inline bool CornerPtr::operator<=(const CornerPtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool CornerPtr::operator==(::std::nullptr_t n) const { return ptr == n; }
-inline bool CornerPtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
-inline bool CornerPtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool CornerPtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
-inline bool CornerPtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool CornerPtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
+inline bool CornerPtr::operator==(void* n) const { return ptr == n; }
+inline bool CornerPtr::operator!=(void* n) const { return ptr != n; }
+inline bool CornerPtr::operator>(void* n) const { return ptr > n; }
+inline bool CornerPtr::operator>=(void* n) const { return ptr >= n; }
+inline bool CornerPtr::operator<(void* n) const { return ptr < n; }
+inline bool CornerPtr::operator<=(void* n) const { return ptr <= n; }
 inline unsigned int CornerPtr::operator-(const CornerPtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -266,12 +266,12 @@ inline bool VertexPtr::operator<(const VertexPtr& other) const {
 inline bool VertexPtr::operator<=(const VertexPtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool VertexPtr::operator==(::std::nullptr_t n) const { return ptr == n; }
-inline bool VertexPtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
-inline bool VertexPtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool VertexPtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
-inline bool VertexPtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool VertexPtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
+inline bool VertexPtr::operator==(void* n) const { return ptr == n; }
+inline bool VertexPtr::operator!=(void* n) const { return ptr != n; }
+inline bool VertexPtr::operator>(void* n) const { return ptr > n; }
+inline bool VertexPtr::operator>=(void* n) const { return ptr >= n; }
+inline bool VertexPtr::operator<(void* n) const { return ptr < n; }
+inline bool VertexPtr::operator<=(void* n) const { return ptr <= n; }
 inline unsigned int VertexPtr::operator-(const VertexPtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -356,12 +356,12 @@ inline bool EdgePtr::operator<(const EdgePtr& other) const {
 inline bool EdgePtr::operator<=(const EdgePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool EdgePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
-inline bool EdgePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
-inline bool EdgePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool EdgePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
-inline bool EdgePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool EdgePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
+inline bool EdgePtr::operator==(void* n) const { return ptr == n; }
+inline bool EdgePtr::operator!=(void* n) const { return ptr != n; }
+inline bool EdgePtr::operator>(void* n) const { return ptr > n; }
+inline bool EdgePtr::operator>=(void* n) const { return ptr >= n; }
+inline bool EdgePtr::operator<(void* n) const { return ptr < n; }
+inline bool EdgePtr::operator<=(void* n) const { return ptr <= n; }
 inline unsigned int EdgePtr::operator-(const EdgePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&
@@ -467,12 +467,12 @@ inline bool FacePtr::operator<(const FacePtr& other) const {
 inline bool FacePtr::operator<=(const FacePtr& other) const {
   return ptr <= other.ptr;
 }
-inline bool FacePtr::operator==(::std::nullptr_t n) const { return ptr == n; }
-inline bool FacePtr::operator!=(::std::nullptr_t n) const { return ptr != n; }
-inline bool FacePtr::operator>(::std::nullptr_t n) const { return ptr > n; }
-inline bool FacePtr::operator>=(::std::nullptr_t n) const { return ptr >= n; }
-inline bool FacePtr::operator<(::std::nullptr_t n) const { return ptr < n; }
-inline bool FacePtr::operator<=(::std::nullptr_t n) const { return ptr <= n; }
+inline bool FacePtr::operator==(void* n) const { return ptr == n; }
+inline bool FacePtr::operator!=(void* n) const { return ptr != n; }
+inline bool FacePtr::operator>(void* n) const { return ptr > n; }
+inline bool FacePtr::operator>=(void* n) const { return ptr >= n; }
+inline bool FacePtr::operator<(void* n) const { return ptr < n; }
+inline bool FacePtr::operator<=(void* n) const { return ptr <= n; }
 inline unsigned int FacePtr::operator-(const FacePtr& other) const {
 #ifndef NDEBUG
   assert(ptr >= other.ptr &&

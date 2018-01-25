@@ -66,12 +66,12 @@ public:
   bool operator<=(const HalfedgePtr& other) const;
 
   // Null comparators
-  bool operator==(std::nullptr_t n) const;
-  bool operator!=(std::nullptr_t n) const;
-  bool operator>(std::nullptr_t n) const;
-  bool operator>=(std::nullptr_t n) const;
-  bool operator<(std::nullptr_t n) const;
-  bool operator<=(std::nullptr_t n) const;
+  bool operator==(void* n) const;
+  bool operator!=(void* n) const;
+  bool operator>(void* n) const;
+  bool operator>=(void* n) const;
+  bool operator<(void* n) const;
+  bool operator<=(void* n) const;
 
   // Arithmetic
   unsigned int operator-(const HalfedgePtr& other) const;
@@ -138,12 +138,12 @@ public:
   bool operator<=(const CornerPtr& other) const;
 
   // Null comparators
-  bool operator==(std::nullptr_t n) const;
-  bool operator!=(std::nullptr_t n) const;
-  bool operator>(std::nullptr_t n) const;
-  bool operator>=(std::nullptr_t n) const;
-  bool operator<(std::nullptr_t n) const;
-  bool operator<=(std::nullptr_t n) const;
+  bool operator==(void* n) const;
+  bool operator!=(void* n) const;
+  bool operator>(void* n) const;
+  bool operator>=(void* n) const;
+  bool operator<(void* n) const;
+  bool operator<=(void* n) const;
 
   // Arithmetic
   unsigned int operator-(const CornerPtr& other) const;
@@ -218,12 +218,12 @@ public:
   bool operator<=(const VertexPtr& other) const;
 
   // Null comparators
-  bool operator==(std::nullptr_t n) const;
-  bool operator!=(std::nullptr_t n) const;
-  bool operator>(std::nullptr_t n) const;
-  bool operator>=(std::nullptr_t n) const;
-  bool operator<(std::nullptr_t n) const;
-  bool operator<=(std::nullptr_t n) const;
+  bool operator==(void* n) const;
+  bool operator!=(void* n) const;
+  bool operator>(void* n) const;
+  bool operator>=(void* n) const;
+  bool operator<(void* n) const;
+  bool operator<=(void* n) const;
 
   // Arithmetic
   unsigned int operator-(const VertexPtr& other) const;
@@ -294,12 +294,12 @@ public:
   bool operator<=(const EdgePtr& other) const;
 
   // Null comparators
-  bool operator==(std::nullptr_t n) const;
-  bool operator!=(std::nullptr_t n) const;
-  bool operator>(std::nullptr_t n) const;
-  bool operator>=(std::nullptr_t n) const;
-  bool operator<(std::nullptr_t n) const;
-  bool operator<=(std::nullptr_t n) const;
+  bool operator==(void* n) const;
+  bool operator!=(void* n) const;
+  bool operator>(void* n) const;
+  bool operator>=(void* n) const;
+  bool operator<(void* n) const;
+  bool operator<=(void* n) const;
 
   // Arithmetic
   unsigned int operator-(const EdgePtr& other) const;
@@ -387,12 +387,12 @@ public:
   bool operator<=(const FacePtr& other) const;
 
   // Null comparators
-  bool operator==(std::nullptr_t n) const;
-  bool operator!=(std::nullptr_t n) const;
-  bool operator>(std::nullptr_t n) const;
-  bool operator>=(std::nullptr_t n) const;
-  bool operator<(std::nullptr_t n) const;
-  bool operator<=(std::nullptr_t n) const;
+  bool operator==(void* n) const;
+  bool operator!=(void* n) const;
+  bool operator>(void* n) const;
+  bool operator>=(void* n) const;
+  bool operator<(void* n) const;
+  bool operator<=(void* n) const;
 
   // Arithmetic
   unsigned int operator-(const FacePtr& other) const;
