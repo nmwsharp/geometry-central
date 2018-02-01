@@ -67,7 +67,7 @@ Vector<T> VertexData<T>::toVector(
 
 template <typename T>
 void VertexData<T>::fromVector(const Vector<T>& vector) {
-  if (vector.nRows() != mesh->nVertices())
+  if ((size_t)vector.rows() != mesh->nVertices())
     throw std::runtime_error("Vector size does not match mesh size.");
   VertexData<size_t> ind = mesh->getVertexIndices();
   for (VertexPtr v : mesh->vertices()) {
@@ -168,7 +168,7 @@ Vector<T> EdgeData<T>::toVector(
 
 template <typename T>
 void EdgeData<T>::fromVector(const Vector<T>& vector) {
-  if (vector.nRows() != mesh->nEdges())
+  if ((size_t)vector.rows() != mesh->nEdges())
     throw std::runtime_error("Vector size does not match mesh size.");
   EdgeData<size_t> ind = mesh->getEdgeIndices();
   for (EdgePtr e : mesh->edges()) {
@@ -271,7 +271,7 @@ Vector<T> FaceData<T>::toVector(
 
 template <typename T>
 void FaceData<T>::fromVector(const Vector<T>& vector) {
-  if (vector.nRows() != mesh->nFaces())
+  if ((size_t)vector.rows() != mesh->nFaces())
     throw std::runtime_error("Vector size does not match mesh size.");
   FaceData<size_t> ind = mesh->getFaceIndices();
   for (FacePtr f : mesh->faces()) {
@@ -395,7 +395,7 @@ Vector<T> HalfedgeData<T>::toVector(
 template <typename T>
 void HalfedgeData<T>::fromVector(
     const Vector<T>& vector) {
-  if (vector.nRows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
+  if ((size_t)vector.rows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
     throw std::runtime_error("Vector size does not match mesh size.");
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
   for (HalfedgePtr he : mesh->halfedges()) {
@@ -515,7 +515,7 @@ Vector<T> CornerData<T>::toVector(
 
 template <typename T>
 void CornerData<T>::fromVector(const Vector<T>& vector) {
-  if (vector.nRows() != mesh->nCorners())
+  if ((size_t)vector.rows() != mesh->nCorners())
     throw std::runtime_error("Vector size does not match mesh size.");
   CornerData<size_t> ind = mesh->getCornerIndices();
   for (CornerPtr c : mesh->corners()) {

@@ -14,7 +14,7 @@ EdgeData<char> minimalSpanningTree(Geometry<Euclidean>* geometry) {
   // Preliminaries
   HalfedgeMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& gc = geometry->cache;
-  gc.edgeLengthsQ.require();
+  gc.requireEdgeLengths();
   VertexData<size_t> vInd = mesh->getVertexIndices();
 
   // Store result here
@@ -65,7 +65,7 @@ EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry,
   // Preliminaries
   HalfedgeMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& gc = geometry->cache;
-  gc.edgeLengthsQ.require();
+  gc.requireEdgeLengths();
   VertexData<size_t> vInd = mesh->getVertexIndices();
 
   // Handle special case of no required vertices

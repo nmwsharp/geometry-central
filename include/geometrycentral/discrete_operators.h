@@ -29,13 +29,13 @@ namespace geometrycentral {
 // saving recomputation
 
 // Hodge star on 0-forms. Returns a (nVerts, nVerts) matrix.
-Eigen::SparseMatrix<double> buildHodge0(Geometry<Euclidean>* geometry);
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge0(Geometry<Euclidean>* geometry);
 
 // Hodge star on 1-forms. Returns a (nEdges, nEdges) matrix.
-Eigen::SparseMatrix<double> buildHodge1(Geometry<Euclidean>* geometry);
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge1(Geometry<Euclidean>* geometry);
 
 // Hodge star on 2-forms. Returns a (nFaces, nFaces) matrix.
-Eigen::SparseMatrix<double> buildHodge2(Geometry<Euclidean>* geometry);
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge2(Geometry<Euclidean>* geometry);
 
 // Derivative on 0-forms. Returns a (nEdges, nVerts) matrix
 Eigen::SparseMatrix<double> buildDerivative0(HalfedgeMesh* mesh);

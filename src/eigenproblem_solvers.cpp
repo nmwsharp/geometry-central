@@ -22,7 +22,7 @@ Vector<T> smallestEigenvectorPositiveDefinite(SparseMatrix<T>& energyMatrix, Spa
   for (size_t iIter = 0; iIter < nIterations; iIter++) {
 
     // Solve
-    solver(x, massMatrix * u);
+    solver.solve(x, massMatrix * u);
 
     // Re-normalize
     double scale = std::sqrt(std::abs((x.transpose() * massMatrix * x)[0]));

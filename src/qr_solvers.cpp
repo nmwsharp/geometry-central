@@ -114,7 +114,14 @@ void Solver<T>::prepare() {
 };
 
 template <typename T>
-void Solver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
+Vector<T> Solver<T>::solve(const Vector<T>& rhs) {
+  Vector<T> out;
+  solve(out, rhs);
+  return out;
+}
+
+template <typename T>
+void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
 
   size_t N = this->mat.rows();
 
@@ -187,16 +194,11 @@ void Solver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 }
 
 template <typename T>
-Vector<T> Solver<T>::solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
+Vector<T> solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
   Solver<T> s(A);
-  return static_cast<LinearSolver<T>*>(&s)->operator()(rhs); // lol?
+  return s.solve(rhs); // lol?
 }
 
-template <typename T>
-void Solver<T>::solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs) {
-  Solver<T> s(A);
-  s(x, rhs);
-}
 
 template <typename T>
 size_t Solver<T>::rank() {

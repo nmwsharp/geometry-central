@@ -3,6 +3,9 @@
 
 #include "geometrycentral/utilities.h"
 
+using std::cout;
+using std::endl;
+
 namespace geometrycentral {
 
 // === Context
@@ -18,10 +21,26 @@ CholmodContext::operator cholmod_common*(void) { return &context; }
 
 // === Conversion functions
 
+// Helper to manage stypes
+// note that if the matrix if symmetric, we still actually store the whole thing, but we need to make the stype
+// symmetric flag because some Cholmod routines have different behavior depending on the flag. In the future, we could
+// omit lower triangular in this case.
+namespace {
+int flagForStype(SType s) {
+  switch (s) {
+  case SType::UNSYMMETRIC:
+    return 0; // unsymmetric, use whole
+    break;
+  case SType::SYMMETRIC:
+    return 1; // symmetric, use upper triangular only
+    break;
+  }
+}
+} // namespace
+
 // double-valued sparse matrices
-// CHOLMOD only uses CHOLMOD_REAL precision, so you always get one of those back regardless of float/double input)
 template <>
-cholmod_sparse* toCholmod(Eigen::SparseMatrix<double, Eigen::ColMajor>& A, CholmodContext& context) {
+cholmod_sparse* toCholmod(Eigen::SparseMatrix<double, Eigen::ColMajor>& A, CholmodContext& context, SType stype) {
 
   A.makeCompressed();
 
@@ -30,7 +49,7 @@ cholmod_sparse* toCholmod(Eigen::SparseMatrix<double, Eigen::ColMajor>& A, Cholm
   size_t Ncols = A.cols();
   size_t Nrows = A.rows();
 
-  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, 0, CHOLMOD_REAL, context);
+  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, flagForStype(stype), CHOLMOD_REAL, context);
 
   // Pull out useful pointers
   double* values = (double*)cMat->x;
@@ -53,7 +72,7 @@ cholmod_sparse* toCholmod(Eigen::SparseMatrix<double, Eigen::ColMajor>& A, Cholm
 // float-valued sparse matrices
 // CHOLMOD only uses CHOLMOD_REAL precision, so you always get one of those back regardless of float/double input)
 template <>
-cholmod_sparse* toCholmod(Eigen::SparseMatrix<float, Eigen::ColMajor>& A, CholmodContext& context) {
+cholmod_sparse* toCholmod(Eigen::SparseMatrix<float, Eigen::ColMajor>& A, CholmodContext& context, SType stype) {
 
   A.makeCompressed();
 
@@ -62,7 +81,7 @@ cholmod_sparse* toCholmod(Eigen::SparseMatrix<float, Eigen::ColMajor>& A, Cholmo
   size_t Ncols = A.cols();
   size_t Nrows = A.rows();
 
-  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, 0, CHOLMOD_REAL, context);
+  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, flagForStype(stype), CHOLMOD_REAL, context);
 
   // Pull out useful pointers
   double* values = (double*)cMat->x;
@@ -84,7 +103,7 @@ cholmod_sparse* toCholmod(Eigen::SparseMatrix<float, Eigen::ColMajor>& A, Cholmo
 
 // Complex-valued sparse matrices
 template <>
-cholmod_sparse* toCholmod(Eigen::SparseMatrix<Complex, Eigen::ColMajor>& A, CholmodContext& context) {
+cholmod_sparse* toCholmod(Eigen::SparseMatrix<Complex, Eigen::ColMajor>& A, CholmodContext& context, SType stype) {
 
   A.makeCompressed();
 
@@ -93,7 +112,7 @@ cholmod_sparse* toCholmod(Eigen::SparseMatrix<Complex, Eigen::ColMajor>& A, Chol
   size_t Ncols = A.cols();
   size_t Nrows = A.rows();
 
-  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, 0, CHOLMOD_COMPLEX, context);
+  cholmod_sparse* cMat = cholmod_l_allocate_sparse(Nrows, Ncols, Nentries, true, true, flagForStype(stype), CHOLMOD_COMPLEX, context);
 
   // Pull out useful pointers
   Complex* values = (Complex*)cMat->x;

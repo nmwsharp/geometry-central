@@ -34,6 +34,7 @@ SquareSolver<T>::~SquareSolver() {
 // TODO: The old SparseMatrix code in grand-central does seem to do this. Was is a bad bug, or am I missing something?
 namespace {
 
+#ifdef HAVE_SUITESPARSE
 // = Factorization
 template <typename T>
 void umfFactor(size_t N, cholmod_sparse* mat, void*& symbolicFac, void*& numericFac);
@@ -97,6 +98,7 @@ void umfSolve<Complex>(size_t N, cholmod_sparse* mat, void* numericFac, Vector<C
                    numericFac, NULL, NULL);
 }
 
+#endif
 
 } // namespace
 
@@ -139,7 +141,14 @@ void SquareSolver<T>::prepare() {
 };
 
 template <typename T>
-void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
+Vector<T> SquareSolver<T>::solve(const Vector<T>& rhs) {
+  Vector<T> out;
+  solve(out, rhs);
+  return out;
+}
+
+template <typename T>
+void SquareSolver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
 
   size_t N = this->mat.rows();
 
@@ -179,16 +188,11 @@ void SquareSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 }
 
 template <typename T>
-Vector<T> SquareSolver<T>::solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
+Vector<T> solveSquare(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
   SquareSolver<T> s(A);
-  return static_cast<LinearSolver<T>*>(&s)->operator()(rhs); // lol?
+  return s.solve(rhs);
 }
 
-template <typename T>
-void SquareSolver<T>::solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs) {
-  SquareSolver<T> s(A);
-  s(x, rhs);
-}
 
 // Explicit instantiations
 template class SquareSolver<double>;

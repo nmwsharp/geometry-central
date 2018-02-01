@@ -6,8 +6,9 @@
 #include "geometrycentral/suitesparse_utilities.h"
 #endif
 
-
 using namespace Eigen;
+using std::cout;
+using std::endl;
 
 namespace geometrycentral {
 
@@ -47,7 +48,7 @@ void PositiveDefiniteSolver<T>::prepare() {
   if (cMat != nullptr) {
     cholmod_l_free_sparse(&cMat, context);
   }
-  cMat = toCholmod(this->mat, context);
+  cMat = toCholmod(this->mat, context, SType::SYMMETRIC);
 
   // Factor
   factorization = cholmod_l_analyze(cMat, context);
@@ -64,8 +65,15 @@ void PositiveDefiniteSolver<T>::prepare() {
 };
 
 template <typename T>
-void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
+Vector<T> PositiveDefiniteSolver<T>::solve(const Vector<T>& rhs) {
+  Vector<T> out;
+  solve(out, rhs);
+  return out;
+}
 
+template <typename T>
+void PositiveDefiniteSolver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
+  
   size_t N = this->mat.rows();
 
   // Check some sanity
@@ -99,7 +107,6 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
   x = solver.solve(rhs);
   if (solver.info() != Eigen::Success) {
     std::cerr << "Solver error: " << solver.info() << std::endl;
-    // std::cerr << "Solver says: " << solver.lastErrorMessage() << std::endl;
     throw std::invalid_argument("Solve failed");
   }
 #endif
@@ -115,15 +122,9 @@ void PositiveDefiniteSolver<T>::operator()(Vector<T>& x, const Vector<T>& rhs) {
 }
 
 template <typename T>
-Vector<T> PositiveDefiniteSolver<T>::solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
+Vector<T> solvePositiveDefinite(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
   PositiveDefiniteSolver<T> s(A);
-  return static_cast<LinearSolver<T>*>(&s)->operator()(rhs); // lol?
-}
-
-template <typename T>
-void PositiveDefiniteSolver<T>::solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs) {
-  PositiveDefiniteSolver<T> s(A);
-  s(x, rhs);
+  return s.solve(rhs);
 }
 
 // Explicit instantiations

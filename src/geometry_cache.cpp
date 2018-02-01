@@ -1,6 +1,7 @@
 #include "geometrycentral/geometry_cache.h"
 
 #include "geometrycentral/geometry.h"
+#include "geometrycentral/discrete_operators.h"
 
 using std::cout; using std::endl;
 
@@ -61,10 +62,23 @@ GeometryCache<G>::GeometryCache(Geometry<G>* geometry_) : geometry(geometry_) {
   addQuantity(faceNormalsQ,           {&faceAreaNormalsQ},                &GeometryCache<G>::computeFaceNormals);
   addQuantity(vertexNormalsQ,         {&faceAreaNormalsQ},                &GeometryCache<G>::computeVertexNormals);
   addQuantity(vertexDualAreasQ,       {&faceAreasQ},                      &GeometryCache<G>::computeVertexDualAreas);
+  addQuantity(halfedgeVectorsQ,       {},                                 &GeometryCache<G>::computeHalfedgeVectors);
   addQuantity(edgeLengthsQ,           {},                                 &GeometryCache<G>::computeEdgeLengths);
-  addQuantity(faceBasisQ,             {&faceNormalsQ},                    &GeometryCache<G>::computeFaceBasis);
-  addQuantity(faceTransportCoefsQ,    {&faceNormalsQ, &faceBasisQ},       &GeometryCache<G>::computeFaceTransportCoefs);
-  addQuantity(dihedralAngleQ,         {},                                 &GeometryCache<G>::computeDihedralAngle);
+  addQuantity(faceBasesQ,             {&faceNormalsQ},                    &GeometryCache<G>::computeFaceBases);
+  addQuantity(faceTransportCoefsQ,    {&faceNormalsQ, &faceBasesQ},       &GeometryCache<G>::computeFaceTransportCoefs);
+  addQuantity(dihedralAnglesQ,        {},                                 &GeometryCache<G>::computeDihedralAngles);
+  addQuantity(halfedgeCotanWeightsQ,  {},                                 &GeometryCache<G>::computeHalfedgeCotanWeights);
+  addQuantity(edgeCotanWeightsQ,      {},                                 &GeometryCache<G>::computeEdgeCotanWeights);
+  
+  addQuantity(vertexIndicesQ,         {},                                 &GeometryCache<G>::computeVertexIndices);
+  addQuantity(faceIndicesQ,           {},                                 &GeometryCache<G>::computeFaceIndices);
+  addQuantity(edgeIndicesQ,           {},                                 &GeometryCache<G>::computeEdgeIndices);
+  addQuantity(halfedgeIndicesQ,       {},                                 &GeometryCache<G>::computeHalfedgeIndices);
+
+  addQuantity(basicDECOperatorsQ,     {&vertexDualAreasQ, &edgeCotanWeightsQ},
+                                                                          &GeometryCache<G>::computeBasicDECOperators);
+  addQuantity(modifiedDECOperatorsQ,  {&basicDECOperatorsQ},              &GeometryCache<G>::computeModifiedDECOperators);
+  addQuantity(zeroFormWeakLaplacianQ, {&basicDECOperatorsQ},              &GeometryCache<G>::computeZeroFormWeakLaplacian);
 }
 
 template <typename G>
@@ -148,6 +162,14 @@ void GeometryCache<Euclidean>::computeVertexDualAreas() {
 }
 
 template <>
+void GeometryCache<Euclidean>::computeHalfedgeVectors() {
+  halfedgeVectors = HalfedgeData<Vector3>(mesh);
+  for(HalfedgePtr he : mesh->halfedges()) {
+    halfedgeVectors[he] = geometry->vector(he);
+  }
+}
+
+template <>
 void GeometryCache<Euclidean>::computeEdgeLengths() {
   edgeLengths = EdgeData<double>(mesh);
   for(EdgePtr e : mesh->edges()) {
@@ -156,13 +178,13 @@ void GeometryCache<Euclidean>::computeEdgeLengths() {
 }
 
 template <>
-void GeometryCache<Euclidean>::computeFaceBasis() {
-  faceBasis = FaceData<std::array<Vector3,2>>(mesh);
+void GeometryCache<Euclidean>::computeFaceBases() {
+  faceBases = FaceData<std::array<Vector3,2>>(mesh);
   for(FacePtr f : mesh->faces()) {
     Vector3 basisX = unit(geometry->vector(f.halfedge()));
     Vector3 basisY = basisX.rotate_around(faceNormals[f], PI/2.0);
-    faceBasis[f][0] = basisX;
-    faceBasis[f][1] = basisY;
+    faceBases[f][0] = basisX;
+    faceBases[f][1] = basisY;
   }
 }
 
@@ -183,15 +205,15 @@ void GeometryCache<Euclidean>::computeFaceTransportCoefs() {
     FacePtr targetFace = he.twin().face();
 
     // Rotate the neighboring face's basis vector to this one
-    Vector3 sourceBasis = faceBasis[sourceFace][0];
-    Vector3 targetBasis = faceBasis[targetFace][0];
+    Vector3 sourceBases = faceBases[sourceFace][0];
+    Vector3 targetBasis = faceBases[targetFace][0];
     Vector3 edgeAxis = unit(geometry->vector(he));
     double edgeAngle = -geometry->dihedralAngle(he.edge());
-    Vector3 sourceBasisInFace = sourceBasis.rotate_around(edgeAxis, edgeAngle);
+    Vector3 sourceBasesInFace = sourceBases.rotate_around(edgeAxis, edgeAngle);
 
     // Measure the angle between the two vectors now that they are in plane
     // Recall that the transform for data is the opposite of the transform for the axis, hence the negative sign
-    double angle = -angleInPlane(sourceBasisInFace, targetBasis, faceNormals[targetFace]);
+    double angle = -angleInPlane(sourceBasesInFace, targetBasis, faceNormals[targetFace]);
 
     // LC connection between the faces
     Complex rBar = std::exp(angle * IM_I);
@@ -201,13 +223,71 @@ void GeometryCache<Euclidean>::computeFaceTransportCoefs() {
 }
 
 template <>
-void GeometryCache<Euclidean>::computeDihedralAngle() {
-  dihedralAngle = EdgeData<double>(mesh);
+void GeometryCache<Euclidean>::computeDihedralAngles() {
+  dihedralAngles = EdgeData<double>(mesh);
   for(EdgePtr e : mesh->edges()) {
-    dihedralAngle[e] = geometry->dihedralAngle(e);
+    dihedralAngles[e] = geometry->dihedralAngle(e);
   }
 }
 
+template <>
+void GeometryCache<Euclidean>::computeHalfedgeCotanWeights() {
+  halfedgeCotanWeights = HalfedgeData<double>(mesh);
+  for(HalfedgePtr he : mesh->halfedges()) {
+    halfedgeCotanWeights[he] = geometry->cotan(he);
+  }
+}
+
+template <>
+void GeometryCache<Euclidean>::computeEdgeCotanWeights() {
+  edgeCotanWeights = EdgeData<double>(mesh);
+  for(EdgePtr e : mesh->edges()) {
+    edgeCotanWeights[e] = geometry->cotanWeight(e);
+  }
+}
+
+template <typename T>
+void GeometryCache<T>::computeVertexIndices() {
+  vertexIndices = mesh->getVertexIndices();
+}
+
+template <typename T>
+void GeometryCache<T>::computeFaceIndices() {
+  faceIndices = mesh->getFaceIndices();
+}
+
+template <typename T>
+void GeometryCache<T>::computeEdgeIndices() {
+  edgeIndices = mesh->getEdgeIndices();
+}
+
+
+template <typename T>
+void GeometryCache<T>::computeHalfedgeIndices() {
+  halfedgeIndices = mesh->getHalfedgeIndices();
+}
+
+template <>
+void GeometryCache<Euclidean>::computeBasicDECOperators() {
+  d0 = buildDerivative0(mesh);
+  d1 = buildDerivative1(mesh);
+  hodge0 = buildHodge0(geometry);
+  hodge1 = buildHodge1(geometry);
+  hodge2 = buildHodge2(geometry);
+}
+
+template <>
+void GeometryCache<Euclidean>::computeModifiedDECOperators() {
+  hodge0Inv = buildHodge0(geometry).inverse();
+  hodge1Inv = buildHodge1(geometry).inverse();
+  hodge2Inv = buildHodge2(geometry).inverse();
+}
+
+
+template <>
+void GeometryCache<Euclidean>::computeZeroFormWeakLaplacian() {
+  zeroFormWeakLaplacian = d0.transpose() * hodge1 * d0;
+}
 
 
 // Explicit template instantions

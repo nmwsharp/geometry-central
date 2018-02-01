@@ -5,72 +5,67 @@ using namespace Eigen;
 namespace geometrycentral {
 
 
-Eigen::SparseMatrix<double> buildHodge0(Geometry<Euclidean>* geometry) {
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge0(Geometry<Euclidean>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   VertexData<size_t> vInd = mesh->getVertexIndices();
   size_t nVerts = mesh->nVertices();
 
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireVertexDualAreas();
+
   // Reserve space in the sparse matrix
-  Eigen::SparseMatrix<double> hodge0 =
-      Eigen::SparseMatrix<double>(nVerts, nVerts);
-  std::vector<Eigen::Triplet<double>> tripletList;
+  Eigen::VectorXd hodge0(nVerts);
 
   for (VertexPtr v : mesh->vertices()) {
     double primalArea = 1.0;
-    double dualArea = geometry->dualArea(v);
+    double dualArea = gc.vertexDualAreas[v];
     double ratio = dualArea / primalArea;
     size_t iV = vInd[v];
-    tripletList.emplace_back(iV, iV, ratio);
+    hodge0[iV] = ratio;
   }
 
-  hodge0.setFromTriplets(tripletList.begin(), tripletList.end());
-
-  return hodge0;
+  return hodge0.asDiagonal();
 }
 
-Eigen::SparseMatrix<double> buildHodge1(Geometry<Euclidean>* geometry) {
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge1(Geometry<Euclidean>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   EdgeData<size_t> eInd = mesh->getEdgeIndices();
   size_t nEdges = mesh->nEdges();
 
-  Eigen::SparseMatrix<double> hodge1 =
-      Eigen::SparseMatrix<double>(nEdges, nEdges);
-  std::vector<Eigen::Triplet<double>> tripletList;
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireEdgeCotanWeights();
 
-  // Get the cotan weights all at once
-  EdgeData<double> cotanWeights(mesh);
-  geometry->getEdgeCotanWeights(cotanWeights);
+  Eigen::VectorXd hodge1(nEdges);
 
   for (EdgePtr e : mesh->edges()) {
-    double ratio = cotanWeights[e];
+    double ratio = gc.edgeCotanWeights[e];
     size_t iE = eInd[e];
-    tripletList.emplace_back(iE, iE, ratio);
+    hodge1[iE] = ratio;
   }
 
-  hodge1.setFromTriplets(tripletList.begin(), tripletList.end());
-  return hodge1;
+  return hodge1.asDiagonal();
 }
 
-Eigen::SparseMatrix<double> buildHodge2(Geometry<Euclidean>* geometry) {
+Eigen::DiagonalMatrix<double, Eigen::Dynamic> buildHodge2(Geometry<Euclidean>* geometry) {
   HalfedgeMesh* mesh = geometry->getMesh();
   FaceData<size_t> fInd = mesh->getFaceIndices();
   size_t nFaces = mesh->nFaces();
+  
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireFaceAreas();
 
-  Eigen::SparseMatrix<double> hodge2 =
-      Eigen::SparseMatrix<double>(nFaces, nFaces);
-  std::vector<Eigen::Triplet<double>> tripletList;
+  Eigen::VectorXd hodge2(nFaces);
 
   for (FacePtr f : mesh->faces()) {
-    double primalArea = geometry->area(f);
+    double primalArea = gc.faceAreas[f];
     double dualArea = 1.0;
     double ratio = dualArea / primalArea;
 
     size_t iF = fInd[f];
-    tripletList.emplace_back(iF, iF, ratio);
+    hodge2[iF] = ratio;
   }
 
-  hodge2.setFromTriplets(tripletList.begin(), tripletList.end());
-  return hodge2;
+  return hodge2.asDiagonal();
 }
 
 Eigen::SparseMatrix<double> buildDerivative0(HalfedgeMesh* mesh) {
@@ -122,4 +117,4 @@ Eigen::SparseMatrix<double> buildDerivative1(HalfedgeMesh* mesh) {
   return d1;
 }
 
-}  // namespace geometrycentral
+} // namespace geometrycentral

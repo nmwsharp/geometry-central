@@ -1,64 +1,78 @@
 #include <iostream>
 
 template <typename T>
-inline void checkFinite(const Eigen::SparseMatrix<T>& m) {
-    for (int k = 0; k < m.outerSize(); ++k) {
-        for (typename Eigen::SparseMatrix<T>::InnerIterator it(m, k); it; ++it) {
-            if (!std::isfinite(it.value())) {
-                std::cerr << std::endl
-                          << "Uh oh. Non-finite matrix entry [" << it.row() << "," << it.col() << "] = " << it.value()
-                          << std::endl
-                          << std::endl;
+void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount) {
 
-                throw std::logic_error("Matrix has non-finite entries");
-            }
-        }
-    }
+  // Check square
+  size_t N = m.rows();
+  if ((size_t) m.cols() != N) {
+    throw std::logic_error("Can only shift diagonal of square matrix");
+  }
+
+  Eigen::SparseMatrix<T> eye(N, N);
+  eye.setIdentity();
+  m += shiftAmount * eye;
 }
 
+
+template <typename T>
+inline void checkFinite(const Eigen::SparseMatrix<T>& m) {
+  for (int k = 0; k < m.outerSize(); ++k) {
+    for (typename Eigen::SparseMatrix<T>::InnerIterator it(m, k); it; ++it) {
+      // std::cout << "checking "
+      //<< " [" << it.row() << "," << it.col() << "] = " << it.value() << std::endl;
+      if (!std::isfinite(it.value())) {
+        std::cerr << std::endl
+                  << "Uh oh. Non-finite matrix entry [" << it.row() << "," << it.col() << "] = " << it.value()
+                  << std::endl
+                  << std::endl;
+
+        throw std::logic_error("Matrix has non-finite entries");
+      }
+    }
+  }
+}
 
 
 // General form of checkFinite(Matrix m)
 template <typename T, int R, int C>
 inline void checkFinite(const Eigen::Matrix<T, R, C>& m) {
-    for (unsigned int i = 0; i < m.rows(); i++) {
-        for (unsigned int j = 0; j < m.cols(); j++) {
-            if (!std::isfinite(m(i, j))) {
-                std::cerr << std::endl
-                          << "Uh oh. Non-finite vector entry [" << i << "," << j << "] = " << m(i, j) << std::endl
-                          << std::endl;
-                throw std::logic_error("Matrix has non-finite entries");
-            }
-        }
+  for (unsigned int i = 0; i < m.rows(); i++) {
+    for (unsigned int j = 0; j < m.cols(); j++) {
+      if (!std::isfinite(m(i, j))) {
+        std::cerr << std::endl
+                  << "Uh oh. Non-finite vector entry [" << i << "," << j << "] = " << m(i, j) << std::endl
+                  << std::endl;
+        throw std::logic_error("Matrix has non-finite entries");
+      }
     }
+  }
 }
 
 
 // Specialization of checkFinite(Matrix m) for row vectors
 template <typename T, int C>
 inline void checkFinite(const Eigen::Matrix<T, 1, C>& m) {
-    for (unsigned int j = 0; j < m.cols(); j++) {
-        if (!std::isfinite(m(1, j))) {
-            std::cerr << std::endl
-                      << "Uh oh. Non-finite row vector entry [" << j << "] = " << m(j) << std::endl
-                      << std::endl;
-            throw std::logic_error("Matrix has non-finite entries");
-        }
+  for (unsigned int j = 0; j < m.cols(); j++) {
+    if (!std::isfinite(m(1, j))) {
+      std::cerr << std::endl << "Uh oh. Non-finite row vector entry [" << j << "] = " << m(j) << std::endl << std::endl;
+      throw std::logic_error("Matrix has non-finite entries");
     }
+  }
 }
 
 
 // Specialization of checkFinite(Matrix m) for column vectors
 template <typename T, int R>
 inline void checkFinite(const Eigen::Matrix<T, R, 1>& m) {
-    for (unsigned int i = 0; i < m.rows(); i++) {
-        if (!std::isfinite(m(i))) {
-            std::cerr << std::endl
-                      << "Uh oh. Non-finite column vector entry [" << i << "] = " << m(i, 1) << std::endl
-                      << std::endl;
-            throw std::logic_error("Matrix has non-finite entries");
-        }
+  for (unsigned int i = 0; i < m.rows(); i++) {
+    if (!std::isfinite(m(i))) {
+      std::cerr << std::endl
+                << "Uh oh. Non-finite column vector entry [" << i << "] = " << m(i) << std::endl
+                << std::endl;
+      throw std::logic_error("Matrix has non-finite entries");
     }
+  }
 }
 
 template <typename T>
@@ -97,7 +111,7 @@ inline void checkHermitian(const Eigen::SparseMatrix<T>& m) {
   }
 }
 
-template<>
+template <>
 inline void checkHermitian(const Eigen::SparseMatrix<std::complex<double>>& m) {
 
   // Compute a scale factor for the matrix to use for closeness tests
