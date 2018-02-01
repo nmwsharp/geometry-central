@@ -76,6 +76,7 @@ endif()
 
 if(SUITESPARSE_FOUND)
     SET(HAVE_SUITESPARSE TRUE)
+    SET(HAVE_SUITESPARSE TRUE PARENT_SCOPE)
     add_definitions(-DHAVE_SUITESPARSE)
     include_directories(${SUITESPARSE_INCLUDE_DIRS})
 endif()
@@ -95,6 +96,9 @@ list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/RectangleBinPack/include")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanort/include")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanoflann/include")
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/glm")
+if(SUITESPARSE_FOUND)
+  list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS ${SUITESPARSE_INCLUDE_DIRS})
+endif()
 
 ### Includes from this project
 list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "include")
@@ -119,7 +123,8 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
 
   SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
   #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TRACE_INCLUDES}") # uncomment if you need to track down where something is getting included from
-  SET(CMAKE_CXX_FLAGS_DEBUG          "-g3")
+  #SET(CMAKE_CXX_FLAGS_DEBUG          "-g3")
+  SET(CMAKE_CXX_FLAGS_DEBUG          "-g3 -fsanitize=address")
   SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
   SET(CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
   SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
