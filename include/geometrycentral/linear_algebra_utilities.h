@@ -12,6 +12,8 @@
 
 namespace geometrycentral {
 
+template <typename T> Eigen::SparseMatrix<T> identityMatrix(size_t N);
+
 // Shift the the diagonal of a matrix by a constant offset
 template <typename T> void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount=1e-4);
 

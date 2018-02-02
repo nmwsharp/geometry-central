@@ -1,5 +1,13 @@
 #include <iostream>
 
+template <typename T> 
+Eigen::SparseMatrix<T> identityMatrix(size_t N) {
+  Eigen::SparseMatrix<T> eye(N, N);
+  eye.setIdentity();
+  return eye;
+}
+
+
 template <typename T>
 void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount) {
 
@@ -9,9 +17,7 @@ void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount) {
     throw std::logic_error("Can only shift diagonal of square matrix");
   }
 
-  Eigen::SparseMatrix<T> eye(N, N);
-  eye.setIdentity();
-  m += shiftAmount * eye;
+  m += shiftAmount * identityMatrix<T>(N);
 }
 
 
