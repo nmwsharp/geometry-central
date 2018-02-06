@@ -58,6 +58,8 @@ public:
   // Compute the residual of a solve
   double residual(const Vector<T>& lhs, const Vector<T>& rhs);
 
+  const Eigen::SparseMatrix<T, Eigen::ColMajor>& getOperator() { return mat; }
+
 protected:
   Eigen::SparseMatrix<T, Eigen::ColMajor> mat;
 };
