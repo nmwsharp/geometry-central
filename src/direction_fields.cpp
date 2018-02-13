@@ -261,7 +261,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
     // Eigen::VectorXcd RHS = massMatrix * dirVec;
     Eigen::VectorXcd RHS = dirVec;
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
-    solution = SquareSolver<Complex>::solve(LHS, RHS);
+    solution = solveSquare(LHS, RHS);
   }
   // Otherwise find the smallest eigenvector
   else {
@@ -405,7 +405,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
 
     Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix;
-    solution = SquareSolver<Complex>::solve(LHS, RHS);
+    solution = solveSquare(LHS, RHS);
   }
   // Otherwise find the general closest solution
   else {
@@ -413,7 +413,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
 
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix; // can be simplified
     Eigen::VectorXcd RHS = massMatrix * b;
-    solution = SquareSolver<Complex>::solve(LHS, RHS);
+    solution = solveSquare(LHS, RHS);
   }
 
   // Copy the result to a VertexData vector for both the boudary and interior
@@ -464,9 +464,9 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
   unsigned int N = mesh->nFaces();
 
   GeometryCache<Euclidean>& gc = geometry->cache;
-  gc.faceTransportCoefsQ.require();
-  gc.faceNormalsQ.require();
-  gc.dihedralAngleQ.require();
+  gc.requireFaceTransportCoefs();
+  gc.requireFaceNormals();
+  gc.requireDihedralAngles();
 
   // === Allocate matrices
   FaceData<size_t> faceInd = mesh->getFaceIndices();
@@ -535,7 +535,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
 
       for (HalfedgePtr he : f.adjacentHalfedges()) {
 
-        double dihedralAngle = std::abs(gc.dihedralAngle[he.edge()]);
+        double dihedralAngle = std::abs(gc.dihedralAngles[he.edge()]);
         double weight = norm(geometry->vector(he));
         weightSum += weight;
         double angleCoord = angleInPlane(geometry->vector(f.halfedge()), geometry->vector(he), gc.faceNormals[f]);
@@ -559,7 +559,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
     // Eigen::VectorXcd RHS = massMatrix * dirVec;
     Eigen::VectorXcd RHS = dirVec;
     Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
-    solution = SquareSolver<Complex>::solve(LHS, RHS);
+    solution = solveSquare(LHS, RHS);
 
   }
   // Otherwise find the smallest eigenvector
@@ -664,7 +664,7 @@ VertexData<int> computeVertexIndex(Geometry<Euclidean>* geometry, FaceData<Compl
 
   HalfedgeMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& gc = geometry->cache;
-  gc.faceTransportCoefsQ.require();
+  gc.requireFaceTransportCoefs();
 
   // Store the result here
   VertexData<int> indices(mesh);

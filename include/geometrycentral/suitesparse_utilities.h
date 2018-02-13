@@ -5,11 +5,14 @@
 // Suitesparse includes, as needed
 #ifdef HAVE_SUITESPARSE
 #include <cholmod.h>
-#elif
+#else
 #error "USING SUITESPARSE FEATURES, BUT DON'T HAVE SUITESPARSE"
 #endif
 
 namespace geometrycentral {
+
+
+enum class SType { UNSYMMETRIC = 0, SYMMETRIC};
 
 // Suitesparse context class
 class CholmodContext {
@@ -36,7 +39,7 @@ protected:
 
 // Convert a sparse matrix. Always returns a "full" matrix (stype=0, ie not triangular)
 template <typename T>
-cholmod_sparse* toCholmod(Eigen::SparseMatrix<T, Eigen::ColMajor>& A, CholmodContext& context);
+cholmod_sparse* toCholmod(Eigen::SparseMatrix<T, Eigen::ColMajor>& A, CholmodContext& context, SType stype=SType::UNSYMMETRIC);
 
 // Convert a vector
 template <typename T>

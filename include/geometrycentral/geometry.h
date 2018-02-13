@@ -66,7 +66,8 @@ typedef UnitVector3 Spherical;
 
 // TODO In the future, could be extended to other types of mesh data structures
 // (e.g., via an additional template argument)
-template <class T> class Geometry : public VertexData<T> {
+template <class T>
+class Geometry : public VertexData<T> {
   // TODO add subclass WeightedGeometry that has additional value (weight) per
   // vertex
 
@@ -97,8 +98,7 @@ public:
   // --- Primal ---
   T midpoint(EdgePtr e);
   double length(EdgePtr e);
-  double cotanWeight(EdgePtr e,
-                     bool faceAreaWeighted = false); // **triangles only**
+  double cotanWeight(EdgePtr e); // **triangles only**
   double dihedralAngle(EdgePtr e);
 
   // Face attributes
@@ -134,7 +134,7 @@ public:
   void getPrincipalDirections(VertexData<Complex>& principalDirections, HalfedgeData<double>& angularCoordinates);
 
   void getEdgeLengths(EdgeData<double>& edgeLength);
-  void getEdgeCotanWeights(EdgeData<double>& edgeCotanWeight, bool faceAreaWeighted = false);
+  void getEdgeCotanWeights(EdgeData<double>& edgeCotanWeight);
 
   void getFaceAreas(FaceData<double>& faceArea);
   void getFaceNormals(FaceData<Vector3>& faceNormal);

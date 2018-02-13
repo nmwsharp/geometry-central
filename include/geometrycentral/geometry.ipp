@@ -9,14 +9,14 @@ template <class T>
 inline HalfedgeMesh* Geometry<T>::getMesh(void) {
   return &mesh;
 }
-  
+
 template <class T>
 Geometry<T>* Geometry<T>::copyUsingTransfer(HalfedgeMeshDataTransfer& transfer) {
 
   VertexData<T> newCoords = transfer.transfer(p);
   Geometry<T>* newGeom = new Geometry<T>(*transfer.newMesh);
 
-  for(VertexPtr v : transfer.newMesh->vertices()) {
+  for (VertexPtr v : transfer.newMesh->vertices()) {
     newGeom->position(v) = newCoords[v];
   }
 
@@ -39,11 +39,11 @@ template <class T>
 inline double Geometry<T>::volume(VertexPtr v) {
   return 1.;
 }
-  
+
 template <class T>
 inline double Geometry<T>::dualArea(VertexPtr v) {
   double sum = 0;
-  for(FacePtr f : v.adjacentFaces()) {
+  for (FacePtr f : v.adjacentFaces()) {
     sum += area(f);
   }
   return sum / 3.0;
@@ -92,8 +92,7 @@ inline Vector3 Geometry<T>::boundaryNormal(VertexPtr v) {
 }
 
 template <class T>
-inline Complex Geometry<T>::tangentVectorToComplexAngle(VertexPtr v,
-                                                        const Vector3& inVec) {
+inline Complex Geometry<T>::tangentVectorToComplexAngle(VertexPtr v, const Vector3& inVec) {
   // Assumes vector is tangent
   Vector3 N = normal(v);
   Vector3 refEdge = unit(projectToTangentSpace(v, vector(v.halfedge())));
@@ -106,8 +105,7 @@ inline Complex Geometry<T>::tangentVectorToComplexAngle(VertexPtr v,
 }
 
 template <class T>
-inline Vector3 Geometry<T>::complexAngleToTangentVector(VertexPtr v,
-                                                        Complex inAngle) {
+inline Vector3 Geometry<T>::complexAngleToTangentVector(VertexPtr v, Complex inAngle) {
   // Assumes vector is tangent
   Vector3 N = normal(v);
   Vector3 refEdge = unit(projectToTangentSpace(v, vector(v->halfedge)));
@@ -117,8 +115,7 @@ inline Vector3 Geometry<T>::complexAngleToTangentVector(VertexPtr v,
 }
 
 template <class T>
-inline Vector3 Geometry<T>::projectToTangentSpace(VertexPtr v,
-                                                  const Vector3& inVec) {
+inline Vector3 Geometry<T>::projectToTangentSpace(VertexPtr v, const Vector3& inVec) {
   Vector3 N = normal(v);
   return inVec - dot(inVec, N) * N;
 }
@@ -162,16 +159,9 @@ inline double Geometry<T>::length(EdgePtr e) {
 }
 
 template <class T>
-inline double Geometry<T>::cotanWeight(EdgePtr e, bool faceAreaWeighted) {
+inline double Geometry<T>::cotanWeight(EdgePtr e) {
   HalfedgePtr h = e.halfedge();
-  double a1 = 1.0, a2 = 1.0;
-
-  if (faceAreaWeighted) {
-    if (h.isReal()) a1 = area(h.face());
-    if (h.twin().isReal()) a2 = area(h.twin().face());
-  }
-
-  return 0.5 * (cotan(h) / a1 + cotan(h.twin()) / a2);
+  return 0.5 * (cotan(h) + cotan(h.twin()));
 }
 
 template <class T>
@@ -257,10 +247,8 @@ inline T Geometry<T>::circumcenter(FacePtr f) {
     throw std::domain_error("Circumcenter only defined for triangles");
   }
 
-  return a +
-         (norm2(c - a) * cross(cross(b - a, c - a), b - a) +
-          norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
-             (2. * norm2(cross(b - a, c - a)));
+  return a + (norm2(c - a) * cross(cross(b - a, c - a), b - a) + norm2(b - a) * cross(c - a, cross(b - a, c - a))) /
+                 (2. * norm2(cross(b - a, c - a)));
 }
 
 
@@ -311,9 +299,9 @@ inline double Geometry<T>::angularCoordinate(HalfedgePtr h) {
     angleSum += angle(he.twin().next().next());
   }
 
-  coord *= 2 * PI / angleSum;  // normalize to 2PI
-  return 2 * PI - coord;  // we want the CCW value, but we just measured the CW
-                          // value (due to the direction orbited by twin->next)
+  coord *= 2 * PI / angleSum; // normalize to 2PI
+  return 2 * PI - coord;      // we want the CCW value, but we just measured the CW
+                              // value (due to the direction orbited by twin->next)
 }
 
 // Spherical specializations ===================================================
@@ -327,10 +315,8 @@ inline double Geometry<Spherical>::length(EdgePtr e) {
 }
 
 template <>
-inline double Geometry<Spherical>::cotanWeight(EdgePtr e,
-                                               bool faceAreaWeighted) {
-  throw std::domain_error(
-      "Edge cotangent weights not meaningful/useful for spherical geometry.");
+inline double Geometry<Spherical>::cotanWeight(EdgePtr e) {
+  throw std::domain_error("Edge cotangent weights not meaningful/useful for spherical geometry.");
 }
 
 template <>
@@ -362,15 +348,14 @@ inline Vector3 Geometry<Spherical>::normal(FacePtr f) {
   double thetaJK = geometrycentral::angle(pj, pk);
   double thetaKI = geometrycentral::angle(pk, pi);
 
-  return thetaIJ * unit(cross(pj, pi)) + thetaJK * unit(cross(pk, pj)) +
-         thetaKI * unit(cross(pi, pk));
+  return thetaIJ * unit(cross(pj, pi)) + thetaJK * unit(cross(pk, pj)) + thetaKI * unit(cross(pi, pk));
 }
 
 template <>
 inline UnitVector3 Geometry<Spherical>::barycenter(FacePtr f) {
   const double eps = 1e-7;
   const double delta = 1e-5;
-  Vector3 u{0., 0., 0.};  // mean tangent vector
+  Vector3 u{0., 0., 0.}; // mean tangent vector
   double phi;
 
   // Use normalized Euclidean average as initial guess for barycenter
@@ -423,14 +408,12 @@ inline UnitVector3 Geometry<Spherical>::vector(HalfedgePtr h) {
 
 template <>
 inline double Geometry<Spherical>::cotan(HalfedgePtr h) {
-  throw std::domain_error(
-      "Halfedge cotangents not meaningful/useful for spherical geometry.");
+  throw std::domain_error("Halfedge cotangents not meaningful/useful for spherical geometry.");
 }
 
 template <>
 inline UnitVector3 Geometry<Spherical>::center(void) {
-  throw std::domain_error(
-      "Center of mass not implemented for spherical geometry.");
+  throw std::domain_error("Center of mass not implemented for spherical geometry.");
 }
 
 // Global attributes ===========================================================
@@ -507,17 +490,15 @@ void Geometry<T>::getVertexAngleDefects(VertexData<double>& vertexAngleDefect) {
 }
 
 template <class T>
-void Geometry<T>::getPrincipalDirections(
-    VertexData<Complex>& principalDirections) {
+void Geometry<T>::getPrincipalDirections(VertexData<Complex>& principalDirections) {
   HalfedgeData<double> angularCoordinates;
   getAngularCoordinates(angularCoordinates);
   getPrincipalDirections(principalDirections, angularCoordinates);
 }
 
 template <class T>
-void Geometry<T>::getPrincipalDirections(
-    VertexData<Complex>& principalDirections,
-    HalfedgeData<double>& angularCoordinates) {
+void Geometry<T>::getPrincipalDirections(VertexData<Complex>& principalDirections,
+                                         HalfedgeData<double>& angularCoordinates) {
   principalDirections = VertexData<Complex>(&mesh);
 
   // NOTE: This logic is duplicated here and in the per-vertex method (to use a
@@ -550,11 +531,10 @@ void Geometry<T>::getEdgeLengths(EdgeData<double>& edgeLength) {
 }
 
 template <class T>
-void Geometry<T>::getEdgeCotanWeights(EdgeData<double>& edgeCotanWeight,
-                                      bool faceAreaWeighted) {
+void Geometry<T>::getEdgeCotanWeights(EdgeData<double>& edgeCotanWeight) {
   edgeCotanWeight = EdgeData<double>(&mesh);
   for (EdgePtr e : mesh.edges()) {
-    edgeCotanWeight[e] = cotanWeight(e, faceAreaWeighted);
+    edgeCotanWeight[e] = cotanWeight(e);
   }
 }
 
@@ -616,8 +596,7 @@ void Geometry<T>::getHalfedgeCotans(HalfedgeData<double>& halfedgeCotan) {
 }
 
 template <class T>
-void Geometry<T>::getAngularCoordinates(
-    HalfedgeData<double>& angularCoordinates) {
+void Geometry<T>::getAngularCoordinates(HalfedgeData<double>& angularCoordinates) {
   angularCoordinates = HalfedgeData<double>(&mesh);
   for (HalfedgePtr h : mesh.halfedges()) {
     angularCoordinates[h] = angularCoordinate(h);
@@ -625,4 +604,4 @@ void Geometry<T>::getAngularCoordinates(
 }
 
 
-}  // namespace geometrycentral
+} // namespace geometrycentral

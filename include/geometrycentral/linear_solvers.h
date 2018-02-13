@@ -1,6 +1,10 @@
 #pragma once
 
+#include "geometrycentral/linear_algebra_utilities.h"
+
 #include "Eigen/Sparse"
+
+#include <iostream>
 
 // Suitesparse includes, as needed
 #ifdef HAVE_SUITESPARSE
@@ -28,21 +32,33 @@ template <typename T>
 Vector<T> smallestEigenvectorPositiveDefinite(Eigen::SparseMatrix<T>& energyMatrix, Eigen::SparseMatrix<T>& massMatrix,
                                               size_t nIterations = 50);
 
+// Quick and easy solvers which do not retain factorization
+template <typename T>
+Vector<T> solve(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+template <typename T>
+Vector<T> solveSquare(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+template <typename T>
+Vector<T> solvePositiveDefinite(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+template <typename T>
+double residual(const Eigen::SparseMatrix<T>& matrix, const Vector<T>& lhs, const Vector<T>& rhs);
+
 // Base class for all linear solvers
 template <typename T>
 class LinearSolver {
 
 public:
-  LinearSolver(const Eigen::SparseMatrix<T>& mat_) { mat = Eigen::SparseMatrix<T, Eigen::ColMajor>(mat_); }
+  LinearSolver(const Eigen::SparseMatrix<T>& mat_) : mat(mat_) {}
 
   // Solve for a particular right hand side
-  Vector<T> operator()(const Vector<T>& rhs);
+  virtual Vector<T> solve(const Vector<T>& rhs) = 0;
 
   // Solve for a particular right hand side, and return in an existing vector objects
-  virtual void operator()(Vector<T>& x, const Vector<T>& rhs) = 0;
+  virtual void solve(Vector<T>& x, const Vector<T>& rhs) = 0;
 
   // Compute the residual of a solve
   double residual(const Vector<T>& lhs, const Vector<T>& rhs);
+
+  const Eigen::SparseMatrix<T, Eigen::ColMajor>& getOperator() { return mat; }
 
 protected:
   Eigen::SparseMatrix<T, Eigen::ColMajor> mat;
@@ -52,7 +68,7 @@ protected:
 // Computes least-squares solution for overdetermined systems, minimum norm solution for underdetermined systems
 // TODO name is dumb
 template <typename T>
-class Solver : public LinearSolver<T> {
+class Solver final : public LinearSolver<T> {
 
 public:
   Solver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
@@ -64,11 +80,8 @@ public:
 #endif
 
   // Solve!
-  virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
-
-  // Static solve without retaining the factorization
-  static Vector<T> solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs);
-  static void solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs);
+  void solve(Vector<T>& x, const Vector<T>& rhs) override;
+  Vector<T> solve(const Vector<T>& rhs) override;
 
   // Gets the rank of the system
   size_t rank();
@@ -85,23 +98,20 @@ protected:
   SuiteSparseQR_factorization<typename Solver<T>::SOLVER_ENTRYTYPE>* factorization = nullptr;
   double zero_tolerance = -2; // (use default)
 #else
-  Eigen::SparseQR<Eigen::SparseMatrix<T>> solver;
+  Eigen::SparseQR<Eigen::SparseMatrix<T>, Eigen::COLAMDOrdering<int>> solver;
 #endif
 };
 
 template <typename T>
-class PositiveDefiniteSolver : public LinearSolver<T> {
+class PositiveDefiniteSolver final : public LinearSolver<T> {
 
 public:
   PositiveDefiniteSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
   ~PositiveDefiniteSolver();
 
   // Solve!
-  virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
-
-  // Static solve without retaining the factorization
-  static Vector<T> solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs);
-  static void solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs);
+  void solve(Vector<T>& x, const Vector<T>& rhs) override;
+  Vector<T> solve(const Vector<T>& rhs) override;
 
 protected:
   void prepare();
@@ -117,18 +127,15 @@ protected:
 };
 
 template <typename T>
-class SquareSolver : public LinearSolver<T> {
+class SquareSolver final : public LinearSolver<T> {
 
 public:
   SquareSolver(const Eigen::SparseMatrix<T>& mat_) : LinearSolver<T>(mat_) { prepare(); }
   ~SquareSolver();
 
   // Solve!
-  virtual void operator()(Vector<T>& x, const Vector<T>& rhs) override;
-
-  // Static solve without retaining the factorization
-  static Vector<T> solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs);
-  static void solve(const Eigen::SparseMatrix<T>& A, Vector<T>& x, const Vector<T>& rhs);
+  void solve(Vector<T>& x, const Vector<T>& rhs) override;
+  Vector<T> solve(const Vector<T>& rhs) override;
 
 protected:
   void prepare();

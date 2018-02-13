@@ -8,6 +8,8 @@
 #include <functional>
 #include <vector>
 
+#include <Eigen/SparseCore>
+
 namespace geometrycentral {
 
 // Helper class which manages a dependency graph of quantities
@@ -64,10 +66,10 @@ public:
   GeometryCache& operator=(GeometryCache&& other) = delete;
 
   // === Cached quantities
-  // Convention is that the dependent quantity management object is postfixed by 'Q'.
-  // Typical usage then looks like:
+  // For each quantity XYZ, there is a method gc.requireXYZ() (in camel case). The data can then be accessed via
+  // gc.XYZ[v]; Typical usage then looks like:
   //
-  //     gc.vertexNormalsQ.require();
+  //     gc.requireVertexNormals();
   //     ...
   //     ...
   //     Vector3 n = gc.vertexNormals[v];
@@ -76,8 +78,9 @@ public:
   // To implement a new quantity, follow the pattern below. For a hypothetical quantity called 'XX', the necessary
   // quantities are, for example
   //   - void computeXX(); (private)
-  //   - const VertexData<double> XX = XXRaw; (public)
-  //   - DependentQuantity XXQ{); (public)
+  //   - VertexData<double> XX; (public)
+  //   - void requireXX(); (public)
+  //   - DependentQuantity XXQ{); (private)
   //     |--> initialize in GeometryCache constructor
   //
   // Note: the ordering in which the quantities are listed is used to implicitly encode the DAG amongst the
@@ -92,54 +95,152 @@ private:
   std::vector<DependentQuantity*> allQuantities;
 
   // == Internal interface for all quantities
+
+  DependentQuantity faceAreaNormalsQ;
   void computeFaceAreaNormals();
+
+  DependentQuantity faceAreasQ;
   void computeFaceAreas();
+
+  DependentQuantity faceNormalsQ;
   void computeFaceNormals();
+
+  DependentQuantity vertexNormalsQ;
   void computeVertexNormals();
+
+  DependentQuantity vertexDualAreasQ;
   void computeVertexDualAreas();
+  
+  DependentQuantity halfedgeVectorsQ;
+  void computeHalfedgeVectors();
+
+  DependentQuantity edgeLengthsQ;
   void computeEdgeLengths();
-  void computeFaceBasis();
+
+  DependentQuantity faceBasesQ;
+  void computeFaceBases();
+
+  DependentQuantity faceTransportCoefsQ;
   void computeFaceTransportCoefs();
-  void computeDihedralAngle();
+
+  DependentQuantity dihedralAnglesQ;
+  void computeDihedralAngles();
+
+  DependentQuantity halfedgeCotanWeightsQ;
+  void computeHalfedgeCotanWeights();
+  
+  DependentQuantity edgeCotanWeightsQ;
+  void computeEdgeCotanWeights();
+
+
+  // Indices
+
+  DependentQuantity vertexIndicesQ;
+  void computeVertexIndices();
+
+  DependentQuantity faceIndicesQ;
+  void computeFaceIndices();
+
+  DependentQuantity edgeIndicesQ;
+  void computeEdgeIndices();
+
+  DependentQuantity halfedgeIndicesQ;
+  void computeHalfedgeIndices();
+
+  // Operators
+
+  DependentQuantity basicDECOperatorsQ;
+  void computeBasicDECOperators();
+
+  DependentQuantity modifiedDECOperatorsQ;
+  void computeModifiedDECOperators();
+
+  DependentQuantity zeroFormWeakLaplacianQ;
+  void computeZeroFormWeakLaplacian();
+
 
 public:
   // face area normals
   // vector which points in the normal direction and has magnitude equal to area of face
+  inline void requireFaceAreaNormals() { faceAreaNormalsQ.require(); }
   FaceData<Vector3> faceAreaNormals;
-  DependentQuantity faceAreaNormalsQ;
 
   // face areas
+  inline void requireFaceAreas() { faceAreasQ.require(); }
   FaceData<double> faceAreas;
-  DependentQuantity faceAreasQ;
 
   // face normals
+  inline void requireFaceNormals() { faceNormalsQ.require(); }
   FaceData<Vector3> faceNormals;
-  DependentQuantity faceNormalsQ;
 
   // vertex normals
+  inline void requireVertexNormals() { vertexNormalsQ.require(); }
   VertexData<Vector3> vertexNormals;
-  DependentQuantity vertexNormalsQ;
 
   // vertex dual areas
+  inline void requireVertexDualAreas() { vertexDualAreasQ.require(); }
   VertexData<double> vertexDualAreas;
-  DependentQuantity vertexDualAreasQ;
+  
+  // halfedge cotans 
+  inline void requireHalfedgeVectors() { halfedgeVectorsQ.require(); }
+  HalfedgeData<Vector3> halfedgeVectors;
 
   // edge lengths
+  inline void requireEdgeLengths() { edgeLengthsQ.require(); }
   EdgeData<double> edgeLengths;
-  DependentQuantity edgeLengthsQ;
-  
-  // extrinsic basis vector pair in each face 
-  FaceData<std::array<Vector3,2>> faceBasis;
-  DependentQuantity faceBasisQ;
-  
+
+  // extrinsic basis vector pair in each face
+  inline void requireFaceBases() { faceBasesQ.require(); }
+  FaceData<std::array<Vector3, 2>> faceBases;
+
   // transport angle in he.face() to he.twin().face() by multiplying
-  // complex e^(theta I) 
+  // complex e^(theta I)
+  inline void requireFaceTransportCoefs() { faceTransportCoefsQ.require(); }
   HalfedgeData<Complex> faceTransportCoefs;
-  DependentQuantity faceTransportCoefsQ;
+
+  // dihedral angle
+  inline void requireDihedralAngles() { dihedralAnglesQ.require(); }
+  EdgeData<double> dihedralAngles;
   
-  // dihedral angle 
-  EdgeData<double> dihedralAngle;
-  DependentQuantity dihedralAngleQ;
+  // halfedge cotans 
+  inline void requireHalfedgeCotanWeights() { halfedgeCotanWeightsQ.require(); }
+  HalfedgeData<double> halfedgeCotanWeights;
+
+  // edge cotan weights
+  inline void requireEdgeCotanWeights() { edgeCotanWeightsQ.require(); }
+  EdgeData<double> edgeCotanWeights;
+
+  // === Indices
+
+  inline void requireVertexIndices() { vertexIndicesQ.require(); }
+  VertexData<size_t> vertexIndices;
+
+  inline void requireFaceIndices() { faceIndicesQ.require(); }
+  FaceData<size_t> faceIndices;
+
+  inline void requireEdgeIndices() { edgeIndicesQ.require(); }
+  EdgeData<size_t> edgeIndices;
+
+  inline void requireHalfedgeIndices() { halfedgeIndicesQ.require(); }
+  HalfedgeData<size_t> halfedgeIndices;
+
+
+  // === Operators
+  // Note: These don't quite follow the usual naming scheme, for the sake of grouping common operators
+  // TODO factorizations?
+
+  // All of the basic DEC operators
+  inline void requireBasicDECOperators() { basicDECOperatorsQ.require(); }
+  Eigen::SparseMatrix<double> d0, d1, hodge0, hodge1, hodge2;
+
+  // Includes inverses
+  inline void requireModifiedDECOperators() { modifiedDECOperatorsQ.require(); }
+  Eigen::SparseMatrix<double> hodge0Inv, hodge1Inv, hodge2Inv;
+
+  // Cotan-laplace operator
+  // Remember, this DOES NOT include the mass matrix (hodge0)
+  inline void requireZeroFormWeakLaplacian() { zeroFormWeakLaplacianQ.require(); }
+  Eigen::SparseMatrix<double> zeroFormWeakLaplacian;
 };
 
 }; // namespace geometrycentral

@@ -7,12 +7,8 @@ using namespace Eigen;
 
 namespace geometrycentral {
 
-template <typename T>
-Vector<T> LinearSolver<T>::operator()(const Vector<T>& rhs) {
-  Vector<T> lhs;
-  (*this)(lhs, rhs);
-  return lhs;
-}
+// NOTE left empty for now
+
 template class LinearSolver<double>;
 template class LinearSolver<float>;
 template class LinearSolver<Complex>;
