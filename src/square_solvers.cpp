@@ -192,7 +192,9 @@ Vector<T> solveSquare(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
   SquareSolver<T> s(A);
   return s.solve(rhs);
 }
-
+template Vector<float> solveSquare(const Eigen::SparseMatrix<float>& A, const Vector<float>& rhs);
+template Vector<double> solveSquare(const Eigen::SparseMatrix<double>& A, const Vector<double>& rhs);
+template Vector<Complex> solveSquare(const Eigen::SparseMatrix<Complex>& A, const Vector<Complex>& rhs);
 
 // Explicit instantiations
 template class SquareSolver<double>;

@@ -507,7 +507,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
       // LC connection between the faces
       Complex rBar = std::pow(gc.faceTransportCoefs[he.twin()], nSym);
 
-      double weight = 1; // TODO figure out weights
+      double weight = 1; // FIXME TODO figure out weights
       energyMatrix.insert(i, j) = -weight * rBar;
       weightISum += weight;
     }
@@ -674,11 +674,6 @@ VertexData<int> computeVertexIndex(Geometry<Euclidean>* geometry, FaceData<Compl
 
   for (VertexPtr v : mesh->vertices()) {
 
-    // bool interesting = v.degree() == 3;
-    // if (interesting) {
-    //   cout << "!!! interesting !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
-    // }
-
     // Trace the direction field around the face and see how many times it
     // spins!
     double totalRot = 0;
@@ -692,38 +687,15 @@ VertexData<int> computeVertexIndex(Geometry<Euclidean>* geometry, FaceData<Compl
       // Find the difference in angle
       double theta0 = std::arg(transport * x0);
       double theta1 = std::arg(x1);
-      double deltaTheta = theta1 - theta0;
+      double deltaTheta = std::arg(x1 / (transport * x0));
 
-      totalRot += deltaTheta; // accumulate
-
-      // if (interesting) {
-      //   cout << "he: " << endl;
-      //   cout << "  theta0 = " << (theta0 / (2 * PI)) << " theta1 = " << (theta1 / (2 * PI)) << endl;
-      //   cout << "  deltaTheta/2PI = " << (deltaTheta / (2 * PI)) << endl;
-      // }
+      totalRot += deltaTheta;
     }
 
-    // if (interesting) {
-    //   cout << "totalRot (before reg) /2PI = " << (totalRot / (2 * PI)) << endl;
-    // }
-    totalRot = regularizeAngle(totalRot + PI) - PI; // regularize to [-PI,PI]
-
     double angleDefect = geometry->angleDefect(v);
-    cout << endl;
-    // cout << "totalRot = " << totalRot << endl;
-    // cout << "angleDefect = " << angleDefect << endl;
-    // cout << totalRot - angleDefect << endl;
-    // cout << totalRot + angleDefect << endl;
-    // cout << totalRot - angleDefect / nSym << endl;
-    // cout << totalRot + angleDefect / nSym << endl;
-    // cout << totalRot - angleDefect * nSym << endl;
-    cout << totalRot + angleDefect * nSym << endl;
     totalRot += angleDefect * nSym;
 
     // Compute the net rotation and corresponding index
-    // if (interesting) {
-    cout << "totalRot/2PI = " << (totalRot / (2 * PI)) << endl;
-    // }
     int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
     indices[v] = index;
   }

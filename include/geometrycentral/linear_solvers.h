@@ -34,11 +34,11 @@ Vector<T> smallestEigenvectorPositiveDefinite(Eigen::SparseMatrix<T>& energyMatr
 
 // Quick and easy solvers which do not retain factorization
 template <typename T>
-Vector<T> solve(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+Vector<T> solve(const Eigen::SparseMatrix<T>& matrix, const Vector<T>& rhs);
 template <typename T>
-Vector<T> solveSquare(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+Vector<T> solveSquare(const Eigen::SparseMatrix<T>& matrix, const Vector<T>& rhs);
 template <typename T>
-Vector<T> solvePositiveDefinite(const Eigen::SparseMatrix<T>& matrix, const Vector<T> rhs);
+Vector<T> solvePositiveDefinite(const Eigen::SparseMatrix<T>& matrix, const Vector<T>& rhs);
 template <typename T>
 double residual(const Eigen::SparseMatrix<T>& matrix, const Vector<T>& lhs, const Vector<T>& rhs);
 
