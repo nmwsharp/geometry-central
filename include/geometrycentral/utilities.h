@@ -34,6 +34,7 @@ inline double dot(Complex x, Complex y) {
 }
 
 inline Complex inv(Complex c) { return ::std::conj(c) / ::std::norm(c); }
+inline Complex unit(Complex c) { return c / ::std::abs(c); }
 
 // Various functions
 template <typename T>

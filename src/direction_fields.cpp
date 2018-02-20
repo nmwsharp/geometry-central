@@ -13,184 +13,29 @@ using std::endl;
 
 namespace geometrycentral {
 
-VertexData<double> computeAngleDefects(Geometry<Euclidean>* geometry) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  VertexData<double> defect(mesh);
-
-  for (VertexPtr v : mesh->vertices()) {
-    // Sum up the wedge angle for adjacent triangles
-    double angleSum = 0.0;
-    HalfedgePtr prevHe{nullptr};
-    for (HalfedgePtr he : v.incomingHalfedges()) {
-      if (prevHe != nullptr) {
-        Vector3 a = unit(-geometry->vector(he));
-        Vector3 b = unit(-geometry->vector(prevHe));
-
-        double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
-
-        // acos() can choose the wrong inverse for very sharp angles (only
-        // happens with boundary vertices, assuming no triangles are degenerate)
-        if (dot(cross(a, b), geometry->normal(v)) < 0) {
-          angle = 2 * PI - angle;
-        }
-
-        angleSum += angle;
-      }
-
-      prevHe = he;
-    }
-
-    // Do the last one, which we missed above
-    Vector3 a = unit(-geometry->vector(v.halfedge().twin()));
-    Vector3 b = unit(-geometry->vector(prevHe));
-    double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
-    if (dot(cross(a, b), geometry->normal(v)) < 0) {
-      angle = 2 * PI - angle;
-    }
-    angleSum += angle;
-
-    defect[v] = 2 * PI - angleSum;
-  }
-
-  return defect;
-}
-
-HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-  VertexData<double> defects = computeAngleDefects(geometry);
-  return computeRescaledHalfedgeAngles(geometry, defects);
-}
-
-HalfedgeData<double> computeRescaledHalfedgeAngles(Geometry<Euclidean>* geometry,
-                                                   const VertexData<double>& angleDefects) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  HalfedgeData<double> edgeAngles(mesh);
-
-  for (VertexPtr v : mesh->vertices()) {
-    double cumulativeAngleSum = 0.0;
-    double totalAngleSum = 2 * PI - angleDefects[v];
-
-    // Sum up the wedge angle for adjacent triangles
-    double angleSum = 0.0;
-    HalfedgePtr prevHe{nullptr};
-    for (HalfedgePtr he : v.incomingHalfedges()) {
-      if (prevHe == nullptr) {
-        // Angle to the reference edge is 0 by definition
-        edgeAngles[he] = 0.0;
-
-      } else {
-        Vector3 a = unit(-geometry->vector(he));
-        Vector3 b = unit(-geometry->vector(prevHe));
-
-        double angle = acos(clamp(dot(a, b), -1.0, 1.0)); // clamp to deal with numerical error
-
-        // acos() can choose the wrong inverse for very sharp angles (only
-        // happens with boundary vertices)
-        if (dot(cross(a, b), geometry->normal(v)) < 0) {
-          angle = 2 * PI - angle;
-        }
-        cumulativeAngleSum += angle;
-        edgeAngles[he] = 2 * PI * (1.0 - cumulativeAngleSum / totalAngleSum); // subtract because we
-                                                                              // measure angles in
-                                                                              // the wrong direction
-                                                                              // with this loop
-      }
-
-      prevHe = he;
-    }
-  }
-
-  return edgeAngles;
-}
-
-HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-  HalfedgeData<double> edgeAngles = computeRescaledHalfedgeAngles(geometry);
-  return computeTransportAngles(geometry, edgeAngles);
-}
-
-HalfedgeData<double> computeTransportAngles(Geometry<Euclidean>* geometry,
-                                            const HalfedgeData<double>& rescaledHalfedgeAngles) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  HalfedgeData<double> transportAngles(mesh);
-
-  for (HalfedgePtr he : mesh->halfedges()) {
-    transportAngles[he] = regularizeAngle(rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
-  }
-  for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
-    transportAngles[he] = regularizeAngle(rescaledHalfedgeAngles[he] - rescaledHalfedgeAngles[he.twin()] + PI);
-  }
-
-  return transportAngles;
-}
-
-VertexData<Vector3> convertTangentAnglesToR3Vectors(Geometry<Euclidean>* geometry,
-                                                    const VertexData<double>& tangentAngles) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  VertexData<Vector3> r3Vectors(mesh);
-
-  for (VertexPtr v : mesh->vertices()) {
-    // Project the reference halfedge in to the tangent plane
-    Vector3 r = geometry->vector(v.halfedge());
-    Vector3 N = geometry->normal(v);
-    Vector3 referenceInTangentSpace = unit(r - dot(r, N) * N);
-
-    // Rotate the reference vector to get the desired direction
-    r3Vectors[v] = referenceInTangentSpace.rotate_around(N, tangentAngles[v]);
-  }
-
-  return r3Vectors;
-}
-
-VertexData<Vector3> convertComplexDirectionsToR3Vectors(Geometry<Euclidean>* geometry,
-                                                        const VertexData<Complex>& directionField, int nSym) {
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  VertexData<Vector3> r3Vectors(mesh);
-  for (VertexPtr v : mesh->vertices()) {
-    // Compute the implied tangent angles
-    std::complex<double> solVal = std::pow(directionField[v], 1.0 / nSym);
-    double tangentAngle = std::arg(solVal);
-
-    // Project the reference halfedge in to the tangent plane
-    Vector3 r = geometry->vector(v.halfedge());
-    Vector3 N = geometry->normal(v);
-    Vector3 referenceInTangentSpace = unit(r - dot(r, N) * N);
-
-    // Rotate the reference vector to get the desired direction
-    r3Vectors[v] = referenceInTangentSpace.rotate_around(N, tangentAngle) * std::abs(solVal); // preserve scale
-  }
-
-  return r3Vectors;
-}
-
 // Anonymous namespace for helper functions
 namespace {
 
 VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euclidean>* geometry, int nSym,
                                                                     bool alignCurvature) {
   HalfedgeMesh* mesh = geometry->getMesh();
-
   size_t N = mesh->nVertices();
 
-  // Geometric values needed to build matrices
-  HalfedgeData<double> transportAngles = computeTransportAngles(geometry);
-
-  // === Allocate matrices
-  VertexData<size_t> vertInd = mesh->getVertexIndices();
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireVertexTransportCoefs();
+  gc.requireEdgeCotanWeights();
+  gc.requireVertexIndices();
+  gc.requireVertexDualAreas();
 
   // Energy matrix
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
       N, N); // have to use ColMajor because LU solver below demands it
+
   // Supposedly reserving space in the matrix makes construction real zippy
   // below
   Eigen::VectorXi nEntries(N);
   for (VertexPtr v : mesh->vertices()) {
-    nEntries[vertInd[v]] = v.degree() + 1;
+    nEntries[gc.vertexIndices[v]] = v.degree() + 1;
   }
   energyMatrix.reserve(nEntries);
 
@@ -202,21 +47,19 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
 
   // Build the mass matrix
   for (VertexPtr v : mesh->vertices()) {
-    size_t i = vertInd[v];
-    massMatrix.insert(i, i) = geometry->dualArea(v);
+    size_t i = gc.vertexIndices[v];
+    massMatrix.insert(i, i) = gc.vertexDualAreas[v];
   }
 
   // Build the energy matrix
   for (VertexPtr v : mesh->vertices()) {
-    size_t i = vertInd[v];
+    size_t i = gc.vertexIndices[v];
 
     std::complex<double> weightISum = 0;
     for (HalfedgePtr he : v.incomingHalfedges()) {
-      size_t j = vertInd[he.vertex()];
-
-      std::complex<double> rBar = std::exp(-nSym * transportAngles[he.twin()] * IM_I);
-
-      double weight = geometry->cotanWeight(he.edge());
+      size_t j = gc.vertexIndices[he.vertex()];
+      std::complex<double> rBar = std::pow(gc.vertexTransportCoefs[he], nSym);
+      double weight = gc.edgeCotanWeights[he.edge()];
       energyMatrix.insert(i, j) = -weight * rBar;
       weightISum += weight;
     }
@@ -234,20 +77,17 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
 
   // If requested, align to principal curvatures
   if (alignCurvature) {
-    VertexData<Complex> principalDirections;
-    geometry->getPrincipalDirections(principalDirections);
+
+    gc.requirePrincipalDirections();
+
     Eigen::VectorXcd dirVec(N);
     if (nSym == 2) {
       for (VertexPtr v : mesh->vertices()) {
-        dirVec[vertInd[v]] = principalDirections[v];
+        dirVec[gc.vertexIndices[v]] = gc.principalDirections[v];
       }
     } else if (nSym == 4) {
       for (VertexPtr v : mesh->vertices()) {
-        dirVec[vertInd[v]] = std::pow(principalDirections[v], 2);
-        // dirVec[vertInd[v]] = std::pow(principalDirections[v], 2) *
-        // std::exp(PI * IM_I);
-        // dirVec[vertInd[v]] /= std::abs(dirVec[vertInd[v]]);
-        // cout << "princ dir = " << dirVec[vertInd[v]] << endl;
+        dirVec[gc.vertexIndices[v]] = std::pow(gc.principalDirections[v], 2);
       }
     }
 
@@ -272,8 +112,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
   // Copy the result to a VertexData vector
   VertexData<Complex> toReturn(mesh);
   for (VertexPtr v : mesh->vertices()) {
-    // cout << "sol = " << solution[vertInd[v]] << endl;
-    toReturn[v] = solution[vertInd[v]] / std::abs(solution[vertInd[v]]);
+    toReturn[v] = solution[gc.vertexIndices[v]] / std::abs(solution[gc.vertexIndices[v]]);
   }
 
   return toReturn;
@@ -282,38 +121,39 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
 VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Euclidean>* geometry, int nSym,
                                                                   bool alignCurvature) {
   HalfedgeMesh* mesh = geometry->getMesh();
-
   size_t nInterior = mesh->nInteriorVertices();
+
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireVertexTransportCoefs();
+  gc.requireEdgeCotanWeights();
+  gc.requireVertexBases();
+  gc.requireInteriorVertexIndices();
+  gc.requireVertexDualAreas();
 
   // Compute the boundary values
   VertexData<std::complex<double>> boundaryValues(mesh);
   for (VertexPtr v : mesh->vertices()) {
     if (v.isBoundary()) {
       Vector3 b = geometry->boundaryNormal(v);
-      boundaryValues[v] = std::pow(geometry->tangentVectorToComplexAngle(v, b), nSym);
+      Complex bC(dot(gc.vertexBases[v][0], b), dot(gc.vertexBases[v][1], b)); // TODO can do better
+      bC = unit(bC);
+      boundaryValues[v] = std::pow(bC, nSym);
     } else {
       boundaryValues[v] = 0;
     }
   }
 
-  // Geometric values needed to build matrices
-  HalfedgeData<double> transportAngles = computeTransportAngles(geometry);
-
-  // === Allocate matrices
   VertexData<size_t> vertInd = mesh->getInteriorVertexIndices();
 
   // Energy matrix
-  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
-      nInterior,
-      nInterior); // have to use ColMajor because LU solver below demands it
-  // Supposedly reserving space in the matrix makes construction real zippy
-  // below
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(nInterior, nInterior);
+
   Eigen::VectorXi nEntries(nInterior);
   for (VertexPtr v : mesh->vertices()) {
     if (v.isBoundary()) {
       continue;
     }
-    nEntries[vertInd[v]] = v.degree() + 1;
+    nEntries[gc.interiorVertexIndices[v]] = v.degree() + 1;
   }
   energyMatrix.reserve(nEntries);
 
@@ -331,9 +171,9 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
     if (v.isBoundary()) {
       continue;
     }
-    size_t i = vertInd[v];
+    size_t i = gc.interiorVertexIndices[v];
     b(i) = 0.0;
-    massMatrix.insert(i, i) = geometry->dualArea(v);
+    massMatrix.insert(i, i) = gc.vertexDualAreas[v];
   }
 
   // Build the energy matrix
@@ -341,20 +181,19 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
     if (v.isBoundary()) {
       continue;
     }
-    size_t i = vertInd[v];
+    size_t i = gc.interiorVertexIndices[v];
 
     std::complex<double> weightISum = 0;
     for (HalfedgePtr he : v.incomingHalfedges()) {
-      std::complex<double> rBar = std::exp(-nSym * transportAngles[he.twin()] * IM_I);
-      double w = geometry->cotanWeight(he.edge());
+      std::complex<double> rBar = std::pow(gc.vertexTransportCoefs[he], nSym);
+      double w = gc.edgeCotanWeights[he.edge()];
 
       // Interior-boundary term
       if (he.vertex().isBoundary()) {
         std::complex<double> bVal = boundaryValues[he.vertex()];
         b(i) += w * rBar * bVal;
       } else { // Interior-interior term
-
-        size_t j = vertInd[he.vertex()];
+        size_t j = gc.interiorVertexIndices[he.vertex()];
         energyMatrix.insert(i, j) = -w * rBar;
       }
       weightISum += w;
@@ -376,42 +215,38 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
 
   // If requested, align to principal curvatures
   if (alignCurvature) {
-    VertexData<Complex> principalDirections;
-    geometry->getPrincipalDirections(principalDirections);
+
+    gc.requirePrincipalDirections();
+
     Eigen::VectorXcd dirVec(nInterior);
     for (VertexPtr v : mesh->vertices()) {
       if (v.isBoundary()) {
         continue;
       }
 
-      Complex directionVal = principalDirections[v];
+      Complex directionVal = gc.principalDirections[v];
       if (nSym == 4) {
         directionVal = std::pow(directionVal, 2);
       }
 
-      // Normalize the curvature vectors. By doing so, we lose the property of
-      // adjusting the strength
-      // of the alignment based on the strength of the curvature, but resolve
-      // any scaling issues
-      // between the magnitude of the normals and the magnitude of the desired
-      // field.
-      // Be careful when interpreting this as opposed to the usual direction
-      // field optimization.
-      dirVec[vertInd[v]] = directionVal / std::abs(directionVal);
+      // Normalize the curvature vectors. By doing so, we lose the property of adjusting the strength of the alignment
+      // based on the strength of the curvature, but resolve any scaling issues between the magnitude of the normals and
+      // the magnitude of the desired field.  Be careful when interpreting this as opposed to the usual direction field
+      // optimization.
+      dirVec[gc.interiorVertexIndices[v]] = directionVal / std::abs(directionVal);
     }
 
     double t = 0.01; // this is something of a magical constant, see "Globally
                      // Optimal Direction Fields", eqn 9
 
     Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix;
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
     solution = solveSquare(LHS, RHS);
   }
   // Otherwise find the general closest solution
   else {
     std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
-
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = massMatrix * energyMatrix; // can be simplified
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
     Eigen::VectorXcd RHS = massMatrix * b;
     solution = solveSquare(LHS, RHS);
   }
@@ -422,7 +257,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_boundary(Geometry<Eucli
     if (v.isBoundary()) {
       toReturn[v] = boundaryValues[v];
     } else {
-      toReturn[v] = solution[vertInd[v]] / std::abs(solution[vertInd[v]]);
+      toReturn[v] = unit(solution[gc.interiorVertexIndices[v]]);
     }
   }
 
@@ -466,16 +301,14 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
   GeometryCache<Euclidean>& gc = geometry->cache;
   gc.requireFaceTransportCoefs();
   gc.requireFaceNormals();
+  gc.requireFaceAreas();
   gc.requireDihedralAngles();
+  gc.requireFaceIndices();
 
   // === Allocate matrices
-  FaceData<size_t> faceInd = mesh->getFaceIndices();
-
   // Energy matrix
-  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(
-      N, N); // use ColMajor because LU solver below demands it
-  energyMatrix.reserve(
-      Eigen::VectorXi::Constant(N, 4)); // Reserving space in the matrix makes construction real zippy below
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(N, N);
+  energyMatrix.reserve(Eigen::VectorXi::Constant(N, 4));
 
   // Mass matrix
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(N, N);
@@ -486,13 +319,13 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
 
   // Build the mass matrix
   for (FacePtr f : mesh->faces()) {
-    size_t i = faceInd[f];
-    massMatrix.insert(i, i) = geometry->area(f);
+    size_t i = gc.faceIndices[f];
+    massMatrix.insert(i, i) = gc.faceAreas[f];
   }
 
   // Build the energy matrix
   for (FacePtr f : mesh->faces()) {
-    size_t i = faceInd[f];
+    size_t i = gc.faceIndices[f];
 
     std::complex<double> weightISum = 0;
     for (HalfedgePtr he : f.adjacentHalfedges()) {
@@ -502,7 +335,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
       }
 
       FacePtr neighFace = he.twin().face();
-      unsigned int j = faceInd[neighFace];
+      unsigned int j = gc.faceIndices[neighFace];
 
       // LC connection between the faces
       Complex rBar = std::pow(gc.faceTransportCoefs[he.twin()], nSym);
@@ -547,7 +380,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
 
       sum /= weightSum;
 
-      dirVec[faceInd[f]] = sum;
+      dirVec[gc.faceIndices[f]] = sum;
     }
 
     // Normalize the alignment field
@@ -572,7 +405,7 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
   // Copy the result to a FaceData object
   FaceData<Complex> field(mesh);
   for (FacePtr f : mesh->faces()) {
-    field[f] = solution[faceInd[f]] / std::abs(solution[faceInd[f]]);
+    field[f] = solution[gc.faceIndices[f]] / std::abs(solution[gc.faceIndices[f]]);
   }
 
   return field;
@@ -581,11 +414,168 @@ FaceData<Complex> computeSmoothestFaceDirectionField_noBoundary(Geometry<Euclide
 FaceData<Complex> computeSmoothestFaceDirectionField_boundary(Geometry<Euclidean>* geometry, int nSym,
                                                               bool alignCurvature) {
 
-  // TODO implement
   HalfedgeMesh* mesh = geometry->getMesh();
-  FaceData<Complex> field(mesh);
 
-  throw std::runtime_error("Boundary fields not implemented");
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireFaceTransportCoefs();
+  gc.requireFaceNormals();
+  gc.requireFaceAreas();
+  gc.requireDihedralAngles();
+
+
+  // Index interior faces
+  size_t nInteriorFace = 0;
+  FaceData<size_t> interiorFaceInd(mesh, -77);
+  FaceData<char> isInterior(mesh);
+  for (FacePtr f : mesh->faces()) {
+    bool isBoundary = false;
+    for (EdgePtr e : f.adjacentEdges()) {
+      isBoundary |= e.isBoundary();
+    }
+    isInterior[f] = !isBoundary;
+    if (!isBoundary) {
+      interiorFaceInd[f] = nInteriorFace++;
+    }
+  }
+
+  // Compute boundary values
+  FaceData<Complex> boundaryValues(mesh);
+  for (FacePtr f : mesh->faces()) {
+    if (isInterior[f]) {
+      boundaryValues[f] = 0;
+    } else {
+      Vector3 bVec = Vector3::zero();
+      for (HalfedgePtr he : f.adjacentHalfedges()) {
+        if (he.edge().isBoundary()) {
+          bVec += geometry->vector(he).rotate_around(gc.faceNormals[f], -PI / 2.0);
+        }
+      }
+      Complex bC(dot(gc.faceBases[f][0], bVec), dot(gc.faceBases[f][1], bVec));
+      bC = unit(bC);
+      boundaryValues[f] = std::pow(bC, nSym);
+    }
+  }
+
+
+  // === Allocate matrices
+  // Energy matrix
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(nInteriorFace, nInteriorFace);
+  energyMatrix.reserve(Eigen::VectorXi::Constant(nInteriorFace, 4));
+
+  // Mass matrix
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(nInteriorFace, nInteriorFace);
+  massMatrix.reserve(Eigen::VectorXi::Constant(nInteriorFace, 1));
+
+  // RHS
+  Eigen::VectorXcd b(nInteriorFace);
+
+  // === Build matrices
+
+  // Build the mass matrix
+  for (FacePtr f : mesh->faces()) {
+    if (isInterior[f]) {
+      size_t i = interiorFaceInd[f];
+      massMatrix.insert(i, i) = gc.faceAreas[f];
+    }
+  }
+
+  // Build the energy matrix
+  for (FacePtr f : mesh->faces()) {
+    if (isInterior[f]) {
+      size_t i = interiorFaceInd[f];
+
+      std::complex<double> weightISum = 0;
+      for (HalfedgePtr he : f.adjacentHalfedges()) {
+
+        FacePtr neighFace = he.twin().face();
+        double weight = 1; // FIXME TODO figure out weights
+        Complex rBar = std::pow(gc.faceTransportCoefs[he.twin()], nSym);
+
+        if (isInterior[neighFace]) {
+          size_t j = interiorFaceInd[neighFace];
+          energyMatrix.insert(i, j) = -weight * rBar;
+        } else {
+          std::complex<double> bVal = boundaryValues[neighFace];
+          b(i) += weight * rBar * bVal;
+        }
+
+        weightISum += weight;
+      }
+
+      energyMatrix.insert(i, i) = weightISum;
+    }
+  }
+
+  // Shift to avoid singularity
+  Eigen::SparseMatrix<Complex> eye(nInteriorFace, nInteriorFace);
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
+
+  // Store the solution here
+  Eigen::VectorXcd solution;
+
+  // If requested, align to principal curvatures
+  if (alignCurvature) {
+
+    Eigen::VectorXcd dirVec(nInteriorFace);
+    for (FacePtr f : mesh->faces()) {
+      if (isInterior[f]) {
+
+        // Compute something like the principal directions
+        double weightSum = 0;
+        Complex sum = 0;
+
+        for (HalfedgePtr he : f.adjacentHalfedges()) {
+
+          double dihedralAngle = std::abs(gc.dihedralAngles[he.edge()]);
+          double weight = norm(geometry->vector(he));
+          weightSum += weight;
+          double angleCoord = angleInPlane(geometry->vector(f.halfedge()), geometry->vector(he), gc.faceNormals[f]);
+          Complex coord = std::exp(angleCoord * IM_I *
+                                   (double)nSym); // nsym should be 2 or 4, checked in the funciton which calls this
+
+          sum += coord * weight * dihedralAngle;
+        }
+
+        sum /= weightSum;
+
+        // Normalize the curvature vectors. By doing so, we lose the property of adjusting the strength of the alignment
+        // based on the strength of the curvature, but resolve any scaling issues between the magnitude of the normals
+        // and the magnitude of the desired field.  Be careful when interpreting this as opposed to the usual direction
+        // field optimization.
+        dirVec[interiorFaceInd[f]] = unit(sum);
+      }
+    }
+
+
+    double t = 0.1;  // this is something of a magical constant, see "Globally
+                     // Optimal Direction Fields", eqn 9
+                     // NOTE: This value is different from the one used for vertex fields; seems to work better?
+
+    std::cout << "Solving smoothest field dirichlet problem with curvature term..." << std::endl;
+    Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
+    solution = solveSquare(LHS, RHS);
+
+  }
+  // Otherwise find the general closest solution
+  else {
+    std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
+    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
+    Eigen::VectorXcd RHS = massMatrix * b;
+    solution = solveSquare(LHS, RHS);
+  }
+
+
+  // Copy the result to a FaceData object
+  FaceData<Complex> field(mesh);
+  for (FacePtr f : mesh->faces()) {
+    if (isInterior[f]) {
+      field[f] = unit(solution[interiorFaceInd[f]]);
+    } else {
+      field[f] = unit(boundaryValues[f]);
+    }
+  }
 
   return field;
 }
@@ -621,10 +611,8 @@ FaceData<Complex> computeSmoothestFaceDirectionField(Geometry<Euclidean>* geomet
 FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex> directionField, int nSym) {
   HalfedgeMesh* mesh = geometry->getMesh();
 
-  // Precompute transport angles
-  // Note: These tend to get computed a bunch of times when working with
-  // direction fields
-  HalfedgeData<double> transportAngles = computeTransportAngles(geometry);
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireFaceTransportCoefs();
 
   // Store the result here
   FaceData<int> indices(mesh);
@@ -641,7 +629,7 @@ FaceData<int> computeFaceIndex(Geometry<Euclidean>* geometry, VertexData<Complex
       // Compute the rotation along the halfedge implied by the field
       Complex x0 = directionField[he.vertex()];
       Complex x1 = directionField[he.twin().vertex()];
-      Complex transport = std::exp(nSym * transportAngles[he] * IM_I);
+      Complex transport = std::pow(gc.vertexTransportCoefs[he], nSym);
 
       // Find the difference in angle
       double theta0 = std::arg(transport * x0);
