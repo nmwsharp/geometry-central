@@ -211,7 +211,7 @@ void GeometryCache<Euclidean>::computeVertexBases() {
 
     // Chose any edge (projected in to tangent plane) as one component of basis
     Vector3 basisX = unit(geometry->vector(v.halfedge()));
-    basisX = unit(basisX * (1.0 - dot(vertexNormals[v], basisX)));
+    basisX = unit(basisX - vertexNormals[v] * dot(vertexNormals[v], basisX));
     Vector3 basisY = basisX.rotate_around(vertexNormals[v], PI/2.0);
 
     vertexBases[v][0] = basisX;
