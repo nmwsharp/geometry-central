@@ -196,7 +196,7 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
 template <typename T>
 Vector<T> solve(const Eigen::SparseMatrix<T>& A, const Vector<T>& rhs) {
   Solver<T> s(A);
-  return s.solve(rhs); // lol?
+  return s.solve(rhs);
 }
 
 
@@ -214,5 +214,8 @@ template class Solver<double>;
 template class Solver<float>;
 template class Solver<Complex>;
 
+template Vector<float> solve(const Eigen::SparseMatrix<float>& A, const Vector<float>& rhs);
+template Vector<double> solve(const Eigen::SparseMatrix<double>& A, const Vector<double>& rhs);
+template Vector<Complex> solve(const Eigen::SparseMatrix<Complex>& A, const Vector<Complex>& rhs);
 
 } // namespace geometrycentral

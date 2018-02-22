@@ -73,7 +73,7 @@ Vector<T> PositiveDefiniteSolver<T>::solve(const Vector<T>& rhs) {
 
 template <typename T>
 void PositiveDefiniteSolver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
-  
+
   size_t N = this->mat.rows();
 
   // Check some sanity
@@ -127,10 +127,15 @@ Vector<T> solvePositiveDefinite(const Eigen::SparseMatrix<T>& A, const Vector<T>
   return s.solve(rhs);
 }
 
+
 // Explicit instantiations
 template class PositiveDefiniteSolver<double>;
 template class PositiveDefiniteSolver<float>;
 template class PositiveDefiniteSolver<Complex>;
+
+template Vector<float> solvePositiveDefinite<float>(const Eigen::SparseMatrix<float>& A, const Vector<float>& rhs);
+template Vector<double> solvePositiveDefinite<double>(const Eigen::SparseMatrix<double>& A, const Vector<double>& rhs);
+template Vector<Complex> solvePositiveDefinite<Complex>(const Eigen::SparseMatrix<Complex>& A, const Vector<Complex>& rhs);
 
 
 } // namespace geometrycentral
