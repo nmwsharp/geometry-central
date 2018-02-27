@@ -14,9 +14,8 @@ std::ostream &operator<<(std::ostream &output, const Vector3 &v) {
 
 // Other functions
 Vector3 Vector3::rotate_around(Vector3 axis, double theta) const {
-  // TODO should probably do some checks to make sure this is correct
 
-  Vector3 thisV = {x, y, z};  // TODO how does C++ work?
+  Vector3 thisV = {x, y, z};
   Vector3 axisN = unit(axis);
   Vector3 parallelComp = axisN * dot(thisV, axisN);
   Vector3 tangentComp = thisV - parallelComp;
