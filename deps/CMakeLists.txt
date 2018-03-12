@@ -5,3 +5,7 @@ include_directories(eigen)
 
 # Rectangle bin pack
 add_subdirectory(RectangleBinPack)
+
+
+# tinyply
+add_subdirectory(tinyply)
