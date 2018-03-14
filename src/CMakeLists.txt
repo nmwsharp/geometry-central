@@ -15,7 +15,7 @@ add_library(
         ${SRCS}
         )
 
-# If we (optionally) resolved SPQR support, we want to link against that as well
+# If we (optionally) resolved suitesparse support, we want to link against that as well
 if(HAVE_SUITESPARSE)
     target_link_libraries(geometry-central ${SUITESPARSE_LIBRARIES})
 endif(HAVE_SUITESPARSE)
