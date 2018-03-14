@@ -16,12 +16,19 @@ public:
   HalfedgeMeshDataTransfer();
   HalfedgeMeshDataTransfer(HalfedgeMesh* oldMesh, HalfedgeMesh* newMesh);
   
-  // Transfer data
+  // Transfer data from old to new
   template<class T> VertexData<T> transfer(VertexData<T>& inData);
   template<class T> FaceData<T> transfer(FaceData<T>& inData);
   template<class T> EdgeData<T> transfer(EdgeData<T>& inData);
   template<class T> HalfedgeData<T> transfer(HalfedgeData<T>& inData);
   template<class T> CornerData<T> transfer(CornerData<T>& inData);
+  
+  // Transfer data from new to old 
+  template<class T> VertexData<T> transferBack(VertexData<T>& inData);
+  template<class T> FaceData<T> transferBack(FaceData<T>& inData);
+  template<class T> EdgeData<T> transferBack(EdgeData<T>& inData);
+  template<class T> HalfedgeData<T> transferBack(HalfedgeData<T>& inData);
+  template<class T> CornerData<T> transferBack(CornerData<T>& inData);
 
   // Maps to transfer data map[oldPtr] --> newPtr
   HalfedgeData<HalfedgePtr> heMap;

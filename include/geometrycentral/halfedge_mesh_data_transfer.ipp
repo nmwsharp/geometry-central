@@ -54,9 +54,70 @@ template<class T> CornerData<T> HalfedgeMeshDataTransfer::transfer(CornerData<T>
     for(HalfedgePtr he : oldMesh->halfedges()) {
         outData[heMap[he].corner()] = inData[he.corner()];
     }
+    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+        outData[heMap[he].corner()] = inData[he.corner()];
+    }
 
     return outData;
 
 }
+
+
+template<class T> VertexData<T> HalfedgeMeshDataTransfer::transferBack(VertexData<T>& inData) {
+
+    VertexData<T> outData(oldMesh);
+    for(VertexPtr v : oldMesh->vertices()) {
+        outData[v] = inData[vMap[v]];
+    }
+    return outData;
+}
+
+
+template<class T> FaceData<T> HalfedgeMeshDataTransfer::transferBack(FaceData<T>& inData) {
+
+    FaceData<T> outData(oldMesh);
+    for(FacePtr f : oldMesh->faces()) {
+        outData[f] = inData[fMap[f]];
+    }
+    for(FacePtr f : oldMesh->boundaryLoops()) {
+        outData[f] = inData[fMap[f]];
+    }
+    return outData;
+}
+
+
+template<class T> EdgeData<T> HalfedgeMeshDataTransfer::transferBack(EdgeData<T>& inData) {
+
+    EdgeData<T> outData(oldMesh);
+    for(EdgePtr e : oldMesh->edges()) {
+        outData[e] = inData[eMap[e]];
+    }
+    return outData;
+}
+
+template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transferBack(HalfedgeData<T>& inData) {
+
+    HalfedgeData<T> outData(oldMesh);
+    for(HalfedgePtr he : oldMesh->halfedges()) {
+        outData[he] = inData[heMap[he]];
+    }
+    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+        outData[he] = inData[heMap[he]];
+    }
+    return outData;
+}
+
+template<class T> CornerData<T> HalfedgeMeshDataTransfer::transferBack(CornerData<T>& inData) {
+
+    CornerData<T> outData(oldMesh);
+    for(HalfedgePtr he : oldMesh->halfedges()) {
+        outData[he.corner()] = inData[heMap[he].corner()];
+    }
+    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+        outData[he.corner()] = inData[heMap[he].corner()];
+    }
+    return outData;
+}
+
 
 } // namespace geometry central
