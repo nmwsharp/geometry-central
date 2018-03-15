@@ -14,12 +14,11 @@
 
 namespace geometrycentral {
 
-
-class PlyHalfedgeMeshReader {
+class PlyHalfedgeMeshData {
 
 public:
-  PlyHalfedgeMeshReader(std::string filename, bool verbose = false);
-  ~PlyHalfedgeMeshReader();
+  PlyHalfedgeMeshData(std::string filename, bool verbose = false);
+  ~PlyHalfedgeMeshData();
 
   Geometry<Euclidean>* getMesh();
 
@@ -35,6 +34,18 @@ public:
 
   // Looks for vertex colors, either as a uchar or a float
   VertexData<Vector3> getVertexColors();
+
+  // === Set properties as geometrycentral types.
+  template <class T>
+  void addVertexProperty(std::string propertyName, VertexData<T>& vData);
+
+  template <class T>
+  void addFaceProperty(std::string propertyName, FaceData<T>& fData);
+
+
+  // TODO implement creating one of these from a HalfedgeMesh/geometry object
+
+  void write(std::string filename);
 
 private:
   // File data
@@ -62,7 +73,7 @@ private:
 
 // === Implementations
 template <class T>
-VertexData<T> PlyHalfedgeMeshReader::getVertexProperty(std::string propertyName) {
+VertexData<T> PlyHalfedgeMeshData::getVertexProperty(std::string propertyName) {
   if (mesh == nullptr) {
     getMesh();
   }
@@ -83,7 +94,7 @@ VertexData<T> PlyHalfedgeMeshReader::getVertexProperty(std::string propertyName)
 
 
 template <class T>
-FaceData<T> PlyHalfedgeMeshReader::getFaceProperty(std::string propertyName) {
+FaceData<T> PlyHalfedgeMeshData::getFaceProperty(std::string propertyName) {
   if (mesh == nullptr) {
     getMesh();
   }
@@ -102,5 +113,26 @@ FaceData<T> PlyHalfedgeMeshReader::getFaceProperty(std::string propertyName) {
   return result;
 }
 
+template <class T>
+void PlyHalfedgeMeshData::addVertexProperty(std::string propertyName, VertexData<T>& vData) {
 
+  std::vector<T> vec;
+  for (VertexPtr v : mesh->vertices()) {
+    vec.push_back(vData[v]);
+  }
+
+  plyData->getElement(vertexName).addProperty(new happly::TypedProperty<T>(propertyName, vec));
+}
+
+
+template <class T>
+void PlyHalfedgeMeshData::addFaceProperty(std::string propertyName, FaceData<T>& fData) {
+
+  std::vector<T> vec;
+  for (FacePtr f : mesh->faces()) {
+    vec.push_back(fData[f]);
+  }
+
+  plyData->getElement(faceName).addProperty(new happly::TypedProperty<T>(propertyName, vec));
+}
 }

@@ -14,16 +14,16 @@ using std::endl;
 namespace geometrycentral {
 
 
-PlyHalfedgeMeshReader::PlyHalfedgeMeshReader(std::string filename_, bool verbose_)
+PlyHalfedgeMeshData::PlyHalfedgeMeshData(std::string filename_, bool verbose_)
     : filename(filename_), verbose(verbose_) {
 
   plyData = new happly::PLYData(filename, verbose);
 }
 
-PlyHalfedgeMeshReader::~PlyHalfedgeMeshReader() { safeDelete(plyData); }
+PlyHalfedgeMeshData::~PlyHalfedgeMeshData() { safeDelete(plyData); }
 
 
-Geometry<Euclidean>* PlyHalfedgeMeshReader::getMesh() {
+Geometry<Euclidean>* PlyHalfedgeMeshData::getMesh() {
 
   // Return the cached mesh if this has already been called
   if (mesh != nullptr) {
@@ -49,7 +49,7 @@ Geometry<Euclidean>* PlyHalfedgeMeshReader::getMesh() {
   return geometry;
 }
 
-VertexData<Vector3> PlyHalfedgeMeshReader::getVertexColors() {
+VertexData<Vector3> PlyHalfedgeMeshData::getVertexColors() {
 
   VertexData<Vector3> color(mesh);
 
@@ -86,4 +86,9 @@ VertexData<Vector3> PlyHalfedgeMeshReader::getVertexColors() {
     }
   }
 }
+
+void PlyHalfedgeMeshData::write(std::string filename) {
+  plyData->write(filename);
+}
+
 }
