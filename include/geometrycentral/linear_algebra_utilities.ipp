@@ -1,6 +1,6 @@
 #include <iostream>
 
-template <typename T> 
+template <typename T>
 Eigen::SparseMatrix<T> identityMatrix(size_t N) {
   Eigen::SparseMatrix<T> eye(N, N);
   eye.setIdentity();
@@ -13,7 +13,7 @@ void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount) {
 
   // Check square
   size_t N = m.rows();
-  if ((size_t) m.cols() != N) {
+  if ((size_t)m.cols() != N) {
     throw std::logic_error("Can only shift diagonal of square matrix");
   }
 
@@ -150,5 +150,115 @@ inline void checkHermitian(const Eigen::SparseMatrix<std::complex<double>>& m) {
         throw std::logic_error("Matrix has non-symmtric entries");
       }
     }
+  }
+}
+
+
+template <typename T>
+BlockDecompositionResult<T> blockDecomposeSquare(const Eigen::SparseMatrix<T>& m, const Vector<bool>& Aset,
+                                                 bool buildBuildBside) {
+
+
+  if (m.rows() != m.cols()) throw std::logic_error("blockDecomposeSquare must be called on square matrix");
+
+  // Count sizes
+  size_t initSize = m.rows();
+  size_t Asize = 0;
+  size_t Bsize = 0;
+  for (size_t i = 0; i < initSize; i++) {
+    if (Aset[i]) {
+      Asize++;
+    } else {
+      Bsize++;
+    }
+  }
+
+  // Create the result object
+  BlockDecompositionResult<T> r;
+  r.isA = Aset;
+  r.newInds = Vector<size_t>(initSize);
+  r.origIndsA = Vector<size_t>(Asize);
+  r.origIndsB = Vector<size_t>(Bsize);
+  r.AA = Eigen::SparseMatrix<T>(Asize, Asize);
+  r.AB = Eigen::SparseMatrix<T>(Asize, Bsize);
+  if (buildBuildBside) {
+    r.BA = Eigen::SparseMatrix<T>(Bsize, Asize);
+    r.BB = Eigen::SparseMatrix<T>(Bsize, Bsize);
+  } else {
+    r.BA = Eigen::SparseMatrix<T>(0, 0);
+    r.BB = Eigen::SparseMatrix<T>(0, 0);
+  }
+
+  // Index
+  size_t Aind = 0;
+  size_t Bind = 0;
+  for (size_t i = 0; i < initSize; i++) {
+    if (Aset[i]) {
+      r.origIndsA[Aind] = i;
+      r.newInds[i] = Aind;
+      Aind++;
+    } else {
+      r.origIndsB[Bind] = i;
+      r.newInds[i] = Bind;
+      Bind++;
+    }
+  }
+
+  // Split
+  std::vector<Eigen::Triplet<T>> AAtrip;
+  std::vector<Eigen::Triplet<T>> ABtrip;
+  std::vector<Eigen::Triplet<T>> BAtrip;
+  std::vector<Eigen::Triplet<T>> BBtrip;
+  for (size_t k = 0; k < (size_t)m.outerSize(); k++) {
+    for (typename Eigen::SparseMatrix<T>::InnerIterator it(m, k); it; ++it) {
+
+      size_t rowInd = it.row();
+      size_t colInd = it.col();
+      double val = it.value();
+
+      bool rowA = Aset[rowInd];
+      bool colA = Aset[colInd];
+
+      if (rowA && colA) {
+        AAtrip.emplace_back(r.newInds[rowInd], r.newInds[colInd], val);
+      }
+      if (rowA && !colA) {
+        ABtrip.emplace_back(r.newInds[rowInd], r.newInds[colInd], val);
+      }
+      if (buildBuildBside) {
+        if (!rowA && colA) {
+          BAtrip.emplace_back(r.newInds[rowInd], r.newInds[colInd], val);
+        }
+        if (!rowA && !colA) {
+          BBtrip.emplace_back(r.newInds[rowInd], r.newInds[colInd], val);
+        }
+      }
+    }
+  }
+
+  // Build new matrices
+  r.AA.setFromTriplets(AAtrip.begin(), AAtrip.end());
+  r.AB.setFromTriplets(ABtrip.begin(), ABtrip.end());
+  if (buildBuildBside) {
+    r.BA.setFromTriplets(BAtrip.begin(), BAtrip.end());
+    r.BB.setFromTriplets(BBtrip.begin(), BBtrip.end());
+  }
+
+  return r;
+}
+
+
+template <typename T>
+void decomposeVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vec, Vector<T>& vecAOut,
+                     Vector<T>& vecBOut) {
+
+  vecAOut = Vector<T>(decomp.origIndsA.rows());
+  vecBOut = Vector<T>(decomp.origIndsB.rows());
+
+  for (size_t i = 0; i < (size_t)vecAOut.rows(); i++) {
+    vecAOut[i] = vec[decomp.origIndsA[i]];
+  }
+  for (size_t i = 0; i < (size_t)vecBOut.rows(); i++) {
+    vecBOut[i] = vec[decomp.origIndsB[i]];
   }
 }

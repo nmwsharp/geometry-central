@@ -43,24 +43,16 @@ void Solver<T>::prepare() {
 
   this->mat.makeCompressed();
 
-  // Suitesparse version
+// Suitesparse version
 #ifdef HAVE_SUITESPARSE
 
-  // TODO FIXME Something is weird here; for full-rank square matrices the "standard" non-underdetermined method doesn't
-  // work, though the underdetermined method does... using that for now, but there seems to be a misunderstanding
-  // somewhere.
-  //
-  // In the test below, we use a '<=' where it should be an '<', which causes us to use the underdetermined strategy
-  // instead.
-
   // Is the system underdetermined?
-  if (Nrows <= Ncols) {
+  if (Nrows < Ncols) {
     underdetermined = true;
+     throw std::logic_error("is not well tested, be careful");
   } else {
     underdetermined = false;
-    throw std::logic_error("overdetermined code might be broken, be careful");
   }
-  // underdetermined = true;
 
   // Convert suitesparse format
   // Either use A or A^T, depending on whether the system underdetermined
@@ -103,13 +95,14 @@ void Solver<T>::prepare() {
     throw std::logic_error("Factorization failed");
   }
 
-    // Eigen version
+// Eigen version
 #else
   solver.compute(this->mat);
   if (solver.info() != Eigen::Success) {
     std::cerr << "Solver factorization error: " << solver.info() << std::endl;
     throw std::invalid_argument("Solver factorization failed");
   }
+  std::cout << "Eigen done factoring" << std::endl;
 #endif
 };
 
@@ -125,7 +118,7 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
 
   size_t N = this->mat.rows();
 
-  // Check some sanity
+// Check some sanity
 #ifndef GC_NLINALG_DEBUG
   if ((size_t)rhs.rows() != N) {
     throw std::logic_error("Vector is not the right length");
@@ -133,7 +126,7 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
   checkFinite(rhs);
 #endif
 
-  // Suitesparse version
+// Suitesparse version
 #ifdef HAVE_SUITESPARSE
 
   // Convert input to suitesparse format
@@ -160,7 +153,8 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
         SuiteSparseQR_qmult<typename Solver<T>::SOLVER_ENTRYTYPE>(SPQR_QTX, factorization, inVec, context);
 
     // solve x = R^-1 y
-    outVec = SuiteSparseQR_solve<typename Solver<T>::SOLVER_ENTRYTYPE>(SPQR_RX_EQUALS_B, factorization, y, context);
+    // TODO what is this E doing here?
+    outVec = SuiteSparseQR_solve<typename Solver<T>::SOLVER_ENTRYTYPE>(SPQR_RETX_EQUALS_B, factorization, y, context);
 
     cholmod_l_free_dense(&y, context);
   }
@@ -172,7 +166,7 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
   cholmod_l_free_dense(&outVec, context);
   cholmod_l_free_dense(&inVec, context);
 
-  // Eigen version
+// Eigen version
 #else
   // Solve
   x = solver.solve(rhs);
@@ -183,7 +177,7 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
   }
 #endif
 
-  // Compute residual to spot bad solves
+// Compute residual to spot bad solves
 #ifndef GC_NLINALG_DEBUG
   Matrix<T, Dynamic, 1> residual = this->mat * x - rhs;
   double residualNorm = residual.norm();

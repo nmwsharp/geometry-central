@@ -22,14 +22,14 @@ VertexData<T>::VertexData(HalfedgeMesh* parentMesh, T initVal)
 
 template <typename T>
 VertexData<T>::VertexData(HalfedgeMesh* parentMesh,
-                          const Vector<T>& vector)
+                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : VertexData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename T>
 VertexData<T>::VertexData(HalfedgeMesh* parentMesh,
-                          const Vector<T>& vector,
+                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                           const VertexData<size_t>& indexer)
     : VertexData(parentMesh) {
   fromVector(vector, indexer);
@@ -41,8 +41,8 @@ void VertexData<T>::fill(T val) {
 }
 
 template <typename T>
-Vector<T> VertexData<T>::toVector() const {
-  Vector<T> result(mesh->nVertices());
+Eigen::Matrix<T, Eigen::Dynamic, 1> VertexData<T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nVertices());
   VertexData<size_t> ind = mesh->getVertexIndices();
   for (VertexPtr v : mesh->vertices()) {
     result(ind[v]) = (*this)[v];
@@ -51,12 +51,12 @@ Vector<T> VertexData<T>::toVector() const {
 }
 
 template <typename T>
-Vector<T> VertexData<T>::toVector(
+Eigen::Matrix<T, Eigen::Dynamic, 1> VertexData<T>::toVector(
     const VertexData<size_t>& indexer) const {
   size_t outSize = 0;
   for (VertexPtr v : mesh->vertices())
     if (indexer[v] != std::numeric_limits<size_t>::max()) outSize++;
-  Vector<T> result(outSize);
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
   for (VertexPtr v : mesh->vertices()) {
     if (indexer[v] != std::numeric_limits<size_t>::max()) {
       result(indexer[v]) = (*this)[v];
@@ -66,7 +66,7 @@ Vector<T> VertexData<T>::toVector(
 }
 
 template <typename T>
-void VertexData<T>::fromVector(const Vector<T>& vector) {
+void VertexData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
   if ((size_t)vector.rows() != mesh->nVertices())
     throw std::runtime_error("Vector size does not match mesh size.");
   VertexData<size_t> ind = mesh->getVertexIndices();
@@ -76,7 +76,7 @@ void VertexData<T>::fromVector(const Vector<T>& vector) {
 }
 
 template <typename T>
-void VertexData<T>::fromVector(const Vector<T>& vector,
+void VertexData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                                const VertexData<size_t>& indexer) {
   for (VertexPtr v : mesh->vertices()) {
     if (indexer[v] != std::numeric_limits<size_t>::max()) {
@@ -123,14 +123,14 @@ EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh, T initVal)
 
 template <typename T>
 EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh,
-                      const Vector<T>& vector)
+                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : EdgeData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename T>
 EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh,
-                      const Vector<T>& vector,
+                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                       const EdgeData<size_t>& indexer)
     : EdgeData(parentMesh) {
   fromVector(vector, indexer);
@@ -142,8 +142,8 @@ void EdgeData<T>::fill(T val) {
 }
 
 template <typename T>
-Vector<T> EdgeData<T>::toVector() const {
-  Vector<T> result(mesh->nEdges());
+Eigen::Matrix<T, Eigen::Dynamic, 1> EdgeData<T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nEdges());
   EdgeData<size_t> ind = mesh->getEdgeIndices();
   for (EdgePtr e : mesh->edges()) {
     result(ind[e]) = (*this)[e];
@@ -152,12 +152,12 @@ Vector<T> EdgeData<T>::toVector() const {
 }
 
 template <typename T>
-Vector<T> EdgeData<T>::toVector(
+Eigen::Matrix<T, Eigen::Dynamic, 1> EdgeData<T>::toVector(
     const EdgeData<size_t>& indexer) const {
   size_t outSize = 0;
   for (EdgePtr e : mesh->edges())
     if (indexer[e] != std::numeric_limits<size_t>::max()) outSize++;
-  Vector<T> result(outSize);
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
   for (EdgePtr e : mesh->edges()) {
     if (indexer[e] != std::numeric_limits<size_t>::max()) {
       result(indexer[e]) = (*this)[e];
@@ -167,7 +167,7 @@ Vector<T> EdgeData<T>::toVector(
 }
 
 template <typename T>
-void EdgeData<T>::fromVector(const Vector<T>& vector) {
+void EdgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
   if ((size_t)vector.rows() != mesh->nEdges())
     throw std::runtime_error("Vector size does not match mesh size.");
   EdgeData<size_t> ind = mesh->getEdgeIndices();
@@ -177,7 +177,7 @@ void EdgeData<T>::fromVector(const Vector<T>& vector) {
 }
 
 template <typename T>
-void EdgeData<T>::fromVector(const Vector<T>& vector,
+void EdgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                              const EdgeData<size_t>& indexer) {
   for (EdgePtr e : mesh->edges()) {
     if (indexer[e] != std::numeric_limits<size_t>::max()) {
@@ -226,14 +226,14 @@ FaceData<T>::FaceData(HalfedgeMesh* parentMesh, T initVal)
 
 template <typename T>
 FaceData<T>::FaceData(HalfedgeMesh* parentMesh,
-                      const Vector<T>& vector)
+                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : FaceData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename T>
 FaceData<T>::FaceData(HalfedgeMesh* parentMesh,
-                      const Vector<T>& vector,
+                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                       const FaceData<size_t>& indexer)
     : FaceData(parentMesh) {
   fromVector(vector, indexer);
@@ -245,8 +245,8 @@ void FaceData<T>::fill(T val) {
 }
 
 template <typename T>
-Vector<T> FaceData<T>::toVector() const {
-  Vector<T> result(mesh->nFaces());
+Eigen::Matrix<T, Eigen::Dynamic, 1> FaceData<T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nFaces());
   FaceData<size_t> ind = mesh->getFaceIndices();
   for (FacePtr f : mesh->faces()) {
     result(ind[f]) = (*this)[f];
@@ -255,12 +255,12 @@ Vector<T> FaceData<T>::toVector() const {
 }
 
 template <typename T>
-Vector<T> FaceData<T>::toVector(
+Eigen::Matrix<T, Eigen::Dynamic, 1> FaceData<T>::toVector(
     const FaceData<size_t>& indexer) const {
   size_t outSize = 0;
   for (FacePtr f : mesh->faces())
     if (indexer[f] != std::numeric_limits<size_t>::max()) outSize++;
-  Vector<T> result(outSize);
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
   for (FacePtr f : mesh->faces()) {
     if (indexer[f] != std::numeric_limits<size_t>::max()) {
       result(indexer[f]) = (*this)[f];
@@ -270,7 +270,7 @@ Vector<T> FaceData<T>::toVector(
 }
 
 template <typename T>
-void FaceData<T>::fromVector(const Vector<T>& vector) {
+void FaceData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
   if ((size_t)vector.rows() != mesh->nFaces())
     throw std::runtime_error("Vector size does not match mesh size.");
   FaceData<size_t> ind = mesh->getFaceIndices();
@@ -280,7 +280,7 @@ void FaceData<T>::fromVector(const Vector<T>& vector) {
 }
 
 template <typename T>
-void FaceData<T>::fromVector(const Vector<T>& vector,
+void FaceData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                              const FaceData<size_t>& indexer) {
   for (FacePtr f : mesh->faces()) {
     if (indexer[f] != std::numeric_limits<size_t>::max()) {
@@ -339,14 +339,14 @@ HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh, T initVal)
 
 template <typename T>
 HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh,
-                              const Vector<T>& vector)
+                              const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : HalfedgeData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename T>
 HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh,
-                              const Vector<T>& vector,
+                              const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                               const HalfedgeData<size_t>& indexer)
     : HalfedgeData(parentMesh) {
   fromVector(vector, indexer);
@@ -358,8 +358,8 @@ void HalfedgeData<T>::fill(T val) {
 }
 
 template <typename T>
-Vector<T> HalfedgeData<T>::toVector() const {
-  Vector<T> result(mesh->nHalfedges());
+Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nHalfedges());
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
   for (HalfedgePtr he : mesh->halfedges()) {
     result(ind[he]) = (*this)[he];
@@ -371,14 +371,14 @@ Vector<T> HalfedgeData<T>::toVector() const {
 }
 
 template <typename T>
-Vector<T> HalfedgeData<T>::toVector(
+Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector(
     const HalfedgeData<size_t>& indexer) const {
   size_t outSize = 0;
   for (HalfedgePtr he : mesh->halfedges())
     if (indexer[he] != std::numeric_limits<size_t>::max()) outSize++;
   for (HalfedgePtr he : mesh->imaginaryHalfedges())
     if (indexer[he] != std::numeric_limits<size_t>::max()) outSize++;
-  Vector<T> result(outSize);
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
   for (HalfedgePtr he : mesh->halfedges()) {
     if (indexer[he] != std::numeric_limits<size_t>::max()) {
       result(indexer[he]) = (*this)[he];
@@ -394,7 +394,7 @@ Vector<T> HalfedgeData<T>::toVector(
 
 template <typename T>
 void HalfedgeData<T>::fromVector(
-    const Vector<T>& vector) {
+    const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
   if ((size_t)vector.rows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
     throw std::runtime_error("Vector size does not match mesh size.");
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
@@ -407,7 +407,7 @@ void HalfedgeData<T>::fromVector(
 }
 
 template <typename T>
-void HalfedgeData<T>::fromVector(const Vector<T>& vector,
+void HalfedgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                                  const HalfedgeData<size_t>& indexer) {
   for (HalfedgePtr he : mesh->halfedges()) {
     if (indexer[he] != std::numeric_limits<size_t>::max()) {
@@ -470,14 +470,14 @@ CornerData<T>::CornerData(HalfedgeMesh* parentMesh, T initVal)
 
 template <typename T>
 CornerData<T>::CornerData(HalfedgeMesh* parentMesh,
-                          const Vector<T>& vector)
+                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : CornerData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename T>
 CornerData<T>::CornerData(HalfedgeMesh* parentMesh,
-                          const Vector<T>& vector,
+                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                           const CornerData<size_t>& indexer)
     : CornerData(parentMesh) {
   fromVector(vector, indexer);
@@ -489,8 +489,8 @@ void CornerData<T>::fill(T val) {
 }
 
 template <typename T>
-Vector<T> CornerData<T>::toVector() const {
-  Vector<T> result(mesh->nCorners());
+Eigen::Matrix<T, Eigen::Dynamic, 1> CornerData<T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nCorners());
   CornerData<size_t> ind = mesh->getCornerIndices();
   for (CornerPtr c : mesh->corners()) {
     result(ind[c]) = (*this)[c];
@@ -499,12 +499,12 @@ Vector<T> CornerData<T>::toVector() const {
 }
 
 template <typename T>
-Vector<T> CornerData<T>::toVector(
+Eigen::Matrix<T, Eigen::Dynamic, 1> CornerData<T>::toVector(
     const CornerData<size_t>& indexer) const {
   size_t outSize = 0;
   for (CornerPtr c : mesh->corners())
     if (indexer[c] != std::numeric_limits<size_t>::max()) outSize++;
-  Vector<T> result(outSize);
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
   for (CornerPtr c : mesh->corners()) {
     if (indexer[c] != std::numeric_limits<size_t>::max()) {
       result(indexer[c]) = (*this)[c];
@@ -514,7 +514,7 @@ Vector<T> CornerData<T>::toVector(
 }
 
 template <typename T>
-void CornerData<T>::fromVector(const Vector<T>& vector) {
+void CornerData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
   if ((size_t)vector.rows() != mesh->nCorners())
     throw std::runtime_error("Vector size does not match mesh size.");
   CornerData<size_t> ind = mesh->getCornerIndices();
@@ -524,7 +524,7 @@ void CornerData<T>::fromVector(const Vector<T>& vector) {
 }
 
 template <typename T>
-void CornerData<T>::fromVector(const Vector<T>& vector,
+void CornerData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                                const CornerData<size_t>& indexer) {
   for (CornerPtr c : mesh->corners()) {
     if (indexer[c] != std::numeric_limits<size_t>::max()) {
