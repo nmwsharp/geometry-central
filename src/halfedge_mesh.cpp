@@ -394,13 +394,6 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
     iFace++;
   }
 
-  // Print some nice statistics
-  std::cout << "Constructed halfedge mesh with: " << std::endl;
-  std::cout << "    # verts =  " << nVertices() << std::endl;
-  std::cout << "    # edges =  " << nEdges() << std::endl;
-  std::cout << "    # faces =  " << nFaces() << std::endl;
-  std::cout << "    # halfedges =  " << nHalfedges() << std::endl;
-
   // === 2. Walk the boundary to find/create boundary cycles
 
   // First, do a pre-walk to count the boundary loops we will need and allocate
@@ -412,10 +405,15 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
       nBoundaryLoops++;
       HalfedgePtr currHe = halfedge(iHe);
       walkedHalfedges.insert(currHe);
+      size_t walkCount = 0;
       do {
         currHe = currHe->next;
         while (currHe->twin != nullptr) {
           currHe = currHe->twin->next;
+          walkCount++;
+          if(walkCount > nHalfedges()) {
+            throw std::runtime_error("Encountered infinite loop while constructing halfedge mesh. Are you sure the input is manifold?");
+          }
         }
         walkedHalfedges.insert(currHe);
       } while (currHe != halfedge(iHe));
@@ -498,7 +496,6 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
     }
   }
 
-  std::cout << "    and " << nBoundaryLoops << " boundary components. " << std::endl;
 
 // When in debug mode, mesh elements know what mesh they are a part of so
 // we can do assertions for saftey checks.
@@ -535,16 +532,23 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
     }
   }
 
-  cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << endl;
+  // Print some nice statistics
+  std::cout << "Constructed halfedge mesh with: " << std::endl;
+  std::cout << "    # verts =  " << nVertices() << std::endl;
+  std::cout << "    # edges =  " << nEdges() << std::endl;
+  std::cout << "    # faces =  " << nFaces() << std::endl;
+  std::cout << "    # halfedges =  " << nHalfedges() << std::endl;
+  std::cout << "      and " << nBoundaryLoops << " boundary components. " << std::endl;
+  std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
 
   // Compute some basic information about the mesh
   cacheInfo();
 }
 
 bool Edge::flip() {
-  //                         b b
-  //                         * *
-  //                        /|\                                                          / \
+//                         b b
+//                         * *
+//                        /|\                                                          / \
 //                       / | \                                                        /   \
 //                      /  |  \                                                      /     \
 //                     /   |   \                                                    /       \
