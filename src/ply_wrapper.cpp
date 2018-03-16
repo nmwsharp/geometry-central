@@ -41,7 +41,7 @@ Geometry<Euclidean>* PlyHalfedgeMeshData::getMesh() {
 
 
   // Get face list
-  std::vector<std::vector<size_t>> faceIndices = plyData->getFaceIndices(faceName);
+  std::vector<std::vector<size_t>> faceIndices = plyData->getFaceIndices();
 
   // === Build the mesh objects
   mesh = new HalfedgeMesh(PolygonSoupMesh(faceIndices, vertexPositions), geometry);
