@@ -359,7 +359,7 @@ void HalfedgeData<T>::fill(T val) {
 
 template <typename T>
 Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nHalfedges());
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nHalfedges() + mesh->nImaginaryHalfedges());
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
   for (HalfedgePtr he : mesh->halfedges()) {
     result(ind[he]) = (*this)[he];
