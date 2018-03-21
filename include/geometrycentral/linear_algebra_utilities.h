@@ -77,6 +77,8 @@ BlockDecompositionResult<T> blockDecomposeSquare(const Eigen::SparseMatrix<T>& m
 // Apply a decomposition to a vector
 template <typename T>
 void decomposeVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vec, Vector<T>& vecAOut, Vector<T>& vecBOut);
+template <typename T>
+Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vecA, const Vector<T>& vecB);
 
 #include "geometrycentral/linear_algebra_utilities.ipp"
 

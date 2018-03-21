@@ -214,7 +214,7 @@ BlockDecompositionResult<T> blockDecomposeSquare(const Eigen::SparseMatrix<T>& m
 
       size_t rowInd = it.row();
       size_t colInd = it.col();
-      double val = it.value();
+      T val = it.value();
 
       bool rowA = Aset[rowInd];
       bool colA = Aset[colInd];
@@ -261,4 +261,20 @@ void decomposeVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vec, 
   for (size_t i = 0; i < (size_t)vecBOut.rows(); i++) {
     vecBOut[i] = vec[decomp.origIndsB[i]];
   }
+}
+
+
+template <typename T>
+Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vecA, const Vector<T>& vecB) {
+
+  Vector<T> vecOut(decomp.newInds.rows());
+
+  for (size_t i = 0; i < (size_t)vecA.rows(); i++) {
+    vecOut[decomp.origIndsA[i]] = vecA[i];
+  }
+  for (size_t i = 0; i < (size_t)vecB.rows(); i++) {
+    vecOut[decomp.origIndsB[i]] = vecB[i];
+  }
+
+  return vecOut;
 }
