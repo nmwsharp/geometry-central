@@ -6,6 +6,7 @@ build_debug/
 .DS_Store
 .vscode
 *.swp
+tags
 
 # Prerequisites
 *.d
