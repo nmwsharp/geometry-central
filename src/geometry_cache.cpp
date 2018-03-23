@@ -353,7 +353,7 @@ template <>
 void GeometryCache<Euclidean>::computeHalfedgeRescaledOppositeAngles() {
   halfedgeRescaledOppositeAngles = HalfedgeData<double>(mesh);
   for (HalfedgePtr he : mesh->halfedges()) {
-    double origSum = 2. * PI - vertexAngleDefects[he.vertex()];
+    double origSum = 2. * PI - vertexAngleDefects[he.next().next().vertex()];
     halfedgeRescaledOppositeAngles[he] = halfedgeOppositeAngles[he] * 2. * PI / origSum;
   }
 }
