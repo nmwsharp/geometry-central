@@ -56,22 +56,24 @@ public:
 
   // Methods for range-based for loops
   // Example: for(VertexPtr v : mesh.vertices()) { ... }
-  HalfedgePtrSet halfedges();
+  HalfedgePtrSet realHalfedges();
+  HalfedgePtrSet imaginaryHalfedges();
+  HalfedgePtrSet allHalfedges();
   CornerPtrSet corners();
   VertexPtrSet vertices();
   EdgePtrSet edges();
   FacePtrSet faces();
   BoundaryPtrSet boundaryLoops();
-  HalfedgePtrSet imaginaryHalfedges();
 
   // Methods for accessing elements by index
   // Example: VertexPtr v = mesh.vertex(123);
-  HalfedgePtr halfedge(size_t index);
+  HalfedgePtr realHalfedge(size_t index);
+  HalfedgePtr imaginaryHalfedge(size_t index);
+  HalfedgePtr allHalfedge(size_t index);
   CornerPtr corner(size_t index);
   VertexPtr vertex(size_t index);
   EdgePtr edge(size_t index);
   FacePtr face(size_t index);
-  HalfedgePtr imaginaryHalfedge(size_t index);
   BoundaryPtr boundaryLoop(size_t index);
 
   // Methods for obtaining canonical indices for mesh elements
@@ -97,11 +99,11 @@ public:
 private:
   // The contiguous chunks of memory which hold the actual structs.
   // Don't modify them after construction.
-  std::vector<Halfedge> rawHalfedges;
+  size_t nRealHalfedges;
+  std::vector<Halfedge> rawHalfedges; // first real, then imaginary
   std::vector<Vertex> rawVertices;
   std::vector<Edge> rawEdges;
   std::vector<Face> rawFaces;
-  std::vector<Halfedge> rawImaginaryHalfedges;
   std::vector<Face> rawBoundaryLoops;
 
   // Hide copy and move constructors, we don't wanna mess with that

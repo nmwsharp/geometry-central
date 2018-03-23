@@ -566,7 +566,7 @@ void Geometry<T>::getFaceBarycenters(FaceData<T>& faceBarycenter) {
 template <class T>
 void Geometry<T>::getHalfedgeVectors(HalfedgeData<T>& halfedgeVector) {
   halfedgeVector = HalfedgeData<T>(&mesh);
-  for (HalfedgePtr h : mesh.halfedges()) {
+  for (HalfedgePtr h : mesh.allHalfedges()) {
     halfedgeVector[h] = vector(h);
   }
 }
@@ -574,7 +574,7 @@ void Geometry<T>::getHalfedgeVectors(HalfedgeData<T>& halfedgeVector) {
 template <class T>
 void Geometry<T>::getHalfedgeAngles(HalfedgeData<double>& halfedgeAngle) {
   halfedgeAngle = HalfedgeData<double>(&mesh);
-  for (HalfedgePtr h : mesh.halfedges()) {
+  for (HalfedgePtr h : mesh.allHalfedges()) {
     halfedgeAngle[h] = angle(h);
   }
 }
@@ -590,7 +590,7 @@ void Geometry<T>::getCornerAngles(CornerData<double>& cornerAngle) {
 template <class T>
 void Geometry<T>::getHalfedgeCotans(HalfedgeData<double>& halfedgeCotan) {
   halfedgeCotan = HalfedgeData<double>(&mesh);
-  for (HalfedgePtr h : mesh.halfedges()) {
+  for (HalfedgePtr h : mesh.realHalfedges()) {
     halfedgeCotan[h] = cotan(h);
   }
 }
@@ -598,7 +598,7 @@ void Geometry<T>::getHalfedgeCotans(HalfedgeData<double>& halfedgeCotan) {
 template <class T>
 void Geometry<T>::getAngularCoordinates(HalfedgeData<double>& angularCoordinates) {
   angularCoordinates = HalfedgeData<double>(&mesh);
-  for (HalfedgePtr h : mesh.halfedges()) {
+  for (HalfedgePtr h : mesh.allHalfedges()) {
     angularCoordinates[h] = angularCoordinate(h);
   }
 }

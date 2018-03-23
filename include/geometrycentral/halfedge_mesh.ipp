@@ -6,32 +6,39 @@ namespace geometrycentral {
 
 // Primal
 
-inline size_t HalfedgeMesh::nHalfedges(void) const { return rawHalfedges.size(); }
+inline size_t HalfedgeMesh::nHalfedges(void) const { return nRealHalfedges; }
 inline size_t HalfedgeMesh::nCorners(void) const { return rawHalfedges.size(); }
 inline size_t HalfedgeMesh::nVertices(void) const { return rawVertices.size(); }
 inline size_t HalfedgeMesh::nEdges(void) const { return rawEdges.size(); }
 inline size_t HalfedgeMesh::nFaces(void) const { return rawFaces.size(); }
 inline size_t HalfedgeMesh::nBoundaryLoops(void) const { return rawBoundaryLoops.size(); }
-inline size_t HalfedgeMesh::nImaginaryHalfedges(void) const { return rawImaginaryHalfedges.size(); }
+inline size_t HalfedgeMesh::nImaginaryHalfedges(void) const { return rawHalfedges.size() - nRealHalfedges; }
 
 // Methods for iterating over mesh elements w/ range-based for loops ===========
 
 // Primal
 
-inline HalfedgePtrSet HalfedgeMesh::halfedges(void) {
-  size_t nH = rawHalfedges.size();
+inline HalfedgePtrSet HalfedgeMesh::realHalfedges(void) {
   HalfedgePtr beginptr(&rawHalfedges[0]);
-  HalfedgePtr endptr(&rawHalfedges[nH]); // note that we really want nH and not
-                                         // nH-1, since we want the address one
-                                         // past the final element
+  HalfedgePtr endptr(&rawHalfedges[nRealHalfedges]); // note that we really want nH and not
+                                                     // nH-1, since we want the address one
+                                                     // past the final element
 
   return HalfedgePtrSet(beginptr, endptr);
 }
 
 inline HalfedgePtrSet HalfedgeMesh::imaginaryHalfedges(void) {
-  size_t nH = rawImaginaryHalfedges.size();
-  HalfedgePtr beginptr(&rawImaginaryHalfedges[0]);
-  HalfedgePtr endptr(&rawImaginaryHalfedges[nH]);
+  size_t nH = rawHalfedges.size();
+  HalfedgePtr beginptr(&rawHalfedges[nRealHalfedges]);
+  HalfedgePtr endptr(&rawHalfedges[nH]);
+
+  return HalfedgePtrSet(beginptr, endptr);
+}
+
+inline HalfedgePtrSet HalfedgeMesh::allHalfedges(void) {
+  size_t nH = rawHalfedges.size();
+  HalfedgePtr beginptr(&rawHalfedges[0]);
+  HalfedgePtr endptr(&rawHalfedges[nH]);
 
   return HalfedgePtrSet(beginptr, endptr);
 }
@@ -80,9 +87,13 @@ inline BoundaryPtrSet HalfedgeMesh::boundaryLoops(void) {
 
 // Primal
 
-inline HalfedgePtr HalfedgeMesh::halfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
+inline HalfedgePtr HalfedgeMesh::realHalfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
 
-inline HalfedgePtr HalfedgeMesh::imaginaryHalfedge(size_t index) { return HalfedgePtr{&rawImaginaryHalfedges[index]}; }
+inline HalfedgePtr HalfedgeMesh::imaginaryHalfedge(size_t index) {
+  return HalfedgePtr{&rawHalfedges[nRealHalfedges + index]};
+}
+
+inline HalfedgePtr HalfedgeMesh::allHalfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
 
 inline CornerPtr HalfedgeMesh::corner(size_t index) { return CornerPtr{&rawHalfedges[index]}; }
 

@@ -150,11 +150,7 @@ EdgeData<size_t> HalfedgeMesh::getEdgeIndices() {
 HalfedgeData<size_t> HalfedgeMesh::getHalfedgeIndices() {
   HalfedgeData<size_t> indices(this);
   size_t i = 0;
-  for (HalfedgePtr he : halfedges()) {
-    indices[he] = i;
-    i++;
-  }
-  for (HalfedgePtr he : imaginaryHalfedges()) {
+  for (HalfedgePtr he : allHalfedges()) {
     indices[he] = i;
     i++;
   }
@@ -315,13 +311,12 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
   nPairedEdges /= 2;
 
   size_t nTotalEdges = nPairedEdges + nUnpairedEdges;
-  size_t nRealHalfedges = 2 * nPairedEdges + nUnpairedEdges;
+  nRealHalfedges = 2 * nPairedEdges + nUnpairedEdges;
   size_t nImaginaryHalfedges = nUnpairedEdges;
   size_t nRealFaces = input.polygons.size();
 
   // Allocate space
-  rawHalfedges.resize(nRealHalfedges);
-  rawImaginaryHalfedges.resize(nImaginaryHalfedges);
+  rawHalfedges.resize(nRealHalfedges + nImaginaryHalfedges);
   rawVertices.resize(nVerts);
   rawEdges.resize(nTotalEdges);
   rawFaces.resize(nRealFaces);
@@ -401,9 +396,9 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
   size_t nBoundaryLoops = 0;
   std::set<HalfedgePtr> walkedHalfedges;
   for (size_t iHe = 0; iHe < nHalfedges(); iHe++) {
-    if (halfedge(iHe)->twin == nullptr && walkedHalfedges.find(halfedge(iHe)) == walkedHalfedges.end()) {
+    if (allHalfedge(iHe)->twin == nullptr && walkedHalfedges.find(allHalfedge(iHe)) == walkedHalfedges.end()) {
       nBoundaryLoops++;
-      HalfedgePtr currHe = halfedge(iHe);
+      HalfedgePtr currHe = allHalfedge(iHe);
       walkedHalfedges.insert(currHe);
       size_t walkCount = 0;
       do {
@@ -416,7 +411,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
           }
         }
         walkedHalfedges.insert(currHe);
-      } while (currHe != halfedge(iHe));
+      } while (currHe != allHalfedge(iHe));
     }
   }
   rawBoundaryLoops.resize(nBoundaryLoops);
@@ -432,18 +427,18 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 
     // If this halfedge doesn't have a twin, it must be on a boundary (or have
     // already been processed while walking a hole)
-    if (halfedge(iHe)->twin == nullptr) {
+    if (allHalfedge(iHe)->twin == nullptr) {
       // Create a boundary loop for this hole
       BoundaryPtr boundaryLoop{&rawBoundaryLoops[iBoundaryLoop]};
       boundaryLoop->isReal = false;
 
       // Walk around the boundary loop, creating imaginary halfedges
-      HalfedgePtr currHe = halfedge(iHe);
+      HalfedgePtr currHe = allHalfedge(iHe);
       HalfedgePtr prevHe{nullptr};
       bool finished = false;
       while (!finished) {
         // Create a new, imaginary halfedge
-        HalfedgePtr newHe{&rawImaginaryHalfedges[iImaginaryHalfedge]};
+        HalfedgePtr newHe{&rawHalfedges[nRealHalfedges + iImaginaryHalfedge]};
         boundaryLoop->halfedge = newHe.ptr;
         iImaginaryHalfedge++;
 
@@ -490,7 +485,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
       // iteration of
       // the loop above because we don't have a reference to prev yet. Fix that
       // here.
-      halfedge(iHe)->twin->next = prevHe->twin;
+      allHalfedge(iHe)->twin->next = prevHe->twin;
 
       iBoundaryLoop++;
     }
@@ -500,10 +495,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 // When in debug mode, mesh elements know what mesh they are a part of so
 // we can do assertions for saftey checks.
 #ifndef NDEBUG
-  for (HalfedgePtr x : halfedges()) {
-    x->parentMesh = this;
-  }
-  for (HalfedgePtr x : imaginaryHalfedges()) {
+  for (HalfedgePtr x : allHalfedges()) {
     x->parentMesh = this;
   }
   for (VertexPtr x : vertices()) {
@@ -671,7 +663,6 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
   newMesh->rawVertices = rawVertices;
   newMesh->rawEdges = rawEdges;
   newMesh->rawFaces = rawFaces;
-  newMesh->rawImaginaryHalfedges = rawImaginaryHalfedges;
   newMesh->rawBoundaryLoops = rawBoundaryLoops;
 
   // Create the data transfer object
@@ -679,10 +670,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   // Build maps
   for (size_t i = 0; i < rawHalfedges.size(); i++) {
-    dataTransfer.heMap[halfedge(i)] = &newMesh->rawHalfedges[i];
-  }
-  for (size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
-    dataTransfer.heMap[imaginaryHalfedge(i)] = &newMesh->rawImaginaryHalfedges[i];
+    dataTransfer.heMap[allHalfedge(i)] = &newMesh->rawHalfedges[i];
   }
   for (size_t i = 0; i < rawVertices.size(); i++) {
     dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i];
@@ -699,18 +687,11 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   // Shift pointers
   for (size_t i = 0; i < rawHalfedges.size(); i++) {
-    newMesh->rawHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
-    newMesh->rawHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
-    newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
-    newMesh->rawHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
-    newMesh->rawHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
-  }
-  for (size_t i = 0; i < rawImaginaryHalfedges.size(); i++) {
-    newMesh->rawImaginaryHalfedges[i].next = dataTransfer.heMap[imaginaryHalfedge(i).next()].ptr;
-    newMesh->rawImaginaryHalfedges[i].twin = dataTransfer.heMap[imaginaryHalfedge(i).twin()].ptr;
-    newMesh->rawImaginaryHalfedges[i].vertex = dataTransfer.vMap[imaginaryHalfedge(i).vertex()].ptr;
-    newMesh->rawImaginaryHalfedges[i].edge = dataTransfer.eMap[imaginaryHalfedge(i).edge()].ptr;
-    newMesh->rawImaginaryHalfedges[i].face = dataTransfer.fMap[imaginaryHalfedge(i).face()].ptr;
+    newMesh->rawHalfedges[i].next = dataTransfer.heMap[allHalfedge(i).next()].ptr;
+    newMesh->rawHalfedges[i].twin = dataTransfer.heMap[allHalfedge(i).twin()].ptr;
+    newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[allHalfedge(i).vertex()].ptr;
+    newMesh->rawHalfedges[i].edge = dataTransfer.eMap[allHalfedge(i).edge()].ptr;
+    newMesh->rawHalfedges[i].face = dataTransfer.fMap[allHalfedge(i).face()].ptr;
   }
   for (size_t i = 0; i < rawVertices.size(); i++) {
     newMesh->rawVertices[i].halfedge = dataTransfer.heMap[vertex(i).halfedge()].ptr;
@@ -730,9 +711,6 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
   // Set the parent mesh pointers to point to the correct mesh
   for (size_t i = 0; i < newMesh->rawHalfedges.size(); i++) {
     newMesh->rawHalfedges[i].parentMesh = newMesh;
-  }
-  for (size_t i = 0; i < newMesh->rawImaginaryHalfedges.size(); i++) {
-    newMesh->rawImaginaryHalfedges[i].parentMesh = newMesh;
   }
   for (size_t i = 0; i < newMesh->rawVertices.size(); i++) {
     newMesh->rawVertices[i].parentMesh = newMesh;

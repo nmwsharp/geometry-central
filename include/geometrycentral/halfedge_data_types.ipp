@@ -361,10 +361,7 @@ template <typename T>
 Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector() const {
   Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nHalfedges() + mesh->nImaginaryHalfedges());
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
-  for (HalfedgePtr he : mesh->halfedges()) {
-    result(ind[he]) = (*this)[he];
-  }
-  for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
+  for (HalfedgePtr he : mesh->allHalfedges()) {
     result(ind[he]) = (*this)[he];
   }
   return result;
@@ -374,17 +371,10 @@ template <typename T>
 Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector(
     const HalfedgeData<size_t>& indexer) const {
   size_t outSize = 0;
-  for (HalfedgePtr he : mesh->halfedges())
-    if (indexer[he] != std::numeric_limits<size_t>::max()) outSize++;
-  for (HalfedgePtr he : mesh->imaginaryHalfedges())
+  for (HalfedgePtr he : mesh->allHalfedges())
     if (indexer[he] != std::numeric_limits<size_t>::max()) outSize++;
   Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (HalfedgePtr he : mesh->halfedges()) {
-    if (indexer[he] != std::numeric_limits<size_t>::max()) {
-      result(indexer[he]) = (*this)[he];
-    }
-  }
-  for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
+  for (HalfedgePtr he : mesh->allHalfedges()) {
     if (indexer[he] != std::numeric_limits<size_t>::max()) {
       result(indexer[he]) = (*this)[he];
     }
@@ -398,10 +388,7 @@ void HalfedgeData<T>::fromVector(
   if ((size_t)vector.rows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
     throw std::runtime_error("Vector size does not match mesh size.");
   HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
-  for (HalfedgePtr he : mesh->halfedges()) {
-    (*this)[he] = vector(ind[he]);
-  }
-  for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
+  for (HalfedgePtr he : mesh->allHalfedges()) {
     (*this)[he] = vector(ind[he]);
   }
 }
@@ -409,12 +396,7 @@ void HalfedgeData<T>::fromVector(
 template <typename T>
 void HalfedgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                                  const HalfedgeData<size_t>& indexer) {
-  for (HalfedgePtr he : mesh->halfedges()) {
-    if (indexer[he] != std::numeric_limits<size_t>::max()) {
-      (*this)[he] = vector(indexer[he]);
-    }
-  }
-  for (HalfedgePtr he : mesh->imaginaryHalfedges()) {
+  for (HalfedgePtr he : mesh->allHalfedges()) {
     if (indexer[he] != std::numeric_limits<size_t>::max()) {
       (*this)[he] = vector(indexer[he]);
     }
@@ -427,13 +409,8 @@ inline T& HalfedgeData<T>::operator[](HalfedgePtr he) {
   assert(he->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  if (he.isReal()) {
-    size_t i = he - mesh->halfedge(0);
-    return data[i];
-  } else {
-    size_t i = he - mesh->imaginaryHalfedge(0);
-    return data[realSize + i];
-  }
+  size_t i = he - mesh->allHalfedge(0);
+  return data[i];
 }
 
 template <typename T>
@@ -442,13 +419,8 @@ inline const T& HalfedgeData<T>::operator[](HalfedgePtr he) const {
   assert(he->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  if (he.isReal()) {
-    size_t i = he - mesh->halfedge(0);
-    return data[i];
-  } else {
-    size_t i = he - mesh->imaginaryHalfedge(0);
-    return data[realSize + i];
-  }
+  size_t i = he - mesh->allHalfedge(0);
+  return data[i];
 }
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(HalfedgeData, mesh)

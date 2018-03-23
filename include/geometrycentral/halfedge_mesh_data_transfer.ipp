@@ -38,10 +38,7 @@ template<class T> EdgeData<T> HalfedgeMeshDataTransfer::transfer(EdgeData<T>& in
 template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transfer(HalfedgeData<T>& inData) {
 
     HalfedgeData<T> outData(newMesh);
-    for(HalfedgePtr he : oldMesh->halfedges()) {
-        outData[heMap[he]] = inData[he];
-    }
-    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+    for(HalfedgePtr he : oldMesh->allHalfedges()) {
         outData[heMap[he]] = inData[he];
     }
 
@@ -51,10 +48,7 @@ template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transfer(HalfedgeDat
 template<class T> CornerData<T> HalfedgeMeshDataTransfer::transfer(CornerData<T>& inData) {
 
     CornerData<T> outData(newMesh);
-    for(HalfedgePtr he : oldMesh->halfedges()) {
-        outData[heMap[he].corner()] = inData[he.corner()];
-    }
-    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+    for(HalfedgePtr he : oldMesh->allHalfedges()) {
         outData[heMap[he].corner()] = inData[he.corner()];
     }
 
@@ -98,10 +92,7 @@ template<class T> EdgeData<T> HalfedgeMeshDataTransfer::transferBack(EdgeData<T>
 template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transferBack(HalfedgeData<T>& inData) {
 
     HalfedgeData<T> outData(oldMesh);
-    for(HalfedgePtr he : oldMesh->halfedges()) {
-        outData[he] = inData[heMap[he]];
-    }
-    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+    for(HalfedgePtr he : oldMesh->allHalfedges()) {
         outData[he] = inData[heMap[he]];
     }
     return outData;
@@ -110,10 +101,7 @@ template<class T> HalfedgeData<T> HalfedgeMeshDataTransfer::transferBack(Halfedg
 template<class T> CornerData<T> HalfedgeMeshDataTransfer::transferBack(CornerData<T>& inData) {
 
     CornerData<T> outData(oldMesh);
-    for(HalfedgePtr he : oldMesh->halfedges()) {
-        outData[he.corner()] = inData[heMap[he].corner()];
-    }
-    for(HalfedgePtr he : oldMesh->imaginaryHalfedges()) {
+    for(HalfedgePtr he : oldMesh->allHalfedges()) {
         outData[he.corner()] = inData[heMap[he].corner()];
     }
     return outData;
