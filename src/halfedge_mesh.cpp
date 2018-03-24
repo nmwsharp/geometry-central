@@ -664,6 +664,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
   newMesh->rawEdges = rawEdges;
   newMesh->rawFaces = rawFaces;
   newMesh->rawBoundaryLoops = rawBoundaryLoops;
+  newMesh->nRealHalfedges = nRealHalfedges;
 
   // Create the data transfer object
   dataTransfer = HalfedgeMeshDataTransfer(this, newMesh);
