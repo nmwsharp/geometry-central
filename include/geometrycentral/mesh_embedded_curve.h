@@ -75,6 +75,9 @@ public:
   // Throws an error if this is not a valid closed or open curve. Does not check self-intersection.
   void validate();
 
+  // Copy this curve on to another equivalent mesh object using a transfer map
+  MeshEmbeddedCurve copy(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom);
+
 private:
   HalfedgeMesh* mesh = nullptr;
   Geometry<Euclidean>* geometry = nullptr;

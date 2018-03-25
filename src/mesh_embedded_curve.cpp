@@ -350,3 +350,22 @@ void MeshEmbeddedCurve::validate() {
 
 double CurveSegment::length() { return norm(startPosition - endPosition); }
 
+
+MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom) {
+
+  MeshEmbeddedCurve newCurve(otherGeom);
+
+  // Copy each segment
+  for(SegmentEndpoint& e : segmentPoints) {
+    if(e.isEdgeCrossing) {
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.heMap[e.halfedge], e.tCross));
+    } else {
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.fMap[e.face], e.faceCoords));
+    }
+  }
+
+  return newCurve;
+}
+
+
+
