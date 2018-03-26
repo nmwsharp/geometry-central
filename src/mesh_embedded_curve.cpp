@@ -235,7 +235,7 @@ FacePtr MeshEmbeddedCurve::endingFace() {
   return faceAfter(segmentPoints.back());
 }
 
-std::vector<CurveSegment> MeshEmbeddedCurve::getCurveSegements() {
+std::vector<CurveSegment> MeshEmbeddedCurve::getCurveSegments() {
 
   std::vector<CurveSegment> segments;
 
@@ -254,19 +254,23 @@ std::vector<CurveSegment> MeshEmbeddedCurve::getCurveSegements() {
       newSeg.face = p1.halfedge.twin().face();
       newSeg.startBaryCoord = barycoordsForHalfedgePoint(p1.halfedge.twin(), 1.0 - p1.tCross);
       newSeg.startPosition = positionOfSegmentEndpoint(p1);
+      newSeg.startHe = p1.halfedge.twin();
     } else {
       newSeg.face = p1.face;
       newSeg.startBaryCoord = p1.faceCoords;
       newSeg.startPosition = positionOfSegmentEndpoint(p1);
+      newSeg.startHe = HalfedgePtr();
     }
 
     // End point
     if (p2.isEdgeCrossing) {
       newSeg.endBaryCoord = barycoordsForHalfedgePoint(p2.halfedge, p2.tCross);
       newSeg.endPosition = positionOfSegmentEndpoint(p2);
+      newSeg.endHe = p2.halfedge;
     } else {
       newSeg.endBaryCoord = p2.faceCoords;
       newSeg.endPosition = positionOfSegmentEndpoint(p2);
+      newSeg.endHe = HalfedgePtr();
     }
 
     segments.push_back(newSeg);
@@ -283,8 +287,10 @@ std::vector<CurveSegment> MeshEmbeddedCurve::getCurveSegements() {
     lastSeg.face = p1.halfedge.twin().face();
     lastSeg.startBaryCoord = barycoordsForHalfedgePoint(p1.halfedge.twin(), 1.0 - p1.tCross);
     lastSeg.startPosition = positionOfSegmentEndpoint(p1);
+    lastSeg.startHe = p1.halfedge.twin();
     lastSeg.endBaryCoord = barycoordsForHalfedgePoint(p2.halfedge, p2.tCross);
     lastSeg.endPosition = positionOfSegmentEndpoint(p2);
+    lastSeg.endHe = p2.halfedge;
 
     segments.push_back(lastSeg);
   }
@@ -358,9 +364,9 @@ MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Ge
   // Copy each segment
   for(SegmentEndpoint& e : segmentPoints) {
     if(e.isEdgeCrossing) {
-      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.heMap[e.halfedge], e.tCross));
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.heMapBack[e.halfedge], e.tCross));
     } else {
-      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.fMap[e.face], e.faceCoords));
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.fMapBack[e.face], e.faceCoords));
     }
   }
 

@@ -728,6 +728,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 #endif
 
   newMesh->cacheInfo();
+  dataTransfer.generateReverseMaps();
 
   return newMesh;
 }

@@ -30,11 +30,19 @@ public:
   template<class T> HalfedgeData<T> transferBack(HalfedgeData<T>& inData);
   template<class T> CornerData<T> transferBack(CornerData<T>& inData);
 
-  // Maps to transfer data map[oldPtr] --> newPtr
+  // Maps to transfer pointers map[oldPtr] --> newPtr
   HalfedgeData<HalfedgePtr> heMap;
   VertexData<VertexPtr> vMap;
   EdgeData<EdgePtr> eMap;
   FaceData<FacePtr> fMap;
+  
+  
+  // Maps to transfer pointers map[newPtr] --> oldPtr 
+  HalfedgeData<HalfedgePtr> heMapBack;
+  VertexData<VertexPtr> vMapBack;
+  EdgeData<EdgePtr> eMapBack;
+  FaceData<FacePtr> fMapBack;
+  void generateReverseMaps();
 
   // Relevant meshes
   HalfedgeMesh* oldMesh = nullptr;

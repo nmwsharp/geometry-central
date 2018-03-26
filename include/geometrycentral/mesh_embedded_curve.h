@@ -45,6 +45,10 @@ struct CurveSegment {
   Vector3 startPosition;
   Vector3 endPosition;
 
+  HalfedgePtr startHe; // both inside of the face
+  HalfedgePtr endHe;
+
+
   double length();
 };
 
@@ -56,11 +60,13 @@ class MeshEmbeddedCurve {
 
 public:
   MeshEmbeddedCurve(Geometry<Euclidean>* geometry);
+  MeshEmbeddedCurve(){};
 
   // Build the curve
-  //void extendFront(FacePtr f, Vector3 bCoord);
+  // void extendFront(FacePtr f, Vector3 bCoord);
   void extendBack(FacePtr f, Vector3 bCoord);
-  void tryExtendBack(FacePtr f, Vector3 bCoord); // same as extend back, but no-ops if face is not adjacent to current end of curve
+  void tryExtendBack(FacePtr f,
+                     Vector3 bCoord); // same as extend back, but no-ops if face is not adjacent to current end of curve
   void removeLastEndpoint();
   void closeCurve();
   void clearCurve();
@@ -68,14 +74,15 @@ public:
 
   // Get data about the curve
   bool isClosed();
-  std::vector<CurveSegment> getCurveSegements();
+  std::vector<CurveSegment> getCurveSegments();
   FacePtr endingFace();
   FacePtr startingFace();
 
   // Throws an error if this is not a valid closed or open curve. Does not check self-intersection.
   void validate();
 
-  // Copy this curve on to another equivalent mesh object using a transfer map
+  // Copy this curve on to another equivalent mesh object using a transfer map. Here the transfer map is defined to go
+  // from otherGeom.getMesh() to this::mesh
   MeshEmbeddedCurve copy(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom);
 
 private:
