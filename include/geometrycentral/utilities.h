@@ -126,6 +126,11 @@ inline double randomInt(int lower, int upper) {
   return dist(util_mersenne_twister);
 }
 
+inline double randomNormal(double mean=0.0, double stddev=1.0) {
+  std::normal_distribution<double> dist{mean, stddev};
+  return dist(util_mersenne_twister);
+}
+
 // === Printing things to strings ===
 template <typename T>
 inline std::string to_string(std::vector<T> const& v) {
