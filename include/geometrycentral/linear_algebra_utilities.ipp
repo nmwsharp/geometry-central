@@ -21,6 +21,37 @@ void shiftDiagonal(Eigen::SparseMatrix<T>& m, T shiftAmount) {
 }
 
 
+inline Eigen::SparseMatrix<double> complexToReal(const Eigen::SparseMatrix<Complex>& m) {
+
+  size_t nRow = m.rows();
+  size_t nCol = m.cols();
+
+  Eigen::SparseMatrix<double> realM(2*nRow, 2*nCol);
+  std::vector<Eigen::Triplet<double>> triplets;
+
+  for (int k = 0; k < m.outerSize(); ++k) {
+    for (typename Eigen::SparseMatrix<Complex>::InnerIterator it(m, k); it; ++it) {
+
+
+      Complex val = it.value();
+      size_t iRow = it.row();
+      size_t iCol = it.col();
+
+      triplets.emplace_back(2*iRow + 0, 2*iCol + 0, val.real());
+      triplets.emplace_back(2*iRow + 0, 2*iCol + 1, -val.imag());
+      triplets.emplace_back(2*iRow + 1, 2*iCol + 0, val.imag());
+      triplets.emplace_back(2*iRow + 1, 2*iCol + 1, val.real());
+
+    }
+  }
+  
+  realM.setFromTriplets(triplets.begin(), triplets.end());
+  realM.makeCompressed();
+
+  return realM;
+}
+
+
 template <typename T>
 inline void checkFinite(const Eigen::SparseMatrix<T>& m) {
   for (int k = 0; k < m.outerSize(); ++k) {
