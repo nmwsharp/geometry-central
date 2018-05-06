@@ -121,8 +121,13 @@ inline double randomReal(double minVal, double maxVal) {
 }
 
 // Generate a random int in the INCLUSIVE range [lower,upper]
-inline double randomInt(int lower, int upper) {
+inline int randomInt(int lower, int upper) {
   std::uniform_int_distribution<int> dist(lower, upper);
+  return dist(util_mersenne_twister);
+}
+// Generate a random size_t in the range [0, N)
+inline size_t randomIndex(size_t size) {
+  std::uniform_int_distribution<size_t> dist(0, size-1);
   return dist(util_mersenne_twister);
 }
 
