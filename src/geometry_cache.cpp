@@ -59,48 +59,42 @@ GeometryCache<G>::GeometryCache(Geometry<G>* geometry_) : geometry(geometry_) {
 
   // === ALL the quantities
   //          quantity manager            dependencies                                  compute function
-
   // == Basic geometric quantities
-  addQuantity(faceAreaNormalsQ, {}, &GeometryCache<G>::computeFaceAreaNormals);
-  addQuantity(faceAreasQ, {&faceAreaNormalsQ}, &GeometryCache<G>::computeFaceAreas);
-  addQuantity(faceNormalsQ, {&faceAreaNormalsQ}, &GeometryCache<G>::computeFaceNormals);
-  addQuantity(vertexNormalsQ, {&faceAreaNormalsQ}, &GeometryCache<G>::computeVertexNormals);
-  addQuantity(vertexDualAreasQ, {&faceAreasQ}, &GeometryCache<G>::computeVertexDualAreas);
-  addQuantity(halfedgeVectorsQ, {}, &GeometryCache<G>::computeHalfedgeVectors);
-  addQuantity(edgeLengthsQ, {}, &GeometryCache<G>::computeEdgeLengths);
-  addQuantity(dihedralAnglesQ, {}, &GeometryCache<G>::computeDihedralAngles);
-  addQuantity(halfedgeCotanWeightsQ, {}, &GeometryCache<G>::computeHalfedgeCotanWeights);
-  addQuantity(edgeCotanWeightsQ, {}, &GeometryCache<G>::computeEdgeCotanWeights);
-  addQuantity(vertexAngleDefectsQ, {&halfedgeOppositeAnglesQ}, &GeometryCache<G>::computeVertexAngleDefects);
-
+  addQuantity(faceAreaNormalsQ,           {},                                           &GeometryCache<G>::computeFaceAreaNormals);
+  addQuantity(faceAreasQ,                 {&faceAreaNormalsQ},                          &GeometryCache<G>::computeFaceAreas);
+  addQuantity(faceNormalsQ,               {&faceAreaNormalsQ},                          &GeometryCache<G>::computeFaceNormals);
+  addQuantity(vertexNormalsQ,             {&faceAreaNormalsQ},                          &GeometryCache<G>::computeVertexNormals);
+  addQuantity(vertexDualAreasQ,           {&faceAreasQ},                                &GeometryCache<G>::computeVertexDualAreas);
+  addQuantity(halfedgeVectorsQ,           {},                                           &GeometryCache<G>::computeHalfedgeVectors);
+  addQuantity(edgeLengthsQ,               {},                                           &GeometryCache<G>::computeEdgeLengths);
+  addQuantity(dihedralAnglesQ,            {},                                           &GeometryCache<G>::computeDihedralAngles);
+  addQuantity(halfedgeCotanWeightsQ,      {},                                           &GeometryCache<G>::computeHalfedgeCotanWeights);
+  addQuantity(edgeCotanWeightsQ,          {},                                           &GeometryCache<G>::computeEdgeCotanWeights);
+  addQuantity(vertexAngleDefectsQ,        {&halfedgeOppositeAnglesQ},                   &GeometryCache<G>::computeVertexAngleDefects);
+  
   // == Vector fields, angles, and transport
-  addQuantity(faceBasesQ, {&faceNormalsQ}, &GeometryCache<G>::computeFaceBases);
-  addQuantity(vertexBasesQ, {&vertexNormalsQ}, &GeometryCache<G>::computeVertexBases);
-  addQuantity(halfedgeFaceCoordsQ, {&faceBasesQ}, &GeometryCache<G>::computeHalfedgeFaceCoords);
-  addQuantity(faceTransportCoefsQ, {&faceBasesQ, &halfedgeFaceCoordsQ}, &GeometryCache<G>::computeFaceTransportCoefs);
-  addQuantity(halfedgeOppositeAnglesQ, {}, &GeometryCache<G>::computeHalfedgeOppositeAngles);
-  addQuantity(halfedgeRescaledOppositeAnglesQ, {&vertexAngleDefectsQ, &halfedgeOppositeAnglesQ},
-              &GeometryCache<G>::computeHalfedgeRescaledOppositeAngles);
-  addQuantity(halfedgeVertexCoordsQ, {&halfedgeRescaledOppositeAnglesQ},
-              &GeometryCache<G>::computeHalfedgeVertexCoords);
-  addQuantity(vertexTransportCoefsQ, {&vertexBasesQ, &halfedgeVertexCoordsQ},
-              &GeometryCache<G>::computeVertexTransportCoefs);
-  addQuantity(vertexFaceTransportCoefsQ, {&halfedgeFaceCoordsQ, &halfedgeVertexCoordsQ},
-              &GeometryCache<G>::computeVertexFaceTransportCoefs);
-  addQuantity(principalDirectionsQ, {&edgeLengthsQ, &dihedralAnglesQ, &halfedgeVertexCoordsQ},
-              &GeometryCache<G>::computePrincipalDirections);
-
+  addQuantity(faceBasesQ,                       {&faceNormalsQ},                                            &GeometryCache<G>::computeFaceBases);
+  addQuantity(vertexBasesQ,                     {&vertexNormalsQ},                                          &GeometryCache<G>::computeVertexBases);
+  addQuantity(halfedgeFaceCoordsQ,              {&faceBasesQ},                                              &GeometryCache<G>::computeHalfedgeFaceCoords);
+  addQuantity(faceTransportCoefsQ,              {&faceBasesQ, &halfedgeFaceCoordsQ},                        &GeometryCache<G>::computeFaceTransportCoefs);
+  addQuantity(halfedgeOppositeAnglesQ,          {},                                                         &GeometryCache<G>::computeHalfedgeOppositeAngles);
+  addQuantity(halfedgeRescaledOppositeAnglesQ,  {&vertexAngleDefectsQ, &halfedgeOppositeAnglesQ},           &GeometryCache<G>::computeHalfedgeRescaledOppositeAngles);
+  addQuantity(halfedgeVertexCoordsQ,            {&halfedgeRescaledOppositeAnglesQ},                         &GeometryCache<G>::computeHalfedgeVertexCoords);
+  addQuantity(vertexTransportCoefsQ,            {&vertexBasesQ, &halfedgeVertexCoordsQ},                    &GeometryCache<G>::computeVertexTransportCoefs);
+  addQuantity(vertexFaceTransportCoefsQ,        {&halfedgeFaceCoordsQ, &halfedgeVertexCoordsQ},             &GeometryCache<G>::computeVertexFaceTransportCoefs);
+  addQuantity(principalDirectionsQ,             {&edgeLengthsQ, &dihedralAnglesQ, &halfedgeVertexCoordsQ},  &GeometryCache<G>::computePrincipalDirections);
+  
   // == Indices
-  addQuantity(vertexIndicesQ, {}, &GeometryCache<G>::computeVertexIndices);
-  addQuantity(interiorVertexIndicesQ, {}, &GeometryCache<G>::computeInteriorVertexIndices);
-  addQuantity(faceIndicesQ, {}, &GeometryCache<G>::computeFaceIndices);
-  addQuantity(edgeIndicesQ, {}, &GeometryCache<G>::computeEdgeIndices);
-  addQuantity(halfedgeIndicesQ, {}, &GeometryCache<G>::computeHalfedgeIndices);
+  addQuantity(vertexIndicesQ,             {},                                           &GeometryCache<G>::computeVertexIndices);
+  addQuantity(interiorVertexIndicesQ,     {},                                           &GeometryCache<G>::computeInteriorVertexIndices);
+  addQuantity(faceIndicesQ,               {},                                           &GeometryCache<G>::computeFaceIndices);
+  addQuantity(edgeIndicesQ,               {},                                           &GeometryCache<G>::computeEdgeIndices);
+  addQuantity(halfedgeIndicesQ,           {},                                           &GeometryCache<G>::computeHalfedgeIndices);
 
   // == Operators
-  addQuantity(basicDECOperatorsQ, {&vertexDualAreasQ, &edgeCotanWeightsQ}, &GeometryCache<G>::computeBasicDECOperators);
-  addQuantity(modifiedDECOperatorsQ, {&basicDECOperatorsQ}, &GeometryCache<G>::computeModifiedDECOperators);
-  addQuantity(zeroFormWeakLaplacianQ, {&basicDECOperatorsQ}, &GeometryCache<G>::computeZeroFormWeakLaplacian);
+  addQuantity(basicDECOperatorsQ,         {&vertexDualAreasQ, &edgeCotanWeightsQ},      &GeometryCache<G>::computeBasicDECOperators);
+  addQuantity(modifiedDECOperatorsQ,      {&basicDECOperatorsQ},                        &GeometryCache<G>::computeModifiedDECOperators);
+  addQuantity(zeroFormWeakLaplacianQ,     {&basicDECOperatorsQ},                        &GeometryCache<G>::computeZeroFormWeakLaplacian);
 }
 
 template <typename G>
