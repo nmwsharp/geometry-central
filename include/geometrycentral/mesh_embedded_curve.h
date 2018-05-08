@@ -77,6 +77,7 @@ public:
   std::vector<CurveSegment> getCurveSegments();
   FacePtr endingFace();
   FacePtr startingFace();
+  double computeLength();
 
   // Throws an error if this is not a valid closed or open curve. Does not check self-intersection.
   void validate();

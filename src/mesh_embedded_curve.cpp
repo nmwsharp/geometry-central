@@ -353,6 +353,13 @@ void MeshEmbeddedCurve::validate() {
   }
 }
 
+double MeshEmbeddedCurve::computeLength() {
+  double l = 0;
+  for (CurveSegment& c : getCurveSegments()) {
+    l += c.length();
+  }
+  return l;
+}
 
 double CurveSegment::length() { return norm(startPosition - endPosition); }
 
@@ -362,8 +369,8 @@ MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Ge
   MeshEmbeddedCurve newCurve(otherGeom);
 
   // Copy each segment
-  for(SegmentEndpoint& e : segmentPoints) {
-    if(e.isEdgeCrossing) {
+  for (SegmentEndpoint& e : segmentPoints) {
+    if (e.isEdgeCrossing) {
       newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.heMapBack[e.halfedge], e.tCross));
     } else {
       newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.fMapBack[e.face], e.faceCoords));
@@ -372,6 +379,4 @@ MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Ge
 
   return newCurve;
 }
-
-
 
