@@ -79,10 +79,12 @@ public:
   // Get data about the curve
   bool isClosed();
   std::vector<CurveSegment> getCurveSegments();
-  FacePtr endingFace();
-  FacePtr startingFace();
+  FacePtr endingFace(bool reportForClosed=false);
+  FacePtr startingFace(bool reportForClosed=false);
   double computeLength();
   size_t nSegments();
+  
+  bool crossesFace(FacePtr f);
 
   // Throws an error if this is not a valid closed or open curve. Does not check self-intersection.
   void validate();

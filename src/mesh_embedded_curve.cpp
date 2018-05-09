@@ -364,14 +364,16 @@ void MeshEmbeddedCurve::setFromZeroLevelset(VertexData<double>& implicitF) {
   }
 }
 
-FacePtr MeshEmbeddedCurve::startingFace() {
-  if (isClosed() || segmentPoints.size() == 0) return FacePtr();
+FacePtr MeshEmbeddedCurve::startingFace(bool reportForClosed) {
+  if (segmentPoints.size() == 0) return FacePtr();
+  if (isClosed() && !reportForClosed) return FacePtr();
   return faceBefore(segmentPoints.front());
 }
 
 
-FacePtr MeshEmbeddedCurve::endingFace() {
-  if (isClosed() || segmentPoints.size() == 0) return FacePtr();
+FacePtr MeshEmbeddedCurve::endingFace(bool reportForClosed) {
+  if (segmentPoints.size() == 0) return FacePtr();
+  if (isClosed() && !reportForClosed) return FacePtr();
   return faceAfter(segmentPoints.back());
 }
 
@@ -511,6 +513,16 @@ size_t MeshEmbeddedCurve::nSegments() {
 }
 
 double CurveSegment::length() { return norm(startPosition - endPosition); }
+  
+
+bool MeshEmbeddedCurve::crossesFace(FacePtr f) {
+  for(SegmentEndpoint& s : segmentPoints) {
+    if(faceBefore(s) == f || faceAfter(s) == f) {
+      return true;
+    }
+  }
+  return false;
+}
 
 
 MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom) {
