@@ -8,7 +8,6 @@ using std::endl;
 MeshEmbeddedCurve::MeshEmbeddedCurve(Geometry<Euclidean>* geometry_) : geometry(geometry_) {
 
   mesh = geometry->getMesh();
-
   if (!mesh->isSimplicial()) {
     throw std::runtime_error("Embedded curves only supported on simplicial mesh");
   }
@@ -122,6 +121,11 @@ double MeshEmbeddedCurve::crossingPointAlongEdge(HalfedgePtr sharedHe, Vector3 b
   return intercept;
 }
 
+double MeshEmbeddedCurve::scalarFunctionZeroPoint(double f0, double f1) {
+  double EPS = 1e-4;
+  return clamp(f0 / (f0 - f1), EPS, 1.0 - EPS);
+}
+
 
 void MeshEmbeddedCurve::tryExtendBack(FacePtr f, Vector3 bCoord) {
   if (segmentPoints.size() == 0 || facesAreAdjacentOrEqual(f, faceAfter(segmentPoints.back()))) {
@@ -223,6 +227,90 @@ void MeshEmbeddedCurve::closeCurve() {
 }
 
 void MeshEmbeddedCurve::clearCurve() { segmentPoints.clear(); }
+
+
+void MeshEmbeddedCurve::setFromZeroLevelset(VertexData<double>& implicitF) {
+
+  // Note: If there are multiple disconnected zero sets, this finds any one of them abritrarily
+
+  clearCurve();
+
+  auto isForwardCrossingHalfedge = [&](HalfedgePtr he) {
+    return (implicitF[he.vertex()] <= 0 && implicitF[he.twin().vertex()] > 0);
+  };
+
+  // = Find any halfedge crossing the from negative to positive
+  HalfedgePtr startingHe;
+
+  // Check boundary halfedges first
+  for (HalfedgePtr he : mesh->realHalfedges()) {
+    if (!he.twin().isReal()) {
+      VertexPtr vTail = he.vertex();
+      VertexPtr vTip = he.twin().vertex();
+
+      if (isForwardCrossingHalfedge(he)) {
+        startingHe = he;
+        break;
+      }
+    }
+  }
+  // Check all halfedges now
+  if (startingHe == HalfedgePtr()) {
+    for (HalfedgePtr he : mesh->realHalfedges()) {
+      VertexPtr vTail = he.vertex();
+      VertexPtr vTip = he.twin().vertex();
+
+      if (isForwardCrossingHalfedge(he)) {
+        startingHe = he;
+        break;
+      }
+    }
+  }
+  if (startingHe == HalfedgePtr()) {
+    cout << "WARNING: Could not construct curve; implicit function has no zero level set" << endl;
+    return;
+  }
+
+  // Add first point
+  extendBack(startingHe.face(),
+             barycoordsForHalfedgePoint(startingHe, scalarFunctionZeroPoint(implicitF[startingHe.vertex()],
+                                                                            implicitF[startingHe.twin().vertex()])));
+
+  // = Walk level set, building curve
+  HalfedgePtr walkHe = startingHe;
+  do {
+
+    // Find next halfedge
+    bool found = false;
+    for (int i = 0; i < 2; i++) {
+      walkHe = walkHe.next();
+
+      if (!walkHe.edge().isBoundary() && isForwardCrossingHalfedge(walkHe.twin())) {
+        found = true;
+        break;
+      }
+    }
+
+    // This should mean we hit a boundary
+    if (!found) {
+      break;
+    }
+
+    // Flip over the halfedge and add a point to the curve
+    walkHe = walkHe.twin();
+
+    extendBack(walkHe.face(),
+               barycoordsForHalfedgePoint(
+                   walkHe, scalarFunctionZeroPoint(implicitF[walkHe.vertex()], implicitF[walkHe.twin().vertex()])));
+
+
+  } while (walkHe != startingHe);
+
+  // Try to close the curve
+  if (startingFace() == endingFace()) {
+    closeCurve();
+  }
+}
 
 FacePtr MeshEmbeddedCurve::startingFace() {
   if (isClosed() || segmentPoints.size() == 0) return FacePtr();
@@ -380,3 +468,18 @@ MeshEmbeddedCurve MeshEmbeddedCurve::copy(HalfedgeMeshDataTransfer& transfer, Ge
   return newCurve;
 }
 
+MeshEmbeddedCurve MeshEmbeddedCurve::copyBack(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom) {
+
+  MeshEmbeddedCurve newCurve(otherGeom);
+
+  // Copy each segment
+  for (SegmentEndpoint& e : segmentPoints) {
+    if (e.isEdgeCrossing) {
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.heMap[e.halfedge], e.tCross));
+    } else {
+      newCurve.segmentPoints.push_back(SegmentEndpoint(transfer.fMap[e.face], e.faceCoords));
+    }
+  }
+
+  return newCurve;
+}

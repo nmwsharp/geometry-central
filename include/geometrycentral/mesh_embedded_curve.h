@@ -71,6 +71,8 @@ public:
   void closeCurve();
   void clearCurve();
 
+  void setFromZeroLevelset(VertexData<double>& implicitF);
+
 
   // Get data about the curve
   bool isClosed();
@@ -85,6 +87,8 @@ public:
   // Copy this curve on to another equivalent mesh object using a transfer map. Here the transfer map is defined to go
   // from otherGeom.getMesh() to this::mesh
   MeshEmbeddedCurve copy(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom);
+  // Copies in teh opposite direction
+  MeshEmbeddedCurve copyBack(HalfedgeMeshDataTransfer& transfer, Geometry<Euclidean>* otherGeom);
 
 private:
   HalfedgeMesh* mesh = nullptr;
@@ -100,5 +104,6 @@ private:
   HalfedgePtr connectingHalfedge(FacePtr f1, FacePtr f2);
   bool facesAreAdjacentOrEqual(FacePtr f1, FacePtr f2);
   double crossingPointAlongEdge(HalfedgePtr sharedHe, Vector3 bCoord1, Vector3 bCoord2);
+  double scalarFunctionZeroPoint(double f0, double f1);
 };
 }
