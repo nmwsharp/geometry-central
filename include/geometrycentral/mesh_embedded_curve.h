@@ -68,6 +68,8 @@ public:
   void tryExtendBack(FacePtr f,
                      Vector3 bCoord); // same as extend back, but no-ops if face is not adjacent to current end of curve
   void removeLastEndpoint();
+  void removeFirstEndpoint();
+  void rotateArbitraryStart(); // for a closed curve, shift the "seam" forward along the curve
   void closeCurve();
   void clearCurve();
 
@@ -80,6 +82,7 @@ public:
   FacePtr endingFace();
   FacePtr startingFace();
   double computeLength();
+  size_t nSegments();
 
   // Throws an error if this is not a valid closed or open curve. Does not check self-intersection.
   void validate();

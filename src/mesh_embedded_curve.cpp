@@ -169,6 +169,47 @@ void MeshEmbeddedCurve::extendBack(FacePtr f, Vector3 bCoord) {
   }
 }
 
+void MeshEmbeddedCurve::removeFirstEndpoint() {
+
+  if (segmentPoints.size() == 0) return;
+
+  if (segmentPoints.size() == 1) {
+    segmentPoints.pop_back();
+    return;
+  }
+
+  // Break up a closed curve
+  if (isClosed()) {
+
+    // Remove the old crossing
+    SegmentEndpoint crossPoint = segmentPoints.front();
+    segmentPoints.pop_front();
+
+    // Create a new face point in the end face
+    segmentPoints.push_back(SegmentEndpoint(crossPoint.halfedge.face(),
+                                            barycoordsForHalfedgePoint(crossPoint.halfedge, crossPoint.tCross)));
+
+    // Create a new face point in the begin face
+    segmentPoints.push_front(
+        SegmentEndpoint(crossPoint.halfedge.twin().face(),
+                        barycoordsForHalfedgePoint(crossPoint.halfedge.twin(), 1.0 - crossPoint.tCross)));
+
+  } else {
+
+    // Remove the current ending face point
+    segmentPoints.pop_front();
+
+    // Remove the old crossing
+    SegmentEndpoint crossPoint = segmentPoints.front();
+    segmentPoints.pop_front();
+
+    // Create a new face point in the face
+    segmentPoints.push_front(
+        SegmentEndpoint(crossPoint.halfedge.twin().face(),
+                        barycoordsForHalfedgePoint(crossPoint.halfedge.twin(), 1.0 - crossPoint.tCross)));
+  }
+}
+
 void MeshEmbeddedCurve::removeLastEndpoint() {
 
   if (segmentPoints.size() == 0) return;
@@ -207,6 +248,17 @@ void MeshEmbeddedCurve::removeLastEndpoint() {
     segmentPoints.push_back(SegmentEndpoint(crossPoint.halfedge.face(),
                                             barycoordsForHalfedgePoint(crossPoint.halfedge, crossPoint.tCross)));
   }
+}
+
+void MeshEmbeddedCurve::rotateArbitraryStart() {
+
+  if (!isClosed()) {
+    throw std::runtime_error("Attempted to rotate non-closed curve");
+  }
+
+  SegmentEndpoint crossPoint = segmentPoints.front();
+  segmentPoints.pop_front();
+  segmentPoints.push_back(crossPoint);
 }
 
 void MeshEmbeddedCurve::closeCurve() {
@@ -447,6 +499,15 @@ double MeshEmbeddedCurve::computeLength() {
     l += c.length();
   }
   return l;
+}
+
+
+size_t MeshEmbeddedCurve::nSegments() {
+  if(isClosed()) {
+    return segmentPoints.size();
+  } else {
+    return segmentPoints.size()-1;
+  }
 }
 
 double CurveSegment::length() { return norm(startPosition - endPosition); }
