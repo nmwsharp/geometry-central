@@ -254,6 +254,7 @@ public:
   VertexData<std::array<Vector3, 2>> vertexBases;
 
   // The coordinate of each halfedge in the basis of he.face()
+  // NOTE: These HAVE magnitude, unlike the vertex version (confusingly)
   inline void requireHalfedgeFaceCoords() { halfedgeFaceCoordsQ.require(); }
   HalfedgeData<Complex> halfedgeFaceCoords;
   

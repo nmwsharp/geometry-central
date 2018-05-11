@@ -33,6 +33,13 @@ struct SegmentEndpoint {
   // Can also be a point in a face
   FacePtr face;
   Vector3 faceCoords;
+
+  // Geometry
+  // (call computeCurveGeometry())
+  double unitSpeedParam; // from [0,L]
+  double dualLength;
+  Complex normal; // as an angle against halfedge (he = 1), or a value in face
+  Vector3 surfaceNormal;
 };
 
 // A piecewise linear chunk within a face
@@ -75,14 +82,19 @@ public:
 
   void setFromZeroLevelset(VertexData<double>& implicitF);
 
+  void computeCurveGeometry();
 
   // Get data about the curve
   bool isClosed();
   std::vector<CurveSegment> getCurveSegments();
+  std::vector<SegmentEndpoint> getCurveSegmentPoints();
   FacePtr endingFace(bool reportForClosed=false);
   FacePtr startingFace(bool reportForClosed=false);
   double computeLength();
   size_t nSegments();
+  Vector3 positionOfSegmentEndpoint(SegmentEndpoint& p);
+  FacePtr faceBefore(SegmentEndpoint& p);
+  FacePtr faceAfter(SegmentEndpoint& p);
   
   bool crossesFace(FacePtr f);
 
@@ -103,9 +115,6 @@ private:
 
   // == Helpers
   Vector3 barycoordsForHalfedgePoint(HalfedgePtr he, double t);
-  Vector3 positionOfSegmentEndpoint(SegmentEndpoint& p);
-  FacePtr faceBefore(SegmentEndpoint& p);
-  FacePtr faceAfter(SegmentEndpoint& p);
   HalfedgePtr connectingHalfedge(FacePtr f1, FacePtr f2);
   bool facesAreAdjacentOrEqual(FacePtr f1, FacePtr f2);
   double crossingPointAlongEdge(HalfedgePtr sharedHe, Vector3 bCoord1, Vector3 bCoord2);

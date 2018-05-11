@@ -377,6 +377,11 @@ FacePtr MeshEmbeddedCurve::endingFace(bool reportForClosed) {
   return faceAfter(segmentPoints.back());
 }
 
+std::vector<SegmentEndpoint> MeshEmbeddedCurve::getCurveSegmentPoints() {
+  std::vector<SegmentEndpoint> endpoints(segmentPoints.begin(), segmentPoints.end());
+  return endpoints;
+}
+
 std::vector<CurveSegment> MeshEmbeddedCurve::getCurveSegments() {
 
   std::vector<CurveSegment> segments;
@@ -503,21 +508,82 @@ double MeshEmbeddedCurve::computeLength() {
   return l;
 }
 
+void MeshEmbeddedCurve::computeCurveGeometry() {
+
+  GeometryCache<Euclidean>& gc = geometry->cache;
+  gc.requireFaceNormals();
+  gc.requireFaceBases();
+  gc.requireHalfedgeFaceCoords();
+  gc.requireFaceTransportCoefs();
+  gc.requireHalfedgeVectors();
+
+  if (!isClosed()) {
+    throw std::runtime_error("Curve geometry only implemented for closed curves right now");
+  }
+
+  // First compute values on segments
+  std::vector<double> segmentLengths;
+  std::vector<Complex> segmentNormals;
+  std::vector<Complex> segmentNormalsAgainstStartHe;
+  std::vector<Complex> segmentNormalsAgainstEndHe;
+  for (CurveSegment& seg : getCurveSegments()) {
+
+    segmentLengths.push_back(seg.length());
+
+    Vector3 curveVecR3 = seg.endPosition - seg.startPosition;
+    Vector3 curveNormalR3 = cross(gc.faceNormals[seg.face], curveVecR3);
+    Complex curveNormalFace{dot(gc.faceBases[seg.face][0], curveNormalR3),
+                            dot(gc.faceBases[seg.face][1], curveNormalR3)};
+    curveNormalFace = unit(curveNormalFace);
+    segmentNormals.push_back(curveNormalFace);
+
+    segmentNormalsAgainstStartHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.startHe]));
+    segmentNormalsAgainstEndHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.endHe]));
+  }
+
+  // double totalLen = computeLength();
+  double cumLen = 0;
+
+  size_t iPt = 0;
+  size_t nPt = segmentPoints.size();
+
+  std::vector<double> segmentParams;
+
+  for (SegmentEndpoint& s : segmentPoints) {
+
+    size_t prevSegInd = (iPt + nPt - 1) % nPt;
+    size_t nextSegInd = iPt;
+
+    s.unitSpeedParam = cumLen;
+    s.dualLength = 0.5 * (segmentLengths[prevSegInd] + segmentLengths[nextSegInd]);
+    s.surfaceNormal = unit(gc.faceNormals[s.halfedge.face()] + gc.faceNormals[s.halfedge.twin().face()]);
+
+    Complex prevNormalInThisFace = segmentNormalsAgainstEndHe[prevSegInd];
+    Complex nextNormalInThisFace = -segmentNormalsAgainstStartHe[nextSegInd];
+    s.normal =
+        unit(prevNormalInThisFace * segmentLengths[prevSegInd] + nextNormalInThisFace * segmentLengths[nextSegInd]);
+
+
+    cumLen += segmentLengths[nextSegInd];
+    iPt++;
+  }
+}
+
 
 size_t MeshEmbeddedCurve::nSegments() {
-  if(isClosed()) {
+  if (isClosed()) {
     return segmentPoints.size();
   } else {
-    return segmentPoints.size()-1;
+    return segmentPoints.size() - 1;
   }
 }
 
 double CurveSegment::length() { return norm(startPosition - endPosition); }
-  
+
 
 bool MeshEmbeddedCurve::crossesFace(FacePtr f) {
-  for(SegmentEndpoint& s : segmentPoints) {
-    if(faceBefore(s) == f || faceAfter(s) == f) {
+  for (SegmentEndpoint& s : segmentPoints) {
+    if (faceBefore(s) == f || faceAfter(s) == f) {
       return true;
     }
   }
