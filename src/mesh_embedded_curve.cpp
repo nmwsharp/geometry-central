@@ -517,10 +517,6 @@ void MeshEmbeddedCurve::computeCurveGeometry() {
   gc.requireFaceTransportCoefs();
   gc.requireHalfedgeVectors();
 
-  if (!isClosed()) {
-    throw std::runtime_error("Curve geometry only implemented for closed curves right now");
-  }
-
   // First compute values on segments
   std::vector<double> segmentLengths;
   std::vector<Complex> segmentNormals;
@@ -537,35 +533,55 @@ void MeshEmbeddedCurve::computeCurveGeometry() {
     curveNormalFace = unit(curveNormalFace);
     segmentNormals.push_back(curveNormalFace);
 
-    segmentNormalsAgainstStartHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.startHe]));
-    segmentNormalsAgainstEndHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.endHe]));
+    if (seg.startHe != HalfedgePtr()) {
+      segmentNormalsAgainstStartHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.startHe]));
+    }
+    if (seg.endHe != HalfedgePtr()) {
+      segmentNormalsAgainstEndHe.push_back(curveNormalFace / unit(gc.halfedgeFaceCoords[seg.endHe]));
+    }
   }
 
-  // double totalLen = computeLength();
   double cumLen = 0;
 
-  size_t iPt = 0;
   size_t nPt = segmentPoints.size();
 
   std::vector<double> segmentParams;
 
-  for (SegmentEndpoint& s : segmentPoints) {
+  for (size_t iEndPt = 0; iEndPt < segmentPoints.size(); iEndPt++) {
+    SegmentEndpoint& s = segmentPoints[iEndPt];
 
-    size_t prevSegInd = (iPt + nPt - 1) % nPt;
-    size_t nextSegInd = iPt;
+    size_t prevSegInd = (iEndPt + nPt - 1) % nPt;
+    size_t nextSegInd = iEndPt;
+
+    double prevLen = 0;
+    double nextLen = 0;
+    Complex prevNormalInThisFace = 0;
+    Complex nextNormalInThisFace = 0;
+
+    // Segment before this
+    if (iEndPt > 0) {
+      prevLen = segmentLengths[prevSegInd];
+      prevNormalInThisFace = segmentNormalsAgainstEndHe[prevSegInd];
+    }
+
+    // Segment after this
+    if (iEndPt < (segmentPoints.size() - 1)) {
+      nextLen = segmentLengths[nextSegInd];
+      nextNormalInThisFace = -segmentNormalsAgainstStartHe[nextSegInd];
+    }
+
 
     s.unitSpeedParam = cumLen;
-    s.dualLength = 0.5 * (segmentLengths[prevSegInd] + segmentLengths[nextSegInd]);
-    s.surfaceNormal = unit(gc.faceNormals[s.halfedge.face()] + gc.faceNormals[s.halfedge.twin().face()]);
+    s.dualLength = 0.5 * (prevLen + nextLen);
+    s.surfaceNormal = unit(gc.faceNormals[faceBefore(s)] + gc.faceNormals[faceAfter(s)]);
 
-    Complex prevNormalInThisFace = segmentNormalsAgainstEndHe[prevSegInd];
-    Complex nextNormalInThisFace = -segmentNormalsAgainstStartHe[nextSegInd];
     s.normal =
         unit(prevNormalInThisFace * segmentLengths[prevSegInd] + nextNormalInThisFace * segmentLengths[nextSegInd]);
 
 
-    cumLen += segmentLengths[nextSegInd];
-    iPt++;
+    if (iEndPt < (segmentPoints.size() - 1)) {
+      cumLen += segmentLengths[nextSegInd];
+    }
   }
 }
 
