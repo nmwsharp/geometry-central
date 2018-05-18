@@ -161,8 +161,10 @@ CornerData<size_t> HalfedgeMesh::getCornerIndices() {
   CornerData<size_t> indices(this);
   size_t i = 0;
   for (CornerPtr c : corners()) {
-    indices[c] = i;
-    i++;
+    if(c.halfedge().isReal()) {
+      indices[c] = i;
+      i++;
+    }
   }
   return indices;
 }

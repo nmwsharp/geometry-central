@@ -23,8 +23,7 @@ bool WavefrontOBJ::write(string filename, Geometry<Euclidean>& geometry) {
   return true;
 }
 
-bool WavefrontOBJ::write(string filename, Geometry<Euclidean>& geometry,
-                         CornerData<Vector2>& texcoords) {
+bool WavefrontOBJ::write(string filename, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
   ofstream out;
   if (!openStream(out, filename)) return false;
 
@@ -72,18 +71,18 @@ void WavefrontOBJ::writeVertices(ofstream& out, Geometry<Euclidean>& geometry) {
   }
 }
 
-void WavefrontOBJ::writeTexCoords(ofstream& out, Geometry<Euclidean>& geometry,
-                                  CornerData<Vector2>& texcoords) {
+void WavefrontOBJ::writeTexCoords(ofstream& out, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   for (CornerPtr c : mesh.corners()) {
-    Vector2 z = texcoords[c];
-    out << "vt " << z.x << " " << z.y << endl;
+    if (c.halfedge().isReal()) {
+      Vector2 z = texcoords[c];
+      out << "vt " << z.x << " " << z.y << endl;
+    }
   }
 }
 
-void WavefrontOBJ::writeFaces(ofstream& out, Geometry<Euclidean>& geometry,
-                              bool useTexCoords) {
+void WavefrontOBJ::writeFaces(ofstream& out, Geometry<Euclidean>& geometry, bool useTexCoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   // Get vertex indices
@@ -96,8 +95,7 @@ void WavefrontOBJ::writeFaces(ofstream& out, Geometry<Euclidean>& geometry,
     for (FacePtr f : mesh.faces()) {
       out << "f";
       for (CornerPtr c : f.adjacentCorners()) {
-        out << " " << indices[c.vertex()] + 1 << "/"
-            << cIndices[c] + 1;  // OBJ uses 1-based indexing
+        out << " " << indices[c.vertex()] + 1 << "/" << cIndices[c] + 1; // OBJ uses 1-based indexing
       }
       out << endl;
     }
@@ -105,15 +103,14 @@ void WavefrontOBJ::writeFaces(ofstream& out, Geometry<Euclidean>& geometry,
     for (FacePtr f : mesh.faces()) {
       out << "f";
       for (HalfedgePtr h : f.adjacentHalfedges()) {
-        out << " " << indices[h.vertex()] + 1;  // OBJ uses 1-based indexing
+        out << " " << indices[h.vertex()] + 1; // OBJ uses 1-based indexing
       }
       out << endl;
     }
   }
 }
 
-bool PLY::write(std::string filename, Geometry<Euclidean>& geometry,
-                VertexData<Vector3> colors) {
+bool PLY::write(std::string filename, Geometry<Euclidean>& geometry, VertexData<Vector3> colors) {
   ofstream out;
   out.open(filename);
   if (!out) {
@@ -140,9 +137,7 @@ bool PLY::write(std::string filename, Geometry<Euclidean>& geometry,
   out << "property list uchar int vertex_index" << endl;
   out << "end_header" << endl;
 
-  auto round255 = [&](double v) {
-    return static_cast<int>(clamp(std::round(v * 255), 0.0, 255.));
-  };
+  auto round255 = [&](double v) { return static_cast<int>(clamp(std::round(v * 255), 0.0, 255.)); };
 
   // Vertices
   for (VertexPtr v : mesh->vertices()) {
@@ -169,4 +164,4 @@ bool PLY::write(std::string filename, Geometry<Euclidean>& geometry,
   return true;
 }
 
-}  // namespace geometrycentral
+} // namespace geometrycentral
