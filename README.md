@@ -24,6 +24,8 @@ TODO
 - [Rohan Sawheny](http://rohansawhney.io/)
 - And the rest of the [Geometry Collective](http://geometry.cs.cmu.edu) at Carnegie Mellon University
 
+Development of this software was funded in part by NSF Award 1717320, an NSF graduate research fellowship, and gifts from Adobe Research and Autodesk, Inc.
+
 ## Projects that use Geometry Central
 
 TODO
