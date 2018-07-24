@@ -734,40 +734,22 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   return newMesh;
 }
+  
+std::vector<std::vector<size_t>> HalfedgeMesh::getPolygonSoupFaces() {
 
-/*
-HalfedgeMesh* HalfedgeMesh::copy() {
-  // Copy the lazy way: Build a polygon soup mesh and construct a new halfedge
-  // mesh
+  std::vector<std::vector<size_t>> result;
 
-  // TODO I'm not actually sure if this is a true fixed point. It certainly
-  // preserves
-  //      face and vertex indexing, but the other members may mutate...
-  // TODO we could avoid the constructor with some pointer pushing
-
-  std::vector<std::vector<size_t>> polygons;
   VertexData<size_t> vInd = getVertexIndices();
-  for (FacePtr f : faces()) {
-    std::vector<size_t> poly;
-    for (VertexPtr v : f.adjacentVertices()) {
-      poly.push_back(vInd[v]);
+  for(FacePtr f : faces()) {
+    std::vector<size_t> faceList;
+    for(VertexPtr v : f.adjacentVertices()) {
+      faceList.push_back(vInd[v]);
     }
-    polygons.push_back(poly);
+    result.push_back(faceList);
   }
 
-  std::vector<Vector3> vertCoords(nVertices());
-
-  // Build a polygon soup mesh
-  PolygonSoupMesh pMesh(polygons, vertCoords);
-
-  // Construct a halfedge mesh, discard the geometry
-  Geometry<Euclidean>* geom;
-  HalfedgeMesh* mesh = new HalfedgeMesh(pMesh, geom);
-
-  delete geom;
-
-  return mesh;
+  return result;
 }
-*/
+
 
 } // namespace geometrycentral

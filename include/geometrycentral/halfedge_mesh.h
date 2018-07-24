@@ -93,6 +93,7 @@ public:
   size_t longestBoundaryLoop() const;
   int eulerCharacteristic() const;
   size_t nConnectedComponents() const;
+  std::vector<std::vector<size_t>> getPolygonSoupFaces();
   HalfedgeMesh* copy();                            // returns a deep copy
   HalfedgeMesh* copy(HalfedgeMeshDataTransfer& t); // returns a deep copy
 

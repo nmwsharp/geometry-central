@@ -603,5 +603,16 @@ void Geometry<T>::getAngularCoordinates(HalfedgeData<double>& angularCoordinates
   }
 }
 
+template <class T>
+std::vector<T> Geometry<T>::getVertexPositionList() {
+
+  std::vector<T> pList;
+  for (VertexPtr v : mesh.vertices()) {
+    pList.push_back(position(v));
+  }
+
+  return pList;
+}
+
 
 } // namespace geometrycentral

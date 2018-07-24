@@ -148,6 +148,7 @@ public:
   void getAngularCoordinates(HalfedgeData<double>& angularCoordinates);
 
   void normalize();
+  std::vector<T> getVertexPositionList();
 
   // members
   HalfedgeMesh& mesh;
