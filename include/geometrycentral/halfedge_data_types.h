@@ -27,6 +27,9 @@ public:
 
   T& operator[](VertexPtr v);
   const T& operator[](VertexPtr v) const;
+  T& operator[](size_t v);
+  const T& operator[](size_t v) const;
+  size_t size() const;
 
   void fill(T val);
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
@@ -53,6 +56,9 @@ public:
 
   T& operator[](FacePtr f);
   const T& operator[](FacePtr f) const;
+  T& operator[](size_t f);
+  const T& operator[](size_t f) const;
+  size_t size() const;
 
   void fill(T val);
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
@@ -78,6 +84,9 @@ public:
 
   T& operator[](EdgePtr e);
   const T& operator[](EdgePtr e) const;
+  T& operator[](size_t e);
+  const T& operator[](size_t e) const;
+  size_t size() const;
 
   void fill(T val);
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
@@ -105,6 +114,9 @@ public:
 
   T& operator[](HalfedgePtr he);
   const T& operator[](HalfedgePtr he) const;
+  T& operator[](size_t he);
+  const T& operator[](size_t he) const;
+  size_t size() const;
 
   void fill(T val);
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
@@ -132,6 +144,9 @@ public:
 
   T& operator[](CornerPtr c);
   const T& operator[](CornerPtr c) const;
+  T& operator[](size_t c);
+  const T& operator[](size_t c) const;
+  size_t size() const;
 
   void fill(T val);
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;

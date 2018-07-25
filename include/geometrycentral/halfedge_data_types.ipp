@@ -105,6 +105,27 @@ inline const T& VertexData<T>::operator[](VertexPtr v) const {
   return data[i];
 }
 
+template <typename T>
+inline T& VertexData<T>::operator[](size_t v) {
+#ifndef NDEBUG
+  assert(v < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[v];
+}
+
+template <typename T>
+inline const T& VertexData<T>::operator[](size_t v) const {
+#ifndef NDEBUG
+  assert(v < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[v];
+}
+
+template <typename T>
+inline size_t VertexData<T>::size() const {
+  return data.size();
+}
+
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(VertexData, mesh)
 
 // Data on edges
@@ -205,6 +226,28 @@ inline const T& EdgeData<T>::operator[](EdgePtr e) const {
   size_t i = e - mesh->edge(0);
   return data[i];
 }
+
+template <typename T>
+inline T& EdgeData<T>::operator[](size_t e) {
+#ifndef NDEBUG
+  assert(e < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[e];
+}
+
+template <typename T>
+inline const T& EdgeData<T>::operator[](size_t e) const {
+#ifndef NDEBUG
+  assert(e < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[e];
+}
+
+template <typename T>
+inline size_t EdgeData<T>::size() const {
+  return data.size();
+}
+
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(EdgeData, mesh)
 
@@ -319,6 +362,27 @@ inline const T& FaceData<T>::operator[](FacePtr f) const {
   }
 }
 
+template <typename T>
+inline T& FaceData<T>::operator[](size_t f) {
+#ifndef NDEBUG
+  assert(f < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[f];
+}
+
+template <typename T>
+inline const T& FaceData<T>::operator[](size_t f) const {
+#ifndef NDEBUG
+  assert(f < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[f];
+}
+
+template <typename T>
+inline size_t FaceData<T>::size() const {
+  return data.size();
+}
+
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(FaceData, mesh)
 
 // Data on (real and imaginary) halfedges
@@ -423,6 +487,27 @@ inline const T& HalfedgeData<T>::operator[](HalfedgePtr he) const {
   return data[i];
 }
 
+template <typename T>
+inline T& HalfedgeData<T>::operator[](size_t he) {
+#ifndef NDEBUG
+  assert(he < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[he];
+}
+
+template <typename T>
+inline const T& HalfedgeData<T>::operator[](size_t he) const {
+#ifndef NDEBUG
+  assert(he < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[he];
+}
+
+template <typename T>
+inline size_t HalfedgeData<T>::size() const {
+  return data.size();
+}
+
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(HalfedgeData, mesh)
 
 // Data on corners
@@ -523,6 +608,27 @@ inline const T& CornerData<T>::operator[](CornerPtr c) const {
 #endif
   size_t i = c - mesh->corner(0);
   return data[i];
+}
+
+template <typename T>
+inline T& CornerData<T>::operator[](size_t c) {
+#ifndef NDEBUG
+  assert(c < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[c];
+}
+
+template <typename T>
+inline const T& CornerData<T>::operator[](size_t c) const {
+#ifndef NDEBUG
+  assert(c < size() && "Attempted to access data with out of bounds index");
+#endif
+  return data[c];
+}
+
+template <typename T>
+inline size_t CornerData<T>::size() const {
+  return data.size();
 }
 
 GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(CornerData, mesh)
