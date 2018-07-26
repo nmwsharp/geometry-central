@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometrycentral/dependent_quantity.h"
 #include "geometrycentral/halfedge_mesh.h"
 #include "geometrycentral/unit_vector3.h"
 #include "geometrycentral/vector2.h"
@@ -12,35 +13,6 @@
 
 namespace geometrycentral {
 
-// Helper class which manages a dependency graph of quantities
-class DependentQuantity {
-
-public:
-  DependentQuantity(){};
-
-  DependentQuantity(std::vector<DependentQuantity*> dependencies_, std::function<void()> evaluateFunc_)
-      : dependencies(dependencies_), evaluateFunc(evaluateFunc_) {}
-
-  std::vector<DependentQuantity*> dependencies;
-
-  // Compute the quantity, if we don't have it already
-  void ensureHave();
-
-  // Compute the quantity if we need it and don't have it already
-  void ensureHaveIfRequired();
-
-  // Note that something will reqiure this quantity (increments a count of such requirements),
-  // and ensure that we have this quantity
-  void require();
-
-  // Decrement the count of requirements of this quantity
-  void unrequire();
-
-  bool computed = false;
-  int requireCount = 0;
-
-  std::function<void()> evaluateFunc;
-};
 
 template <typename G>
 class GeometryCache {
@@ -112,63 +84,63 @@ private:
 
   DependentQuantity vertexDualAreasQ;
   void computeVertexDualAreas();
-  
+
   DependentQuantity halfedgeVectorsQ;
   void computeHalfedgeVectors();
 
   DependentQuantity edgeLengthsQ;
   void computeEdgeLengths();
-  
+
   DependentQuantity dihedralAnglesQ;
   void computeDihedralAngles();
 
   DependentQuantity halfedgeCotanWeightsQ;
   void computeHalfedgeCotanWeights();
-  
+
   DependentQuantity edgeCotanWeightsQ;
   void computeEdgeCotanWeights();
-  
+
   DependentQuantity vertexAngleDefectsQ;
   void computeVertexAngleDefects();
-  
+
   // == Vector fields, angles, and transport
-  
+
   DependentQuantity faceBasesQ;
   void computeFaceBases();
-  
+
   DependentQuantity vertexBasesQ;
   void computeVertexBases();
-  
+
   DependentQuantity halfedgeFaceCoordsQ;
   void computeHalfedgeFaceCoords();
-  
+
   DependentQuantity faceTransportCoefsQ;
   void computeFaceTransportCoefs();
-  
+
   DependentQuantity halfedgeOppositeAnglesQ;
   void computeHalfedgeOppositeAngles();
 
   DependentQuantity halfedgeRescaledOppositeAnglesQ;
   void computeHalfedgeRescaledOppositeAngles();
-  
+
   DependentQuantity halfedgeVertexCoordsQ;
   void computeHalfedgeVertexCoords();
-  
+
   DependentQuantity vertexTransportCoefsQ;
   void computeVertexTransportCoefs();
-  
+
   DependentQuantity vertexFaceTransportCoefsQ;
   void computeVertexFaceTransportCoefs();
-  
+
   DependentQuantity principalDirectionsQ;
   void computePrincipalDirections();
-  
-  
+
+
   // == Indices
 
   DependentQuantity vertexIndicesQ;
   void computeVertexIndices();
-  
+
   DependentQuantity interiorVertexIndicesQ;
   void computeInteriorVertexIndices();
 
@@ -194,9 +166,8 @@ private:
 
 
 public:
-  
   // == Basic geometric quantities
-  
+
   // Face area normals
   // vector which points in the normal direction and has magnitude equal to area of face
   inline void requireFaceAreaNormals() { faceAreaNormalsQ.require(); }
@@ -217,8 +188,8 @@ public:
   // Vertex dual areas
   inline void requireVertexDualAreas() { vertexDualAreasQ.require(); }
   VertexData<double> vertexDualAreas;
-  
-  // Halfedge cotans 
+
+  // Halfedge cotans
   inline void requireHalfedgeVectors() { halfedgeVectorsQ.require(); }
   HalfedgeData<Vector3> halfedgeVectors;
 
@@ -229,7 +200,7 @@ public:
   // Dihedral angle
   inline void requireDihedralAngles() { dihedralAnglesQ.require(); }
   EdgeData<double> dihedralAngles;
-  
+
   // Halfedge cotan weights
   inline void requireHalfedgeCotanWeights() { halfedgeCotanWeightsQ.require(); }
   HalfedgeData<double> halfedgeCotanWeights;
@@ -237,18 +208,18 @@ public:
   // Edge cotan weights
   inline void requireEdgeCotanWeights() { edgeCotanWeightsQ.require(); }
   EdgeData<double> edgeCotanWeights;
-  
+
   // Angle defect at vertices
   inline void requireVertexAngleDefects() { vertexAngleDefectsQ.require(); }
   VertexData<double> vertexAngleDefects;
 
 
   // == Vector fields, angles, and transport
-  
+
   // Extrinsic basis vector pair in each face
   inline void requireFaceBases() { faceBasesQ.require(); }
   FaceData<std::array<Vector3, 2>> faceBases;
-  
+
   // Extrinsic basis vector pair in each vertex's tangent plane
   inline void requireVertexBases() { vertexBasesQ.require(); }
   VertexData<std::array<Vector3, 2>> vertexBases;
@@ -257,45 +228,44 @@ public:
   // NOTE: These HAVE magnitude, unlike the vertex version (confusingly)
   inline void requireHalfedgeFaceCoords() { halfedgeFaceCoordsQ.require(); }
   HalfedgeData<Complex> halfedgeFaceCoords;
-  
+
   // Transport an intrinsic vector field in he.face() to he.twin().face() by multiplying
   // by complex z = e^(theta I) given here
   inline void requireFaceTransportCoefs() { faceTransportCoefsQ.require(); }
   HalfedgeData<Complex> faceTransportCoefs;
-  
+
   // Halfedge opposite angles
   inline void requireHalfedgeOppositeAngles() { halfedgeOppositeAnglesQ.require(); }
   HalfedgeData<double> halfedgeOppositeAngles;
-  
+
   // Halfedge opposite angles (scaled by the angle defect to sum to 2 PI at each vertex)
   inline void requireHalfedgeRescaledOppositeAngles() { halfedgeRescaledOppositeAnglesQ.require(); }
   HalfedgeData<double> halfedgeRescaledOppositeAngles;
-  
+
   // The coordinate of each halfedge in the basis of he.vertex(), rescaled so the sum around each vertex is 2*PI
   inline void requireHalfedgeVertexCoords() { halfedgeVertexCoordsQ.require(); }
   HalfedgeData<Complex> halfedgeVertexCoords;
-  
+
   // Transport an intrinsic vector field in he.vertex() to he.twin().vertex() by multiplying
   // by complex z = e^(theta I) given here
   inline void requireVertexTransportCoefs() { vertexTransportCoefsQ.require(); }
   HalfedgeData<Complex> vertexTransportCoefs;
-  
+
   // Transport an intrinsic vector field in he.vertex() to he.face() by multiplying
   // by complex z = e^(theta I) given here
   inline void requireVertexFaceTransportCoefs() { vertexFaceTransportCoefsQ.require(); }
   HalfedgeData<Complex> vertexFaceTransportCoefs;
- 
+
   // The two-symmetric vector field encoding the principal directions and their strength
   inline void requirePrincipalDirections() { principalDirectionsQ.require(); }
   VertexData<Complex> principalDirections;
-
 
 
   // == Indices
 
   inline void requireVertexIndices() { vertexIndicesQ.require(); }
   VertexData<size_t> vertexIndices;
-  
+
   inline void requireInteriorVertexIndices() { interiorVertexIndicesQ.require(); }
   VertexData<size_t> interiorVertexIndices;
 
