@@ -1,4 +1,4 @@
-#include "geometrycentral/geodesic_triangulation_geometry.h"
+#include "geometrycentral/edge_length_geometry.h"
 
 #include "geometrycentral/discrete_operators.h"
 
@@ -7,14 +7,14 @@
 
 namespace geometrycentral {
 
-GeodesicTriangulationGeometry::GeodesicTriangulationGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths_)
+EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths_)
     : IntrinsicGeometry(mesh_), geodesicEdgeLengths(edgeLengths_)
 
 {
   buildDependencies();
 }
 
-GeodesicTriangulationGeometry::GeodesicTriangulationGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions)
+EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions)
     : IntrinsicGeometry(mesh_) {
 
   edgeLengths = EdgeData<double>(mesh);
@@ -28,6 +28,6 @@ GeodesicTriangulationGeometry::GeodesicTriangulationGeometry(HalfedgeMesh* mesh_
 
 // === Quantity implementations
 
-void GeodesicTriangulationGeometry::computeEdgeLengths() { edgeLengths = geodesicEdgeLengths; }
+void EdgeLengthGeometry::computeEdgeLengths() { edgeLengths = geodesicEdgeLengths; }
 
 } // namespace geometrycentral

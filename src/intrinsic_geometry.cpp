@@ -1,4 +1,4 @@
-#include "geometrycentral/geodesic_triangulation_geometry.h"
+#include "geometrycentral/intrinsic_geometry.h"
 
 #include "geometrycentral/discrete_operators.h"
 

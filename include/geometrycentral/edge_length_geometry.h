@@ -14,11 +14,11 @@
 namespace geometrycentral {
 
 
-class GeodesicTriangulationGeometry : public IntrinsicGeometry {
+class EdgeLengthGeometry : public IntrinsicGeometry {
 
 public:
-  GeodesicTriangulationGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths);
-  GeodesicTriangulationGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions);
+  EdgeLengthGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths);
+  EdgeLengthGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions);
 
 
 protected:
