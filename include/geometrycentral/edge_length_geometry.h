@@ -20,6 +20,7 @@ public:
   EdgeLengthGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths);
   EdgeLengthGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions);
 
+  void update(EdgeData<double> edgeLengths);
 
 protected:
   std::vector<DependentQuantity*> allQuantities;

@@ -23,6 +23,9 @@ public:
   // == Members
   HalfedgeMesh* mesh = nullptr;
 
+  // == Utility methods
+  void recomputeQuantities();
+
   // == Basic geometric quantities
 
   // Face areas

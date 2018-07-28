@@ -52,6 +52,14 @@ namespace geometrycentral {
   // clang-format on
 }
 
+void IntrinsicGeometry::recomputeQuantities() {
+  for (DependentQuantity* q : allQuantities) {
+    q->computed = false;
+  }
+  for (DependentQuantity* q : allQuantities) {
+    q->ensureHaveIfRequired();
+  }
+}
 
 void IntrinsicGeometry::verifyTriangular(HalfedgeMesh* m) {
   if (!m->isSimplicial()) {
