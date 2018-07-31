@@ -317,11 +317,15 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
   size_t nImaginaryHalfedges = nUnpairedEdges;
   size_t nRealFaces = input.polygons.size();
 
-  // Allocate space
-  rawHalfedges.resize(nRealHalfedges + nImaginaryHalfedges);
-  rawVertices.resize(nVerts);
-  rawEdges.resize(nTotalEdges);
-  rawFaces.resize(nRealFaces);
+  // Allocate space and construct elements
+  rawHalfedges.reserve(nRealHalfedges + nImaginaryHalfedges);
+  for (size_t i = 0; i < (nRealHalfedges + nImaginaryHalfedges); i++) getNewHalfedge();
+  rawVertices.reserve(nVerts);
+  for (size_t i = 0; i < nVerts; i++) getNewVertex();
+  rawEdges.reserve(nTotalEdges);
+  for (size_t i = 0; i < nTotalEdges; i++) getNewEdge();
+  rawFaces.reserve(nRealFaces);
+  for (size_t i = 0; i < nRealFaces; i++) getNewFace();
 
   // === 1. Create faces, edges, and halfedges
 
@@ -810,7 +814,7 @@ VertexPtr HalfedgeMesh::splitEdge(EdgePtr e) {
 
   // Validate that faces are triangular and real
   if (e.isBoundary() || e.halfedge().face().degree() != 3 || e.halfedge().twin().face().degree() != 3 ||
-     e.halfedge().face() == e.halfedge().twin().face()) {
+      e.halfedge().face() == e.halfedge().twin().face()) {
     throw std::logic_error("Can only split non-boundary edge which borders two distinct triangular faces");
   }
 
@@ -823,7 +827,7 @@ VertexPtr HalfedgeMesh::splitEdge(EdgePtr e) {
   VertexPtr vOppA = newV.halfedge().next().next().vertex();
   FacePtr fOppB = newV.halfedge().twin().face();
   VertexPtr vOppB = newV.halfedge().twin().next().next().next().vertex();
- 
+
   connectVertices(fOppA, vOppA, newV);
   connectVertices(fOppB, vOppB, newV);
 
@@ -1024,7 +1028,12 @@ Halfedge* HalfedgeMesh::getNewHalfedge() {
     for (Face& f : rawBoundaryLoops) {
       f.halfedge += shift;
     }
+    for (DynamicHalfedgePtr* d : registeredHalfedgePtrs) {
+      d->ptr += shift;
+    }
   }
+
+  rawHalfedges.back().ID = nextElemID++;
   return &rawHalfedges.back();
 }
 
@@ -1047,7 +1056,12 @@ Vertex* HalfedgeMesh::getNewVertex() {
     for (Halfedge& he : rawHalfedges) {
       he.vertex += shift;
     }
+    for (DynamicVertexPtr* d : registeredVertexPtrs) {
+      d->ptr += shift;
+    }
   }
+
+  rawVertices.back().ID = nextElemID++;
   return &rawVertices.back();
 }
 
@@ -1070,7 +1084,12 @@ Edge* HalfedgeMesh::getNewEdge() {
     for (Halfedge& he : rawHalfedges) {
       he.edge += shift;
     }
+    for (DynamicEdgePtr* d : registeredEdgePtrs) {
+      d->ptr += shift;
+    }
   }
+
+  rawEdges.back().ID = nextElemID++;
   return &rawEdges.back();
 }
 
@@ -1093,7 +1112,12 @@ Face* HalfedgeMesh::getNewFace() {
     for (Halfedge& he : rawHalfedges) {
       he.face += shift;
     }
+    for (DynamicFacePtr* d : registeredFacePtrs) {
+      d->ptr += shift;
+    }
   }
+
+  rawFaces.back().ID = nextElemID++;
   return &rawFaces.back();
 }
 

@@ -19,6 +19,7 @@ class EdgeLengthGeometry : public IntrinsicGeometry {
 public:
   EdgeLengthGeometry(HalfedgeMesh* mesh_, EdgeData<double>& edgeLengths);
   EdgeLengthGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>& vertexPositions);
+  virtual ~EdgeLengthGeometry();
 
   void update(EdgeData<double> edgeLengths);
 

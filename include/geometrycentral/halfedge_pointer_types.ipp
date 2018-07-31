@@ -87,6 +87,17 @@ inline ::std::ostream& operator<<(::std::ostream& output,
   return output;
 }
 
+inline DynamicHalfedgePtr::DynamicHalfedgePtr(Halfedge* ptr_, HalfedgeMesh* mesh_) : ptr(ptr_), mesh(mesh_) {
+  listIt = mesh->registeredHalfedgePtrs.insert(mesh->registeredHalfedgePtrs.end(), this);
+}
+inline DynamicHalfedgePtr::DynamicHalfedgePtr(HalfedgePtr ptr_, HalfedgeMesh* mesh_) : ptr(ptr_.ptr), mesh(mesh_) {
+  listIt = mesh->registeredHalfedgePtrs.insert(mesh->registeredHalfedgePtrs.end(), this);
+}
+inline  DynamicHalfedgePtr::~DynamicHalfedgePtr() {
+  mesh->registeredHalfedgePtrs.erase(listIt);
+}
+  
+
 inline HalfedgePtrRangeIterator::HalfedgePtrRangeIterator(
     HalfedgePtr startingHalfedge, HalfedgeSetType type_, HalfedgePtr end_)
     : currHalfedge(startingHalfedge), type(type_), end(end_) {}
@@ -323,6 +334,16 @@ inline ::std::ostream& operator<<(::std::ostream& output, const VertexPtr& v) {
   return output;
 }
 
+inline DynamicVertexPtr::DynamicVertexPtr(Vertex* ptr_, HalfedgeMesh* mesh_) : ptr(ptr_), mesh(mesh_) {
+  listIt = mesh->registeredVertexPtrs.insert(mesh->registeredVertexPtrs.end(), this);
+}
+inline DynamicVertexPtr::DynamicVertexPtr(VertexPtr ptr_, HalfedgeMesh* mesh_) : ptr(ptr_.ptr), mesh(mesh_) {
+  listIt = mesh->registeredVertexPtrs.insert(mesh->registeredVertexPtrs.end(), this);
+}
+inline  DynamicVertexPtr::~DynamicVertexPtr() {
+  mesh->registeredVertexPtrs.erase(listIt);
+}
+
 inline VertexPtrRangeIterator::VertexPtrRangeIterator(VertexPtr startingVertex)
     : currVertex(startingVertex) {}
 inline const VertexPtrRangeIterator& VertexPtrRangeIterator::operator++() {
@@ -411,6 +432,16 @@ inline EdgePtr EdgePtr::operator--(int) {
 inline ::std::ostream& operator<<(::std::ostream& output, const EdgePtr& e) {
   output << "e_" << e.ptr;
   return output;
+}
+
+inline DynamicEdgePtr::DynamicEdgePtr(Edge* ptr_, HalfedgeMesh* mesh_) : ptr(ptr_), mesh(mesh_) {
+  listIt = mesh->registeredEdgePtrs.insert(mesh->registeredEdgePtrs.end(), this);
+}
+inline DynamicEdgePtr::DynamicEdgePtr(EdgePtr ptr_, HalfedgeMesh* mesh_) : ptr(ptr_.ptr), mesh(mesh_) {
+  listIt = mesh->registeredEdgePtrs.insert(mesh->registeredEdgePtrs.end(), this);
+}
+inline  DynamicEdgePtr::~DynamicEdgePtr() {
+  mesh->registeredEdgePtrs.erase(listIt);
 }
 
 inline EdgePtrRangeIterator::EdgePtrRangeIterator(EdgePtr startingEdge)
@@ -524,6 +555,16 @@ inline ::std::ostream& operator<<(::std::ostream& output, const FacePtr& f) {
   return output;
 }
 
+inline DynamicFacePtr::DynamicFacePtr(Face* ptr_, HalfedgeMesh* mesh_) : ptr(ptr_), mesh(mesh_) {
+  listIt = mesh->registeredFacePtrs.insert(mesh->registeredFacePtrs.end(), this);
+}
+inline DynamicFacePtr::DynamicFacePtr(FacePtr ptr_, HalfedgeMesh* mesh_) : ptr(ptr_.ptr), mesh(mesh_) {
+  listIt = mesh->registeredFacePtrs.insert(mesh->registeredFacePtrs.end(), this);
+}
+inline  DynamicFacePtr::~DynamicFacePtr() {
+  mesh->registeredFacePtrs.erase(listIt);
+}
+
 inline FacePtrRangeIterator::FacePtrRangeIterator(FacePtr startingFace)
     : currFace(startingFace) {}
 inline const FacePtrRangeIterator& FacePtrRangeIterator::operator++() {
@@ -552,31 +593,64 @@ inline FacePtrRangeIterator FacePtrSet::end() {
 }  // namespace geometrycentral
 
 namespace std {
+
+// == Hash standard pointers
+
 template <>
 struct hash<geometrycentral::HalfedgePtr> {
   std::size_t operator()(const geometrycentral::HalfedgePtr& he) const {
-    return std::hash<geometrycentral::Halfedge*>{}(he.ptr);
+    return std::hash<size_t>{}(he.ptr->ID);
   }
 };
 
 template <>
 struct hash<geometrycentral::VertexPtr> {
   std::size_t operator()(const geometrycentral::VertexPtr& v) const {
-    return std::hash<geometrycentral::Vertex*>{}(v.ptr);
+    return std::hash<size_t>{}(v.ptr->ID);
   }
 };
 
 template <>
 struct hash<geometrycentral::EdgePtr> {
   std::size_t operator()(const geometrycentral::EdgePtr& e) const {
-    return std::hash<geometrycentral::Edge*>{}(e.ptr);
+    return std::hash<size_t>{}(e.ptr->ID);
   }
 };
 
 template <>
 struct hash<geometrycentral::FacePtr> {
   std::size_t operator()(const geometrycentral::FacePtr& f) const {
-    return std::hash<geometrycentral::Face*>{}(f.ptr);
+    return std::hash<size_t>{}(f.ptr->ID);
+  }
+};
+
+// == Hash dynamic pointers
+
+template <>
+struct hash<geometrycentral::DynamicHalfedgePtr> {
+  std::size_t operator()(const geometrycentral::DynamicHalfedgePtr& he) const {
+    return std::hash<size_t>{}(he.ptr->ID);
+  }
+};
+
+template <>
+struct hash<geometrycentral::DynamicVertexPtr> {
+  std::size_t operator()(const geometrycentral::DynamicVertexPtr& v) const {
+    return std::hash<size_t>{}(v.ptr->ID);
+  }
+};
+
+template <>
+struct hash<geometrycentral::DynamicEdgePtr> {
+  std::size_t operator()(const geometrycentral::DynamicEdgePtr& e) const {
+    return std::hash<size_t>{}(e.ptr->ID);
+  }
+};
+
+template <>
+struct hash<geometrycentral::DynamicFacePtr> {
+  std::size_t operator()(const geometrycentral::DynamicFacePtr& f) const {
+    return std::hash<size_t>{}(f.ptr->ID);
   }
 };
 }

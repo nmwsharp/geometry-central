@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list>
 #include <vector>
 
 #include "geometrycentral/vector3.h"
@@ -77,13 +78,13 @@ public:
   // Methods that mutate the mesh. Note that these occasionally trigger a resize, which invaliates
   // any outstanding VertexPtr or MeshData<> objects.
   // TODOs: support removing elements, support adding boundary
-  VertexPtr insertVertexAlongEdge(EdgePtr e); // adds a vertex along an edge, increasing degree of faces
-  VertexPtr splitEdge(EdgePtr e);             // split an edge, also splitting adjacent faces
-  VertexPtr insertVertex(FacePtr f);          // add vertex inside face and triangulate
+  VertexPtr insertVertexAlongEdge(EdgePtr e);          // adds a vertex along an edge, increasing degree of faces
+  VertexPtr splitEdge(EdgePtr e);                      // split an edge, also splitting adjacent faces
+  VertexPtr insertVertex(FacePtr f);                   // add vertex inside face and triangulate
   EdgePtr connectVertices(VertexPtr vA, VertexPtr vB); // add an edge connecting two vertices inside the same face
   EdgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB); // faster if you know the face
 
-  void permuteToCanonical();                  // permute to the same indexing convention as after construction
+  void permuteToCanonical(); // permute to the same indexing convention as after construction
 
   // Methods for obtaining canonical indices for mesh elements
   // (Note that in some situations, custom indices might instead be needed)
@@ -116,6 +117,8 @@ private:
   std::vector<Face> rawFaces;
   std::vector<Face> rawBoundaryLoops;
 
+  size_t nextElemID = 77; // used to assign unique ID to elements
+
   // Hide copy and move constructors, we don't wanna mess with that
   HalfedgeMesh(const HalfedgeMesh& other) = delete;
   HalfedgeMesh& operator=(const HalfedgeMesh& other) = delete;
@@ -124,9 +127,9 @@ private:
 
   // Used to resize the halfedge mesh. Expands and shifts vectors as necessary.
   Halfedge* getNewHalfedge();
-  Vertex*   getNewVertex();
-  Edge*     getNewEdge();
-  Face*     getNewFace();
+  Vertex* getNewVertex();
+  Edge* getNewEdge();
+  Face* getNewFace();
 
   // Cache some basic information that may be queried many
   // times, but require O(n) computation to determine.
@@ -144,14 +147,23 @@ private:
   size_t _nConnectedComponents;
 
 
-  // Any dynamic pointers that have been registered with the mesh. These 
-
+  // == Any dynamic pointers that have been registered with the mesh. These are automatically updated on resize events
+  friend class DynamicHalfedgePtr;
+  friend class DynamicVertexPtr;
+  friend class DynamicEdgePtr;
+  friend class DynamicFacePtr;
+  std::list<DynamicHalfedgePtr*> registeredHalfedgePtrs;
+  std::list<DynamicVertexPtr*> registeredVertexPtrs;
+  std::list<DynamicEdgePtr*> registeredEdgePtrs;
+  std::list<DynamicFacePtr*> registeredFacePtrs;
 };
 
 class Halfedge {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class HalfedgePtr;
+  friend struct std::hash<HalfedgePtr>;
+  friend struct std::hash<DynamicHalfedgePtr>;
 
 protected:
   Halfedge* twin;
@@ -161,6 +173,7 @@ protected:
   Face* face;
 
   bool isReal = true;
+  size_t ID; // a unique value useful for hashing (etc). NOT an index
 
 #ifndef NDEBUG
 public:
@@ -174,12 +187,15 @@ class Vertex {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class VertexPtr;
+  friend struct std::hash<VertexPtr>;
+  friend struct std::hash<DynamicVertexPtr>;
 
 protected:
   // Data structure
   Halfedge* halfedge; // some halfedge that emanates from this vertex
                       // (guaranteed to be real)
   bool isBoundary = false;
+  size_t ID; // a unique value useful for hashing (etc). NOT an index
 
 #ifndef NDEBUG
 public:
@@ -194,6 +210,8 @@ public:
 class Edge {
   friend class HalfedgeMesh;
   friend class EdgePtr;
+  friend struct std::hash<EdgePtr>;
+  friend struct std::hash<DynamicEdgePtr>;
 
 protected:
   Halfedge* halfedge;
@@ -201,6 +219,7 @@ protected:
   bool flip(void);
 
   bool isBoundary = false;
+  size_t ID; // a unique value useful for hashing (etc). NOT an index
 
 #ifndef NDEBUG
 public:
@@ -214,12 +233,15 @@ class Face {
   friend class Edge;
   friend class HalfedgeMesh;
   friend class FacePtr;
+  friend struct std::hash<FacePtr>;
+  friend struct std::hash<DynamicFacePtr>;
 
 protected:
   Halfedge* halfedge;
 
   bool isBoundary = false;
   bool isReal = false;
+  size_t ID; // a unique value useful for hashing (etc). NOT an index
 
 #ifndef NDEBUG
 public:

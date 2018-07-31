@@ -92,6 +92,7 @@ protected:
   Halfedge* ptr = nullptr;
 
   friend class HalfedgeMesh;
+  friend class DynamicHalfedgePtr;
   friend std::ostream& operator<<(std::ostream& output, const HalfedgePtr& he);
   friend struct std::hash<HalfedgePtr>;
 };
@@ -99,14 +100,19 @@ std::ostream& operator<<(std::ostream& output, const HalfedgePtr& he);
 
 class DynamicHalfedgePtr {
 public:
-  DynamicHalfedgePtr(Halfedge* ptr);
+  DynamicHalfedgePtr(Halfedge* ptr, HalfedgeMesh* mesh);
   DynamicHalfedgePtr(HalfedgePtr ptr, HalfedgeMesh* mesh);
   ~DynamicHalfedgePtr();
 
 private:
+  friend class HalfedgePtr;
+  friend class HalfedgeMesh;
+  friend struct std::hash<DynamicHalfedgePtr>;
+
   Halfedge* ptr = nullptr;
   HalfedgeMesh* mesh = nullptr;
-}
+  std::list<DynamicHalfedgePtr*>::iterator listIt;
+};
 
 enum class HalfedgeSetType { Real, Imaginary, All };
 class HalfedgePtrRangeIterator {
@@ -260,10 +266,27 @@ protected:
   Vertex* ptr = nullptr;
 
   friend class HalfedgeMesh;
+  friend class DynamicVertexPtr;
   friend std::ostream& operator<<(std::ostream& output, const VertexPtr& v);
   friend struct std::hash<VertexPtr>;
 };
 std::ostream& operator<<(std::ostream& output, const VertexPtr& v);
+
+class DynamicVertexPtr {
+public:
+  DynamicVertexPtr(Vertex* ptr, HalfedgeMesh* mesh);
+  DynamicVertexPtr(VertexPtr ptr, HalfedgeMesh* mesh);
+  ~DynamicVertexPtr();
+
+private:
+  friend class VertexPtr;
+  friend class HalfedgeMesh;
+  friend struct std::hash<DynamicVertexPtr>;
+
+  Vertex* ptr = nullptr;
+  HalfedgeMesh* mesh = nullptr;
+  std::list<DynamicVertexPtr*>::iterator listIt;
+};
 
 class VertexPtrRangeIterator {
 public:
@@ -337,10 +360,27 @@ protected:
   Edge* ptr = nullptr;
 
   friend class HalfedgeMesh;
+  friend class DynamicEdgePtr;
   friend std::ostream& operator<<(std::ostream& output, const EdgePtr& e);
   friend struct std::hash<EdgePtr>;
 };
 std::ostream& operator<<(std::ostream& output, const EdgePtr& e);
+
+class DynamicEdgePtr {
+public:
+  DynamicEdgePtr(Edge* ptr, HalfedgeMesh* mesh);
+  DynamicEdgePtr(EdgePtr ptr, HalfedgeMesh* mesh);
+  ~DynamicEdgePtr();
+
+private:
+  friend class EdgePtr;
+  friend class HalfedgeMesh;
+  friend struct std::hash<DynamicEdgePtr>;
+
+  Edge* ptr = nullptr;
+  HalfedgeMesh* mesh = nullptr;
+  std::list<DynamicEdgePtr*>::iterator listIt;
+};
 
 class EdgePtrRangeIterator {
 public:
@@ -431,10 +471,27 @@ protected:
   Face* ptr = nullptr;
 
   friend class HalfedgeMesh;
+  friend class DynamicFacePtr;
   friend std::ostream& operator<<(std::ostream& output, const FacePtr& f);
   friend struct std::hash<FacePtr>;
 };
 std::ostream& operator<<(std::ostream& output, const FacePtr& f);
+
+class DynamicFacePtr {
+public:
+  DynamicFacePtr(Face* ptr, HalfedgeMesh* mesh);
+  DynamicFacePtr(FacePtr ptr, HalfedgeMesh* mesh);
+  ~DynamicFacePtr();
+
+private:
+  friend class FacePtr;
+  friend class HalfedgeMesh;
+  friend struct std::hash<DynamicFacePtr>;
+
+  Face* ptr = nullptr;
+  HalfedgeMesh* mesh = nullptr;
+  std::list<DynamicFacePtr*>::iterator listIt;
+};
 
 class FacePtrRangeIterator {
 public:

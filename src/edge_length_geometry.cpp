@@ -24,6 +24,8 @@ EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh* mesh_, VertexData<Vector3>&
 
   buildDependencies();
 }
+  
+EdgeLengthGeometry::~EdgeLengthGeometry() {};
 
 // Set new edgelengths to define the geometry, immediately recalculating any quantities that have been required.
 void EdgeLengthGeometry::update(EdgeData<double> edgeLengths) {

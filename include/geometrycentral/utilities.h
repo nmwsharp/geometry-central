@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <complex>
-#include <complex>
 #include <exception>
 #include <limits>
 #include <random>
@@ -35,6 +34,7 @@ inline double dot(Complex x, Complex y) {
 
 inline Complex inv(Complex c) { return ::std::conj(c) / ::std::norm(c); }
 inline Complex unit(Complex c) { return c / ::std::abs(c); }
+inline double cross(Complex u, Complex v) { return u.real() * v.imag() - u.imag() * v.real();}
 
 // Various functions
 template <typename T>
