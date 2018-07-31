@@ -32,11 +32,19 @@ class EdgePtr;
 class FacePtr;
 class BoundaryLoopPtr;
 
+// The dynamic variants are automatically updated when the mesh is mutated, (the standard variants are invalidated).
+class DynamicHalfedgePtr;
+class DynamicVertexPtr;
+class DynamicEdgePtr;
+class DynamicFacePtr;
+class DynamicBoundaryLoopPtr;
+
 // Halfedge
 class HalfedgePtr {
 public:
   HalfedgePtr(); // defaults to nullptr
   HalfedgePtr(Halfedge* ptr);
+  HalfedgePtr(DynamicHalfedgePtr he);
 
   // Connectivity
   HalfedgePtr twin() const;
@@ -89,9 +97,21 @@ protected:
 };
 std::ostream& operator<<(std::ostream& output, const HalfedgePtr& he);
 
+class DynamicHalfedgePtr {
+public:
+  DynamicHalfedgePtr(Halfedge* ptr);
+  DynamicHalfedgePtr(HalfedgePtr ptr, HalfedgeMesh* mesh);
+  ~DynamicHalfedgePtr();
+
+private:
+  Halfedge* ptr = nullptr;
+  HalfedgeMesh* mesh = nullptr;
+}
+
+enum class HalfedgeSetType { Real, Imaginary, All };
 class HalfedgePtrRangeIterator {
 public:
-  HalfedgePtrRangeIterator(HalfedgePtr startingHalfedge);
+  HalfedgePtrRangeIterator(HalfedgePtr startingHalfedge, HalfedgeSetType type_, HalfedgePtr end_);
   const HalfedgePtrRangeIterator& operator++();
   bool operator==(const HalfedgePtrRangeIterator& other) const;
   bool operator!=(const HalfedgePtrRangeIterator& other) const;
@@ -99,15 +119,18 @@ public:
 
 private:
   HalfedgePtr currHalfedge;
+  HalfedgeSetType type;
+  HalfedgePtr end; // unfortunately needed to respect type option
 };
 class HalfedgePtrSet {
 public:
-  HalfedgePtrSet(HalfedgePtr beginptr_, HalfedgePtr endptr_);
+  HalfedgePtrSet(HalfedgePtr beginptr_, HalfedgePtr endptr_, HalfedgeSetType type_);
   HalfedgePtrRangeIterator begin();
   HalfedgePtrRangeIterator end();
 
 private:
   HalfedgePtr beginptr, endptr;
+  HalfedgeSetType type;
 };
 
 // Corner
@@ -183,6 +206,7 @@ class VertexPtr {
 public:
   VertexPtr(); // defaults to nullptr
   VertexPtr(Vertex* ptr);
+  VertexPtr(DynamicVertexPtr v);
 
   // Connectivity
   HalfedgePtr halfedge() const;
@@ -267,6 +291,7 @@ class EdgePtr {
 public:
   EdgePtr(); // defaults to nullptr
   EdgePtr(Edge* ptr);
+  EdgePtr(DynamicEdgePtr e);
 
   // Connectivity
   HalfedgePtr halfedge() const;
@@ -351,6 +376,7 @@ class FacePtr {
 public:
   FacePtr(); // defaults to nullptr
   FacePtr(Face* ptr);
+  FacePtr(DynamicFacePtr f);
 
   // Connectivity
   HalfedgePtr halfedge() const;
@@ -438,5 +464,7 @@ typedef Face Boundary;
 typedef FacePtr BoundaryPtr;
 typedef FacePtrSet BoundaryPtrSet;
 typedef FacePtrRangeIterator BoundaryRangeIterator;
+
+
 
 } // namespace geometrycentral

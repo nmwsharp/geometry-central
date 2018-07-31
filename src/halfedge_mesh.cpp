@@ -161,7 +161,7 @@ CornerData<size_t> HalfedgeMesh::getCornerIndices() {
   CornerData<size_t> indices(this);
   size_t i = 0;
   for (CornerPtr c : corners()) {
-    if(c.halfedge().isReal()) {
+    if (c.halfedge().isReal()) {
       indices[c] = i;
       i++;
     }
@@ -398,9 +398,9 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
   size_t nBoundaryLoops = 0;
   std::set<HalfedgePtr> walkedHalfedges;
   for (size_t iHe = 0; iHe < nHalfedges(); iHe++) {
-    if (allHalfedge(iHe)->twin == nullptr && walkedHalfedges.find(allHalfedge(iHe)) == walkedHalfedges.end()) {
+    if (halfedge(iHe)->twin == nullptr && walkedHalfedges.find(halfedge(iHe)) == walkedHalfedges.end()) {
       nBoundaryLoops++;
-      HalfedgePtr currHe = allHalfedge(iHe);
+      HalfedgePtr currHe = halfedge(iHe);
       walkedHalfedges.insert(currHe);
       size_t walkCount = 0;
       do {
@@ -408,12 +408,13 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
         while (currHe->twin != nullptr) {
           currHe = currHe->twin->next;
           walkCount++;
-          if(walkCount > nHalfedges()) {
-            throw std::runtime_error("Encountered infinite loop while constructing halfedge mesh. Are you sure the input is manifold?");
+          if (walkCount > nHalfedges()) {
+            throw std::runtime_error(
+                "Encountered infinite loop while constructing halfedge mesh. Are you sure the input is manifold?");
           }
         }
         walkedHalfedges.insert(currHe);
-      } while (currHe != allHalfedge(iHe));
+      } while (currHe != halfedge(iHe));
     }
   }
   rawBoundaryLoops.resize(nBoundaryLoops);
@@ -429,13 +430,13 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 
     // If this halfedge doesn't have a twin, it must be on a boundary (or have
     // already been processed while walking a hole)
-    if (allHalfedge(iHe)->twin == nullptr) {
+    if (halfedge(iHe)->twin == nullptr) {
       // Create a boundary loop for this hole
       BoundaryPtr boundaryLoop{&rawBoundaryLoops[iBoundaryLoop]};
       boundaryLoop->isReal = false;
 
       // Walk around the boundary loop, creating imaginary halfedges
-      HalfedgePtr currHe = allHalfedge(iHe);
+      HalfedgePtr currHe = halfedge(iHe);
       HalfedgePtr prevHe{nullptr};
       bool finished = false;
       while (!finished) {
@@ -487,7 +488,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
       // iteration of
       // the loop above because we don't have a reference to prev yet. Fix that
       // here.
-      allHalfedge(iHe)->twin->next = prevHe->twin;
+      halfedge(iHe)->twin->next = prevHe->twin;
 
       iBoundaryLoop++;
     }
@@ -540,9 +541,9 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 }
 
 bool Edge::flip() {
-//                         b b
-//                         * *
-//                        /|\                                                          / \
+  //                         b b
+  //                         * *
+  //                        /|\                                                          / \
 //                       / | \                                                        /   \
 //                      /  |  \                                                      /     \
 //                     /   |   \                                                    /       \
@@ -673,7 +674,7 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   // Build maps
   for (size_t i = 0; i < rawHalfedges.size(); i++) {
-    dataTransfer.heMap[allHalfedge(i)] = &newMesh->rawHalfedges[i];
+    dataTransfer.heMap[halfedge(i)] = &newMesh->rawHalfedges[i];
   }
   for (size_t i = 0; i < rawVertices.size(); i++) {
     dataTransfer.vMap[vertex(i)] = &newMesh->rawVertices[i];
@@ -690,11 +691,11 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   // Shift pointers
   for (size_t i = 0; i < rawHalfedges.size(); i++) {
-    newMesh->rawHalfedges[i].next = dataTransfer.heMap[allHalfedge(i).next()].ptr;
-    newMesh->rawHalfedges[i].twin = dataTransfer.heMap[allHalfedge(i).twin()].ptr;
-    newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[allHalfedge(i).vertex()].ptr;
-    newMesh->rawHalfedges[i].edge = dataTransfer.eMap[allHalfedge(i).edge()].ptr;
-    newMesh->rawHalfedges[i].face = dataTransfer.fMap[allHalfedge(i).face()].ptr;
+    newMesh->rawHalfedges[i].next = dataTransfer.heMap[halfedge(i).next()].ptr;
+    newMesh->rawHalfedges[i].twin = dataTransfer.heMap[halfedge(i).twin()].ptr;
+    newMesh->rawHalfedges[i].vertex = dataTransfer.vMap[halfedge(i).vertex()].ptr;
+    newMesh->rawHalfedges[i].edge = dataTransfer.eMap[halfedge(i).edge()].ptr;
+    newMesh->rawHalfedges[i].face = dataTransfer.fMap[halfedge(i).face()].ptr;
   }
   for (size_t i = 0; i < rawVertices.size(); i++) {
     newMesh->rawVertices[i].halfedge = dataTransfer.heMap[vertex(i).halfedge()].ptr;
@@ -734,15 +735,15 @@ HalfedgeMesh* HalfedgeMesh::copy(HalfedgeMeshDataTransfer& dataTransfer) {
 
   return newMesh;
 }
-  
+
 std::vector<std::vector<size_t>> HalfedgeMesh::getPolygonSoupFaces() {
 
   std::vector<std::vector<size_t>> result;
 
   VertexData<size_t> vInd = getVertexIndices();
-  for(FacePtr f : faces()) {
+  for (FacePtr f : faces()) {
     std::vector<size_t> faceList;
-    for(VertexPtr v : f.adjacentVertices()) {
+    for (VertexPtr v : f.adjacentVertices()) {
       faceList.push_back(vInd[v]);
     }
     result.push_back(faceList);
@@ -750,6 +751,353 @@ std::vector<std::vector<size_t>> HalfedgeMesh::getPolygonSoupFaces() {
 
   return result;
 }
+
+VertexPtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
+
+  // == Gather / create elements
+  // Faces are identified as 'A', and 'B'
+
+  // Create first, because getNew() could invalidate pointers
+  Vertex* newV = getNewVertex();
+  Edge* newE = getNewEdge();
+  Halfedge* heANew = getNewHalfedge();
+  Halfedge* heBNew = getNewHalfedge();
+
+  Halfedge* heACenter = e.halfedge().ptr;
+  Halfedge* heBCenter = heACenter->twin;
+  // Halfedge* heANext = heACenter->next;
+  Halfedge* heBNext = heBCenter->next;
+  Halfedge* heAPrev = HalfedgePtr{heACenter}.prev().ptr;
+  // Halfedge* heBPrev = HalfedgePtr{heBCenter}.prev().ptr;
+  Face* fA = heACenter->face;
+  Face* fB = heBCenter->face;
+  Vertex* oldVBottom = heACenter->vertex;
+
+  // == Hook up all the pointers
+
+  // New vertex
+  newV->halfedge = heACenter;
+
+  // New edge
+  newE->halfedge = heANew;
+
+  // New halfedge A
+  heANew->twin = heBNew;
+  heANew->next = heACenter;
+  heANew->vertex = oldVBottom;
+  heANew->edge = newE;
+  heANew->face = fA;
+
+  // New halfedge B
+  heBNew->twin = heANew;
+  heBNew->next = heBNext;
+  heBNew->vertex = newV;
+  heBNew->edge = newE;
+  heBNew->face = fB;
+
+  // Fix pointers for old halfedges
+  heBCenter->next = heBNew;
+  heAPrev->next = heANew;
+  oldVBottom->halfedge = heBNext;
+  heACenter->vertex = newV;
+
+
+  return VertexPtr{newV};
+}
+
+
+VertexPtr HalfedgeMesh::splitEdge(EdgePtr e) {
+
+  // Validate that faces are triangular and real
+  if (e.isBoundary() || e.halfedge().face().degree() != 3 || e.halfedge().twin().face().degree() != 3 ||
+     e.halfedge().face() == e.halfedge().twin().face()) {
+    throw std::logic_error("Can only split non-boundary edge which borders two distinct triangular faces");
+  }
+
+  // First operation: insert a new vertex along the edge
+  VertexPtr newV = insertVertexAlongEdge(e);
+
+
+  // Second operation: connect both of the new faces
+  FacePtr fOppA = newV.halfedge().face();
+  VertexPtr vOppA = newV.halfedge().next().next().vertex();
+  FacePtr fOppB = newV.halfedge().twin().face();
+  VertexPtr vOppB = newV.halfedge().twin().next().next().next().vertex();
+ 
+  connectVertices(fOppA, vOppA, newV);
+  connectVertices(fOppB, vOppB, newV);
+
+  return newV;
+}
+
+EdgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
+
+  // Find the shared face and call the main version
+  std::unordered_set<FacePtr> aFaces;
+  for (FacePtr f : vA.adjacentFaces()) {
+    aFaces.insert(f);
+  }
+  FacePtr sharedFace = FacePtr();
+  for (FacePtr f : vB.adjacentFaces()) {
+    if (aFaces.find(f) != aFaces.end()) {
+      sharedFace = f;
+      break;
+    }
+  }
+
+  if (sharedFace == FacePtr()) {
+    throw std::logic_error("Vertices do not contain shared face");
+  }
+
+  return connectVertices(sharedFace, vA, vB);
+}
+
+EdgePtr HalfedgeMesh::connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB) {
+
+  // == Create new elements
+  Halfedge* heANew = getNewHalfedge();
+  Halfedge* heBNew = getNewHalfedge();
+  Edge* eNew = getNewEdge();
+  Face* fB = getNewFace();
+
+  // == Find useful halfedges around the face
+  Halfedge* heANext;
+  Halfedge* heBNext;
+  Halfedge* heAPrev;
+  Halfedge* heBPrev;
+  for (HalfedgePtr he : face.adjacentHalfedges()) {
+    if (he.vertex() == vA) {
+      heANext = he.ptr;
+    }
+    if (he.vertex() == vB) {
+      heBNext = he.ptr;
+    }
+  }
+  for (HalfedgePtr he : face.adjacentHalfedges()) {
+    if (he.next().ptr == heANext) {
+      heAPrev = he.ptr;
+    }
+    if (he.next().ptr == heBNext) {
+      heBPrev = he.ptr;
+    }
+  }
+
+  // == Gather other elements
+  Face* fA = heBNext->face;
+  Vertex* vAp = vA.ptr;
+  Vertex* vBp = vB.ptr;
+
+  // == Hook up all the pointers
+
+  // Faces
+  fA->halfedge = heBNext;
+  fB->halfedge = heANext;
+
+  // Vertices
+  vAp->halfedge = heANew;
+  vBp->halfedge = heBNew;
+
+  // New edge
+  eNew->halfedge = heANew;
+
+  // Halfedges
+  heANew->twin = heBNew;
+  heANew->next = heBNext;
+  heANew->vertex = vAp;
+  heANew->edge = eNew;
+  heANew->face = fA;
+
+  heBNew->twin = heANew;
+  heBNew->next = heANext;
+  heBNew->vertex = vBp;
+  heBNew->edge = eNew;
+  heBNew->face = fB;
+
+
+  return EdgePtr{eNew};
+}
+
+
+VertexPtr HalfedgeMesh::insertVertex(FacePtr f) {
+
+  // Create the new center vertex
+  VertexPtr centerVert{getNewVertex()};
+  size_t faceDegree = 0;
+  for (HalfedgePtr he : f.adjacentHalfedges()) {
+    faceDegree++;
+  }
+
+  // == Create new halfedges/edges/faces around the center vertex
+
+  // Create all of the new elements first, then hook them up below, as this can invalidate pointers.
+  std::vector<Face*> innerFaces;
+  std::vector<Halfedge*> leadingHalfedges; // the one that points towards the center
+  std::vector<Halfedge*> trailingHalfedges;
+  std::vector<Edge*> innerEdges; // aligned with leading he
+  for (size_t i = 0; i < faceDegree; i++) {
+    // Re-use first face
+    if (i == 0) {
+      innerFaces.push_back(f.ptr);
+    } else {
+      innerFaces.push_back(getNewFace());
+    }
+
+    leadingHalfedges.push_back(getNewHalfedge());
+    trailingHalfedges.push_back(getNewHalfedge());
+    innerEdges.push_back(getNewEdge());
+  }
+
+  // Form this list before we start, because we're about to start breaking pointers
+  std::vector<Halfedge*> faceBoundaryHalfedges;
+  for (HalfedgePtr he : f.adjacentHalfedges()) {
+    faceBoundaryHalfedges.push_back(he.ptr);
+  }
+
+  // Connect up all the pointers
+  // Each iteration processes one inner face
+  for (size_t i = 0; i < faceDegree; i++) {
+
+    // Gather pointers
+    Face* f = innerFaces[i];
+    Edge* e = innerEdges[i];
+    Edge* prevE = innerEdges[(i + faceDegree - 1) & faceDegree];
+    Halfedge* leadingHe = leadingHalfedges[i];
+    Halfedge* trailingHe = trailingHalfedges[i];
+    Halfedge* boundaryHe = faceBoundaryHalfedges[i];
+    Halfedge* nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
+    Halfedge* prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
+
+    // face
+    f->halfedge = boundaryHe;
+    f->isReal = true;
+
+    // edge
+    e->halfedge = leadingHe;
+
+    // leading halfedge
+    leadingHe->twin = nextTrailingHe;
+    leadingHe->next = trailingHe;
+    leadingHe->vertex = boundaryHe->next->vertex;
+    leadingHe->edge = e;
+    leadingHe->face = f;
+
+    // trailing halfedge
+    trailingHe->twin = prevLeadingHe;
+    trailingHe->next = boundaryHe;
+    trailingHe->vertex = centerVert.ptr;
+    trailingHe->edge = prevE;
+    trailingHe->face = f;
+  }
+
+  return centerVert;
+}
+
+Halfedge* HalfedgeMesh::getNewHalfedge() {
+
+  // The boring case, when no resize is needed
+  if (rawHalfedges.size() < rawHalfedges.capacity()) {
+    rawHalfedges.emplace_back();
+  }
+  // The intesting case, where the vector resizes and we need to update pointers.
+  else {
+
+    // Create a new halfedge, allowing the list to expand
+    Halfedge* oldStart = &rawHalfedges.front();
+    rawHalfedges.emplace_back();
+    Halfedge* newStart = &rawHalfedges.front();
+    std::ptrdiff_t shift = newStart - oldStart;
+
+    // Shift all pointers
+    for (Halfedge& he : rawHalfedges) {
+      he.twin += shift;
+      he.next += shift;
+    }
+    for (Vertex& v : rawVertices) {
+      v.halfedge += shift;
+    }
+    for (Edge& e : rawEdges) {
+      e.halfedge += shift;
+    }
+    for (Face& f : rawFaces) {
+      f.halfedge += shift;
+    }
+    for (Face& f : rawBoundaryLoops) {
+      f.halfedge += shift;
+    }
+  }
+  return &rawHalfedges.back();
+}
+
+Vertex* HalfedgeMesh::getNewVertex() {
+
+  // The boring case, when no resize is needed
+  if (rawVertices.size() < rawVertices.capacity()) {
+    rawVertices.emplace_back();
+  }
+  // The intesting case, where the vector resizes and we need to update pointers.
+  else {
+
+    // Create a new halfedge, allowing the list to expand
+    Vertex* oldStart = &rawVertices.front();
+    rawVertices.emplace_back();
+    Vertex* newStart = &rawVertices.front();
+    std::ptrdiff_t shift = newStart - oldStart;
+
+    // Shift all pointers
+    for (Halfedge& he : rawHalfedges) {
+      he.vertex += shift;
+    }
+  }
+  return &rawVertices.back();
+}
+
+Edge* HalfedgeMesh::getNewEdge() {
+
+  // The boring case, when no resize is needed
+  if (rawEdges.size() < rawEdges.capacity()) {
+    rawEdges.emplace_back();
+  }
+  // The intesting case, where the vector resizes and we need to update pointers.
+  else {
+
+    // Create a new halfedge, allowing the list to expand
+    Edge* oldStart = &rawEdges.front();
+    rawEdges.emplace_back();
+    Edge* newStart = &rawEdges.front();
+    std::ptrdiff_t shift = newStart - oldStart;
+
+    // Shift all pointers
+    for (Halfedge& he : rawHalfedges) {
+      he.edge += shift;
+    }
+  }
+  return &rawEdges.back();
+}
+
+Face* HalfedgeMesh::getNewFace() {
+
+  // The boring case, when no resize is needed
+  if (rawFaces.size() < rawFaces.capacity()) {
+    rawFaces.emplace_back();
+  }
+  // The intesting case, where the vector resizes and we need to update pointers.
+  else {
+
+    // Create a new halfedge, allowing the list to expand
+    Face* oldStart = &rawFaces.front();
+    rawFaces.emplace_back();
+    Face* newStart = &rawFaces.front();
+    std::ptrdiff_t shift = newStart - oldStart;
+
+    // Shift all pointers
+    for (Halfedge& he : rawHalfedges) {
+      he.face += shift;
+    }
+  }
+  return &rawFaces.back();
+}
+
+void HalfedgeMesh::permuteToCanonical() { throw std::logic_error("not implemented"); }
 
 
 } // namespace geometrycentral

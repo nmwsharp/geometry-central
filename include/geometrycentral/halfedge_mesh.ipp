@@ -19,20 +19,19 @@ inline size_t HalfedgeMesh::nImaginaryHalfedges(void) const { return rawHalfedge
 // Primal
 
 inline HalfedgePtrSet HalfedgeMesh::realHalfedges(void) {
+  size_t nH = rawHalfedges.size();
   HalfedgePtr beginptr(&rawHalfedges[0]);
-  HalfedgePtr endptr(&rawHalfedges[nRealHalfedges]); // note that we really want nH and not
-                                                     // nH-1, since we want the address one
-                                                     // past the final element
+  HalfedgePtr endptr(&rawHalfedges[nH]);
 
-  return HalfedgePtrSet(beginptr, endptr);
+  return HalfedgePtrSet(beginptr, endptr, HalfedgeSetType::Real);
 }
 
 inline HalfedgePtrSet HalfedgeMesh::imaginaryHalfedges(void) {
   size_t nH = rawHalfedges.size();
-  HalfedgePtr beginptr(&rawHalfedges[nRealHalfedges]);
+  HalfedgePtr beginptr(&rawHalfedges[0]);
   HalfedgePtr endptr(&rawHalfedges[nH]);
 
-  return HalfedgePtrSet(beginptr, endptr);
+  return HalfedgePtrSet(beginptr, endptr, HalfedgeSetType::Imaginary);
 }
 
 inline HalfedgePtrSet HalfedgeMesh::allHalfedges(void) {
@@ -40,7 +39,7 @@ inline HalfedgePtrSet HalfedgeMesh::allHalfedges(void) {
   HalfedgePtr beginptr(&rawHalfedges[0]);
   HalfedgePtr endptr(&rawHalfedges[nH]);
 
-  return HalfedgePtrSet(beginptr, endptr);
+  return HalfedgePtrSet(beginptr, endptr, HalfedgeSetType::All);
 }
 
 inline CornerPtrSet HalfedgeMesh::corners(void) {
@@ -87,13 +86,7 @@ inline BoundaryPtrSet HalfedgeMesh::boundaryLoops(void) {
 
 // Primal
 
-inline HalfedgePtr HalfedgeMesh::realHalfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
-
-inline HalfedgePtr HalfedgeMesh::imaginaryHalfedge(size_t index) {
-  return HalfedgePtr{&rawHalfedges[nRealHalfedges + index]};
-}
-
-inline HalfedgePtr HalfedgeMesh::allHalfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
+inline HalfedgePtr HalfedgeMesh::halfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
 
 inline CornerPtr HalfedgeMesh::corner(size_t index) { return CornerPtr{&rawHalfedges[index]}; }
 

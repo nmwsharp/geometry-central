@@ -473,7 +473,7 @@ inline T& HalfedgeData<T>::operator[](HalfedgePtr he) {
   assert(he->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  size_t i = he - mesh->allHalfedge(0);
+  size_t i = he - mesh->halfedge(0);
   return data[i];
 }
 
@@ -483,7 +483,7 @@ inline const T& HalfedgeData<T>::operator[](HalfedgePtr he) const {
   assert(he->parentMesh == mesh &&
          "Attempted access data with member from wrong mesh");
 #endif
-  size_t i = he - mesh->allHalfedge(0);
+  size_t i = he - mesh->halfedge(0);
   return data[i];
 }
 

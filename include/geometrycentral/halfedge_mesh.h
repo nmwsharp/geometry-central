@@ -67,14 +67,23 @@ public:
 
   // Methods for accessing elements by index
   // Example: VertexPtr v = mesh.vertex(123);
-  HalfedgePtr realHalfedge(size_t index);
-  HalfedgePtr imaginaryHalfedge(size_t index);
-  HalfedgePtr allHalfedge(size_t index);
+  HalfedgePtr halfedge(size_t index);
   CornerPtr corner(size_t index);
   VertexPtr vertex(size_t index);
   EdgePtr edge(size_t index);
   FacePtr face(size_t index);
   BoundaryPtr boundaryLoop(size_t index);
+
+  // Methods that mutate the mesh. Note that these occasionally trigger a resize, which invaliates
+  // any outstanding VertexPtr or MeshData<> objects.
+  // TODOs: support removing elements, support adding boundary
+  VertexPtr insertVertexAlongEdge(EdgePtr e); // adds a vertex along an edge, increasing degree of faces
+  VertexPtr splitEdge(EdgePtr e);             // split an edge, also splitting adjacent faces
+  VertexPtr insertVertex(FacePtr f);          // add vertex inside face and triangulate
+  EdgePtr connectVertices(VertexPtr vA, VertexPtr vB); // add an edge connecting two vertices inside the same face
+  EdgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB); // faster if you know the face
+
+  void permuteToCanonical();                  // permute to the same indexing convention as after construction
 
   // Methods for obtaining canonical indices for mesh elements
   // (Note that in some situations, custom indices might instead be needed)
@@ -113,8 +122,15 @@ private:
   HalfedgeMesh(HalfedgeMesh&& other) = delete;
   HalfedgeMesh& operator=(HalfedgeMesh&& other) = delete;
 
+  // Used to resize the halfedge mesh. Expands and shifts vectors as necessary.
+  Halfedge* getNewHalfedge();
+  Vertex*   getNewVertex();
+  Edge*     getNewEdge();
+  Face*     getNewFace();
+
   // Cache some basic information that may be queried many
   // times, but require O(n) computation to determine.
+  // FIXME this is now broken with respect to modifications
   void cacheInfo();
   void cache_isSimplicial();
   void cache_nFacesTriangulation();
@@ -126,6 +142,10 @@ private:
   size_t _longestBoundaryLoop;
   size_t _nInteriorVertices;
   size_t _nConnectedComponents;
+
+
+  // Any dynamic pointers that have been registered with the mesh. These 
+
 };
 
 class Halfedge {

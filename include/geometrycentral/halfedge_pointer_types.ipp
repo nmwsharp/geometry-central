@@ -88,11 +88,33 @@ inline ::std::ostream& operator<<(::std::ostream& output,
 }
 
 inline HalfedgePtrRangeIterator::HalfedgePtrRangeIterator(
-    HalfedgePtr startingHalfedge)
-    : currHalfedge(startingHalfedge) {}
+    HalfedgePtr startingHalfedge, HalfedgeSetType type_, HalfedgePtr end_)
+    : currHalfedge(startingHalfedge), type(type_), end(end_) {}
 inline const HalfedgePtrRangeIterator& HalfedgePtrRangeIterator::operator++() {
   currHalfedge++;
-  return *this;
+
+  // = Respect the 'type' option
+  // Note that we always need to return if we fall off the end of the list, and must not dereference the pointer in that case
+ 
+  // All halfedges
+  if(type == HalfedgeSetType::All || currHalfedge == end) {
+    return *this;
+  }
+  // Real only
+  else if(type == HalfedgeSetType::Real) {
+    while(currHalfedge != end && !currHalfedge.isReal()) {
+      currHalfedge++;
+    }
+    return *this;
+  } 
+  // Imaginary only
+  else /* imag */ {
+    while(currHalfedge != end && currHalfedge.isReal()) {
+      currHalfedge++;
+    }
+    return *this;
+  }
+
 }
 inline bool HalfedgePtrRangeIterator::operator==(
     const HalfedgePtrRangeIterator& other) const {
@@ -107,13 +129,13 @@ inline HalfedgePtr HalfedgePtrRangeIterator::operator*() const {
 }
 
 inline HalfedgePtrSet::HalfedgePtrSet(HalfedgePtr beginptr_,
-                                      HalfedgePtr endptr_)
-    : beginptr(beginptr_), endptr(endptr_) {}
+                                      HalfedgePtr endptr_, HalfedgeSetType type_)
+    : beginptr(beginptr_), endptr(endptr_), type(type_) {}
 inline HalfedgePtrRangeIterator HalfedgePtrSet::begin() {
-  return HalfedgePtrRangeIterator(beginptr);
+  return HalfedgePtrRangeIterator(beginptr, type, endptr);
 }
 inline HalfedgePtrRangeIterator HalfedgePtrSet::end() {
-  return HalfedgePtrRangeIterator(endptr);
+  return HalfedgePtrRangeIterator(endptr, type, endptr);
 }
 
 
