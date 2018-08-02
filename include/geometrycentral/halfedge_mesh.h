@@ -131,6 +131,9 @@ private:
   Edge* getNewEdge();
   Face* getNewFace();
 
+  // Performs a sanity checks on halfedge structure; throws on fail
+  void validateConnectivity();
+
   // Cache some basic information that may be queried many
   // times, but require O(n) computation to determine.
   // FIXME this is now broken with respect to modifications
@@ -146,16 +149,15 @@ private:
   size_t _nInteriorVertices;
   size_t _nConnectedComponents;
 
-
-  // == Any dynamic pointers that have been registered with the mesh. These are automatically updated on resize events
+  size_t indexOf(Halfedge* ptr);
+  size_t indexOf(Vertex* ptr);
+  size_t indexOf(Edge* ptr);
+  size_t indexOf(Face* ptr);
+  
   friend class DynamicHalfedgePtr;
   friend class DynamicVertexPtr;
   friend class DynamicEdgePtr;
   friend class DynamicFacePtr;
-  std::list<DynamicHalfedgePtr*> registeredHalfedgePtrs;
-  std::list<DynamicVertexPtr*> registeredVertexPtrs;
-  std::list<DynamicEdgePtr*> registeredEdgePtrs;
-  std::list<DynamicFacePtr*> registeredFacePtrs;
 };
 
 class Halfedge {

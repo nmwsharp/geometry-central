@@ -542,6 +542,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 
   // Compute some basic information about the mesh
   cacheInfo();
+
 }
 
 bool Edge::flip() {
@@ -756,7 +757,9 @@ std::vector<std::vector<size_t>> HalfedgeMesh::getPolygonSoupFaces() {
   return result;
 }
 
-HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
+HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr eIn) {
+
+  DynamicEdgePtr eInD(eIn, this);
 
   // == Gather / create elements
   // Faces are identified as 'A', and 'B'
@@ -767,6 +770,7 @@ HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
   Halfedge* heANew = getNewHalfedge();
   Halfedge* heBNew = getNewHalfedge();
 
+  EdgePtr e = eInD;
   Halfedge* heACenter = e.halfedge().ptr;
   Halfedge* heBCenter = heACenter->twin;
   // Halfedge* heANext = heACenter->next;
@@ -805,7 +809,6 @@ HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
   oldVBottom->halfedge = heBNext;
   heACenter->vertex = newV;
 
-
   return HalfedgePtr{heBNew};
 }
 
@@ -819,14 +822,14 @@ VertexPtr HalfedgeMesh::splitEdge(EdgePtr e) {
   }
 
   // First operation: insert a new vertex along the edge
-  VertexPtr newV = insertVertexAlongEdge(e);
+  VertexPtr newV = insertVertexAlongEdge(e).vertex();
 
 
   // Second operation: connect both of the new faces
-  FacePtr fOppA = newV.halfedge().face();
-  VertexPtr vOppA = newV.halfedge().next().next().vertex();
-  FacePtr fOppB = newV.halfedge().twin().face();
-  VertexPtr vOppB = newV.halfedge().twin().next().next().next().vertex();
+  DynamicFacePtr fOppA(newV.halfedge().face(), this);
+  DynamicVertexPtr vOppA(newV.halfedge().next().next().vertex(), this);
+  DynamicFacePtr fOppB(newV.halfedge().twin().face(), this);
+  DynamicVertexPtr vOppB(newV.halfedge().twin().next().next().next().vertex(), this);
 
   connectVertices(fOppA, vOppA, newV);
   connectVertices(fOppB, vOppB, newV);
@@ -856,13 +859,21 @@ EdgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
   return connectVertices(sharedFace, vA, vB);
 }
 
-EdgePtr HalfedgeMesh::connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB) {
+EdgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, VertexPtr vBIn) {
+
+  DynamicFacePtr faceInD(faceIn, this);
+  DynamicVertexPtr vAInD(vAIn, this);
+  DynamicVertexPtr vBInD(vBIn, this);
 
   // == Create new elements
   Halfedge* heANew = getNewHalfedge();
   Halfedge* heBNew = getNewHalfedge();
   Edge* eNew = getNewEdge();
   Face* fB = getNewFace();
+
+  FacePtr face(faceInD);
+  VertexPtr vA(vAInD);
+  VertexPtr vB(vBInD);
 
   // == Find useful halfedges around the face
   Halfedge* heANext;
@@ -885,6 +896,10 @@ EdgePtr HalfedgeMesh::connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB) 
       heBPrev = he.ptr;
     }
   }
+
+  // == Detect bad cases
+  if (vA == vB) throw std::logic_error("Tried to connect vertex to self");
+  if (heANext == heBPrev || heBNext == heBPrev) throw std::logic_error("Tried to connect adjacent vertices");
 
   // == Gather other elements
   Face* fA = heBNext->face;
@@ -917,17 +932,28 @@ EdgePtr HalfedgeMesh::connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB) 
   heBNew->edge = eNew;
   heBNew->face = fB;
 
+  heAPrev->next = heANew;
+  heBPrev->next = heBNew;
+
+  // Set all other new .face pointers to fB
+  Halfedge* currHe = heANext;
+  while(currHe != heBNew) {
+    currHe->face = fB; 
+    currHe = currHe->next;
+  }
 
   return EdgePtr{eNew};
 }
 
 
-VertexPtr HalfedgeMesh::insertVertex(FacePtr f) {
+VertexPtr HalfedgeMesh::insertVertex(FacePtr fIn) {
+
+  DynamicFacePtr fInD(fIn, this);
 
   // Create the new center vertex
   VertexPtr centerVert{getNewVertex()};
   size_t faceDegree = 0;
-  for (HalfedgePtr he : f.adjacentHalfedges()) {
+  for (HalfedgePtr he : FacePtr(fInD).adjacentHalfedges()) {
     faceDegree++;
   }
 
@@ -941,7 +967,7 @@ VertexPtr HalfedgeMesh::insertVertex(FacePtr f) {
   for (size_t i = 0; i < faceDegree; i++) {
     // Re-use first face
     if (i == 0) {
-      innerFaces.push_back(f.ptr);
+      innerFaces.push_back(FacePtr(fInD).ptr);
     } else {
       innerFaces.push_back(getNewFace());
     }
@@ -953,7 +979,7 @@ VertexPtr HalfedgeMesh::insertVertex(FacePtr f) {
 
   // Form this list before we start, because we're about to start breaking pointers
   std::vector<Halfedge*> faceBoundaryHalfedges;
-  for (HalfedgePtr he : f.adjacentHalfedges()) {
+  for (HalfedgePtr he : FacePtr(fInD).adjacentHalfedges()) {
     faceBoundaryHalfedges.push_back(he.ptr);
   }
 
@@ -996,6 +1022,81 @@ VertexPtr HalfedgeMesh::insertVertex(FacePtr f) {
   return centerVert;
 }
 
+void HalfedgeMesh::validateConnectivity() {
+
+  // == Halfedges
+
+  // Check valid pointers
+  for(Halfedge& he : rawHalfedges) {
+    if(he.twin == nullptr || !&*he.twin) throw std::logic_error("bad twin pointer");
+    if(he.next == nullptr || !&*he.next) throw std::logic_error("bad next pointer");
+    if(he.vertex == nullptr || !&*he.vertex) throw std::logic_error("bad vertex pointer");
+    if(he.edge == nullptr || !&*he.edge) throw std::logic_error("bad edge pointer");
+    if(he.face == nullptr || !&*he.face) throw std::logic_error("bad face pointer");
+  }
+  for(Vertex& v : rawVertices) {
+    if(v.halfedge == nullptr || !&*v.halfedge) throw std::logic_error("bad halfedge pointer in vertex");
+  }
+  for(Edge& e : rawEdges) {
+    if(e.halfedge == nullptr || !&*e.halfedge) throw std::logic_error("bad halfedge pointer in edge");
+  }
+  for(Face& f : rawFaces) {
+    if(f.halfedge == nullptr || !&*f.halfedge) throw std::logic_error("bad halfedge pointer in face");
+  }
+
+  // Check edge and twin sanity
+  for(Halfedge& he : rawHalfedges) {
+    if(&he != he.twin->twin) throw std::logic_error("twins not reflective");
+    if(&he != he.edge->halfedge && he.twin != he.edge->halfedge) throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
+
+  }
+  
+  // Check face & next sanity
+  for(Face& f : rawFaces) {
+    Halfedge* currHe = f.halfedge;
+    Halfedge* firstHe = f.halfedge;
+    size_t count = 0;
+    do {
+      if(currHe->face != &f) throw std::logic_error("face.halfedge doesn't match halfedge.face");
+      currHe = currHe->next;
+      count++;
+      if(count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
+    } while (currHe != firstHe);
+
+    if(count < 3) throw std::logic_error("face of degree < 2");
+  }
+  
+  for(Halfedge& he : rawHalfedges) {
+    Halfedge* currHe = &he;
+    Halfedge* firstHe = &he;
+    size_t count = 0;
+    do {
+      if(currHe->face != he.face) throw std::logic_error("he.next.**.face doesn't match he.face");
+      currHe = currHe->next;
+      count++;
+      if(count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
+    } while (currHe != firstHe);
+    
+    if(he.vertex == he.next->twin->vertex) throw std::logic_error("halfedge face spur");
+    
+    if(he.vertex != he.twin->next->vertex) throw std::logic_error("halfedge vertices don't match");
+  }
+
+  // Check vertex orbit sanity
+  for(Vertex& v : rawVertices) {
+    Halfedge* currHe = v.halfedge;
+    Halfedge* firstHe = v.halfedge;
+    size_t count = 0;
+    do {
+      if(currHe->vertex!= &v) throw std::logic_error("vertex.halfedge doesn't match halfedge.vertex");
+      currHe = currHe->twin->next;
+      count++;
+      if(count > rawHalfedges.size()) throw std::logic_error("twin->next forms non-vertex loop");
+    } while (currHe != firstHe);
+  }
+
+}
+
 Halfedge* HalfedgeMesh::getNewHalfedge() {
 
   // The boring case, when no resize is needed
@@ -1028,12 +1129,12 @@ Halfedge* HalfedgeMesh::getNewHalfedge() {
     for (Face& f : rawBoundaryLoops) {
       f.halfedge += shift;
     }
-    for (DynamicHalfedgePtr* d : registeredHalfedgePtrs) {
-      d->ptr += shift;
-    }
   }
 
   rawHalfedges.back().ID = nextElemID++;
+#ifndef NDEBUG
+  rawHalfedges.back().parentMesh = this;
+#endif
   return &rawHalfedges.back();
 }
 
@@ -1056,12 +1157,12 @@ Vertex* HalfedgeMesh::getNewVertex() {
     for (Halfedge& he : rawHalfedges) {
       he.vertex += shift;
     }
-    for (DynamicVertexPtr* d : registeredVertexPtrs) {
-      d->ptr += shift;
-    }
   }
 
   rawVertices.back().ID = nextElemID++;
+#ifndef NDEBUG
+  rawVertices.back().parentMesh = this;
+#endif
   return &rawVertices.back();
 }
 
@@ -1084,12 +1185,12 @@ Edge* HalfedgeMesh::getNewEdge() {
     for (Halfedge& he : rawHalfedges) {
       he.edge += shift;
     }
-    for (DynamicEdgePtr* d : registeredEdgePtrs) {
-      d->ptr += shift;
-    }
   }
 
   rawEdges.back().ID = nextElemID++;
+#ifndef NDEBUG
+  rawEdges.back().parentMesh = this;
+#endif
   return &rawEdges.back();
 }
 
@@ -1112,16 +1213,21 @@ Face* HalfedgeMesh::getNewFace() {
     for (Halfedge& he : rawHalfedges) {
       he.face += shift;
     }
-    for (DynamicFacePtr* d : registeredFacePtrs) {
-      d->ptr += shift;
-    }
   }
 
   rawFaces.back().ID = nextElemID++;
+#ifndef NDEBUG
+  rawFaces.back().parentMesh = this;
+#endif
   return &rawFaces.back();
 }
 
 void HalfedgeMesh::permuteToCanonical() { throw std::logic_error("not implemented"); }
+  
+size_t HalfedgeMesh::indexOf(Halfedge* ptr) {return (ptr - &rawHalfedges[0]);}
+size_t HalfedgeMesh::indexOf(Vertex* ptr) {return (ptr - &rawVertices[0]);}
+size_t HalfedgeMesh::indexOf(Edge* ptr) {return (ptr - &rawEdges[0]);}
+size_t HalfedgeMesh::indexOf(Face* ptr) {return (ptr - &rawFaces[0]);}
 
 
 } // namespace geometrycentral

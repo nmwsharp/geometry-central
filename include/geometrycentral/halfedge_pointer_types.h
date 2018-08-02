@@ -102,16 +102,26 @@ class DynamicHalfedgePtr {
 public:
   DynamicHalfedgePtr(Halfedge* ptr, HalfedgeMesh* mesh);
   DynamicHalfedgePtr(HalfedgePtr ptr, HalfedgeMesh* mesh);
-  ~DynamicHalfedgePtr();
 
+  // Despite the name, should not be used as a [0,N) index.
+  size_t getInd() const;
+  
+  // Comparators
+  bool operator==(const DynamicHalfedgePtr& other) const;
+  bool operator!=(const DynamicHalfedgePtr& other) const;
+  bool operator>(const DynamicHalfedgePtr& other) const;
+  bool operator>=(const DynamicHalfedgePtr& other) const;
+  bool operator<(const DynamicHalfedgePtr& other) const;
+  bool operator<=(const DynamicHalfedgePtr& other) const;
+  
 private:
   friend class HalfedgePtr;
   friend class HalfedgeMesh;
   friend struct std::hash<DynamicHalfedgePtr>;
 
-  Halfedge* ptr = nullptr;
+  size_t ind = -1;
   HalfedgeMesh* mesh = nullptr;
-  std::list<DynamicHalfedgePtr*>::iterator listIt;
+  //std::list<DynamicHalfedgePtr*>::iterator listIt;
 };
 
 enum class HalfedgeSetType { Real, Imaginary, All };
@@ -276,16 +286,26 @@ class DynamicVertexPtr {
 public:
   DynamicVertexPtr(Vertex* ptr, HalfedgeMesh* mesh);
   DynamicVertexPtr(VertexPtr ptr, HalfedgeMesh* mesh);
-  ~DynamicVertexPtr();
+  
+  // Despite the name, should not be used as a [0,N) index.
+  size_t getInd() const;
+  
+  // Comparators
+  bool operator==(const DynamicVertexPtr& other) const;
+  bool operator!=(const DynamicVertexPtr& other) const;
+  bool operator>(const DynamicVertexPtr& other) const;
+  bool operator>=(const DynamicVertexPtr& other) const;
+  bool operator<(const DynamicVertexPtr& other) const;
+  bool operator<=(const DynamicVertexPtr& other) const;
 
 private:
   friend class VertexPtr;
   friend class HalfedgeMesh;
   friend struct std::hash<DynamicVertexPtr>;
 
-  Vertex* ptr = nullptr;
+  size_t ind = -1;
   HalfedgeMesh* mesh = nullptr;
-  std::list<DynamicVertexPtr*>::iterator listIt;
+  //std::list<DynamicVertexPtr*>::iterator listIt;
 };
 
 class VertexPtrRangeIterator {
@@ -370,16 +390,26 @@ class DynamicEdgePtr {
 public:
   DynamicEdgePtr(Edge* ptr, HalfedgeMesh* mesh);
   DynamicEdgePtr(EdgePtr ptr, HalfedgeMesh* mesh);
-  ~DynamicEdgePtr();
+  
+  // Despite the name, should not be used as a [0,N) index.
+  size_t getInd() const;
+  
+  // Comparators
+  bool operator==(const DynamicEdgePtr& other) const;
+  bool operator!=(const DynamicEdgePtr& other) const;
+  bool operator>(const DynamicEdgePtr& other) const;
+  bool operator>=(const DynamicEdgePtr& other) const;
+  bool operator<(const DynamicEdgePtr& other) const;
+  bool operator<=(const DynamicEdgePtr& other) const;
 
 private:
   friend class EdgePtr;
   friend class HalfedgeMesh;
   friend struct std::hash<DynamicEdgePtr>;
 
-  Edge* ptr = nullptr;
+  size_t ind = -1;
   HalfedgeMesh* mesh = nullptr;
-  std::list<DynamicEdgePtr*>::iterator listIt;
+  //std::list<DynamicEdgePtr*>::iterator listIt;
 };
 
 class EdgePtrRangeIterator {
@@ -481,16 +511,26 @@ class DynamicFacePtr {
 public:
   DynamicFacePtr(Face* ptr, HalfedgeMesh* mesh);
   DynamicFacePtr(FacePtr ptr, HalfedgeMesh* mesh);
-  ~DynamicFacePtr();
+  
+  // Despite the name, should not be used as a [0,N) index.
+  size_t getInd() const;
+ 
+  // Comparators
+  bool operator==(const DynamicFacePtr& other) const;
+  bool operator!=(const DynamicFacePtr& other) const;
+  bool operator>(const DynamicFacePtr& other) const;
+  bool operator>=(const DynamicFacePtr& other) const;
+  bool operator<(const DynamicFacePtr& other) const;
+  bool operator<=(const DynamicFacePtr& other) const;
 
 private:
   friend class FacePtr;
   friend class HalfedgeMesh;
   friend struct std::hash<DynamicFacePtr>;
 
-  Face* ptr = nullptr;
+  size_t ind = -1;
   HalfedgeMesh* mesh = nullptr;
-  std::list<DynamicFacePtr*>::iterator listIt;
+  //std::list<DynamicFacePtr*>::iterator listIt;
 };
 
 class FacePtrRangeIterator {
