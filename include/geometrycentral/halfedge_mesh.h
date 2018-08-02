@@ -78,7 +78,7 @@ public:
   // Methods that mutate the mesh. Note that these occasionally trigger a resize, which invaliates
   // any outstanding VertexPtr or MeshData<> objects.
   // TODOs: support removing elements, support adding boundary
-  VertexPtr insertVertexAlongEdge(EdgePtr e);          // adds a vertex along an edge, increasing degree of faces
+  HalfedgePtr insertVertexAlongEdge(EdgePtr e);          // adds a vertex along an edge, increasing degree of faces. Returns ptr along the new edge, with he.vertex() as new vertex
   VertexPtr splitEdge(EdgePtr e);                      // split an edge, also splitting adjacent faces
   VertexPtr insertVertex(FacePtr f);                   // add vertex inside face and triangulate
   EdgePtr connectVertices(VertexPtr vA, VertexPtr vB); // add an edge connecting two vertices inside the same face

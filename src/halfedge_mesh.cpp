@@ -756,7 +756,7 @@ std::vector<std::vector<size_t>> HalfedgeMesh::getPolygonSoupFaces() {
   return result;
 }
 
-VertexPtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
+HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
 
   // == Gather / create elements
   // Faces are identified as 'A', and 'B'
@@ -806,7 +806,7 @@ VertexPtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr e) {
   heACenter->vertex = newV;
 
 
-  return VertexPtr{newV};
+  return HalfedgePtr{heBNew};
 }
 
 
