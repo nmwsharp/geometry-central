@@ -542,7 +542,6 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 
   // Compute some basic information about the mesh
   cacheInfo();
-
 }
 
 bool Edge::flip() {
@@ -837,7 +836,7 @@ VertexPtr HalfedgeMesh::splitEdge(EdgePtr e) {
   return newV;
 }
 
-EdgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
+HalfedgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
 
   // Find the shared face and call the main version
   std::unordered_set<FacePtr> aFaces;
@@ -859,7 +858,7 @@ EdgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
   return connectVertices(sharedFace, vA, vB);
 }
 
-EdgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, VertexPtr vBIn) {
+HalfedgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, VertexPtr vBIn) {
 
   DynamicFacePtr faceInD(faceIn, this);
   DynamicVertexPtr vAInD(vAIn, this);
@@ -937,12 +936,12 @@ EdgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, VertexPtr 
 
   // Set all other new .face pointers to fB
   Halfedge* currHe = heANext;
-  while(currHe != heBNew) {
-    currHe->face = fB; 
+  while (currHe != heBNew) {
+    currHe->face = fB;
     currHe = currHe->next;
   }
 
-  return EdgePtr{eNew};
+  return heANew;
 }
 
 
@@ -1022,79 +1021,108 @@ VertexPtr HalfedgeMesh::insertVertex(FacePtr fIn) {
   return centerVert;
 }
 
+std::vector<FacePtr> HalfedgeMesh::triangulate(FacePtr f) {
+
+  if (f.degree() == 3) {
+    return {f};
+  }
+
+
+  std::vector<DynamicVertexPtr> neighVerts;
+  std::vector<DynamicFacePtr> allFaces;
+
+  for (VertexPtr v : f.adjacentVertices()) {
+    neighVerts.emplace_back(v, this);
+  }
+
+  allFaces.emplace_back(f, this);
+  HalfedgePtr currHe = f.halfedge();
+  for (size_t i = 2; i + 1 < neighVerts.size(); i++) {
+    HalfedgePtr newHe = connectVertices(currHe.face(), neighVerts[0], neighVerts[i]);
+    allFaces.emplace_back(newHe.twin().face(), this);
+    currHe = newHe;
+  }
+
+  std::vector<FacePtr> staticFaces;
+  for(DynamicFacePtr& d : allFaces) {
+    staticFaces.emplace_back(d);
+  }
+
+  return staticFaces;
+}
+
 void HalfedgeMesh::validateConnectivity() {
 
   // == Halfedges
 
   // Check valid pointers
-  for(Halfedge& he : rawHalfedges) {
-    if(he.twin == nullptr || !&*he.twin) throw std::logic_error("bad twin pointer");
-    if(he.next == nullptr || !&*he.next) throw std::logic_error("bad next pointer");
-    if(he.vertex == nullptr || !&*he.vertex) throw std::logic_error("bad vertex pointer");
-    if(he.edge == nullptr || !&*he.edge) throw std::logic_error("bad edge pointer");
-    if(he.face == nullptr || !&*he.face) throw std::logic_error("bad face pointer");
+  for (Halfedge& he : rawHalfedges) {
+    if (he.twin == nullptr || !&*he.twin) throw std::logic_error("bad twin pointer");
+    if (he.next == nullptr || !&*he.next) throw std::logic_error("bad next pointer");
+    if (he.vertex == nullptr || !&*he.vertex) throw std::logic_error("bad vertex pointer");
+    if (he.edge == nullptr || !&*he.edge) throw std::logic_error("bad edge pointer");
+    if (he.face == nullptr || !&*he.face) throw std::logic_error("bad face pointer");
   }
-  for(Vertex& v : rawVertices) {
-    if(v.halfedge == nullptr || !&*v.halfedge) throw std::logic_error("bad halfedge pointer in vertex");
+  for (Vertex& v : rawVertices) {
+    if (v.halfedge == nullptr || !&*v.halfedge) throw std::logic_error("bad halfedge pointer in vertex");
   }
-  for(Edge& e : rawEdges) {
-    if(e.halfedge == nullptr || !&*e.halfedge) throw std::logic_error("bad halfedge pointer in edge");
+  for (Edge& e : rawEdges) {
+    if (e.halfedge == nullptr || !&*e.halfedge) throw std::logic_error("bad halfedge pointer in edge");
   }
-  for(Face& f : rawFaces) {
-    if(f.halfedge == nullptr || !&*f.halfedge) throw std::logic_error("bad halfedge pointer in face");
+  for (Face& f : rawFaces) {
+    if (f.halfedge == nullptr || !&*f.halfedge) throw std::logic_error("bad halfedge pointer in face");
   }
 
   // Check edge and twin sanity
-  for(Halfedge& he : rawHalfedges) {
-    if(&he != he.twin->twin) throw std::logic_error("twins not reflective");
-    if(&he != he.edge->halfedge && he.twin != he.edge->halfedge) throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
-
+  for (Halfedge& he : rawHalfedges) {
+    if (&he != he.twin->twin) throw std::logic_error("twins not reflective");
+    if (&he != he.edge->halfedge && he.twin != he.edge->halfedge)
+      throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
   }
-  
+
   // Check face & next sanity
-  for(Face& f : rawFaces) {
+  for (Face& f : rawFaces) {
     Halfedge* currHe = f.halfedge;
     Halfedge* firstHe = f.halfedge;
     size_t count = 0;
     do {
-      if(currHe->face != &f) throw std::logic_error("face.halfedge doesn't match halfedge.face");
+      if (currHe->face != &f) throw std::logic_error("face.halfedge doesn't match halfedge.face");
       currHe = currHe->next;
       count++;
-      if(count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
+      if (count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
     } while (currHe != firstHe);
 
-    if(count < 3) throw std::logic_error("face of degree < 2");
+    if (count < 3) throw std::logic_error("face of degree < 2");
   }
-  
-  for(Halfedge& he : rawHalfedges) {
+
+  for (Halfedge& he : rawHalfedges) {
     Halfedge* currHe = &he;
     Halfedge* firstHe = &he;
     size_t count = 0;
     do {
-      if(currHe->face != he.face) throw std::logic_error("he.next.**.face doesn't match he.face");
+      if (currHe->face != he.face) throw std::logic_error("he.next.**.face doesn't match he.face");
       currHe = currHe->next;
       count++;
-      if(count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
+      if (count > rawHalfedges.size()) throw std::logic_error("next forms non-face loop");
     } while (currHe != firstHe);
-    
-    if(he.vertex == he.next->twin->vertex) throw std::logic_error("halfedge face spur");
-    
-    if(he.vertex != he.twin->next->vertex) throw std::logic_error("halfedge vertices don't match");
+
+    if (he.vertex == he.next->twin->vertex) throw std::logic_error("halfedge face spur");
+
+    if (he.vertex != he.twin->next->vertex) throw std::logic_error("halfedge vertices don't match");
   }
 
   // Check vertex orbit sanity
-  for(Vertex& v : rawVertices) {
+  for (Vertex& v : rawVertices) {
     Halfedge* currHe = v.halfedge;
     Halfedge* firstHe = v.halfedge;
     size_t count = 0;
     do {
-      if(currHe->vertex!= &v) throw std::logic_error("vertex.halfedge doesn't match halfedge.vertex");
+      if (currHe->vertex != &v) throw std::logic_error("vertex.halfedge doesn't match halfedge.vertex");
       currHe = currHe->twin->next;
       count++;
-      if(count > rawHalfedges.size()) throw std::logic_error("twin->next forms non-vertex loop");
+      if (count > rawHalfedges.size()) throw std::logic_error("twin->next forms non-vertex loop");
     } while (currHe != firstHe);
   }
-
 }
 
 Halfedge* HalfedgeMesh::getNewHalfedge() {
@@ -1216,6 +1244,7 @@ Face* HalfedgeMesh::getNewFace() {
   }
 
   rawFaces.back().ID = nextElemID++;
+  rawFaces.back().isReal = true;
 #ifndef NDEBUG
   rawFaces.back().parentMesh = this;
 #endif
@@ -1223,11 +1252,11 @@ Face* HalfedgeMesh::getNewFace() {
 }
 
 void HalfedgeMesh::permuteToCanonical() { throw std::logic_error("not implemented"); }
-  
-size_t HalfedgeMesh::indexOf(Halfedge* ptr) {return (ptr - &rawHalfedges[0]);}
-size_t HalfedgeMesh::indexOf(Vertex* ptr) {return (ptr - &rawVertices[0]);}
-size_t HalfedgeMesh::indexOf(Edge* ptr) {return (ptr - &rawEdges[0]);}
-size_t HalfedgeMesh::indexOf(Face* ptr) {return (ptr - &rawFaces[0]);}
+
+size_t HalfedgeMesh::indexOf(Halfedge* ptr) { return (ptr - &rawHalfedges[0]); }
+size_t HalfedgeMesh::indexOf(Vertex* ptr) { return (ptr - &rawVertices[0]); }
+size_t HalfedgeMesh::indexOf(Edge* ptr) { return (ptr - &rawEdges[0]); }
+size_t HalfedgeMesh::indexOf(Face* ptr) { return (ptr - &rawFaces[0]); }
 
 
 } // namespace geometrycentral

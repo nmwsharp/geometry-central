@@ -78,11 +78,25 @@ public:
   // Methods that mutate the mesh. Note that these occasionally trigger a resize, which invaliates
   // any outstanding VertexPtr or MeshData<> objects.
   // TODOs: support removing elements, support adding boundary
-  HalfedgePtr insertVertexAlongEdge(EdgePtr e);          // adds a vertex along an edge, increasing degree of faces. Returns ptr along the new edge, with he.vertex() as new vertex
-  VertexPtr splitEdge(EdgePtr e);                      // split an edge, also splitting adjacent faces
-  VertexPtr insertVertex(FacePtr f);                   // add vertex inside face and triangulate
-  EdgePtr connectVertices(VertexPtr vA, VertexPtr vB); // add an edge connecting two vertices inside the same face
-  EdgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB); // faster if you know the face
+
+  // Adds a vertex along an edge, increasing degree of faces. Returns ptr along the new edge, with he.vertex() as new
+  // vertex
+  HalfedgePtr insertVertexAlongEdge(EdgePtr e);
+
+  // Split an edge, also splitting adjacent faces. Returns new vertex.
+  VertexPtr splitEdge(EdgePtr e);
+
+  // Add vertex inside face and triangulate. Returns new vertex.
+  VertexPtr insertVertex(FacePtr f);
+
+  // Add an edge connecting two vertices inside the same face. Returns new halfedge with vA at tail. he.twin().face() is the new face.
+  HalfedgePtr connectVertices(VertexPtr vA, VertexPtr vB);
+
+  // Same as above. Faster if you know the face.
+  HalfedgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB);
+
+  // Triangulate in a face, returns all subfaces
+  std::vector<FacePtr> triangulate(FacePtr face);
 
   void permuteToCanonical(); // permute to the same indexing convention as after construction
 
@@ -153,7 +167,7 @@ private:
   size_t indexOf(Vertex* ptr);
   size_t indexOf(Edge* ptr);
   size_t indexOf(Face* ptr);
-  
+
   friend class DynamicHalfedgePtr;
   friend class DynamicVertexPtr;
   friend class DynamicEdgePtr;
