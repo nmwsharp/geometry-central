@@ -313,13 +313,16 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
   nPairedEdges /= 2;
 
   size_t nTotalEdges = nPairedEdges + nUnpairedEdges;
-  nRealHalfedges = 2 * nPairedEdges + nUnpairedEdges;
+  size_t nRealHalfedgesToMake =
+      2 * nPairedEdges + nUnpairedEdges; // use a temp variable here because this is tracked as part of class state
+  nRealHalfedges = 0;
   size_t nImaginaryHalfedges = nUnpairedEdges;
   size_t nRealFaces = input.polygons.size();
 
   // Allocate space and construct elements
-  rawHalfedges.reserve(nRealHalfedges + nImaginaryHalfedges);
-  for (size_t i = 0; i < (nRealHalfedges + nImaginaryHalfedges); i++) getNewHalfedge();
+  rawHalfedges.reserve(nRealHalfedgesToMake + nImaginaryHalfedges);
+  for (size_t i = 0; i < nRealHalfedgesToMake; i++) getNewRealHalfedge();
+  for (size_t i = 0; i < nImaginaryHalfedges; i++) getNewImaginaryHalfedge();
   rawVertices.reserve(nVerts);
   for (size_t i = 0; i < nVerts; i++) getNewVertex();
   rawEdges.reserve(nTotalEdges);
@@ -766,8 +769,8 @@ HalfedgePtr HalfedgeMesh::insertVertexAlongEdge(EdgePtr eIn) {
   // Create first, because getNew() could invalidate pointers
   Vertex* newV = getNewVertex();
   Edge* newE = getNewEdge();
-  Halfedge* heANew = getNewHalfedge();
-  Halfedge* heBNew = getNewHalfedge();
+  Halfedge* heANew = getNewRealHalfedge();
+  Halfedge* heBNew = getNewRealHalfedge();
 
   EdgePtr e = eInD;
   Halfedge* heACenter = e.halfedge().ptr;
@@ -865,8 +868,8 @@ HalfedgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, Vertex
   DynamicVertexPtr vBInD(vBIn, this);
 
   // == Create new elements
-  Halfedge* heANew = getNewHalfedge();
-  Halfedge* heBNew = getNewHalfedge();
+  Halfedge* heANew = getNewRealHalfedge();
+  Halfedge* heBNew = getNewRealHalfedge();
   Edge* eNew = getNewEdge();
   Face* fB = getNewFace();
 
@@ -971,8 +974,8 @@ VertexPtr HalfedgeMesh::insertVertex(FacePtr fIn) {
       innerFaces.push_back(getNewFace());
     }
 
-    leadingHalfedges.push_back(getNewHalfedge());
-    trailingHalfedges.push_back(getNewHalfedge());
+    leadingHalfedges.push_back(getNewRealHalfedge());
+    trailingHalfedges.push_back(getNewRealHalfedge());
     innerEdges.push_back(getNewEdge());
   }
 
@@ -1044,7 +1047,7 @@ std::vector<FacePtr> HalfedgeMesh::triangulate(FacePtr f) {
   }
 
   std::vector<FacePtr> staticFaces;
-  for(DynamicFacePtr& d : allFaces) {
+  for (DynamicFacePtr& d : allFaces) {
     staticFaces.emplace_back(d);
   }
 
@@ -1125,7 +1128,7 @@ void HalfedgeMesh::validateConnectivity() {
   }
 }
 
-Halfedge* HalfedgeMesh::getNewHalfedge() {
+Halfedge* HalfedgeMesh::getNewRealHalfedge() {
 
   // The boring case, when no resize is needed
   if (rawHalfedges.size() < rawHalfedges.capacity()) {
@@ -1160,6 +1163,51 @@ Halfedge* HalfedgeMesh::getNewHalfedge() {
   }
 
   rawHalfedges.back().ID = nextElemID++;
+  rawHalfedges.back().isReal = true;
+  nRealHalfedges++;
+#ifndef NDEBUG
+  rawHalfedges.back().parentMesh = this;
+#endif
+  return &rawHalfedges.back();
+}
+
+
+Halfedge* HalfedgeMesh::getNewImaginaryHalfedge() {
+
+  // The boring case, when no resize is needed
+  if (rawHalfedges.size() < rawHalfedges.capacity()) {
+    rawHalfedges.emplace_back();
+  }
+  // The intesting case, where the vector resizes and we need to update pointers.
+  else {
+
+    // Create a new halfedge, allowing the list to expand
+    Halfedge* oldStart = &rawHalfedges.front();
+    rawHalfedges.emplace_back();
+    Halfedge* newStart = &rawHalfedges.front();
+    std::ptrdiff_t shift = newStart - oldStart;
+
+    // Shift all pointers
+    for (Halfedge& he : rawHalfedges) {
+      he.twin += shift;
+      he.next += shift;
+    }
+    for (Vertex& v : rawVertices) {
+      v.halfedge += shift;
+    }
+    for (Edge& e : rawEdges) {
+      e.halfedge += shift;
+    }
+    for (Face& f : rawFaces) {
+      f.halfedge += shift;
+    }
+    for (Face& f : rawBoundaryLoops) {
+      f.halfedge += shift;
+    }
+  }
+
+  rawHalfedges.back().ID = nextElemID++;
+  rawHalfedges.back().isReal = false;
 #ifndef NDEBUG
   rawHalfedges.back().parentMesh = this;
 #endif

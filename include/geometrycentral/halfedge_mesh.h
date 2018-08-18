@@ -140,7 +140,8 @@ private:
   HalfedgeMesh& operator=(HalfedgeMesh&& other) = delete;
 
   // Used to resize the halfedge mesh. Expands and shifts vectors as necessary.
-  Halfedge* getNewHalfedge();
+  Halfedge* getNewRealHalfedge();
+  Halfedge* getNewImaginaryHalfedge();
   Vertex* getNewVertex();
   Edge* getNewEdge();
   Face* getNewFace();
