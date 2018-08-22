@@ -89,11 +89,15 @@ public:
   // Add vertex inside face and triangulate. Returns new vertex.
   VertexPtr insertVertex(FacePtr f);
 
-  // Add an edge connecting two vertices inside the same face. Returns new halfedge with vA at tail. he.twin().face() is the new face.
+  // Add an edge connecting two vertices inside the same face. Returns new halfedge with vA at tail. he.twin().face() is
+  // the new face.
   HalfedgePtr connectVertices(VertexPtr vA, VertexPtr vB);
 
   // Same as above. Faster if you know the face.
   HalfedgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB);
+
+  // Same as above, but if vertices do not contain shared face or are adajcent returns HalfedgePtr() rather than throwing.
+  HalfedgePtr tryConnectVertices(VertexPtr vA, VertexPtr vB);
 
   // Triangulate in a face, returns all subfaces
   std::vector<FacePtr> triangulate(FacePtr face);

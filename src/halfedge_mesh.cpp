@@ -861,6 +861,42 @@ HalfedgePtr HalfedgeMesh::connectVertices(VertexPtr vA, VertexPtr vB) {
   return connectVertices(sharedFace, vA, vB);
 }
 
+HalfedgePtr HalfedgeMesh::tryConnectVertices(VertexPtr vA, VertexPtr vB) {
+
+
+  // TODO much of the connectVertices() logic is O(N_VERTICES_IN_FACE) even though it doesn't really need to be.
+
+  // Early-out if same
+  if (vA == vB) return HalfedgePtr();
+
+  // Find the shared face and call the main version
+  std::unordered_set<FacePtr> aFaces;
+  for (FacePtr f : vA.adjacentFaces()) {
+    aFaces.insert(f);
+  }
+  FacePtr sharedFace = FacePtr();
+  for (FacePtr f : vB.adjacentFaces()) {
+    if (aFaces.find(f) != aFaces.end()) {
+      sharedFace = f;
+      break;
+    }
+  }
+
+  // Fail if no shared face
+  if (sharedFace == FacePtr()) {
+    return HalfedgePtr();
+  }
+
+  // Check if adjacent
+  for (HalfedgePtr he : sharedFace.adjacentHalfedges()) {
+    if ((he.vertex() == vA && he.twin().vertex() == vB) || (he.vertex() == vB && he.twin().vertex() == vA)) {
+      return HalfedgePtr();
+    }
+  }
+
+  return connectVertices(sharedFace, vA, vB);
+}
+
 HalfedgePtr HalfedgeMesh::connectVertices(FacePtr faceIn, VertexPtr vAIn, VertexPtr vBIn) {
 
   DynamicFacePtr faceInD(faceIn, this);
