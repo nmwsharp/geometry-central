@@ -113,7 +113,15 @@ inline size_t DynamicHalfedgePtr::getInd() const {return ind;}
 
 inline HalfedgePtrRangeIterator::HalfedgePtrRangeIterator(
     HalfedgePtr startingHalfedge, HalfedgeSetType type_, HalfedgePtr end_)
-    : currHalfedge(startingHalfedge), type(type_), end(end_) {}
+    : currHalfedge(startingHalfedge), type(type_), end(end_) {
+   // Advance to satisfy the type
+   if(currHalfedge != end && 
+       ((type == HalfedgeSetType::Real && !currHalfedge.isReal()) || 
+        (type == HalfedgeSetType::Imaginary && currHalfedge.isReal())
+       )) {
+      this->operator++();
+    }
+}
 inline const HalfedgePtrRangeIterator& HalfedgePtrRangeIterator::operator++() {
   currHalfedge++;
 
