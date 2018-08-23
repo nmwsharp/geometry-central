@@ -1,185 +1,112 @@
 #pragma once
 
-#include "halfedge_data_macros.h"
-
 // === Implementations for datatypes which hold data stored on the mesh
+
+// Note: these implementations assuming that the default indexing convention for elements will be the same as the
+// iteration order.
 
 namespace geometrycentral {
 
-// Data on vertices
-template <typename T>
-VertexData<T>::VertexData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
+// === Helpers which will allow us abstract over element access
+// clang-format off
+
+// Get number of elemenents
+template <typename E> size_t nElements(HalfedgeMesh* mesh)            { return std::numeric_limits<size_t>::max(); }
+template<> inline size_t nElements<VertexPtr  >(HalfedgeMesh* mesh)   { return mesh->nVertices();   }
+template<> inline size_t nElements<FacePtr    >(HalfedgeMesh* mesh)   { return mesh->nFaces() + mesh->nBoundaryLoops(); }
+template<> inline size_t nElements<EdgePtr    >(HalfedgeMesh* mesh)   { return mesh->nEdges();      }
+template<> inline size_t nElements<HalfedgePtr>(HalfedgeMesh* mesh)   { return mesh->nHalfedges() + mesh->nImaginaryHalfedges();  }
+template<> inline size_t nElements<CornerPtr  >(HalfedgeMesh* mesh)   { return mesh->nCorners();    }
+
+// Index from element
+template <typename E> size_t dataIndexOfElement(HalfedgeMesh* mesh, E e)            { return std::numeric_limits<size_t>::max(); }
+template<> inline size_t dataIndexOfElement<VertexPtr  >(HalfedgeMesh* mesh, VertexPtr e)    { return e - mesh->vertex(0); }
+template<> inline size_t dataIndexOfElement<FacePtr    >(HalfedgeMesh* mesh, FacePtr e)      { 
+  if (e.isReal()) {
+    return e - mesh->face(0);
+  } else {
+    return e - mesh->boundaryLoop(0);
+  }
+}
+template<> inline size_t dataIndexOfElement<EdgePtr    >(HalfedgeMesh* mesh, EdgePtr e)      { return e - mesh->edge(0);      }
+template<> inline size_t dataIndexOfElement<HalfedgePtr>(HalfedgeMesh* mesh, HalfedgePtr e)  { return e - mesh->halfedge(0);  }
+template<> inline size_t dataIndexOfElement<CornerPtr  >(HalfedgeMesh* mesh, CornerPtr e)    { return e - mesh->corner(0);    }
+
+// Set iterator type
+template <class E> struct ElementSetType            { typedef E                 type; };
+template <> struct ElementSetType<VertexPtr     >   { typedef VertexPtrSet      type; };
+template <> struct ElementSetType<FacePtr       >   { typedef FacePtrSet        type; };
+template <> struct ElementSetType<EdgePtr       >   { typedef EdgePtrSet        type; };
+template <> struct ElementSetType<HalfedgePtr   >   { typedef HalfedgePtrSet    type; };
+template <> struct ElementSetType<CornerPtr     >   { typedef CornerPtrSet      type; };
+
+// Iterate through elements
+template <typename E> typename ElementSetType<E>::type iterateElements(HalfedgeMesh* mesh)  { return std::numeric_limits<size_t>::max(); }
+template<> inline VertexPtrSet      iterateElements<VertexPtr  >(HalfedgeMesh* mesh)   { return mesh->vertices();      }
+template<> inline FacePtrSet        iterateElements<FacePtr    >(HalfedgeMesh* mesh)   { return mesh->faces();         }
+template<> inline EdgePtrSet        iterateElements<EdgePtr    >(HalfedgeMesh* mesh)   { return mesh->edges();         }
+template<> inline HalfedgePtrSet    iterateElements<HalfedgePtr>(HalfedgeMesh* mesh)   { return mesh->allHalfedges();  }
+template<> inline CornerPtrSet      iterateElements<CornerPtr  >(HalfedgeMesh* mesh)   { return mesh->corners();       }
+
+
+// clang-format on
+
+
+// === Actual function implementations
+
+template <typename E, typename T>
+MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
   if (parentMesh != nullptr) {
-    data.resize(parentMesh->nVertices());
+    data.resize(nElements<E>(parentMesh));
+    fill(defaultValue);
   }
 }
 
-template <typename T>
-VertexData<T>::VertexData(HalfedgeMesh* parentMesh, T initVal)
-    : VertexData(parentMesh) {
-  fill(initVal);
+template <typename E, typename T>
+MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh, T initVal) : mesh(parentMesh), defaultValue(initVal) {
+  if (parentMesh != nullptr) {
+    data.resize(nElements<E>(parentMesh));
+    fill(defaultValue);
+  }
 }
 
-template <typename T>
-VertexData<T>::VertexData(HalfedgeMesh* parentMesh,
-                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
-    : VertexData(parentMesh) {
+template <typename E, typename T>
+MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
+    : MeshData(parentMesh) {
   fromVector(vector);
 }
 
-template <typename T>
-VertexData<T>::VertexData(HalfedgeMesh* parentMesh,
-                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                          const VertexData<size_t>& indexer)
-    : VertexData(parentMesh) {
+template <typename E, typename T>
+MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
+                         const MeshData<E, size_t>& indexer)
+    : MeshData(parentMesh) {
   fromVector(vector, indexer);
 }
 
-template <typename T>
-void VertexData<T>::fill(T val) {
+template <typename E, typename T>
+void MeshData<E, T>::fill(T val) {
   std::fill(data.begin(), data.end(), val);
 }
 
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> VertexData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nVertices());
-  VertexData<size_t> ind = mesh->getVertexIndices();
-  for (VertexPtr v : mesh->vertices()) {
-    result(ind[v]) = (*this)[v];
+template <typename E, typename T>
+Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E, T>::toVector() const {
+  Eigen::Matrix<T, Eigen::Dynamic, 1> result(nElements<E>(mesh));
+  size_t i = 0;
+  for (E e : iterateElements<E>(mesh)) {
+    result(i) = (*this)[e];
+    i++;
   }
   return result;
 }
 
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> VertexData<T>::toVector(
-    const VertexData<size_t>& indexer) const {
+template <typename E, typename T>
+Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E, T>::toVector(const MeshData<E, size_t>& indexer) const {
   size_t outSize = 0;
-  for (VertexPtr v : mesh->vertices())
-    if (indexer[v] != std::numeric_limits<size_t>::max()) outSize++;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (VertexPtr v : mesh->vertices()) {
-    if (indexer[v] != std::numeric_limits<size_t>::max()) {
-      result(indexer[v]) = (*this)[v];
-    }
-  }
-  return result;
-}
-
-template <typename T>
-void VertexData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
-  if ((size_t)vector.rows() != mesh->nVertices())
-    throw std::runtime_error("Vector size does not match mesh size.");
-  VertexData<size_t> ind = mesh->getVertexIndices();
-  for (VertexPtr v : mesh->vertices()) {
-    (*this)[v] = vector(ind[v]);
-  }
-}
-
-template <typename T>
-void VertexData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                               const VertexData<size_t>& indexer) {
-  for (VertexPtr v : mesh->vertices()) {
-    if (indexer[v] != std::numeric_limits<size_t>::max()) {
-      (*this)[v] = vector(indexer[v]);
-    }
-  }
-}
-
-template <typename T>
-inline T& VertexData<T>::operator[](VertexPtr v) {
-#ifndef NDEBUG
-  assert(v->parentMesh == mesh &&
-         "Attempted to access data with member from wrong mesh");
-#endif
-  size_t i = v - mesh->vertex(0);
-  return data[i];
-}
-
-template <typename T>
-inline const T& VertexData<T>::operator[](VertexPtr v) const {
-#ifndef NDEBUG
-  assert(v->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  size_t i = v - mesh->vertex(0);
-  return data[i];
-}
-
-template <typename T>
-inline T& VertexData<T>::operator[](size_t v) {
-#ifndef NDEBUG
-  assert(v < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[v];
-}
-
-template <typename T>
-inline const T& VertexData<T>::operator[](size_t v) const {
-#ifndef NDEBUG
-  assert(v < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[v];
-}
-
-template <typename T>
-inline size_t VertexData<T>::size() const {
-  return data.size();
-}
-
-GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(VertexData, mesh)
-
-// Data on edges
-template <typename T>
-EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
-  if (parentMesh != nullptr) {
-    data.resize(parentMesh->nEdges());
-  }
-}
-
-template <typename T>
-EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh, T initVal)
-    : EdgeData(parentMesh) {
-  fill(initVal);
-}
-
-template <typename T>
-EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh,
-                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
-    : EdgeData(parentMesh) {
-  fromVector(vector);
-}
-
-template <typename T>
-EdgeData<T>::EdgeData(HalfedgeMesh* parentMesh,
-                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                      const EdgeData<size_t>& indexer)
-    : EdgeData(parentMesh) {
-  fromVector(vector, indexer);
-}
-
-template <typename T>
-void EdgeData<T>::fill(T val) {
-  std::fill(data.begin(), data.end(), val);
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> EdgeData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nEdges());
-  EdgeData<size_t> ind = mesh->getEdgeIndices();
-  for (EdgePtr e : mesh->edges()) {
-    result(ind[e]) = (*this)[e];
-  }
-  return result;
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> EdgeData<T>::toVector(
-    const EdgeData<size_t>& indexer) const {
-  size_t outSize = 0;
-  for (EdgePtr e : mesh->edges())
+  for (E e : iterateElements<E>(mesh)) {
     if (indexer[e] != std::numeric_limits<size_t>::max()) outSize++;
+  }
   Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (EdgePtr e : mesh->edges()) {
+  for (E e : iterateElements<E>(mesh)) {
     if (indexer[e] != std::numeric_limits<size_t>::max()) {
       result(indexer[e]) = (*this)[e];
     }
@@ -187,450 +114,65 @@ Eigen::Matrix<T, Eigen::Dynamic, 1> EdgeData<T>::toVector(
   return result;
 }
 
-template <typename T>
-void EdgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
-  if ((size_t)vector.rows() != mesh->nEdges())
-    throw std::runtime_error("Vector size does not match mesh size.");
-  EdgeData<size_t> ind = mesh->getEdgeIndices();
-  for (EdgePtr e : mesh->edges()) {
-    (*this)[e] = vector(ind[e]);
+template <typename E, typename T>
+void MeshData<E, T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
+  if ((size_t)vector.rows() != nElements<E>(mesh)) throw std::runtime_error("Vector size does not match mesh size.");
+  size_t i = 0;
+  for (E e : iterateElements<E>(mesh)) {
+    (*this)[e] = vector(i);
+    i++;
   }
 }
 
-template <typename T>
-void EdgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                             const EdgeData<size_t>& indexer) {
-  for (EdgePtr e : mesh->edges()) {
+template <typename E, typename T>
+void MeshData<E, T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const MeshData<E, size_t>& indexer) {
+  for (E e : iterateElements<E>(mesh)) {
     if (indexer[e] != std::numeric_limits<size_t>::max()) {
       (*this)[e] = vector(indexer[e]);
     }
   }
 }
 
-template <typename T>
-inline T& EdgeData<T>::operator[](EdgePtr e) {
+template <typename E, typename T>
+inline T& MeshData<E, T>::operator[](E e) {
 #ifndef NDEBUG
-  assert(e->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
+  assert(mesh != nullptr && "MeshData is uninitialized.");
+  assert(e->parentMesh == mesh && "Attempted to access MeshData with member from wrong mesh");
 #endif
-  size_t i = e - mesh->edge(0);
+  size_t i = dataIndexOfElement(mesh, e);
   return data[i];
 }
 
-template <typename T>
-inline const T& EdgeData<T>::operator[](EdgePtr e) const {
+template <typename E, typename T>
+inline const T& MeshData<E, T>::operator[](E e) const {
 #ifndef NDEBUG
-  assert(e->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
+  assert(mesh != nullptr && "MeshData is uninitialized.");
+  assert(e->parentMesh == mesh && "Attempted to access MeshData with member from wrong mesh");
 #endif
-  size_t i = e - mesh->edge(0);
+  size_t i = dataIndexOfElement(mesh, e);
   return data[i];
 }
 
-template <typename T>
-inline T& EdgeData<T>::operator[](size_t e) {
+template <typename E, typename T>
+inline T& MeshData<E, T>::operator[](size_t i) {
 #ifndef NDEBUG
-  assert(e < size() && "Attempted to access data with out of bounds index");
+  assert(i < size() && "Attempted to access MeshData with out of bounds index");
 #endif
-  return data[e];
-}
-
-template <typename T>
-inline const T& EdgeData<T>::operator[](size_t e) const {
-#ifndef NDEBUG
-  assert(e < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[e];
-}
-
-template <typename T>
-inline size_t EdgeData<T>::size() const {
-  return data.size();
-}
-
-
-GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(EdgeData, mesh)
-
-// Data on (real) faces
-template <typename T>
-FaceData<T>::FaceData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
-  if (parentMesh != nullptr) {
-    realSize = parentMesh->nFaces();
-    size_t imaginarySize = parentMesh->nBoundaryLoops();
-    data.resize(realSize + imaginarySize);
-  }
-}
-
-template <typename T>
-FaceData<T>::FaceData(HalfedgeMesh* parentMesh, T initVal)
-    : FaceData(parentMesh) {
-  fill(initVal);
-}
-
-template <typename T>
-FaceData<T>::FaceData(HalfedgeMesh* parentMesh,
-                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
-    : FaceData(parentMesh) {
-  fromVector(vector);
-}
-
-template <typename T>
-FaceData<T>::FaceData(HalfedgeMesh* parentMesh,
-                      const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                      const FaceData<size_t>& indexer)
-    : FaceData(parentMesh) {
-  fromVector(vector, indexer);
-}
-
-template <typename T>
-void FaceData<T>::fill(T val) {
-  std::fill(data.begin(), data.end(), val);
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> FaceData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nFaces());
-  FaceData<size_t> ind = mesh->getFaceIndices();
-  for (FacePtr f : mesh->faces()) {
-    result(ind[f]) = (*this)[f];
-  }
-  return result;
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> FaceData<T>::toVector(
-    const FaceData<size_t>& indexer) const {
-  size_t outSize = 0;
-  for (FacePtr f : mesh->faces())
-    if (indexer[f] != std::numeric_limits<size_t>::max()) outSize++;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (FacePtr f : mesh->faces()) {
-    if (indexer[f] != std::numeric_limits<size_t>::max()) {
-      result(indexer[f]) = (*this)[f];
-    }
-  }
-  return result;
-}
-
-template <typename T>
-void FaceData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
-  if ((size_t)vector.rows() != mesh->nFaces())
-    throw std::runtime_error("Vector size does not match mesh size.");
-  FaceData<size_t> ind = mesh->getFaceIndices();
-  for (FacePtr f : mesh->faces()) {
-    (*this)[f] = vector(ind[f]);
-  }
-}
-
-template <typename T>
-void FaceData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                             const FaceData<size_t>& indexer) {
-  for (FacePtr f : mesh->faces()) {
-    if (indexer[f] != std::numeric_limits<size_t>::max()) {
-      (*this)[f] = vector(indexer[f]);
-    }
-  }
-}
-
-template <typename T>
-inline T& FaceData<T>::operator[](FacePtr f) {
-#ifndef NDEBUG
-  assert(f->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  if (f.isReal()) {
-    size_t i = f - mesh->face(0);
-    return data[i];
-  } else {
-    size_t i = f - mesh->boundaryLoop(0);
-    return data[realSize + i];
-  }
-}
-
-template <typename T>
-inline const T& FaceData<T>::operator[](FacePtr f) const {
-#ifndef NDEBUG
-  assert(f->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  if (f.isReal()) {
-    size_t i = f - mesh->face(0);
-    return data[i];
-  } else {
-    size_t i = f - mesh->boundaryLoop(0);
-    return data[realSize + i];
-  }
-}
-
-template <typename T>
-inline T& FaceData<T>::operator[](size_t f) {
-#ifndef NDEBUG
-  assert(f < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[f];
-}
-
-template <typename T>
-inline const T& FaceData<T>::operator[](size_t f) const {
-#ifndef NDEBUG
-  assert(f < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[f];
-}
-
-template <typename T>
-inline size_t FaceData<T>::size() const {
-  return data.size();
-}
-
-GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(FaceData, mesh)
-
-// Data on (real and imaginary) halfedges
-template <typename T>
-HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
-  if (parentMesh != nullptr) {
-    realSize = parentMesh->nHalfedges();
-    size_t imaginarySize = parentMesh->nImaginaryHalfedges();
-    data.resize(realSize + imaginarySize);
-  }
-}
-
-template <typename T>
-HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh, T initVal)
-    : HalfedgeData(parentMesh) {
-  fill(initVal);
-}
-
-template <typename T>
-HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh,
-                              const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
-    : HalfedgeData(parentMesh) {
-  fromVector(vector);
-}
-
-template <typename T>
-HalfedgeData<T>::HalfedgeData(HalfedgeMesh* parentMesh,
-                              const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                              const HalfedgeData<size_t>& indexer)
-    : HalfedgeData(parentMesh) {
-  fromVector(vector, indexer);
-}
-
-template <typename T>
-void HalfedgeData<T>::fill(T val) {
-  std::fill(data.begin(), data.end(), val);
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nHalfedges() + mesh->nImaginaryHalfedges());
-  HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
-  for (HalfedgePtr he : mesh->allHalfedges()) {
-    result(ind[he]) = (*this)[he];
-  }
-  return result;
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> HalfedgeData<T>::toVector(
-    const HalfedgeData<size_t>& indexer) const {
-  size_t outSize = 0;
-  for (HalfedgePtr he : mesh->allHalfedges())
-    if (indexer[he] != std::numeric_limits<size_t>::max()) outSize++;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (HalfedgePtr he : mesh->allHalfedges()) {
-    if (indexer[he] != std::numeric_limits<size_t>::max()) {
-      result(indexer[he]) = (*this)[he];
-    }
-  }
-  return result;
-}
-
-template <typename T>
-void HalfedgeData<T>::fromVector(
-    const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
-  if ((size_t)vector.rows() != (mesh->nHalfedges() + mesh->nImaginaryHalfedges()))
-    throw std::runtime_error("Vector size does not match mesh size.");
-  HalfedgeData<size_t> ind = mesh->getHalfedgeIndices();
-  for (HalfedgePtr he : mesh->allHalfedges()) {
-    (*this)[he] = vector(ind[he]);
-  }
-}
-
-template <typename T>
-void HalfedgeData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                                 const HalfedgeData<size_t>& indexer) {
-  for (HalfedgePtr he : mesh->allHalfedges()) {
-    if (indexer[he] != std::numeric_limits<size_t>::max()) {
-      (*this)[he] = vector(indexer[he]);
-    }
-  }
-}
-
-template <typename T>
-inline T& HalfedgeData<T>::operator[](HalfedgePtr he) {
-#ifndef NDEBUG
-  assert(he->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  size_t i = he - mesh->halfedge(0);
   return data[i];
 }
 
-template <typename T>
-inline const T& HalfedgeData<T>::operator[](HalfedgePtr he) const {
+template <typename E, typename T>
+inline const T& MeshData<E, T>::operator[](size_t i) const {
 #ifndef NDEBUG
-  assert(he->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
+  assert(i < size() && "Attempted to access MeshData with out of bounds index");
 #endif
-  size_t i = he - mesh->halfedge(0);
   return data[i];
 }
 
-template <typename T>
-inline T& HalfedgeData<T>::operator[](size_t he) {
-#ifndef NDEBUG
-  assert(he < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[he];
+template <typename E, typename T>
+inline size_t MeshData<E, T>::size() const {
+  return nElements<E>(mesh);
 }
 
-template <typename T>
-inline const T& HalfedgeData<T>::operator[](size_t he) const {
-#ifndef NDEBUG
-  assert(he < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[he];
-}
 
-template <typename T>
-inline size_t HalfedgeData<T>::size() const {
-  return data.size();
-}
-
-GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(HalfedgeData, mesh)
-
-// Data on corners
-template <typename T>
-CornerData<T>::CornerData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
-  if (parentMesh != nullptr) {
-    realSize = parentMesh->nHalfedges();
-    data.resize(realSize);
-  }
-}
-
-template <typename T>
-CornerData<T>::CornerData(HalfedgeMesh* parentMesh, T initVal)
-    : CornerData(parentMesh) {
-  fill(initVal);
-}
-
-template <typename T>
-CornerData<T>::CornerData(HalfedgeMesh* parentMesh,
-                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
-    : CornerData(parentMesh) {
-  fromVector(vector);
-}
-
-template <typename T>
-CornerData<T>::CornerData(HalfedgeMesh* parentMesh,
-                          const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                          const CornerData<size_t>& indexer)
-    : CornerData(parentMesh) {
-  fromVector(vector, indexer);
-}
-
-template <typename T>
-void CornerData<T>::fill(T val) {
-  std::fill(data.begin(), data.end(), val);
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> CornerData<T>::toVector() const {
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(mesh->nCorners());
-  CornerData<size_t> ind = mesh->getCornerIndices();
-  for (CornerPtr c : mesh->corners()) {
-    result(ind[c]) = (*this)[c];
-  }
-  return result;
-}
-
-template <typename T>
-Eigen::Matrix<T, Eigen::Dynamic, 1> CornerData<T>::toVector(
-    const CornerData<size_t>& indexer) const {
-  size_t outSize = 0;
-  for (CornerPtr c : mesh->corners())
-    if (indexer[c] != std::numeric_limits<size_t>::max()) outSize++;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> result(outSize);
-  for (CornerPtr c : mesh->corners()) {
-    if (indexer[c] != std::numeric_limits<size_t>::max()) {
-      result(indexer[c]) = (*this)[c];
-    }
-  }
-  return result;
-}
-
-template <typename T>
-void CornerData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector) {
-  if ((size_t)vector.rows() != mesh->nCorners())
-    throw std::runtime_error("Vector size does not match mesh size.");
-  CornerData<size_t> ind = mesh->getCornerIndices();
-  for (CornerPtr c : mesh->corners()) {
-    (*this)[c] = vector(ind[c]);
-  }
-}
-
-template <typename T>
-void CornerData<T>::fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-                               const CornerData<size_t>& indexer) {
-  for (CornerPtr c : mesh->corners()) {
-    if (indexer[c] != std::numeric_limits<size_t>::max()) {
-      (*this)[c] = vector(indexer[c]);
-    }
-  }
-}
-
-template <typename T>
-inline T& CornerData<T>::operator[](CornerPtr c) {
-#ifndef NDEBUG
-  assert(c->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  size_t i = c - mesh->corner(0);
-  return data[i];
-}
-
-template <typename T>
-inline const T& CornerData<T>::operator[](CornerPtr c) const {
-#ifndef NDEBUG
-  assert(c->parentMesh == mesh &&
-         "Attempted access data with member from wrong mesh");
-#endif
-  size_t i = c - mesh->corner(0);
-  return data[i];
-}
-
-template <typename T>
-inline T& CornerData<T>::operator[](size_t c) {
-#ifndef NDEBUG
-  assert(c < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[c];
-}
-
-template <typename T>
-inline const T& CornerData<T>::operator[](size_t c) const {
-#ifndef NDEBUG
-  assert(c < size() && "Attempted to access data with out of bounds index");
-#endif
-  return data[c];
-}
-
-template <typename T>
-inline size_t CornerData<T>::size() const {
-  return data.size();
-}
-
-GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DEFINITIONS(CornerData, mesh)
-
-}  // namespace geometrycentral
+} // namespace geometrycentral

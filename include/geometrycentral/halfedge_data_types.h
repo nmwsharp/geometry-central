@@ -2,8 +2,6 @@
 
 #include <cassert>
 
-#include "halfedge_data_macros.h"
-
 #include "Eigen/Core"
 
 // === Datatypes which hold data stored on the mesh
@@ -11,150 +9,61 @@
 
 namespace geometrycentral {
 
-// Data on vertices
-template <typename T> class VertexData {
+// Geneneric datatype, specialized as VertexData (etc) below
+// E is the element pointer type (eg VertexPtr)
+// T is the data type that it holds (eg double)
+template <typename E, typename T>
+class MeshData {
 private:
   HalfedgeMesh* mesh = nullptr;
   std::vector<T> data;
+  T defaultValue;
 
 public:
-  VertexData() {}
-  VertexData(HalfedgeMesh* parentMesh);
-  VertexData(HalfedgeMesh* parentMesh, T initVal);
-  VertexData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  VertexData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-             const VertexData<size_t>& indexer);
+  MeshData() {}
+  MeshData(HalfedgeMesh* parentMesh);
+  MeshData(HalfedgeMesh* parentMesh, T initVal);
+  MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
+  MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
+           const MeshData<E, size_t>& indexer);
 
-  T& operator[](VertexPtr v);
-  const T& operator[](VertexPtr v) const;
-  T& operator[](size_t v);
-  const T& operator[](size_t v) const;
-  size_t size() const;
+  // Acess with an element pointer
+  T& operator[](E e);
+  const T& operator[](E e) const;
 
-  void fill(T val);
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const VertexData<size_t>& indexer) const;
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const VertexData<size_t>& indexer);
-
-  GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(VertexData)
-};
-
-// Data on (real) faces
-template <typename T> class FaceData {
-private:
-  HalfedgeMesh* mesh;
-  std::vector<T> data;
-  size_t realSize;
-
-public:
-  FaceData() {}
-  FaceData(HalfedgeMesh* parentMesh);
-  FaceData(HalfedgeMesh* parentMesh, T initVal);
-  FaceData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  FaceData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const FaceData<size_t>& indexer);
-
-  T& operator[](FacePtr f);
-  const T& operator[](FacePtr f) const;
-  T& operator[](size_t f);
-  const T& operator[](size_t f) const;
-  size_t size() const;
-
-  void fill(T val);
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const FaceData<size_t>& indexer) const;
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const FaceData<size_t>& indexer);
-
-  GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(FaceData)
-};
-
-// Data on edges
-template <typename T> class EdgeData {
-private:
-  HalfedgeMesh* mesh;
-  std::vector<T> data;
-
-public:
-  EdgeData() {}
-  EdgeData(HalfedgeMesh* parentMesh);
-  EdgeData(HalfedgeMesh* parentMesh, T initVal);
-  EdgeData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  EdgeData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const EdgeData<size_t>& indexer);
-
-  T& operator[](EdgePtr e);
-  const T& operator[](EdgePtr e) const;
+  // Access with an index
   T& operator[](size_t e);
   const T& operator[](size_t e) const;
+
+  // Get the size of the container
+  // (note: logical size, like nVertices(), not actual size of vector buffer)
   size_t size() const;
 
+  // Fill with some value
   void fill(T val);
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const EdgeData<size_t>& indexer) const;
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const EdgeData<size_t>& indexer);
 
-  GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(EdgeData)
+  // Convert to and from vector types
+  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
+  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const MeshData<E, size_t>& indexer) const;
+  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
+  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const MeshData<E, size_t>& indexer);
+
 };
 
-// Data on (real and imaginary) halfedges
-template <typename T> class HalfedgeData {
-private:
-  HalfedgeMesh* mesh;
-  std::vector<T> data;
-  size_t realSize;
+// === Typdefs for the usual VertexData<> etc
+template <typename T>
+using VertexData = MeshData<VertexPtr, T>;
 
-public:
-  HalfedgeData() {}
-  HalfedgeData(HalfedgeMesh* parentMesh);
-  HalfedgeData(HalfedgeMesh* parentMesh, T initVal);
-  HalfedgeData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  HalfedgeData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-               const HalfedgeData<size_t>& indexer);
+template <typename T>
+using FaceData = MeshData<FacePtr, T>;
 
-  T& operator[](HalfedgePtr he);
-  const T& operator[](HalfedgePtr he) const;
-  T& operator[](size_t he);
-  const T& operator[](size_t he) const;
-  size_t size() const;
+template <typename T>
+using EdgeData = MeshData<EdgePtr, T>;
 
-  void fill(T val);
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const HalfedgeData<size_t>& indexer) const;
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const HalfedgeData<size_t>& indexer);
+template <typename T>
+using HalfedgeData = MeshData<HalfedgePtr, T>;
 
-  GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(HalfedgeData)
-};
-
-// Data on corners
-template <typename T> class CornerData {
-private:
-  HalfedgeMesh* mesh;
-  std::vector<T> data;
-  unsigned int realSize;
-
-public:
-  CornerData() {}
-  CornerData(HalfedgeMesh* parentMesh);
-  CornerData(HalfedgeMesh* parentMesh, T initVal);
-  CornerData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  CornerData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
-             const CornerData<size_t>& indexer);
-
-  T& operator[](CornerPtr c);
-  const T& operator[](CornerPtr c) const;
-  T& operator[](size_t c);
-  const T& operator[](size_t c) const;
-  size_t size() const;
-
-  void fill(T val);
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
-  Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const CornerData<size_t>& indexer) const;
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const CornerData<size_t>& indexer);
-
-  GC_INTERNAL_GENERATE_DATATYPE_OPERATOR_DECLARATIONS(CornerData)
-};
+template <typename T>
+using CornerData = MeshData<CornerPtr, T>;
 
 } // namespace geometrycentral
