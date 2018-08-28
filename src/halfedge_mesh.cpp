@@ -1287,7 +1287,6 @@ Vertex* HalfedgeMesh::getNewVertex() {
     }
 
     // Invoke relevant callback functions
-    std::cout << "expanding vertex callbacks()" << std::endl;
     for (auto& f : vertexExpandCallbackList) {
       f(rawVertices.capacity());
     }
