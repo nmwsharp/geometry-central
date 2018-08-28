@@ -43,7 +43,7 @@ class HalfedgeMesh {
 public:
   HalfedgeMesh();
   HalfedgeMesh(const PolygonSoupMesh& soup, Geometry<Vector3>*& geometry);
-
+  ~HalfedgeMesh();
 
   // Number of mesh elements of each type
   size_t nHalfedges() const;
@@ -96,7 +96,8 @@ public:
   // Same as above. Faster if you know the face.
   HalfedgePtr connectVertices(FacePtr face, VertexPtr vA, VertexPtr vB);
 
-  // Same as above, but if vertices do not contain shared face or are adajcent returns HalfedgePtr() rather than throwing.
+  // Same as above, but if vertices do not contain shared face or are adajcent returns HalfedgePtr() rather than
+  // throwing.
   HalfedgePtr tryConnectVertices(VertexPtr vA, VertexPtr vB);
 
   // Triangulate in a face, returns all subfaces
@@ -125,6 +126,30 @@ public:
   HalfedgeMesh* copy();                            // returns a deep copy
   HalfedgeMesh* copy(HalfedgeMeshDataTransfer& t); // returns a deep copy
 
+  // Compress the mesh
+  bool isCompressed();
+  void compress();
+  void compressIfSparserThan(double ratioThreshold);
+  void compressIfVerySparse();
+
+  // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
+  // Expansion callbacks
+  std::list<std::function<void(size_t)>> vertexExpandCallbackList;
+  std::list<std::function<void(size_t)>> faceExpandCallbackList;
+  std::list<std::function<void(size_t)>> edgeExpandCallbackList;
+  std::list<std::function<void(size_t)>> halfedgeExpandCallbackList;
+
+  // Compression callbacks
+  std::list<std::function<void(size_t)>> vertexCompressCallbackList;
+  std::list<std::function<void(size_t)>> faceCompressCallbackList;
+  std::list<std::function<void(size_t)>> edgeCompressCallbackList;
+  std::list<std::function<void(size_t)>> halfedgeCompressCallbackList;
+
+  // Mesh delete callbacks
+  // (this unfortunately seems to be necessary; objects which have registered their callbacks above
+  // need to know not to try to de-register them if the mesh has been deleted)
+  std::list<std::function<void()>> meshDeleteCallbackList;
+
 private:
   // The contiguous chunks of memory which hold the actual structs.
   // Don't modify them after construction.
@@ -135,7 +160,7 @@ private:
   std::vector<Face> rawFaces;
   std::vector<Face> rawBoundaryLoops;
 
-  size_t nextElemID = 77; // used to assign unique ID to elements
+  size_t nextElemID = 77777; // used to assign unique ID to elements
 
   // Hide copy and move constructors, we don't wanna mess with that
   HalfedgeMesh(const HalfedgeMesh& other) = delete;

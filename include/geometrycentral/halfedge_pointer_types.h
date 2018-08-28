@@ -88,6 +88,9 @@ public:
   HalfedgePtr& operator--();
   HalfedgePtr operator--(int);
 
+  // The dynamic equivalent
+  typedef DynamicHalfedgePtr DynamicType;
+
 protected:
   Halfedge* ptr = nullptr;
 
@@ -102,6 +105,12 @@ class DynamicHalfedgePtr {
 public:
   DynamicHalfedgePtr(Halfedge* ptr, HalfedgeMesh* mesh);
   DynamicHalfedgePtr(HalfedgePtr ptr, HalfedgeMesh* mesh);
+  
+  DynamicHalfedgePtr twin() const;
+  DynamicHalfedgePtr next() const;
+  DynamicVertexPtr vertex() const;
+  DynamicEdgePtr edge() const;
+  DynamicFacePtr face() const;
 
   // Despite the name, should not be used as a [0,N) index.
   size_t getInd() const;
@@ -113,6 +122,9 @@ public:
   bool operator>=(const DynamicHalfedgePtr& other) const;
   bool operator<(const DynamicHalfedgePtr& other) const;
   bool operator<=(const DynamicHalfedgePtr& other) const;
+  
+  // The static equivalent
+  typedef HalfedgePtr StaticType;
   
 private:
   friend class HalfedgePtr;
@@ -190,6 +202,10 @@ public:
   CornerPtr operator++(int);
   CornerPtr& operator--();
   CornerPtr operator--(int);
+  
+  // The dynamic equivalent
+  // TODO
+  typedef DynamicHalfedgePtr DynamicType;
 
 protected:
   Halfedge* ptr = nullptr;
@@ -271,6 +287,9 @@ public:
   VertexPtr operator++(int);
   VertexPtr& operator--();
   VertexPtr operator--(int);
+  
+  // The dynamic equivalent
+  typedef DynamicVertexPtr DynamicType;
 
 protected:
   Vertex* ptr = nullptr;
@@ -286,6 +305,9 @@ class DynamicVertexPtr {
 public:
   DynamicVertexPtr(Vertex* ptr, HalfedgeMesh* mesh);
   DynamicVertexPtr(VertexPtr ptr, HalfedgeMesh* mesh);
+
+  // Connectivity
+  DynamicHalfedgePtr halfedge() const;
   
   // Despite the name, should not be used as a [0,N) index.
   size_t getInd() const;
@@ -297,6 +319,9 @@ public:
   bool operator>=(const DynamicVertexPtr& other) const;
   bool operator<(const DynamicVertexPtr& other) const;
   bool operator<=(const DynamicVertexPtr& other) const;
+  
+  // The static equivalent
+  typedef VertexPtr StaticType;
 
 private:
   friend class VertexPtr;
@@ -339,7 +364,6 @@ public:
   // Connectivity
   HalfedgePtr halfedge() const;
 
-
   // Properties
   bool isBoundary() const;
 
@@ -375,6 +399,9 @@ public:
   EdgePtr operator++(int);
   EdgePtr& operator--();
   EdgePtr operator--(int);
+  
+  // The dynamic equivalent
+  typedef DynamicEdgePtr DynamicType;
 
 protected:
   Edge* ptr = nullptr;
@@ -391,6 +418,9 @@ public:
   DynamicEdgePtr(Edge* ptr, HalfedgeMesh* mesh);
   DynamicEdgePtr(EdgePtr ptr, HalfedgeMesh* mesh);
   
+  // Connectivity
+  DynamicHalfedgePtr halfedge() const;
+  
   // Despite the name, should not be used as a [0,N) index.
   size_t getInd() const;
   
@@ -401,6 +431,9 @@ public:
   bool operator>=(const DynamicEdgePtr& other) const;
   bool operator<(const DynamicEdgePtr& other) const;
   bool operator<=(const DynamicEdgePtr& other) const;
+  
+  // The static equivalent
+  typedef EdgePtr StaticType;
 
 private:
   friend class EdgePtr;
@@ -496,6 +529,9 @@ public:
   FacePtr operator++(int);
   FacePtr& operator--();
   FacePtr operator--(int);
+  
+  // The dynamic equivalent
+  typedef DynamicFacePtr DynamicType;
 
 protected:
   Face* ptr = nullptr;
@@ -511,6 +547,9 @@ class DynamicFacePtr {
 public:
   DynamicFacePtr(Face* ptr, HalfedgeMesh* mesh);
   DynamicFacePtr(FacePtr ptr, HalfedgeMesh* mesh);
+ 
+  // Connectivity
+  DynamicHalfedgePtr halfedge() const;
   
   // Despite the name, should not be used as a [0,N) index.
   size_t getInd() const;
@@ -522,6 +561,9 @@ public:
   bool operator>=(const DynamicFacePtr& other) const;
   bool operator<(const DynamicFacePtr& other) const;
   bool operator<=(const DynamicFacePtr& other) const;
+
+  // The static equivalent
+  typedef FacePtr StaticType;
 
 private:
   friend class FacePtr;

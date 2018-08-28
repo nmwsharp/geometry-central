@@ -48,6 +48,22 @@ template<> inline EdgePtrSet        iterateElements<EdgePtr    >(HalfedgeMesh* m
 template<> inline HalfedgePtrSet    iterateElements<HalfedgePtr>(HalfedgeMesh* mesh)   { return mesh->allHalfedges();  }
 template<> inline CornerPtrSet      iterateElements<CornerPtr  >(HalfedgeMesh* mesh)   { return mesh->corners();       }
 
+// Get the expand callback list
+template <typename E> std::list<std::function<void(size_t)>>& getExpandCallbackList(HalfedgeMesh* mesh)            { return mesh->vertexExpandCallbackList;   } // not appropriate, placeholder value
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<VertexPtr  >(HalfedgeMesh* mesh)   { return mesh->vertexExpandCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<FacePtr    >(HalfedgeMesh* mesh)   { return mesh->faceExpandCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<EdgePtr    >(HalfedgeMesh* mesh)   { return mesh->edgeExpandCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<HalfedgePtr>(HalfedgeMesh* mesh)   { return mesh->halfedgeExpandCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<CornerPtr  >(HalfedgeMesh* mesh)   { return mesh->halfedgeExpandCallbackList;   }
+
+// Get the compress callback list
+template <typename E> std::list<std::function<void(size_t)>>& getCompressCallbackList(HalfedgeMesh* mesh)            { return mesh->vertexCompressCallbackList; } // not appropriate, placeholder value
+template<> inline std::list<std::function<void(size_t)>>& getCompressCallbackList<VertexPtr  >(HalfedgeMesh* mesh)   { return mesh->vertexCompressCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getCompressCallbackList<FacePtr    >(HalfedgeMesh* mesh)   { return mesh->faceCompressCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getCompressCallbackList<EdgePtr    >(HalfedgeMesh* mesh)   { return mesh->edgeCompressCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getCompressCallbackList<HalfedgePtr>(HalfedgeMesh* mesh)   { return mesh->halfedgeCompressCallbackList;   }
+template<> inline std::list<std::function<void(size_t)>>& getCompressCallbackList<CornerPtr  >(HalfedgeMesh* mesh)   { return mesh->halfedgeCompressCallbackList;   }
+
 
 // clang-format on
 
@@ -60,6 +76,8 @@ MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh) : mesh(parentMesh) {
     data.resize(nElements<E>(parentMesh));
     fill(defaultValue);
   }
+
+  registerWithMesh();
 }
 
 template <typename E, typename T>
@@ -68,6 +86,8 @@ MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh, T initVal) : mesh(parentMesh)
     data.resize(nElements<E>(parentMesh));
     fill(defaultValue);
   }
+
+  registerWithMesh();
 }
 
 template <typename E, typename T>
@@ -81,6 +101,90 @@ MeshData<E, T>::MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen:
                          const MeshData<E, size_t>& indexer)
     : MeshData(parentMesh) {
   fromVector(vector, indexer);
+}
+
+template <typename E, typename T>
+MeshData<E, T>::MeshData(const MeshData<E, T>& other)
+    : mesh(other.mesh), defaultValue(other.defaultValue), data(other.data) {
+  registerWithMesh();
+}
+
+template <typename E, typename T>
+MeshData<E, T>::MeshData(MeshData<E, T>&& other) noexcept : mesh(other.mesh),
+                                                            defaultValue(other.defaultValue),
+                                                            data(std::move(other.data)) {
+  registerWithMesh();
+}
+
+template <typename E, typename T>
+MeshData<E, T>& MeshData<E, T>::operator=(const MeshData<E, T>& other) {
+  deregisterWithMesh();
+  mesh = other.mesh;
+  defaultValue = other.defaultValue;
+  data = other.data;
+  registerWithMesh();
+
+  return *this;
+}
+
+template <typename E, typename T>
+MeshData<E, T>& MeshData<E, T>::operator=(MeshData<E, T>&& other) noexcept {
+  deregisterWithMesh();
+  mesh = other.mesh;
+  defaultValue = other.defaultValue;
+  data = std::move(other.data);
+  registerWithMesh();
+
+  return *this;
+}
+
+template <typename E, typename T>
+MeshData<E, T>::~MeshData() {
+  deregisterWithMesh();
+}
+
+
+template <typename E, typename T>
+void MeshData<E, T>::registerWithMesh() {
+
+  // Used during default initialization
+  if (mesh == nullptr) return;
+
+  // Callback function on expansion
+  std::function<void(size_t)> expandFunc = [&](size_t newSize) {
+    size_t oldSize = data.size();
+    data.resize(newSize);
+    for (size_t i = oldSize; i < data.size(); i++) {
+      data[i] = defaultValue;
+    }
+  };
+
+
+  // Callback function on compression
+  // TODO
+  std::function<void(size_t)> compressFunc = [this](size_t newSize) { throw std::runtime_error("not implemented"); };
+
+
+  // Callback function on mesh delete
+  std::function<void()> deleteFunc = [this]() {
+    // Ensures that we don't try to remove with iterators on deconstruct of this object
+    mesh = nullptr;
+  };
+
+  expandCallbackIt = getExpandCallbackList<E>(mesh).insert(getExpandCallbackList<E>(mesh).begin(), expandFunc);
+  compressCallbackIt = getCompressCallbackList<E>(mesh).insert(getCompressCallbackList<E>(mesh).end(), compressFunc);
+  deleteCallbackIt = mesh->meshDeleteCallbackList.insert(mesh->meshDeleteCallbackList.end(), deleteFunc);
+}
+
+template <typename E, typename T>
+void MeshData<E, T>::deregisterWithMesh() {
+
+  // Used during destruction of default-initializated object, for instance
+  if (mesh == nullptr) return;
+
+  getExpandCallbackList<E>(mesh).erase(expandCallbackIt);
+  getCompressCallbackList<E>(mesh).erase(compressCallbackIt);
+  mesh->meshDeleteCallbackList.erase(deleteCallbackIt);
 }
 
 template <typename E, typename T>
@@ -151,6 +255,16 @@ inline const T& MeshData<E, T>::operator[](E e) const {
 #endif
   size_t i = dataIndexOfElement(mesh, e);
   return data[i];
+}
+
+template <typename E, typename T>
+inline T& MeshData<E, T>::operator[](typename E::DynamicType e) {
+  return (*this)[E(e)];
+}
+
+template <typename E, typename T>
+inline const T& MeshData<E, T>::operator[](typename E::DynamicType e) const {
+  return (*this)[E(e)];
 }
 
 template <typename E, typename T>

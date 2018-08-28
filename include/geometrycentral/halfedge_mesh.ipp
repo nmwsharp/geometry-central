@@ -4,8 +4,6 @@ namespace geometrycentral {
 
 // Methods for getting number of mesh elements
 
-// Primal
-
 inline size_t HalfedgeMesh::nHalfedges(void) const { return nRealHalfedges; }
 inline size_t HalfedgeMesh::nCorners(void) const { return rawHalfedges.size(); }
 inline size_t HalfedgeMesh::nVertices(void) const { return rawVertices.size(); }
@@ -15,8 +13,6 @@ inline size_t HalfedgeMesh::nBoundaryLoops(void) const { return rawBoundaryLoops
 inline size_t HalfedgeMesh::nImaginaryHalfedges(void) const { return rawHalfedges.size() - nRealHalfedges; }
 
 // Methods for iterating over mesh elements w/ range-based for loops ===========
-
-// Primal
 
 inline HalfedgePtrSet HalfedgeMesh::realHalfedges(void) {
   size_t nH = rawHalfedges.size();
@@ -83,8 +79,7 @@ inline BoundaryPtrSet HalfedgeMesh::boundaryLoops(void) {
 }
 
 // Methods for accessing elements by index =====================================
-
-// Primal
+// Note that these are only valid when the mesh is compressed.
 
 inline HalfedgePtr HalfedgeMesh::halfedge(size_t index) { return HalfedgePtr{&rawHalfedges[index]}; }
 
@@ -97,5 +92,9 @@ inline EdgePtr HalfedgeMesh::edge(size_t index) { return EdgePtr{&rawEdges[index
 inline FacePtr HalfedgeMesh::face(size_t index) { return FacePtr{&rawFaces[index]}; }
 
 inline BoundaryPtr HalfedgeMesh::boundaryLoop(size_t index) { return BoundaryPtr{&rawBoundaryLoops[index]}; }
+
+// Misc utility methods =====================================
+
+inline bool HalfedgeMesh::isCompressed() { throw std::logic_error("not implemented"); }
 
 } // namespace geometrycentral

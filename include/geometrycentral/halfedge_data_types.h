@@ -15,9 +15,31 @@ namespace geometrycentral {
 template <typename E, typename T>
 class MeshData {
 private:
+  // The mesh that this data is defined on
   HalfedgeMesh* mesh = nullptr;
-  std::vector<T> data;
+
+  // A default value used to initialize all entries (both on creation, and if the container is expanded due to mesh
+  // modification).
   T defaultValue;
+
+  // The raw buffer which holds the data.
+  // As a mesh is being modified, data.size() might be larger than the number of elements. Don't attempt any direct
+  // access to this buffer.
+  std::vector<T> data;
+
+  // Mutability behavior:
+  // From the user's point of view, this container can always be accessed with a valid element pointer, no matter what
+  // resizing is done. This is implemented by mirroring the callbacks used in the HalfedgeMesh class on resizing; the
+  // data<> vector here is always the same size as the corresponding vector of elements in the mesh class.
+  // Accessing with an integer index is only meaningful when the backing mesh is compressed.
+
+  // Manage a callback on the mesh object used to keep the container valid on resize events. Should be called once on
+  // construction and once on destruction, respectively.
+  std::list<std::function<void(size_t)>>::iterator expandCallbackIt;
+  std::list<std::function<void(size_t)>>::iterator compressCallbackIt;
+  std::list<std::function<void()>>::iterator deleteCallbackIt;
+  void registerWithMesh();
+  void deregisterWithMesh();
 
 public:
   MeshData() {}
@@ -26,12 +48,24 @@ public:
   MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
   MeshData(HalfedgeMesh* parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
            const MeshData<E, size_t>& indexer);
+  
+  // Rule of 5 
+  MeshData(const MeshData<E,T>& other);                     // copy constructor
+  MeshData(MeshData<E,T>&& other) noexcept;                 // move constructor
+  MeshData<E,T>& operator=(const MeshData<E,T>& other);     // copy assignment
+  MeshData<E,T>& operator=(MeshData<E,T>&& other) noexcept; // move assignment
+  ~MeshData();                                              // destructor
 
-  // Acess with an element pointer
+  // Access with an element pointer
   T& operator[](E e);
   const T& operator[](E e) const;
 
-  // Access with an index
+  // Access with a dynamic element pointer
+  T& operator[](typename E::DynamicType e);
+  const T& operator[](typename E::DynamicType e) const;
+
+  // Access with an index. Returns the item associated with the i'th element pointer (in the natural ordering).
+  // The underlying mesh must be compressed.
   T& operator[](size_t e);
   const T& operator[](size_t e) const;
 
@@ -47,7 +81,6 @@ public:
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const MeshData<E, size_t>& indexer) const;
   void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
   void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const MeshData<E, size_t>& indexer);
-
 };
 
 // === Typdefs for the usual VertexData<> etc

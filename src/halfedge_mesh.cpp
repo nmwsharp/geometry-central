@@ -199,6 +199,12 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target, 
   }
 }
 
+HalfedgeMesh::~HalfedgeMesh() {
+  for (auto& f : meshDeleteCallbackList) {
+    f();
+  }
+}
+
 HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& geometry) {
   /*   High-level outline of this algorithm:
    *
@@ -1196,6 +1202,11 @@ Halfedge* HalfedgeMesh::getNewRealHalfedge() {
     for (Face& f : rawBoundaryLoops) {
       f.halfedge += shift;
     }
+
+    // Invoke relevant callback functions
+    for (auto& f : halfedgeExpandCallbackList) {
+      f(rawHalfedges.capacity());
+    }
   }
 
   rawHalfedges.back().ID = nextElemID++;
@@ -1240,6 +1251,11 @@ Halfedge* HalfedgeMesh::getNewImaginaryHalfedge() {
     for (Face& f : rawBoundaryLoops) {
       f.halfedge += shift;
     }
+
+    // Invoke relevant callback functions
+    for (auto& f : halfedgeExpandCallbackList) {
+      f(rawHalfedges.capacity());
+    }
   }
 
   rawHalfedges.back().ID = nextElemID++;
@@ -1269,6 +1285,12 @@ Vertex* HalfedgeMesh::getNewVertex() {
     for (Halfedge& he : rawHalfedges) {
       he.vertex += shift;
     }
+
+    // Invoke relevant callback functions
+    std::cout << "expanding vertex callbacks()" << std::endl;
+    for (auto& f : vertexExpandCallbackList) {
+      f(rawVertices.capacity());
+    }
   }
 
   rawVertices.back().ID = nextElemID++;
@@ -1296,6 +1318,11 @@ Edge* HalfedgeMesh::getNewEdge() {
     // Shift all pointers
     for (Halfedge& he : rawHalfedges) {
       he.edge += shift;
+    }
+
+    // Invoke relevant callback functions
+    for (auto& f : edgeExpandCallbackList) {
+      f(rawEdges.capacity());
     }
   }
 
@@ -1325,6 +1352,11 @@ Face* HalfedgeMesh::getNewFace() {
     for (Halfedge& he : rawHalfedges) {
       he.face += shift;
     }
+
+    // Invoke relevant callback functions
+    for (auto& f : faceExpandCallbackList) {
+      f(rawFaces.capacity());
+    }
   }
 
   rawFaces.back().ID = nextElemID++;
@@ -1335,6 +1367,9 @@ Face* HalfedgeMesh::getNewFace() {
   return &rawFaces.back();
 }
 
+void HalfedgeMesh::compress() { throw std::logic_error("not implemented"); }
+void HalfedgeMesh::compressIfSparserThan(double ratioThreshold) { throw std::logic_error("not implemented"); }
+void HalfedgeMesh::compressIfVerySparse() { compressIfSparserThan(0.5); }
 void HalfedgeMesh::permuteToCanonical() { throw std::logic_error("not implemented"); }
 
 size_t HalfedgeMesh::indexOf(Halfedge* ptr) { return (ptr - &rawHalfedges[0]); }

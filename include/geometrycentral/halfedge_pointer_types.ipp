@@ -91,6 +91,12 @@ inline ::std::ostream& operator<<(::std::ostream& output,
 inline DynamicHalfedgePtr::DynamicHalfedgePtr(Halfedge* ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_)), mesh(mesh_) { }
 inline DynamicHalfedgePtr::DynamicHalfedgePtr(HalfedgePtr ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_.ptr)), mesh(mesh_) {
 }
+inline DynamicHalfedgePtr DynamicHalfedgePtr::twin() const { return DynamicHalfedgePtr(HalfedgePtr(*this).twin(), mesh); }
+inline DynamicHalfedgePtr DynamicHalfedgePtr::next() const { return DynamicHalfedgePtr(HalfedgePtr(*this).next(), mesh); }
+inline DynamicVertexPtr DynamicHalfedgePtr::vertex() const { return DynamicVertexPtr(HalfedgePtr(*this).vertex(), mesh); }
+inline DynamicEdgePtr DynamicHalfedgePtr::edge() const {return DynamicEdgePtr(HalfedgePtr(*this).edge(), mesh); }
+inline DynamicFacePtr DynamicHalfedgePtr::face() const {return DynamicFacePtr(HalfedgePtr(*this).face(), mesh); }
+
 inline bool DynamicHalfedgePtr::operator==(const DynamicHalfedgePtr& other) const {
   return ind == other.ind;
 }
@@ -358,6 +364,7 @@ inline ::std::ostream& operator<<(::std::ostream& output, const VertexPtr& v) {
 
 inline DynamicVertexPtr::DynamicVertexPtr(Vertex* ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_)), mesh(mesh_) { } 
 inline DynamicVertexPtr::DynamicVertexPtr(VertexPtr ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_.ptr)), mesh(mesh_) { }
+inline DynamicHalfedgePtr DynamicVertexPtr::halfedge() const { return DynamicHalfedgePtr(VertexPtr(*this).halfedge(), mesh); }
 inline bool DynamicVertexPtr::operator==(const DynamicVertexPtr& other) const {
   return ind == other.ind;
 }
@@ -472,6 +479,7 @@ inline ::std::ostream& operator<<(::std::ostream& output, const EdgePtr& e) {
 
 inline DynamicEdgePtr::DynamicEdgePtr(Edge* ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_)), mesh(mesh_) { }
 inline DynamicEdgePtr::DynamicEdgePtr(EdgePtr ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_.ptr)), mesh(mesh_) { }
+inline DynamicHalfedgePtr DynamicEdgePtr::halfedge() const { return DynamicHalfedgePtr(EdgePtr(*this).halfedge(), mesh); }
 inline bool DynamicEdgePtr::operator==(const DynamicEdgePtr& other) const {
   return ind == other.ind;
 }
@@ -606,6 +614,7 @@ inline ::std::ostream& operator<<(::std::ostream& output, const FacePtr& f) {
 
 inline DynamicFacePtr::DynamicFacePtr(Face* ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_)), mesh(mesh_) { }
 inline DynamicFacePtr::DynamicFacePtr(FacePtr ptr_, HalfedgeMesh* mesh_) : ind(mesh_->indexOf(ptr_.ptr)), mesh(mesh_) { }
+inline DynamicHalfedgePtr DynamicFacePtr::halfedge() const { return DynamicHalfedgePtr(FacePtr(*this).halfedge(), mesh); }
 inline bool DynamicFacePtr::operator==(const DynamicFacePtr& other) const {
   return ind == other.ind;
 }
