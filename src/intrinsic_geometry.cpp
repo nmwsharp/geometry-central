@@ -199,7 +199,7 @@ void IntrinsicGeometry::verifyTriangular(HalfedgeMesh* m) {
     if (e.halfedge().twin().isReal()) {
       weight += halfedgeCotanWeights[e.halfedge().twin()];
     }
-    edgeCotanWeights[e] = weight;
+    edgeCotanWeights[e] = 0.5*weight;
   }
 }
 
