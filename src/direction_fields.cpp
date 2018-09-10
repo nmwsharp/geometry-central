@@ -106,7 +106,7 @@ VertexData<Complex> computeSmoothestVertexDirectionField_noBoundary(Geometry<Euc
   // Otherwise find the smallest eigenvector
   else {
     std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
-    solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+    solution = smallestEigenvectorSquare(energyMatrix, massMatrix);
   }
 
   // Copy the result to a VertexData vector

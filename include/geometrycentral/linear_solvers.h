@@ -31,6 +31,9 @@ namespace geometrycentral {
 template <typename T>
 Vector<T> smallestEigenvectorPositiveDefinite(Eigen::SparseMatrix<T>& energyMatrix, Eigen::SparseMatrix<T>& massMatrix,
                                               size_t nIterations = 50);
+template <typename T>
+Vector<T> smallestEigenvectorSquare(Eigen::SparseMatrix<T>& energyMatrix, Eigen::SparseMatrix<T>& massMatrix,
+                                              size_t nIterations = 50);
 
 // Quick and easy solvers which do not retain factorization
 template <typename T>
