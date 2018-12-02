@@ -78,7 +78,7 @@ VertexData<T> PlyHalfedgeMeshData::getVertexProperty(std::string propertyName) {
     getMesh();
   }
 
-  std::vector<T> rawData = plyData->getProperty<T>(vertexName, propertyName);
+  std::vector<T> rawData = plyData->getElement(vertexName).getProperty<T>(propertyName);
 
   if (rawData.size() != mesh->nVertices()) {
     throw std::runtime_error("Property " + propertyName + " does not have size equal to number of vertices");
@@ -99,7 +99,7 @@ FaceData<T> PlyHalfedgeMeshData::getFaceProperty(std::string propertyName) {
     getMesh();
   }
 
-  std::vector<T> rawData = plyData->getProperty<T>(faceName, propertyName);
+  std::vector<T> rawData = plyData->getElement(faceName).getProperty<T>(propertyName);
 
   if (rawData.size() != mesh->nVertices()) {
     throw std::runtime_error("Property " + propertyName + " does not have size equal to number of vertices");
