@@ -587,6 +587,9 @@ void MeshEmbeddedCurve::computeCurveGeometry() {
 
 
 size_t MeshEmbeddedCurve::nSegments() {
+
+  if (segmentPoints.size() == 0) return 0;
+
   if (isClosed()) {
     return segmentPoints.size();
   } else {
