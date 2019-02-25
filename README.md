@@ -26,7 +26,7 @@ Geometry-central itself does not build any excutables, it is a library upon whic
 ## Authors:
 - [Nick Sharp](http://nmwsharp.com)
 - [Keenan Crane](http://keenan.is/here)
-- [Rohan Sawheny](http://rohansawhney.io/)
+- [Rohan Sawhney](http://rohansawhney.io/)
 - And the rest of the [Geometry Collective](http://geometry.cs.cmu.edu) at Carnegie Mellon University
 
 Development of this software was funded in part by NSF Award 1717320, an NSF graduate research fellowship, and gifts from Adobe Research and Autodesk, Inc.
