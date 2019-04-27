@@ -7,6 +7,7 @@
 */
 #include <utility>
 #include <iostream>
+#include <algorithm>
 
 #include <cassert>
 #include <cstring>
