@@ -35,6 +35,7 @@ int flagForStype(SType s) {
     return 1; // symmetric, use upper triangular only
     break;
   }
+  return -1; // should never been executed ([-Werror=return-type])
 }
 } // namespace
 
