@@ -540,7 +540,7 @@ HalfedgeMesh::HalfedgeMesh(const PolygonSoupMesh& input, Geometry<Euclidean>*& g
 }
 
 bool Edge::flip() {
-//                         b b
+  /*                           b b
 //                         * *
 //                        /|\                                                          / \
 //                       / | \                                                        /   \
@@ -597,7 +597,7 @@ bool Edge::flip() {
   //                        \|/ \ /
   //                         * *
   //                         a a
-
+  */
   Edge* e = this;
 
   // Get halfedges of first face

@@ -297,8 +297,9 @@ void MeshEmbeddedCurve::setFromZeroLevelset(VertexData<double>& implicitF) {
   // Check boundary halfedges first
   for (HalfedgePtr he : mesh->realHalfedges()) {
     if (!he.twin().isReal()) {
-      VertexPtr vTail = he.vertex();
-      VertexPtr vTip = he.twin().vertex();
+      // Unused variables
+      //VertexPtr vTail = he.vertex();
+      //VertexPtr vTip = he.twin().vertex();
 
       if (isForwardCrossingHalfedge(he)) {
         startingHe = he;
@@ -309,8 +310,9 @@ void MeshEmbeddedCurve::setFromZeroLevelset(VertexData<double>& implicitF) {
   // Check all halfedges now
   if (startingHe == HalfedgePtr()) {
     for (HalfedgePtr he : mesh->realHalfedges()) {
-      VertexPtr vTail = he.vertex();
-      VertexPtr vTip = he.twin().vertex();
+      // Unused
+      //VertexPtr vTail = he.vertex();
+      //VertexPtr vTip = he.twin().vertex();
 
       if (isForwardCrossingHalfedge(he)) {
         startingHe = he;
