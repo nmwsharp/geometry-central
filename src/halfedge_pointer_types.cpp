@@ -7,7 +7,6 @@ unsigned int VertexPtr::degree() {
 
   for (EdgePtr e : adjacentEdges()) {
     k++;
-    e = e; //[-Werror=unused-but-set-variable]
   }
 
   return k;

@@ -425,7 +425,6 @@ inline unsigned int FacePtr::degree() {
   unsigned int k = 0;
   for (HalfedgePtr h : adjacentHalfedges()) {
     k++;
-    h = h; // to avoid [-Werror=unused-but-set-variable] issues
   }
   return k;
 }
