@@ -1,0 +1,21 @@
+p {
+  text-align: justify;
+}
+
+p, a, ul, li {
+  font-weight: lighter;
+}
+
+
+
+.md-typeset .admonition.func, .md-typeset details.func {
+    border-left: .2rem solid #d12;
+}
+.md-typeset .admonition.func>.admonition-title, .md-typeset details.func>.admonition-title, .md-typeset details.func>summary {
+    border-bottom: .1rem solid rgba(245, 245, 245, 1);
+    background-color: rgba(245, 245, 245, 1);
+}
+.md-typeset .admonition.func>.admonition-title:before, .md-typeset details.func>.admonition-title:before, .md-typeset details.func>summary:before {
+    color: #d12;
+    content: "code"}
+    

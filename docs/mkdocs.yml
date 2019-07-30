@@ -1,0 +1,79 @@
+site_name: Geometry Central
+
+markdown_extensions:
+  - codehilite
+  - admonition
+  - attr_list
+  - markdown.extensions.footnotes
+  - markdown.extensions.smarty
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.arithmatex
+  - pymdownx.emoji
+
+extra:
+  search:
+    tokenizer: '[\s\-\.::]+'
+
+theme:
+  name: 'material'
+  palette:
+    primary: 'deep orange'
+    accent: 'red'
+  font:
+    text: 'Merriweather'
+    code: 'Inconsolata'
+  logo:
+    icon: 'home'
+
+extra_css:
+  - extras.css
+
+extra_javascript:
+  - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
+
+google_analytics: ['UA-58346315-3', 'auto']
+
+repo_name: 'nmwsharp/geometry-central'
+repo_url: 'https://github.com/nmwsharp/geometry-central'
+
+nav:
+  - Home: 'index.md'
+  - Build: 
+    - 'Building' : 'build/build.md'
+    - 'Dependencies' : 'build/dependencies.md'
+    - 'Tests' : 'build/tests.md'
+  - Tutorials: 
+    - 'Load a mesh' : 'tutorials/load_mesh.md'
+  - Surface:
+    - Halfedge Mesh: 
+      - 'Basics' : 'surface/halfedge_mesh/basics.md'
+      - 'Elements' : 'surface/halfedge_mesh/elements.md'
+      - 'Boundaries' : 'surface/halfedge_mesh/boundaries.md'
+      - 'Navigation and Iteration' : 'surface/halfedge_mesh/navigation.md'
+      - 'Containers' : 'surface/halfedge_mesh/containers.md'
+      - 'Mutation' : 'surface/halfedge_mesh/mutation.md'
+      - 'Delta Complexes' : 'surface/halfedge_mesh/delta_complex.md'
+      - 'Internals' : 'surface/halfedge_mesh/internals.md'
+    - Geometry: 
+      - 'Overview' : 'surface/geometry/geometry.md'
+      - 'Quantities' : 'surface/geometry/quantities.md'
+    - Utilities: 
+      - 'I/O' : 'surface/utilities/io.md'
+      - 'Surface Point' : 'surface/utilities/surface_point.md'
+    - Algorithms: 
+      - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
+      - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
+      - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
+      - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
+      - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
+  - Numerical: 
+    - 'Matrix Types' : 'numerical/matrix_types.md'
+    - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'
+    - 'Linear Solvers' : 'numerical/linear_solvers.md'
+  - Utilities: 
+    - 'Miscellaneous' : 'utilities/miscellaneous.md'
+    - 'Vector2' : 'utilities/vector2.md'
+    - 'Vector3' : 'utilities/vector3.md'
+

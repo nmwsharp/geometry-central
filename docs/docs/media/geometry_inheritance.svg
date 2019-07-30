@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 23.0.2, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 500 587" style="enable-background:new 0 0 500 587;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#90C0F2;stroke:#000000;stroke-miterlimit:10;}
+	.st1{font-family:'LinBiolinumO';}
+	.st2{font-size:16px;}
+	.st3{font-family:'LinBiolinumOB';}
+	.st4{font-size:10px;}
+	.st5{fill:#90F29F;stroke:#000000;stroke-miterlimit:10;}
+	.st6{fill:#F2AA90;stroke:#000000;stroke-miterlimit:10;}
+	.st7{fill:none;stroke:#000000;stroke-width:2;stroke-miterlimit:10;}
+	.st8{font-family:'LinBiolinumOI';}
+</style>
+<rect x="17.5" y="36" class="st0" width="214" height="536.5"/>
+<text transform="matrix(1 0 0 1 23.4287 52.3672)" class="st1 st2">Intrinsic Geometry</text>
+<text transform="matrix(1 0 0 1 43.0023 71.6328)"><tspan x="0" y="0" class="st3 st4">lengths, areas, and angles</tspan><tspan x="0" y="12" class="st1 st4">  - edge length</tspan><tspan x="0" y="24" class="st1 st4">  - face area</tspan><tspan x="0" y="36" class="st1 st4">  - vertex dual area</tspan><tspan x="0" y="48" class="st1 st4">  - corner angle</tspan><tspan x="0" y="60" class="st1 st4">  - corner scaled angle</tspan><tspan x="0" y="72" class="st1 st4">  - vertex angle sum</tspan><tspan x="0" y="84" class="st1 st4">  - vertex Gaussian</tspan><tspan x="76.58" y="84" class="st1 st4"> </tspan><tspan x="78.88" y="84" class="st1 st4">curvature</tspan><tspan x="0" y="96" class="st1 st4">  - face Gaussian curvature</tspan><tspan x="0" y="108" class="st1 st4">  - halfedge cotan weight</tspan><tspan x="0" y="120" class="st1 st4">  - edge cotan weight</tspan><tspan x="0" y="144" class="st3 st4">tangent vectors and transport</tspan><tspan x="0" y="156" class="st1 st4">  - halfedge vector in face basis</tspan><tspan x="0" y="168" class="st1 st4">  - halfedge vector in vertex basis</tspan><tspan x="0" y="180" class="st1 st4">  - transport vector across halfedge</tspan><tspan x="0" y="192" class="st1 st4">  - transport vector along halfedge</tspan><tspan x="0" y="216" class="st3 st4">operator</tspan><tspan x="39.37" y="216" class="st3 st4">s</tspan><tspan x="0" y="228" class="st3 st4">  </tspan><tspan x="5" y="228" class="st1 st4">- cotan-Laplace</tspan><tspan x="0" y="240" class="st1 st4">  - lumped mass matrix</tspan><tspan x="0" y="252" class="st1 st4">  - Galerkin mass matrix</tspan><tspan x="0" y="264" class="st1 st4">  - connection Laplacian </tspan><tspan x="0" y="276" class="st1 st4">  - d0, d1, hodge0, hodge1, hodge2</tspan></text>
+<rect x="23" y="371.5" class="st5" width="203.5" height="196"/>
+<text transform="matrix(1 0 0 1 27.4287 389.3672)" class="st1 st2">Extrinsic Geometry</text>
+<text transform="matrix(1 0 0 1 52.0023 417.6328)"><tspan x="0" y="0" class="st1 st4">  - dihedral angle</tspan><tspan x="0" y="12" class="st1 st4">  - principal curvatures</tspan></text>
+<rect x="29.5" y="459" class="st6" width="190" height="102.5"/>
+<text transform="matrix(1 0 0 1 34.4287 475.3672)" class="st1 st2">Embedded Geometry</text>
+<text transform="matrix(1 0 0 1 57.0023 506.6328)"><tspan x="0" y="0" class="st1 st4">  - vertex position</tspan><tspan x="0" y="12" class="st1 st4">  - face normal</tspan><tspan x="0" y="24" class="st1 st4">  - vertex normal</tspan><tspan x="0" y="36" class="st1 st4">  - face tangent basis</tspan><tspan x="0" y="48" class="st1 st4">  - vertex tangent basis</tspan></text>
+<text transform="matrix(1 0 0 1 83.4287 17.3672)" class="st1 st2">Interfaces</text>
+<text transform="matrix(1 0 0 1 61.0023 28.6328)" class="st1 st4">(define available quantities)</text>
+<text transform="matrix(1 0 0 1 339.4287 17.3672)" class="st1 st2">Realizations</text>
+<text transform="matrix(1 0 0 1 325.0023 28.6328)" class="st1 st4">(construct from input data)</text>
+<rect x="284.5" y="43" class="st0" width="192" height="50.5"/>
+<text transform="matrix(1 0 0 1 289.4287 60.3672)" class="st1 st2">Edge Length Geometry</text>
+<text transform="matrix(1 0 0 1 302.0023 81.6328)"><tspan x="0" y="0" class="st3 st4">input</tspan><tspan x="24.42" y="0" class="st1 st4">: edge lengths</tspan></text>
+<g>
+	<g>
+		<path class="st7" d="M277,66c-7.72-2.75-19.86-6.05-35-6c-12.21,0.04-22.52,2.25-30.23,4.64"/>
+		<g>
+			<polygon points="211.57,59.5 205,67 214.78,68.94 			"/>
+		</g>
+	</g>
+</g>
+<rect x="284.5" y="483" class="st6" width="192" height="50.5"/>
+<text transform="matrix(1 0 0 1 289.4287 500.3672)" class="st1 st2">Vertex Position Geometry</text>
+<text transform="matrix(1 0 0 1 302.0023 521.6328)"><tspan x="0" y="0" class="st3 st4">input</tspan><tspan x="24.42" y="0" class="st1 st4">: vertex positions</tspan></text>
+<g>
+	<g>
+		<path class="st7" d="M277,506c-8.09-3.11-21.73-7.21-39-7c-13.2,0.16-24.23,2.78-32.28,5.48"/>
+		<g>
+			<polygon points="205.39,499.34 199,507 208.82,508.71 			"/>
+		</g>
+	</g>
+</g>
+<rect x="283.5" y="107" class="st0" width="193" height="56.5"/>
+<text transform="matrix(1 0 0 1 288.4287 124.3672)" class="st1 st2">Intrinsic Tangent Geometry</text>
+<text transform="matrix(1 0 0 1 301.0023 145.6328)"><tspan x="0" y="0" class="st3 st4">input</tspan><tspan x="24.42" y="0" class="st1 st4">: edge lengths,</tspan><tspan x="0" y="12" class="st1 st4">            v</tspan><tspan x="34.62" y="12" class="st1 st4">e</tspan><tspan x="38.95" y="12" class="st1 st4">rtex tangent bases</tspan></text>
+<g>
+	<g>
+		<path class="st7" d="M276,130c-7.72-2.75-19.86-6.05-35-6c-12.21,0.04-22.52,2.25-30.23,4.64"/>
+		<g>
+			<polygon points="210.57,123.5 204,131 213.78,132.94 			"/>
+		</g>
+	</g>
+</g>
+<text transform="matrix(1 0 0 1 39.0023 401.6328)"><tspan x="0" y="0" class="st1 st4">all of the above, </tspan><tspan x="67.61" y="0" class="st8 st4">and</tspan><tspan x="82.33" y="0" class="st1 st4">...</tspan></text>
+<text transform="matrix(1 0 0 1 45.0023 488.6328)"><tspan x="0" y="0" class="st1 st4">all of the above, </tspan><tspan x="67.61" y="0" class="st8 st4">and</tspan><tspan x="82.33" y="0" class="st1 st4">...</tspan></text>
+</svg>
