@@ -1,6 +1,6 @@
 branches:
   only:
-  - v1 
+  - master
 
 language: cpp
 
