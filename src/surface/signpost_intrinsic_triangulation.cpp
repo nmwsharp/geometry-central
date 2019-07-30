@@ -448,10 +448,6 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
         Vertex newVert = insertCircumcenter(f);
         nInsertions++;
 
-        if (nInsertions % 1000 == 0) {
-          cout << "   ...inserted " << nInsertions << " points" << endl;
-        }
-
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
         for (Face nF : newVert.adjacentFaces()) {
 
@@ -482,17 +478,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
 
   } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty());
 
-  // TODO
-  // Check all faces
-  for (Face f : mesh.faces()) {
-    if (needsCircumcenterRefinement(f)) {
-      cout << "missed face!" << endl;
-    }
-  }
 
-
-  cout << "  ... intrinsic Delaunay refinment finished. Took " << nFlips << " flips and " << nInsertions
-       << " insertions." << endl;
 }
 
 
