@@ -1,4 +1,4 @@
-# Documention is hosted at [geometry-central.net](geometry-central.net)
+# Documention is hosted at [http://geometry-central.net](geometry-central.net)
 ---
 
 # Welcome to Geometry Central
