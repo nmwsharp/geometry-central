@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.8.0)
 
 project(geometry-central)
 
@@ -63,7 +63,7 @@ endif (SUITESPARSE)
 # The SuiteSparse logic above doesn't look for UMFpack, but we need it.
 # This code attempts to find if by assuming that it will be in the same place
 # as cholmod
-if(SUITESPARSE_FOUND)
+if(SUITESPARSE AND SUITESPARSE_FOUND)
     string(REGEX REPLACE "cholmod" "umfpack" UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
     message("-- Guesstimated umfpack location as: ${UMFPACK_LIBRARY}")
     if(EXISTS ${UMFPACK_LIBRARY})
@@ -74,11 +74,14 @@ if(SUITESPARSE_FOUND)
     endif()
 endif()
 
-if(SUITESPARSE_FOUND)
-    SET(HAVE_SUITESPARSE TRUE)
-    SET(HAVE_SUITESPARSE TRUE PARENT_SCOPE)
-    add_definitions(-DHAVE_SUITESPARSE)
+if(SUITESPARSE AND SUITESPARSE_FOUND)
+    SET(GC_HAVE_SUITESPARSE TRUE)
+    SET(GC_HAVE_SUITESPARSE TRUE PARENT_SCOPE)
+    add_definitions(-DGC_HAVE_SUITESPARSE)
     include_directories(${SUITESPARSE_INCLUDE_DIRS})
+else()
+    SET(GC_HAVE_SUITESPARSE FALSE)
+    SET(GC_HAVE_SUITESPARSE FALSE PARENT_SCOPE)
 endif()
 
 ### Handle windows-specific fixes
@@ -90,80 +93,5 @@ endif()
 ### Do anything needed for dependencies and bring their stuff in to scope
 add_subdirectory(deps)
 
-### Includes from dependencies
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/eigen")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/RectangleBinPack/include")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanort/include")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/nanoflann/include")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/glm")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/tinyply/include")
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "deps/happly")
-if(SUITESPARSE_FOUND)
-  list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS ${SUITESPARSE_INCLUDE_DIRS})
-endif()
-
-### Includes from this project
-list(APPEND GEOMETRY_CENTRAL_INCLUDE_DIRS "include")
-
-include_directories(${GEOMETRY_CENTRAL_INCLUDE_DIRS})
-
-### Compiler options
-set( CMAKE_EXPORT_COMPILE_COMMANDS 1 ) # Emit a compile flags file to support completion engines (YouCompleteMe in my case)
-
-### Compiler options
-if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  # using Clang (linux or apple) or GCC
-  message("Using clang/gcc compiler flags")
-  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -g3")
-  SET(DISABLED_WARNINGS " -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-deprecated-declarations -Wno-unused-private-field")
-  SET(TRACE_INCLUDES " -H -Wno-error=unused-command-line-argument")
-
-  # clang-specific things
-  if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    SET(BASE_CXX_FLAGS "${BASE_CXX_FLAGS} -ferror-limit=5 -fcolor-diagnostics")
-  endif()
-  # clang-specific things
-  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    SET(DISABLED_WARNINGS "${DISABLED_WARNINGS}  -Wno-int-in-bool-context  -Wno-unused-but-set-variable")
-  endif()
-
-  SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
-  #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TRACE_INCLUDES}") # uncomment if you need to track down where something is getting included from
-  #SET(CMAKE_CXX_FLAGS_DEBUG          "-g3")
-  SET(CMAKE_CXX_FLAGS_DEBUG          "-g3 -fsanitize=address")
-  SET(CMAKE_CXX_FLAGS_MINSIZEREL     "-Os -DNDEBUG")
-  SET(CMAKE_CXX_FLAGS_RELEASE        "-O3 -DNDEBUG")
-  SET(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -g")
-elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  # using Visual Studio C++
-  message("Using Visual Studio compiler flags")
-  set(BASE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
-  set(BASE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP") # parallel build
-  SET(DISABLED_WARNINGS "${DISABLED_WARNINGS} /wd\"4267\"")  # ignore conversion to smaller type (fires more aggressively than the gcc version, which is annoying)
-  SET(DISABLED_WARNINGS "${DISABLED_WARNINGS} /wd\"4244\"")  # ignore conversion to smaller type (fires more aggressively than the gcc version, which is annoying)
-  SET(DISABLED_WARNINGS "${DISABLED_WARNINGS} /wd\"4305\"")  # ignore truncation on initialization
-  SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MD")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd")
-
-  add_definitions(/D "_CRT_SECURE_NO_WARNINGS")
-  add_definitions (-DNOMINMAX)
-else()
-  # unrecognized
-  message( FATAL_ERROR "Unrecognized compiler [${CMAKE_CXX_COMPILER_ID}]" )
-endif()
-
-
-### Recurse to the source core
+### Recurse to the source code
 add_subdirectory(src)
-
-
-### Export variables up the stack
-
-# Convert paths to absolute
-foreach(rel_path ${GEOMETRY_CENTRAL_INCLUDE_DIRS})
-  get_filename_component(abs_path "${rel_path}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  list(APPEND GEOMETRY_CENTRAL_ABS_INCLUDE_DIRS ${abs_path})
-endforeach(rel_path)
-
-set(GEOMETRY_CENTRAL_INCLUDE_DIRS ${GEOMETRY_CENTRAL_ABS_INCLUDE_DIRS} PARENT_SCOPE)
