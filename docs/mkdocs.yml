@@ -44,8 +44,8 @@ nav:
     - 'Building' : 'build/build.md'
     - 'Dependencies' : 'build/dependencies.md'
     - 'Tests' : 'build/tests.md'
-  - Tutorials: 
-    - 'Load a mesh' : 'tutorials/load_mesh.md'
+  #- Tutorials: 
+    #- 'Load a mesh' : 'tutorials/load_mesh.md'
   - Surface:
     - Halfedge Mesh: 
       - 'Basics' : 'surface/halfedge_mesh/basics.md'
