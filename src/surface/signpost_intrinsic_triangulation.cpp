@@ -322,6 +322,10 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
 void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, double circumradiusThresh,
                                                    size_t maxInsertions) {
 
+  if(inputMesh.hasBoundary()) {
+    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
+  }
+
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
