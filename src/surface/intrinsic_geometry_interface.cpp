@@ -147,8 +147,13 @@ void IntrinsicGeometryInterface::computeCornerScaledAngles() {
   cornerScaledAngles = CornerData<double>(mesh);
 
   for (Corner c : mesh.corners()) {
-    double s = 2.0 * PI / vertexAngleSums[c.vertex()];
-    cornerScaledAngles[c] = s * cornerAngles[c];
+    if (c.vertex().isBoundary()) {
+      double s = PI / vertexAngleSums[c.vertex()];
+      cornerScaledAngles[c] = s * cornerAngles[c];
+    } else {
+      double s = 2.0 * PI / vertexAngleSums[c.vertex()];
+      cornerScaledAngles[c] = s * cornerAngles[c];
+    }
   }
 }
 void IntrinsicGeometryInterface::requireCornerScaledAngles() { cornerScaledAnglesQ.require(); }

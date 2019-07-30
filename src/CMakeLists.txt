@@ -25,6 +25,7 @@ SET(SRCS
   surface/vector_heat_method.cpp
   surface/trace_geodesic.cpp
   surface/surface_centers.cpp
+  surface/signpost_intrinsic_triangulation.cpp
   #surface/mesh_graph_algorithms.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp

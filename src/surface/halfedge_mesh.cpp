@@ -222,7 +222,6 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, boo
   nHalfedgesFillCount = nHalfedgesCount;
   nFacesFillCount = nFacesCount;
   nBoundaryLoopsFillCount = nBoundaryLoopsCount;
-  isCanonicalFlag = true;
   isCompressedFlag = true;
 
 #ifndef NGC_SAFTEY_CHECKS
@@ -427,7 +426,6 @@ std::unique_ptr<HalfedgeMesh> HalfedgeMesh::copy() const {
   newMesh->nHalfedgesFillCount = nHalfedgesFillCount;
   newMesh->nFacesFillCount = nFacesFillCount;
   newMesh->nBoundaryLoopsFillCount = nBoundaryLoopsFillCount;
-  newMesh->isCanonicalFlag = isCanonicalFlag;
   newMesh->isCompressedFlag = isCompressedFlag;
 
 
@@ -509,7 +507,6 @@ bool HalfedgeMesh::flip(Edge eFlip) {
   heFace[ha3.getIndex()] = fb.getIndex();
   heFace[hb3.getIndex()] = fa.getIndex();
 
-  isCanonicalFlag = false;
   return true;
 }
 
@@ -562,7 +559,6 @@ Halfedge HalfedgeMesh::insertVertexAlongEdge(Edge e) {
     vHalfedge[oldVBottom.getIndex()] = heANew.getIndex();
   }
 
-  isCanonicalFlag = false;
   return heACenter;
 }
 
@@ -588,7 +584,6 @@ Halfedge HalfedgeMesh::splitEdgeTriangular(Edge e) {
     connectVertices(heFirst, heOther);
   }
 
-  isCanonicalFlag = false;
   return he;
 }
 
@@ -640,7 +635,6 @@ Halfedge HalfedgeMesh::connectVertices(Halfedge heA, Halfedge heB) {
     currHe = currHe.next();
   }
 
-  isCanonicalFlag = false;
   return heANew;
 }
 
@@ -722,62 +716,46 @@ Halfedge HalfedgeMesh::connectVertices(Face faceIn, Vertex vAIn, Vertex vBIn) {
     currHe = currHe->next;
   }
 
-  isCanonicalFlag = false;
   return heANew;
 }
 
+*/
 
 Vertex HalfedgeMesh::insertVertex(Face fIn) {
 
-  DynamicFace fInD(fIn, this);
-
   // Create the new center vertex
-  DynamicVertex centerVertD(getNewVertex(), this);
-
+  Vertex centerVert = getNewVertex();
 
   // Count degree to allocate elements
-  size_t faceDegree = 0;
-  for (Halfedge he : Face(fInD).adjacentHalfedges()) {
-    faceDegree++;
-  }
+  size_t faceDegree = fIn.degree();
 
   // == Create new halfedges/edges/faces around the center vertex
 
-  // Create all of the new elements first, then hook them up below, as this can invalidate pointers.
-  std::vector<DynamicFace> innerFacesD;
-  std::vector<DynamicHalfedge> leadingHalfedgesD; // the one that points towards the center
-  std::vector<DynamicHalfedge> trailingHalfedgesD;
-  std::vector<DynamicEdge> innerEdgesD; // aligned with leading he
+  // Create all of the new elements first, then hook them up below
+  std::vector<Face> innerFaces;
+  std::vector<Halfedge> leadingHalfedges(faceDegree); // the one that points towards the center
+  std::vector<Halfedge> trailingHalfedges(faceDegree);
+  std::vector<Edge> innerEdges(faceDegree); // aligned with leading he
   for (size_t i = 0; i < faceDegree; i++) {
     // Re-use first face
     if (i == 0) {
-      innerFacesD.push_back(fInD);
+      innerFaces.push_back(fIn);
     } else {
-      innerFacesD.push_back(DynamicFace(getNewFace(), this));
+      innerFaces.push_back(getNewFace());
     }
 
-    leadingHalfedgesD.push_back(DynamicHalfedge(getNewHalfedge(true), this));
-    trailingHalfedgesD.push_back(DynamicHalfedge(getNewHalfedge(true), this));
-    innerEdgesD.push_back(DynamicEdge(getNewEdge(), this));
-  }
+    // Get the new edge group
+    Halfedge newHe = getNewEdgeTriple(false);
 
-  // Copy to raw pointers now that they are allocated
-  std::vector<Face*> innerFaces;
-  std::vector<Halfedge*> leadingHalfedges; // the one that points towards the center
-  std::vector<Halfedge*> trailingHalfedges;
-  std::vector<Edge*> innerEdges; // aligned with leading he
-  for (size_t i = 0; i < faceDegree; i++) {
-    innerFaces.push_back(Face(innerFacesD[i]).ptr);
-    leadingHalfedges.push_back(Halfedge(leadingHalfedgesD[i]).ptr);
-    trailingHalfedges.push_back(Halfedge(trailingHalfedgesD[i]).ptr);
-    innerEdges.push_back(Edge(innerEdgesD[i]).ptr);
+    leadingHalfedges[i] = newHe;
+    trailingHalfedges[(i + 1) % faceDegree] = newHe.twin();
+    innerEdges[i] = newHe.edge();
   }
-  Vertex centerVert = centerVertD;
 
   // Form this list before we start, because we're about to start breaking pointers
-  std::vector<Halfedge*> faceBoundaryHalfedges;
-  for (Halfedge he : Face(fInD).adjacentHalfedges()) {
-    faceBoundaryHalfedges.push_back(he.ptr);
+  std::vector<Halfedge> faceBoundaryHalfedges;
+  for (Halfedge he : fIn.adjacentHalfedges()) {
+    faceBoundaryHalfedges.push_back(he);
   }
 
   // Connect up all the pointers
@@ -785,46 +763,39 @@ Vertex HalfedgeMesh::insertVertex(Face fIn) {
   for (size_t i = 0; i < faceDegree; i++) {
 
     // Gather pointers
-    Face* f = innerFaces[i];
-    Edge* e = innerEdges[i];
-    Edge* prevE = innerEdges[(i + faceDegree - 1) % faceDegree];
-    Halfedge* leadingHe = leadingHalfedges[i];
-    Halfedge* trailingHe = trailingHalfedges[i];
-    Halfedge* boundaryHe = faceBoundaryHalfedges[i];
-    Halfedge* nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
-    Halfedge* prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
+    Face f = innerFaces[i];
+    Edge e = innerEdges[i];
+    Edge prevE = innerEdges[(i + faceDegree - 1) % faceDegree];
+    Halfedge leadingHe = leadingHalfedges[i];
+    Halfedge trailingHe = trailingHalfedges[i];
+    Halfedge boundaryHe = faceBoundaryHalfedges[i];
+    Halfedge nextTrailingHe = trailingHalfedges[(i + 1) % faceDegree];
+    Halfedge prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
 
     // face
-    f->halfedge = boundaryHe;
-    f->isReal = true;
-
-    // edge
-    e->halfedge = leadingHe;
+    fHalfedge[f.getIndex()] = boundaryHe.getIndex();
 
     // leading halfedge
-    leadingHe->twin = nextTrailingHe;
-    leadingHe->next = trailingHe;
-    leadingHe->vertex = boundaryHe->next->vertex;
-    leadingHe->edge = e;
-    leadingHe->face = f;
+    heNext[leadingHe.getIndex()] = trailingHe.getIndex();
+    heVertex[leadingHe.getIndex()] = boundaryHe.next().vertex().getIndex();
+    heFace[leadingHe.getIndex()] = f.getIndex();
 
     // trailing halfedge
-    trailingHe->twin = prevLeadingHe;
-    trailingHe->next = boundaryHe;
-    trailingHe->vertex = centerVert.ptr;
-    trailingHe->edge = prevE;
-    trailingHe->face = f;
+    heNext[trailingHe.getIndex()] = boundaryHe.getIndex();
+    heVertex[trailingHe.getIndex()] = centerVert.getIndex();
+    heFace[trailingHe.getIndex()] = f.getIndex();
 
     // boundary halfedge
-    boundaryHe->next = leadingHe;
-    boundaryHe->face = f;
+    heNext[boundaryHe.getIndex()] = leadingHe.getIndex();
+    heFace[boundaryHe.getIndex()] = f.getIndex();
   }
-  centerVert.ptr->halfedge = trailingHalfedges[0];
 
+  vHalfedge[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
 
-  isCanonicalFlag = false;
   return centerVert;
 }
+
+/*
 
 Vertex HalfedgeMesh::collapseEdge(Edge e) {
 
@@ -940,7 +911,6 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
   deleteElement(eADelete);
   deleteElement(eBDelete);
 
-  isCanonicalFlag = false;
 
   return Vertex(vKeep);
 }
@@ -1034,7 +1004,6 @@ Vertex HalfedgeMesh::collapseEdgeAlongBoundary(Edge e) {
   deleteElement(vDiscard);
   deleteElement(eADelete);
 
-  isCanonicalFlag = false;
 
   return Vertex(vKeep);
 }
@@ -1096,7 +1065,6 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     deleteElement(he0T);
     deleteElement(fRemove);
 
-    isCanonicalFlag = false;
     return true;
 
   } else if (bCount == 2) {
@@ -1143,7 +1111,6 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     deleteElement(he2T);
     deleteElement(e2);
 
-    isCanonicalFlag = false;
     return true;
 
   } else {
@@ -1184,7 +1151,6 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     // deleteElement(fFace);
     // deleteElement(fBound);
 
-    // isCanonicalFlag = false;
     // return true;
 
     // The removal/insertion code doesn't support changing boundary structure yet
@@ -1217,7 +1183,6 @@ std::vector<Face> HalfedgeMesh::triangulate(Face f) {
     allFaces.emplace_back(neighHalfedges[i].face());
   }
 
-  isCanonicalFlag = false;
   return allFaces;
 }
 
@@ -2033,7 +1998,6 @@ void HalfedgeMesh::canonicalize() {
     }
   }
 
-  isCanonicalFlag = true;
 }
 */
 

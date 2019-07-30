@@ -80,7 +80,7 @@ public:
   Halfedge splitEdgeTriangular(Edge e);
 
   // Add vertex inside face and triangulate. Returns new vertex.
-  // Vertex insertVertex(Face f); TODO
+  Vertex insertVertex(Face f);
 
   // The workhorse version of connectVertices(). heA.vertex() will be connected to heB.vertex().
   // Returns new halfedge with vA at tail. he.twin().face() is the new face.
