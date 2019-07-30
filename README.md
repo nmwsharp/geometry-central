@@ -1,36 +1,69 @@
+# Documention is hosted at [geometry-central.net](geometry-central.net)
+---
+
 # Welcome to Geometry Central
 
-Geometry Central is a modern C++ codebase, providing the low-level tools to implement algorithms in geometry processing, scientific computing, and computer graphics/vision, with a particular focus on the geometry of surfaces.
+Geometry-central is a modern C++ library of data structures and algorithms for geometry processing, with a particular focus on surface meshes.
 
 Features include:
-- A polished *halfedge mesh* class, and a system of containers for associating data with mesh elements.
-- Implementations of canonical *geometric quantities* on surfaces, such as normals and curvatures.
-- Tools for generating and manipulating *surface parameterizations*.
-- The basic building blocks of *discrete exterior calculus*.
-- A coherent set of sparse *linear algebra tools*, currently based on Eigen, and augmented with solvers that automatically utilize SuiteSparse if available on your system.
+
+- A polished **halfedge mesh** class, with efficient support for mesh modification, and a system of containers for associating data with mesh elements.
+- Implementations of canonical **geometric quantities** on surfaces, ranging from normals and curvatures to tangent vector bases to operators from discrete differential geometry.
+- A suite of **powerful algorithms**, including computing distances on surface, generating direction fields, and manipulating intrinsic Delaunay triangulations.
+- A coherent set of sparse **linear algebra tools**, based on Eigen and augmented to automatically utilize better solvers if available on your system.
 
 
-## What is it not?
-- **A user interface**. Geometry Central does not include any facilities for user interaction; it is an algorithms and data structures library on which you might build user-facing tools. This philosphy keeps the library lightweight, and avoids dependencies on rendering and windowing systems. For a UI built on top of Geometry Central, see [Polyscope](https://github.com/nmwsharp/polyscope).
-- **A research code dump**. Geometry Central was built by researchers, and is used in many prototype research projects. However, we strive to ensure that this library contains only polished, broadly useful algorithms, rather than a mashup of one-off research ideas. See the list below for projects built on Geometry Central.
+**Sample:**
 
-## Examples
+```cpp
+// Load a mesh
+std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<VertexPositionGeometry> geometry;
+std::tie(mesh, geometry) = loadMesh("spot.obj"); 
 
-TODO
+// Compute vertex areas
+VertexData<double> vertArea(*mesh, 0.);
+geometry->requireFaceAreas();
+for(Vertex v : mesh->vertices()) {
+  for(Face f : v.adjacentVertices()) {
+    vertArea[v] += geometry->faceAreas[f] / f.degree();
+  }
+}
+```
 
-## Building
-This library uses git submodules to manage dependencies, so after cloning you should run `git submodule update --init --recursive` to pull down dependencies. The only (**optional**) dependency which is not included as a submodule is Suitesparse, which can be installed via a package manager on Linux/MacOS, or manually with significant effort on Windows.
+For more, see the [tutorials](../tutorials/load_mesh). To get started with the code, see [building](../build/build).
 
-Geometry-central itself does not build any excutables, it is a library upon which you create other programs. For a simple example program and build system using geometry-central, see TODO.
+**What is geometry-central not?**
 
-## Authors:
-- [Nick Sharp](http://nmwsharp.com)
-- [Keenan Crane](http://keenan.is/here)
-- [Rohan Sawhney](http://rohansawhney.io/)
-- And the rest of the [Geometry Collective](http://geometry.cs.cmu.edu) at Carnegie Mellon University
+- **A user interface**. Geometry-central does not include any facilities for user interaction; it is an algorithms and data structures library on which you might build user-facing tools. This philosphy keeps the library lightweight, and avoids dependencies on rendering and windowing systems. For a UI that interoperates well with geometry-central, see [Polyscope](https://polyscope.run).
+- **A research code dump**. Geometry-central was built by researchers, and is used to prototype research projects. However, we strive to ensure that this library contains only polished & tested, broadly useful algorithms.
+
+
+**Related alternatives:** 
+[CGAL](https://www.cgal.org/),
+[libIGL](https://github.com/libigl/libigl),
+[OpenMesh](http://www.openmesh.org/),
+[Polygon Mesh Processing Library](https://www.pmp-library.org/),
+[CinoLib](https://github.com/mlivesu/cinolib)
+
+---
+
+**Credits**
+
+Geometry-central is developed primarily by [Nicholas Sharp](http://nmwsharp.com), with contributions from 
+[Keenan Crane](http://keenan.is/here), 
+[Yousuf Soliman](http://www.its.caltech.edu/~ysoliman/),
+[Mark Gillespie](http://markjgillespie.com/),
+[Rohan Sawhney](http://rohansawhney.io/), and many others.
+
+If geometry-central contributes to an academic publication, cite it as:
+```bib
+@misc{geometrycentral,
+  title = {geometry-central},
+  author = {Nicholas Sharp and Keenan Crane and others},
+  note = {www.geometry-central.net},
+  year = {2019}
+}
+```
 
 Development of this software was funded in part by NSF Award 1717320, an NSF graduate research fellowship, and gifts from Adobe Research and Autodesk, Inc.
-
-## Projects that use Geometry Central
-
-TODO
