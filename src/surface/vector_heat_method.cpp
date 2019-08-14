@@ -265,6 +265,7 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVe
 
   // Normalize
   radialSol = (radialSol.array() / radialSol.array().abs());
+  radialSol[geom.vertexIndices[sourceVert]] = 0.;
 
 
   // === Solve for "horizontal" field
