@@ -38,7 +38,7 @@ public:
   HalfedgeData<double> intrinsicHalfedgeDirections; // direction of each halfedge, in radians from [0, angleSum]
   VertexData<double> intrinsicVertexAngleSums;      // vertex cone angle sum
 
-  // NOTE: To enable use to make efficient use of the surface tracers, this class always automatically the
+  // NOTE: To enable use to make efficient use of the surface tracers, this class always automatically updates the
   // halfedgeVectorsInVertex and halfedgeVectorsInFace geometry members. Could remove this requirement if we change the
   // way the tracer works.
 
@@ -66,8 +66,9 @@ public:
   template <typename T>
   VertexData<T> sampleAtInput(const VertexData<T>& dataOnIntrinsic);
 
-  // Returns true if the intrinsic triangulation satisifies the intrinsic Delaunay criterion
+  // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
   bool isDelaunay();
+  bool isDelaunay(Edge e);
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
   double minAngleDegrees();
@@ -86,7 +87,7 @@ public:
   //   - has no angles smaller than `angleThreshDegrees` (values > 30 degrees may not terminate)
   //   - has no triangles larger than `circumradiusThresh`
   // Terminates no matter what after maxInsertions insertions (infinite by default)
-  void delaunyRefine(double angleThreshDegrees = 29.5,
+  void delaunyRefine(double angleThreshDegrees = 25.,
                      double circumradiusThresh = std::numeric_limits<double>::infinity(),
                      size_t maxInsertions = INVALID_IND);
 

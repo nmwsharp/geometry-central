@@ -1,7 +1,9 @@
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
 
+#include "geometrycentral/surface/barycentric_coordinate_helpers.h"
 #include "geometrycentral/surface/trace_geodesic.h"
 
+#include <iomanip>
 #include <queue>
 
 using std::cout;
@@ -13,9 +15,9 @@ namespace surface {
 
 SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometryInterface& inputGeom_)
     // Note: this initializer list does something slightly wacky: it creates the new mesh on the heap, then loses track
-    // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up and
-    // wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its probably a sign of bad
-    // design.
+    // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
+    // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
+    // probably a sign of bad design.
     : IntrinsicGeometryInterface(*inputGeom_.mesh.copy().release()), inputMesh(inputGeom_.mesh), inputGeom(inputGeom_),
       intrinsicMesh(&mesh) {
 
@@ -23,24 +25,33 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
   inputGeom.requireVertexAngleSums();
+  inputGeom.requireCornerAngles();
 
-  // Just copy lengths and angle sums
+  // Just copy lengths
   intrinsicEdgeLengths = inputGeom.edgeLengths.reinterpretTo(mesh);
-  intrinsicVertexAngleSums = inputGeom.vertexAngleSums.reinterpretTo(mesh);
 
-  // Convert directions to radians
+  // Prepare directions and angle sums
   intrinsicHalfedgeDirections = HalfedgeData<double>(mesh);
-  HalfedgeData<Vector2> halfedgeVecsOnIntrinsic = inputGeom.halfedgeVectorsInVertex.reinterpretTo(mesh);
-  for (Halfedge he : mesh.halfedges()) {
-    Vertex baseVert = he.vertex();
-    double scaledAngle = halfedgeVecsOnIntrinsic[he].arg();
-    double rawAngle = scaledAngle * vertexAngleScaling(baseVert);
-    double rawAngleStand = standardizeAngle(baseVert, rawAngle);
-    if (!he.isInterior()) {
-      // mod can do bad things to last angle, make sure its right
-      rawAngleStand = intrinsicVertexAngleSums[baseVert];
-    }
-    intrinsicHalfedgeDirections[he] = rawAngleStand;
+  intrinsicVertexAngleSums = VertexData<double>(mesh);
+
+  // Walk around the vertex, constructing angular directions
+  requireCornerAngles();
+  for (Vertex v : mesh.vertices()) {
+    double runningAngle = 0.;
+    Halfedge firstHe = v.halfedge();
+    Halfedge currHe = firstHe;
+    do {
+      double cornerAngle = cornerAngles[currHe.corner()];
+      intrinsicHalfedgeDirections[currHe] = runningAngle;
+      runningAngle += cornerAngle;
+
+      if (!currHe.isInterior()) {
+        break;
+      }
+      currHe = currHe.next().next().twin();
+    } while (currHe != firstHe);
+
+    intrinsicVertexAngleSums[v] = runningAngle;
   }
 
   // Initialize vertex locations
@@ -82,9 +93,15 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 // ======================================================
 
 
+bool SignpostIntrinsicTriangulation::isDelaunay(Edge e) {
+  if (!e.isBoundary() && edgeCotanWeight(e) < -delaunayEPS) {
+    return false;
+  }
+  return true;
+}
 bool SignpostIntrinsicTriangulation::isDelaunay() {
   for (Edge e : mesh.edges()) {
-    if (!e.isBoundary() && edgeCotanWeight(e) < -delaunayEPS) {
+    if (!isDelaunay(e)) {
       return false;
     }
   }
@@ -220,61 +237,29 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
 
 Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
 
-  // === Phase 1: Find the geodesic ray which takes us to the circumcenter
-  Vertex circumcenterRaySourceVert;
-  Vector2 circumcenterRayVector; // in vertex coords
-  {
+  // === Circumcenter in barycentric coordinates
 
-    // = First, find the vertex with the widest angle in the triangle.
-    // Working based from that vertex will be useful, because then the vector towards the circumcenter is contained in
-    // the wedge formed by that angle, which allows us to think less about tangent space calculations.
-    double biggestAngle = -1.;
-    Halfedge he0 = f.halfedge();
-    for (Halfedge he : f.adjacentHalfedges()) {
-      double baseAngle = cornerAngle(he.corner());
-      if (baseAngle > biggestAngle) {
-        biggestAngle = baseAngle;
-        he0 = he;
-      }
-    }
+  Halfedge he0 = f.halfedge();
+  double a = intrinsicEdgeLengths[he0.next().edge()];
+  double b = intrinsicEdgeLengths[he0.next().next().edge()];
+  double c = intrinsicEdgeLengths[he0.edge()];
+  double a2 = a * a;
+  double b2 = b * b;
+  double c2 = c * c;
+  Vector3 circumcenterLoc = {a2 * (b2 + c2 - a2), b2 * (c2 + a2 - b2), c2 * (a2 + b2 - c2)};
+  circumcenterLoc = normalizeBarycentric(circumcenterLoc);
 
-    // Gather some values
-    // (wedge vertex is at (0,0)
-    Vector2 p1 = Vector2{intrinsicEdgeLengths[he0.edge()], 0.0};
-    Vector2 p2 = intrinsicEdgeLengths[he0.next().next().edge()] * Vector2::fromAngle(biggestAngle);
-    Vector2 midPoint1 = 0.5 * p1;
-    Vector2 midPoint2 = 0.5 * p2;
+  // Trace from the barycenter (have to trace from somewhere)
+  Vector3 barycenter = Vector3::constant(1. / 3.);
+  Vector3 vecToCircumcenter = circumcenterLoc - barycenter;
 
-    // Circumcenter is intersection of perpendicular bisectors
-    Vector2 vec1{0.0, 1.0};
-    Vector2 vec2 = -p2.rotate90().normalize();
-    Vector2 diffV = midPoint2 - midPoint1;
-    double t = cross(vec2, diffV) / cross(vec2, vec1);
-    Vector2 circumcenterVecLocal = midPoint1 + t * vec1;
-
-    // Vector which takes us to the circumcenter, in coordinates of vertex
-    double circumcenterRayLength = circumcenterVecLocal.norm();
-    circumcenterRaySourceVert = he0.vertex();
-    circumcenterRayVector =
-        halfedgeVector(he0) * circumcenterVecLocal.pow(vertexAngleScaling(circumcenterRaySourceVert));
-    circumcenterRayVector = circumcenterRayVector.normalize() * circumcenterRayLength;
-  }
-
-
-  // === Phase 2: Trace the ray to find the location of the new point on the intrinsic meshes
+  // === Trace the ray to find the location of the new point on the intrinsic meshes
 
   // Data we need from the intrinsic trace
-  SurfacePoint newPositionOnIntrinsic;
-  double geodesicAngleOnIntrinsic;
+  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, false);
+  // intrinsicTracer->snapEndToEdgeIfClose(intrinsicCrumbs); TODO
+  SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
 
-  { // Do the actual tracing
-
-    TraceGeodesicResult intrinsicTraceResult =
-        traceGeodesic(*this, SurfacePoint(circumcenterRaySourceVert), circumcenterRayVector, false);
-
-    // intrinsicTracer->snapEndToEdgeIfClose(intrinsicCrumbs); TODO
-    newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
-  }
 
   // === Phase 3: Add the new vertex
   return insertVertex(newPositionOnIntrinsic);
@@ -322,7 +307,7 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
 void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, double circumradiusThresh,
                                                    size_t maxInsertions) {
 
-  if(inputMesh.hasBoundary()) {
+  if (inputMesh.hasBoundary()) {
     throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
   }
 
@@ -330,6 +315,9 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
 
+  // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
+  int recheckCount = 0;
+  const int MAX_RECHECK_COUNT = 5;
 
   // Helper to test if a face violates the circumradius ratio condition
   auto needsCircumcenterRefinement = [&](Face f) {
@@ -358,6 +346,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
     return needsRefinementAngle || needsRefinementLength;
   };
 
+
   // Initialize queue of (possibly) non-delaunay edges
   std::deque<Edge> delaunayCheckQueue;
   EdgeData<char> inDelaunayQueue(mesh, false);
@@ -365,6 +354,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
     delaunayCheckQueue.push_back(e);
     inDelaunayQueue[e] = true;
   }
+
 
   // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
   typedef std::pair<double, Face> AreaFace;
@@ -375,17 +365,14 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
     }
   }
 
+
   // === Outer iteration: flip and insert until we have a mesh that satisfies both angle and circumradius goals
   size_t nFlips = 0;
   size_t nInsertions = 0;
   do {
 
-    //cout << "nFlips = " << nFlips << "nInsertions = " << nInsertions << endl;
-
     // == First, flip to delaunay
     while (!delaunayCheckQueue.empty()) {
-
-      //cout << "nFlips = " << nFlips << "nInsertions = " << nInsertions << endl;
 
       // Get the top element from the queue of possibily non-Delaunay edges
       Edge e = delaunayCheckQueue.front();
@@ -429,7 +416,8 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
 
     // If we've already inserted the max number of points, empty the queue and call it a day
     if (maxInsertions != INVALID_IND && nInsertions == maxInsertions) {
-      circumradiusCheckQueue = std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>>();
+      // circumradiusCheckQueue = std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>>();
+      break;
     }
 
     // Try to insert just one circumcenter
@@ -440,14 +428,11 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
       double A = circumradiusCheckQueue.top().first;
       circumradiusCheckQueue.pop();
 
-      // If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
-      // re-add it, because it must have been placed in the queue when its area was changed
-      if (A != area(f)) {
-        continue;
-      }
-
-      // This face might have been flipped to no longer violate constraint
-      if (needsCircumcenterRefinement(f)) {
+      // Two things might have changed that would cause us to skip this entry:
+      //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
+      //    re-add it, because it must have been placed in the queue when its area was changed
+      //   - This face might have been flipped to no longer violate constraint
+      if (A == area(f) && needsCircumcenterRefinement(f)) {
 
         Vertex newVert = insertCircumcenter(f);
         nInsertions++;
@@ -471,18 +456,27 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
       }
     }
 
-    // If the circumradius queue is empty, make sure we didn't miss anything (can happen due to numerics)
-    /*
-    for (Face f : mesh.faces()) {
-      if (needsCircumcenterRefinement(f)) {
-        circumradiusCheckQueue.push(std::make_pair(area(f), f));
+    // If the circumradius queue is empty, make sure we didn't miss anything (can happen rarely due to numerics)
+    // (but don't do this more than a few times, to avoid getting stuck in an infinite loop when numerical ultra-badness
+    // happens)
+    if (recheckCount < MAX_RECHECK_COUNT) {
+      recheckCount++;
+      if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
+        for (Face f : mesh.faces()) {
+          if (needsCircumcenterRefinement(f)) {
+            circumradiusCheckQueue.push(std::make_pair(area(f), f));
+          }
+        }
+        for (Edge e : mesh.edges()) {
+          if (!isDelaunay(e)) {
+            delaunayCheckQueue.push_back(e);
+            inDelaunayQueue[e] = true;
+          }
+        }
       }
     }
-    */
 
   } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty());
-
-
 }
 
 
