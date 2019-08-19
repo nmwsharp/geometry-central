@@ -121,6 +121,11 @@ These operations do not change the vector on which they are called.
     Returns the dot product between two vectors.
 
 
+??? func "`#!cpp double sum(Vector3 u)`"
+
+    Returns the sum of the coordinates of a vector
+
+
 ??? func "`#!cpp Vector3 cross(Vector3 u, Vector3 v)`"
 
     Returns the cross product between two vectors.
