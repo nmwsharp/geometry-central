@@ -21,6 +21,11 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
     : IntrinsicGeometryInterface(*inputGeom_.mesh.copy().release()), inputMesh(inputGeom_.mesh), inputGeom(inputGeom_),
       intrinsicMesh(&mesh) {
 
+  // Make sure the input mesh is triangular
+  if(!mesh.isTriangular()) {
+    throw std::runtime_error("signpost triangulation requires triangle mesh as input");
+  }
+
   // == Initialize geometric data
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();

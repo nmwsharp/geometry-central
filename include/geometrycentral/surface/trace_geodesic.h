@@ -27,13 +27,13 @@ struct TraceGeodesicResult {
 // Trace from a surface point, and a vector in the canonical tangent space of that point (represented as a vector in
 // that tangent space)
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint startP, Vector2 traceVec,
-                                  bool includePath = false);
+                                  bool includePath = false, bool errorOnProblem = false);
 
 
 // Trace from a point in barycentric coordinates inside some face, where the trace vector is a barycentric displacement
 // (which must sum to 0)
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFace, Vector3 startBary,
-                                  Vector3 traceBaryVec, bool includePath = false);
+                                  Vector3 traceBaryVec, bool includePath = false, bool errorOnProblem = false);
 
 
 // For a trace which was expected to end very near targetVertex, try to clean up the end of the path to end directly at
