@@ -307,6 +307,8 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
       }
     }
   }
+
+  refreshQuantities();
 }
 
 void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, double circumradiusThresh,
@@ -482,6 +484,8 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
     }
 
   } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty());
+
+  refreshQuantities();
 }
 
 
