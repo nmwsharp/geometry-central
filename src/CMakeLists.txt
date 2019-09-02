@@ -45,11 +45,72 @@ SET(SRCS
   utilities/disjoint_sets.cpp
 )
 
+SET(INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../include/geometrycentral/")
+SET(HEADERS
+  ${INCLUDE_ROOT}/numerical/linear_algebra_utilities.h
+  ${INCLUDE_ROOT}/numerical/linear_algebra_utilities.ipp
+  ${INCLUDE_ROOT}/numerical/linear_solvers.h
+  ${INCLUDE_ROOT}/numerical/suitesparse_utilities.h
+
+  ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.h
+  ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.ipp
+  ${INCLUDE_ROOT}/surface/base_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/detect_symmetry.h
+  ${INCLUDE_ROOT}/surface/direction_fields.h
+  ${INCLUDE_ROOT}/surface/edge_length_geometry.h
+  ${INCLUDE_ROOT}/surface/edge_length_geometry.ipp
+  ${INCLUDE_ROOT}/surface/embedded_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/exact_polyhedral_geodesics.h
+  ${INCLUDE_ROOT}/surface/extrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/fast_marching_method.h
+  ${INCLUDE_ROOT}/surface/halfedge_containers.h
+  ${INCLUDE_ROOT}/surface/halfedge_containers.ipp
+  ${INCLUDE_ROOT}/surface/halfedge_element_types.h
+  ${INCLUDE_ROOT}/surface/halfedge_element_types.ipp
+  ${INCLUDE_ROOT}/surface/halfedge_factories.h
+  ${INCLUDE_ROOT}/surface/halfedge_iterators.h
+  ${INCLUDE_ROOT}/surface/halfedge_iterators.ipp
+  ${INCLUDE_ROOT}/surface/halfedge_logic_templates.ipp
+  ${INCLUDE_ROOT}/surface/halfedge_mesh.h
+  ${INCLUDE_ROOT}/surface/halfedge_mesh.ipp
+  ${INCLUDE_ROOT}/surface/heat_method_distance.h
+  ${INCLUDE_ROOT}/surface/intrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/meshio.h
+  ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
+  ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
+  ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.h
+  ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.ipp
+  ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
+  ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
+  ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
+  ${INCLUDE_ROOT}/surface/surface_centers.h
+  ${INCLUDE_ROOT}/surface/surface_point.h
+  ${INCLUDE_ROOT}/surface/surface_point.ipp
+  ${INCLUDE_ROOT}/surface/trace_geodesic.h
+  ${INCLUDE_ROOT}/surface/vector_heat_method.h
+  ${INCLUDE_ROOT}/surface/vertex_position_geometry.h
+  ${INCLUDE_ROOT}/surface/vertex_position_geometry.ipp
+
+  ${INCLUDE_ROOT}/utilities/combining_hash_functions.h
+  ${INCLUDE_ROOT}/utilities/curve.h
+  ${INCLUDE_ROOT}/utilities/curve.ipp
+  ${INCLUDE_ROOT}/utilities/dependent_quantity.h
+  ${INCLUDE_ROOT}/utilities/dependent_quantity.ipp
+  ${INCLUDE_ROOT}/utilities/disjoint_sets.h
+  ${INCLUDE_ROOT}/utilities/quaternion.h
+  ${INCLUDE_ROOT}/utilities/timing.h
+  ${INCLUDE_ROOT}/utilities/utilities.h
+  ${INCLUDE_ROOT}/utilities/vector2.h
+  ${INCLUDE_ROOT}/utilities/vector2.ipp
+  ${INCLUDE_ROOT}/utilities/vector3.h
+  ${INCLUDE_ROOT}/utilities/vector3.ipp
+)
+
 
 # Create a single library for the project
 add_library(
         geometry-central 
-        ${SRCS}
+        ${SRCS} ${HEADERS}
         )
 
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
@@ -69,3 +130,6 @@ endif(GC_HAVE_SUITESPARSE)
 
 # Set compiler properties for the library
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD 11)
+set_property(TARGET geometry-central PROPERTY CXX_STANDARD_REQUIRED TRUE)
+add_definitions(-DNOMINMAX)
+add_definitions(-D_USE_MATH_DEFINES)

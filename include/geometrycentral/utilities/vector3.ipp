@@ -69,6 +69,7 @@ inline Vector3 cross(const Vector3& u, const Vector3& v) {
 }
 
 inline double dot(const Vector3& u, const Vector3& v) { return u.x * v.x + u.y * v.y + u.z * v.z; }
+inline double sum(const Vector3& u) { return u.x + u.y + u.z; }
 
 inline double angle(const Vector3& u, const Vector3& v) {
   return std::acos(std::fmax(-1., std::fmin(1., dot(unit(u), unit(v)))));

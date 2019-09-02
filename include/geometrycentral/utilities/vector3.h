@@ -71,6 +71,7 @@ Vector3 cross(const Vector3& u, const Vector3& v);
 double angle(const Vector3& u, const Vector3& v);
 double angleInPlane(const Vector3& u, const Vector3& v, const Vector3& normal);
 double dot(const Vector3& u, const Vector3& v);
+double sum(const Vector3& u);
 bool isfinite(const Vector3& u); // break camel case rule to match std
 bool isDefined(const Vector3& u);
 Vector3 clamp(const Vector3& val, const Vector3& low, const Vector3& high);

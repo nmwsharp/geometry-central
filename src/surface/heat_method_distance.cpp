@@ -104,7 +104,7 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
     gradUDir = gradUDir.normalize();
 
     for (Halfedge he : f.adjacentHalfedges()) {
-      double val = -geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);
+      double val = geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);
       divergenceVec[geom.vertexIndices[he.vertex()]] += val;
       divergenceVec[geom.vertexIndices[he.twin().vertex()]] += -val;
     }

@@ -72,7 +72,9 @@ void IntrinsicGeometryInterface::computeFaceAreas() {
 
     // Herons formula
     double s = (a + b + c) / 2.0;
-    double area = std::sqrt(s * (s - a) * (s - b) * (s - c));
+    double arg = s * (s - a) * (s - b) * (s - c);
+    arg = std::fmax(0., arg);
+    double area = std::sqrt(arg);
 
     faceAreas[f] = area;
   }
