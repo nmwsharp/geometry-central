@@ -41,7 +41,7 @@ repo_url: 'https://github.com/nmwsharp/geometry-central'
 nav:
   - Home: 'index.md'
   - Build: 
-    - 'Building' : 'build/build.md'
+    - 'Building' : 'build/building.md'
     - 'Dependencies' : 'build/dependencies.md'
     - 'Tests' : 'build/tests.md'
   #- Tutorials: 
