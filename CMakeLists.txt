@@ -15,7 +15,6 @@ else()
 endif()
 
 
-### Resolve optional dependencies
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") # look for stuff in the /cmake directory
 include(UpdateCacheVariable)
 
@@ -36,52 +35,6 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif()
 
 
-# Look for suitesparse (adapted from ceres build system)
-option(SUITESPARSE "Enable SuiteSparse." ON)
-if (SUITESPARSE)
-
-  # Check for SuiteSparse and dependencies.
-  find_package(SuiteSparse)
-  if (SUITESPARSE_FOUND)
-    # By default, if all of SuiteSparse's dependencies are found, GC is
-    # built with SuiteSparse support.
-    message("-- Found SuiteSparse ${SUITESPARSE_VERSION}, "
-            "building with SuiteSparse.")
-  else (SUITESPARSE_FOUND)
-    # Disable use of SuiteSparse if it cannot be found and continue.
-    message("-- Did not find all SuiteSparse dependencies, disabling "
-      "SuiteSparse support.")
-    update_cache_variable(SUITESPARSE OFF)
-  endif (SUITESPARSE_FOUND)
-else (SUITESPARSE)
-  message("-- Building without SuiteSparse.")
-endif (SUITESPARSE)
-
-# HACK BY NICK
-# The SuiteSparse logic above doesn't look for UMFpack, but we need it.
-# This code attempts to find if by assuming that it will be in the same place
-# as cholmod
-if(SUITESPARSE AND SUITESPARSE_FOUND)
-    string(REGEX REPLACE "cholmod" "umfpack" UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
-    message("-- Guesstimated umfpack location as: ${UMFPACK_LIBRARY}")
-    if(EXISTS ${UMFPACK_LIBRARY})
-        list(APPEND SUITESPARSE_LIBRARIES ${UMFPACK_LIBRARY}) 
-    else()
-        message(WARNING "UMFPack guess failed, so we don't actually have SUITESPARSE support.")
-        set(SUITESPARSE_FOUND FALSE)
-    endif()
-endif()
-
-if(SUITESPARSE AND SUITESPARSE_FOUND)
-    SET(GC_HAVE_SUITESPARSE TRUE)
-    SET(GC_HAVE_SUITESPARSE TRUE PARENT_SCOPE)
-    add_definitions(-DGC_HAVE_SUITESPARSE)
-    include_directories(${SUITESPARSE_INCLUDE_DIRS})
-else()
-    SET(GC_HAVE_SUITESPARSE FALSE)
-    SET(GC_HAVE_SUITESPARSE FALSE PARENT_SCOPE)
-endif()
-
 ### Handle windows-specific fixes
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   add_definitions (-DNOMINMAX)  # don't use weird windows built-in min/max
@@ -90,6 +43,9 @@ endif()
 
 ### Do anything needed for dependencies and bring their stuff in to scope
 add_subdirectory(deps)
+
+# copy variables set by deps upward
+SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 
 ### Recurse to the source code
 add_subdirectory(src)

@@ -113,21 +113,12 @@ add_library(
         ${SRCS} ${HEADERS}
         )
 
-
+# Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
-target_include_directories(geometry-central PUBLIC "${EIGEN3_INCLUDE_DIR}")
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../deps/nanort/include")
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../deps/nanoflann/include")
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../deps/happly")
-if(GC_HAVE_SUITESPARSE)
-  target_include_directories(geometry-central PUBLIC "${SUITESPARSE_INCLUDE_DIRS}")
-endif()
 
-# If we (optionally) resolved suitesparse support, we want to link against that as well
-if(GC_HAVE_SUITESPARSE)
-    target_link_libraries(geometry-central ${SUITESPARSE_LIBRARIES})
-endif(GC_HAVE_SUITESPARSE)
-
+# Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
+target_include_directories(geometry-central PUBLIC "${GC_DEP_INCLUDES}")
+target_link_libraries(geometry-central ${GC_DEP_LIBRARIES})
 
 # Set compiler properties for the library
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD 11)
