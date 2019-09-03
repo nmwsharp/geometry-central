@@ -16,9 +16,7 @@ endif()
 
 
 ### Resolve optional dependencies
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") # look for stuff in the /cmake directory
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen/cmake") # look for stuff in the Eigen/cmake directory
 include(UpdateCacheVariable)
 
 # Work with non-standard homebrew installations
