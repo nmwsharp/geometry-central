@@ -1727,7 +1727,6 @@ void HalfedgeMesh::validateConnectivity() {
     // This can happen in irregular triangulations
     // if (he.vertex == he.next->twin->vertex) throw std::logic_error("halfedge face spur");
 
-
     // Check halfedge orbit sanity (useful if halfedge doesn't appear in face)
     Halfedge currHe = he;
     if (halfedgeSeen[currHe.getIndex()]) continue;
@@ -1783,107 +1782,6 @@ void HalfedgeMesh::validateConnectivity() {
   }
 }
 
-/*
-
-Halfedge* HalfedgeMesh::getNewHalfedge(bool real) {
-
-  // The boring case, when no resize is needed
-  if (rawHalfedges.size() < rawHalfedges.capacity()) {
-    rawHalfedges.emplace_back();
-  }
-  // The intesting case, where the vector resizes and we need to update pointers.
-  else {
-
-    Halfedge* oldStart = &rawHalfedges.front();
-
-    // === Prep the "before" lists
-    std::vector<std::ptrdiff_t> offsetsTwin(rawHalfedges.size());
-    std::vector<std::ptrdiff_t> offsetsNext(rawHalfedges.size());
-    std::vector<std::ptrdiff_t> offsetsV(rawVertices.size());
-    std::vector<std::ptrdiff_t> offsetsE(rawEdges.size());
-    std::vector<std::ptrdiff_t> offsetsF(rawFaces.size());
-    std::vector<std::ptrdiff_t> offsetsB(rawBoundaryLoops.size());
-
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        offsetsTwin[iHe] = rawHalfedges[iHe].twin - oldStart;
-        offsetsNext[iHe] = rawHalfedges[iHe].next - oldStart;
-      }
-    }
-    for (size_t iV = 0; iV < rawVertices.size(); iV++) {
-      if (!rawVertices[iV].isDead()) {
-        offsetsV[iV] = rawVertices[iV].halfedge - oldStart;
-      }
-    }
-    for (size_t iE = 0; iE < rawEdges.size(); iE++) {
-      if (!rawEdges[iE].isDead()) {
-        offsetsE[iE] = rawEdges[iE].halfedge - oldStart;
-      }
-    }
-    for (size_t iF = 0; iF < rawFaces.size(); iF++) {
-      if (!rawFaces[iF].isDead()) {
-        offsetsF[iF] = rawFaces[iF].halfedge - oldStart;
-      }
-    }
-    for (size_t iB = 0; iB < rawBoundaryLoops.size(); iB++) {
-      if (!rawBoundaryLoops[iB].isDead()) {
-        offsetsB[iB] = rawBoundaryLoops[iB].halfedge - oldStart;
-      }
-    }
-
-
-    // Create a new halfedge, allowing the list to expand
-    rawHalfedges.emplace_back();
-    Halfedge* newStart = &rawHalfedges.front();
-
-    // === Loop back through, shifting all pointers
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        rawHalfedges[iHe].twin = newStart + offsetsTwin[iHe];
-        rawHalfedges[iHe].next = newStart + offsetsNext[iHe];
-      }
-    }
-    for (size_t iV = 0; iV < rawVertices.size(); iV++) {
-      if (!rawVertices[iV].isDead()) {
-        rawVertices[iV].halfedge = newStart + offsetsV[iV];
-      }
-    }
-    for (size_t iE = 0; iE < rawEdges.size(); iE++) {
-      if (!rawEdges[iE].isDead()) {
-        rawEdges[iE].halfedge = newStart + offsetsE[iE];
-      }
-    }
-    for (size_t iF = 0; iF < rawFaces.size(); iF++) {
-      if (!rawFaces[iF].isDead()) {
-        rawFaces[iF].halfedge = newStart + offsetsF[iF];
-      }
-    }
-    for (size_t iB = 0; iB < rawBoundaryLoops.size(); iB++) {
-      if (!rawBoundaryLoops[iB].isDead()) {
-        rawBoundaryLoops[iB].halfedge = newStart + offsetsB[iB];
-      }
-    }
-
-    // Invoke relevant callback functions
-    for (auto& f : halfedgeExpandCallbackList) {
-      f(rawHalfedges.capacity());
-    }
-  }
-
-  rawHalfedges.back().ID = nextElemID++;
-  rawHalfedges.back().isReal = real;
-  rawHalfedges.back().markDead(); // temporarily, to ensure we don't follow pointers
-  if (real) {
-    nRealHalfedgesCount++;
-  } else {
-    nImaginaryHalfedgesCount++;
-  }
-#ifndef NDEBUG
-  rawHalfedges.back().parentMesh = this;
-#endif
-  return &rawHalfedges.back();
-}
-*/
 
 Vertex HalfedgeMesh::getNewVertex() {
 
@@ -1926,29 +1824,29 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   } else {
 
     size_t initHalfedgeCapacity = nHalfedgesCapacityCount; // keep track before we start modifying for clarify
+    size_t newHalfedgeCapcity = initHalfedgeCapacity * 2;  // double the capacity
+    size_t newEdgeCapcity = newHalfedgeCapcity / 2;        // make it super clear
 
     { // expand halfedge list
-      size_t newCapacity = initHalfedgeCapacity * 2;
 
       // Resize internal arrays
-      heNext.resize(newCapacity);
-      heVertex.resize(newCapacity);
-      heFace.resize(newCapacity);
+      heNext.resize(newHalfedgeCapcity);
+      heVertex.resize(newHalfedgeCapcity);
+      heFace.resize(newHalfedgeCapcity);
 
-      nHalfedgesCapacityCount = newCapacity;
+      nHalfedgesCapacityCount = newHalfedgeCapcity;
 
       // Invoke relevant callback functions
       for (auto& f : halfedgeExpandCallbackList) {
-        f(newCapacity);
+        f(newHalfedgeCapcity);
       }
     }
 
-    {                                            // expand edges
-      size_t newCapacity = initHalfedgeCapacity; // will be double he current edge capacity cout
+    { // expand edges
 
       // Invoke relevant callback functions
       for (auto& f : edgeExpandCallbackList) {
-        f(newCapacity);
+        f(newEdgeCapcity);
       }
     }
   }
@@ -1967,51 +1865,6 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   return Halfedge(this, nHalfedgesFillCount - 2);
 }
 
-/*
-
-Edge* HalfedgeMesh::getNewEdge() {
-
-  // The boring case, when no resize is needed
-  if (rawEdges.size() < rawEdges.capacity()) {
-    rawEdges.emplace_back();
-  }
-  // The intesting case, where the vector resizes and we need to update pointers.
-  else {
-
-    Edge* oldStart = &rawEdges.front();
-    std::vector<std::ptrdiff_t> offsets(rawHalfedges.size());
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        offsets[iHe] = rawHalfedges[iHe].edge - oldStart;
-      }
-    }
-
-    // Create a new element, allowing the list to expand
-    rawEdges.emplace_back();
-
-    Edge* newStart = &rawEdges.front();
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        rawHalfedges[iHe].edge = newStart + offsets[iHe];
-      }
-    }
-
-    // Invoke relevant callback functions
-    for (auto& f : edgeExpandCallbackList) {
-      f(rawEdges.capacity());
-    }
-  }
-
-  rawEdges.back().ID = nextElemID++;
-  rawEdges.back().markDead(); // temporarily, to ensure we don't follow pointers
-  nEdgesCount++;
-#ifndef NDEBUG
-  rawEdges.back().parentMesh = this;
-#endif
-  return &rawEdges.back();
-}
-
-*/
 
 Face HalfedgeMesh::getNewFace() {
 
@@ -2078,6 +1931,55 @@ void HalfedgeMesh::expandFaceStorage() {
     f(newCapacity);
   }
 }
+
+
+void HalfedgeMesh::deleteEdgeTriple(Halfedge he) {
+  // Be sure we have the canonical halfedge
+  he = he.edge().halfedge();
+  bool isBoundary = he.twin().isInterior();
+  size_t iHe = he.getIndex();
+
+  heNext[iHe] = INVALID_IND;
+  heVertex[iHe] = INVALID_IND;
+  heFace[iHe] = INVALID_IND;
+
+  nHalfedgesCount -= 2;
+  if (isBoundary) {
+    nInteriorHalfedgesCount--;
+  } else {
+    nInteriorHalfedgesCount -= 2;
+  }
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(Vertex v) {
+  size_t iV = v.getIndex();
+
+  vHalfedge[iV] = INVALID_IND;
+  nVerticesCount--;
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(Face f) {
+  size_t iF = f.getIndex();
+
+  fHalfedge[iF] = INVALID_IND;
+  nFacesCount--;
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(BoundaryLoop bl) {
+  size_t iF = boundaryLoopIndToFaceInd(bl.getIndex());
+
+  fHalfedge[iF] = INVALID_IND;
+  nBoundaryLoopsCount--;
+
+  isCompressedFlag = false;
+}
+
 
 /*
 
