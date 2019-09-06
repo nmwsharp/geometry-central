@@ -125,3 +125,8 @@ set_property(TARGET geometry-central PROPERTY CXX_STANDARD 11)
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD_REQUIRED TRUE)
 add_definitions(-DNOMINMAX)
 add_definitions(-D_USE_MATH_DEFINES)
+
+# Define CMAKE flag used in these sources (but should be kept OUT of headers)
+if(GC_HAVE_SUITESPARSE)
+  add_definitions(-DGC_HAVE_SUITESPARSE)
+endif()
