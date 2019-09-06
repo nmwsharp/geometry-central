@@ -1210,6 +1210,134 @@ Vertex HalfedgeMesh::insertVertex(Face fIn) {
   return centerVert;
 }
 
+
+Vertex HalfedgeMesh::collapseEdge(Edge e) {
+
+  // Is the edge we're collapsing along the boundary
+  bool onBoundary = e.isBoundary();
+
+  // Gather some values
+  Halfedge heA0 = e.halfedge();
+  Halfedge heA1 = heA0.next();
+  Halfedge heA2 = heA1.next();
+  Face fA = heA0.face();
+  Vertex vA = heA0.vertex();
+  GC_SAFETY_ASSERT(heA2.next() == heA0, "face must be triangular to collapse")
+  Halfedge heA1T = heA1.twin();
+  Halfedge heA1TPrev = heA1T.prevOrbitVertex();
+  bool vAOnBoundary = vA.isBoundary();
+
+  Halfedge heB0 = heA0.twin();
+  Halfedge heB1 = heB0.next();
+  Halfedge heB2 = heB1.next();
+  Face fB = heB0.face();
+  Vertex vB = heB0.vertex();
+  GC_SAFETY_ASSERT(heB2.next() == heB0 || onBoundary, "face must be triangular or on boundary to collapse")
+  Halfedge heB2T = heB2.twin();
+  Halfedge heB2TPrev = heB2T.prevOrbitVertex();
+  bool vBOnBoundary = vB.isBoundary();
+
+  // === Check validity
+
+  // Refuse to do a collapse which removes a boundary component
+  // (this could be done, but isn't implemented)
+  if (onBoundary && heB2.next() == heB0) {
+    return Vertex();
+  }
+
+  // Refuse to do a collapse which connects separate boundary components (imagine pinching the neck of an hourglass)
+  if (!onBoundary && vBOnBoundary && vAOnBoundary) {
+    return Vertex();
+  }
+
+  // Should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings.
+  // Checking this property ensures that triangulations stays a simplicial complex (no new self-edges, etc).
+  std::unordered_set<Vertex> vANeighbors;
+  for (Vertex vN : Vertex(vA).adjacentVertices()) {
+    vANeighbors.insert(vN);
+  }
+  size_t nShared = 0;
+  for (Vertex vN : Vertex(vB).adjacentVertices()) {
+    if (vANeighbors.find(vN) != vANeighbors.end()) {
+      nShared++;
+    }
+  }
+  if (nShared > 2) {
+    return Vertex();
+  }
+
+
+  // TODO degree 2 vertex case?
+
+  // == Fix connections
+  //   - the halfedge heA2 will be repurposed as heA1.twin()
+  //   - the halfedge heB1 will be repurposed as heB2.twin()
+
+  // == Around face A
+  {
+    heNext[heA1TPrev.getIndex()] = heA2.getIndex();
+    heNext[heA2.getIndex()] = heNext[heA1T.getIndex()];
+    heVertex[heA2.getIndex()] = heVertex[heA1T.getIndex()];
+    heFace[heA2.getIndex()] = heFace[heA1T.getIndex()];
+
+    // Vertex connections
+    if (heA1T.vertex().halfedge() == heA1T) {
+      vHalfedge[heA1T.vertex().getIndex()] = heA2.getIndex();
+    }
+    if (vA.halfedge() == heA0) {
+      vHalfedge[vA.getIndex()] = heA2.twin().getIndex();
+    }
+
+    // Face connections
+    if (heA1T.face().halfedge() == heA1T) {
+      fHalfedge[heA1T.face().getIndex()] = heA2.getIndex();
+    }
+  }
+
+  // == Around face B
+  if (onBoundary) {
+    // The case where we're collapsing a boundary halfedge, just need to decrease the degree of the boundary loop
+
+    Halfedge heB0P = heB0.prevOrbitVertex();
+
+  } else {
+    // The normal case where we're not collapsing a boundary halfedge, similar to what we did at face A
+
+    // Handle halfedge connections around heB2
+    heNext[heB2TPrev.getIndex()] = heB1.getIndex();
+    heNext[heB1.getIndex()] = heNext[heB2T.getIndex()];
+    heVertex[heB1.getIndex()] = heVertex[heB2T.getIndex()];
+    heFace[heB1.getIndex()] = heFace[heB2T.getIndex()];
+
+    // Vertex connections
+    // Don't need to update this vertex, since heB2T.vertex() is about to be deleted
+    // if (heB2T.vertex().halfedge() == heB2T) {
+    // vHalfedge[heB2T.vertex().getIndex()] = heB1.getIndex();
+    //}
+
+    // Face connections
+    if (heB2T.face().halfedge() == heB2T) {
+      fHalfedge[heB2T.face().getIndex()] = heB1.getIndex();
+    }
+  }
+
+  // Make sure we set the "new" vertex to have an acceptable boundary halfedge if we pulled it on to the boundary
+  if (vBOnBoundary) {
+    ensureVertexHasBoundaryHalfedge(vA);
+  }
+
+  // === Delete the actual elements
+
+  deleteEdgeTriple(heA0);
+  deleteElement(vB);
+  deleteElement(fA);
+  if (onBoundary) {
+    deleteElement(fB);
+  }
+
+  return vA;
+}
+
 /*
 
 Vertex HalfedgeMesh::collapseEdge(Edge e) {
@@ -1430,6 +1558,19 @@ void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
     rawV->halfedge = rawV->halfedge->twin->next;
   }
 }
+*/
+
+void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
+  while (true) {
+    Halfedge heT = v.halfedge().twin();
+    if (!heT.isInterior()) {
+      break;
+    }
+    vHalfedge[v.getIndex()] = heT.next().getIndex();
+  }
+}
+
+/*
 
 bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
 

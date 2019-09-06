@@ -102,7 +102,7 @@ public:
   std::tuple<Halfedge, Halfedge> separateEdge(Edge e);
 
   // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
-  // collapsible.
+  // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
   Vertex collapseEdge(Edge e);
 
   // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
