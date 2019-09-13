@@ -65,6 +65,10 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
     vertexLocations[iV] = SurfacePoint(inputMesh.vertex(iV));
   }
 
+  // Initialize all edges as original, but new ones should be false
+  edgeIsOriginal = EdgeData<char>(mesh, false);
+  edgeIsOriginal.fill(true);
+
   requireHalfedgeVectorsInVertex();
   requireHalfedgeVectorsInFace();
   requireVertexAngleSums();
@@ -164,6 +168,8 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   updateAngleFromCWNeighor(e.halfedge().twin());
   updateFaceBasis(e.halfedge().face());
   updateFaceBasis(e.halfedge().twin().face());
+
+  edgeIsOriginal[e] = false;
 
   return true;
 }
