@@ -37,7 +37,7 @@ public:
   EdgeData<double> intrinsicEdgeLengths;            // length of each edge
   HalfedgeData<double> intrinsicHalfedgeDirections; // direction of each halfedge, in radians from [0, angleSum]
   VertexData<double> intrinsicVertexAngleSums;      // vertex cone angle sum
-  EdgeData<bool> edgeIsOriginal; // did this edge come from the original triangulation? used mainly for optimizations.
+  EdgeData<char> edgeIsOriginal; // did this edge come from the original triangulation? used mainly for optimizations.
 
   // NOTE: To enable use to make efficient use of the surface tracers, this class always automatically updates the
   // halfedgeVectorsInVertex and halfedgeVectorsInFace geometry members. Could remove this requirement if we change the
