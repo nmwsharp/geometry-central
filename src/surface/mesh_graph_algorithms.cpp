@@ -3,11 +3,88 @@
 #include "geometrycentral/utilities/disjoint_sets.h"
 
 #include <algorithm>
+#include <queue>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace geometrycentral {
 namespace surface {
+
+std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex startVert, Vertex endVert) {
+
+  // Early out for empty case
+  if (startVert == endVert) {
+    return std::vector<Halfedge>();
+  }
+
+  // Gather values
+  HalfedgeMesh& mesh = geom.mesh;
+  geom.requireEdgeLengths();
+
+  // Search state: incoming halfedges to each vertex, once discovered
+  std::unordered_map<Vertex, Halfedge> incomingHalfedge;
+
+  // Search state: visible neighbors eligible to expand to
+  using WeightedHalfedge = std::tuple<double, Halfedge>;
+  std::priority_queue<WeightedHalfedge, std::vector<WeightedHalfedge>, std::greater<WeightedHalfedge>> pq;
+
+  // Helper to add a vertex's
+  auto vertexDiscovered = [&](Vertex v) {
+    return v == startVert || incomingHalfedge.find(v) != incomingHalfedge.end();
+  };
+  auto enqueueVertexNeighbors = [&](Vertex v, double dist) {
+    for (Halfedge he : v.outgoingHalfedges()) {
+      if (!vertexDiscovered(he.twin().vertex())) {
+        double len = geom.edgeLengths[he.edge()];
+        double targetDist = dist + len;
+        pq.emplace(targetDist, he);
+      }
+    }
+  };
+
+  // Add initial halfedges
+  enqueueVertexNeighbors(startVert, 0.);
+
+  while (!pq.empty()) {
+
+    // Get the next closest neighbor off the queue
+    double currDist = std::get<0>(pq.top());
+    Halfedge currIncomingHalfedge = std::get<1>(pq.top());
+    pq.pop();
+
+    Vertex currVert = currIncomingHalfedge.twin().vertex();
+    if (vertexDiscovered(currVert)) continue;
+
+    // Accept the neighbor
+    incomingHalfedge[currVert] = currIncomingHalfedge;
+
+    // Found path! Walk backwards to reconstruct it and return
+    if (currVert == endVert) {
+      std::vector<Halfedge> path;
+      Vertex walkV = currVert;
+      while (walkV != startVert) {
+        Halfedge prevHe = incomingHalfedge[walkV];
+        path.push_back(prevHe);
+        walkV = prevHe.vertex();
+      }
+
+      std::reverse(std::begin(path), std::end(path));
+
+      geom.unrequireEdgeLengths();
+      return path;
+    }
+
+    // Enqueue neighbors
+    enqueueVertexNeighbors(currVert, currDist);
+  }
+
+  // Didn't find path
+  geom.unrequireEdgeLengths();
+  return std::vector<Halfedge>();
+}
+
+/*
 
 // Note: Assumes mesh is a single connected component
 EdgeData<char> minimalSpanningTree(Geometry<Euclidean>* geometry) {
@@ -57,6 +134,7 @@ EdgeData<char> minimalSpanningTree(Geometry<Euclidean>* geometry) {
 
   return spanningTree;
 }
+
 
 // Note: Assumes mesh is a single connected component
 EdgeData<char> minimalSpanningTree(EdgeLengthGeometry* geometry) {
@@ -189,6 +267,7 @@ EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry, const 
 
   return spanningTree;
 }
+*/
 
 } // namespace surface
 } // namespace geometrycentral
