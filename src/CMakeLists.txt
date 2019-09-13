@@ -27,7 +27,7 @@ SET(SRCS
   surface/surface_centers.cpp
   surface/signpost_intrinsic_triangulation.cpp
   surface/simple_idt.cpp
-  #surface/mesh_graph_algorithms.cpp
+  surface/mesh_graph_algorithms.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   #surface/exact_polyhedral_geodesics.cpp
