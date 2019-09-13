@@ -125,7 +125,7 @@ void MeshData<E, T>::deregisterWithMesh() {
 
 template <typename E, typename T>
 void MeshData<E, T>::fill(T val) {
-  std::fill(data.begin(), data.end(), val);
+  std::fill(data.begin(), data.begin() + size(), val);
 }
 
 template <typename E, typename T>
