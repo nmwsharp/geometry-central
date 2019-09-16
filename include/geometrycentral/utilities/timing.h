@@ -8,9 +8,9 @@
 #define START_TIMING(name) auto generated_timer_777_##name = NOW;
 #define FINISH_TIMING_PRINT(name)                                                                                      \
   auto generated_timer_777_elapsed_##name =                                                                            \
-      std::chrono::duration_cast<std::chrono::milliseconds>(NOW - generated_timer_777_##name);                         \
-  std::cout << "--- TIMER RESULT: section " << #name << " took " << generated_timer_777_elapsed_##name.count()         \
-            << " ms" << std::endl;
+      std::chrono::duration_cast<std::chrono::microseconds>(NOW - generated_timer_777_##name);                         \
+  std::cout << "--- TIMER RESULT: section " << #name << " took "                                                       \
+            << pretty_time(generated_timer_777_elapsed_##name.count()) << std::endl;
 #define FINISH_TIMING(name)                                                                                            \
   (std::chrono::duration_cast<std::chrono::microseconds>(NOW - generated_timer_777_##name).count())
 
