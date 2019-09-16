@@ -74,6 +74,16 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
   requireVertexAngleSums();
 }
 
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) {
+  // Gather values to trace
+  SurfacePoint startP = vertexLocations[he.vertex()];
+  Vector2 traceVec = halfedgeVector(he);
+
+  // Do the actual tracing
+  TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, true);
+
+  return result.pathPoints;
+}
 
 EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges() {
 
@@ -161,6 +171,57 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   }
 
   // Assign the new edge lengths
+  intrinsicEdgeLengths[e] = newLength;
+
+  // Update edge angles
+  updateAngleFromCWNeighor(e.halfedge());
+  updateAngleFromCWNeighor(e.halfedge().twin());
+  updateFaceBasis(e.halfedge().face());
+  updateFaceBasis(e.halfedge().twin().face());
+
+  edgeIsOriginal[e] = false;
+
+  return true;
+}
+
+bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleEPS) {
+
+  // Can't flip
+  if (e.isBoundary()) return false;
+
+  // Get geometric data
+  Halfedge he = e.halfedge();
+  std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
+
+  // Test if geometryically flippable flippable (both signed areas of new triangles are positive)
+  double A1 = cross(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
+  double A2 = cross(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
+  double areaEPS = possibleEPS * (A1 + A2);
+  if (A1 < areaEPS || A2 < areaEPS) {
+    return false;
+  }
+
+
+  // Combinatorial flip
+  bool flipped = mesh.flip(e);
+
+  // Might not have been flippable for connectivity reasons
+  if (!flipped) {
+    return false;
+  }
+
+  // Compute the new edge length
+  double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
+
+  // If we're going to create a non-finite edge length, abort the flip
+  // (only happens if you're in a bad numerical place)
+  if (!std::isfinite(newLength)) {
+    mesh.flip(e);
+    return false;
+  }
+
+  // Assign the new edge lengths
+  // TODO project to satisfy triangle inequality?
   intrinsicEdgeLengths[e] = newLength;
 
   // Update edge angles
