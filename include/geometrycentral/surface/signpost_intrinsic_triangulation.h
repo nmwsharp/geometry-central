@@ -62,6 +62,7 @@ public:
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points
   EdgeData<std::vector<SurfacePoint>> traceEdges();
+  std::vector<SurfacePoint> traceHalfedge(Halfedge he); // trace a single intrinsic halfedge
 
   // Given data defined on the intrinsic triangulation, samples it at the vertices of the input triangulation
   template <typename T>
@@ -111,7 +112,7 @@ public:
 
   // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
   // flipped.
-  bool flipEdgeIfPossible(Edge e);
+  bool flipEdgeIfPossible(Edge e, double possibleEPS = 1e-6);
 
   // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic);
