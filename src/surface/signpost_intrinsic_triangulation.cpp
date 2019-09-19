@@ -82,6 +82,21 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   // Do the actual tracing
   TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, true);
 
+  // Trim off end crumbs if applicable
+  Vertex endVert = he.twin().vertex();
+  if (vertexLocations[endVert].type == SurfacePointType::Vertex) {
+    bool success = trimTraceResult(result, endVert);
+
+    // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
+    // initially
+    if (!success) {
+      result = traceGeodesic(inputGeom, startP, traceVec, true);
+    }
+  }
+
+  // Append the endpoint
+  result.pathPoints.push_back(vertexLocations[endVert]);
+
   return result.pathPoints;
 }
 
@@ -91,16 +106,7 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-
-    // Gather values to trace
-    SurfacePoint startP = vertexLocations[he.vertex()];
-    Vector2 traceVec = halfedgeVector(he);
-
-    // Do the actual tracing
-    TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, true);
-
-    // Save result
-    tracedEdges[e] = result.pathPoints;
+    tracedEdges[e] = traceHalfedge(he);
   }
 
   return tracedEdges;

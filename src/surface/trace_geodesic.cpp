@@ -722,5 +722,70 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
   return result;
 }
 
+bool trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex) {
+
+  while (traceResult.pathPoints.size() > 1) {
+    SurfacePoint& b = traceResult.pathPoints.back();
+
+    // Remove any edge crossings connected to the target vertex: they're numerical noise because we're already in the
+    // 1-ring
+    if (b.type == SurfacePointType::Edge &&
+        (b.edge.halfedge().vertex() == targetVertex || b.edge.halfedge().twin().vertex() == targetVertex)) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // Always trim face points
+    if (b.type == SurfacePointType::Face) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // Always trim vertex points
+    if (b.type == SurfacePointType::Vertex) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // we're done here
+    break;
+  }
+
+
+  // Check success
+  if (traceResult.pathPoints.empty()) return false;
+
+  SurfacePoint& b = traceResult.pathPoints.back();
+
+  switch (b.type) {
+  case SurfacePointType::Vertex: {
+    return b.vertex == targetVertex;
+    break;
+  }
+  case SurfacePointType::Edge: {
+    Halfedge bHe = b.edge.halfedge();
+    if (bHe.vertex() == targetVertex) return true;
+    if (bHe.twin().vertex() == targetVertex) return true;
+    if (bHe.next().next().vertex() == targetVertex) return true;
+    if (bHe.twin().next().next().vertex() == targetVertex) return true;
+    return false;
+    break;
+  }
+  case SurfacePointType::Face: {
+    for (Vertex v : b.face.adjacentVertices()) {
+      if (v == targetVertex) return true;
+    }
+    return false;
+    break;
+  }
+  }
+
+  return false;
+}
+
+
 } // namespace surface
 } // namespace geometrycentral

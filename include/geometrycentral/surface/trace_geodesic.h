@@ -38,7 +38,9 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
 
 // For a trace which was expected to end very near targetVertex, try to clean up the end of the path to end directly at
 // targetVertex
-void trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex);
+// TODO currently DOES NOT fix up traceResult.endingDir, so that field is invalid after calling
+// Return value indicates success. If true, the resulting ends in the 1-ring of targetVertex as expected.
+bool trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex);
 
 } // namespace surface
 } // namespace geometrycentral

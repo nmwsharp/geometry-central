@@ -74,7 +74,7 @@ public:
   // any outstanding Vertex or MeshData<> objects. See the guide (currently in docs/mutable_mesh_docs.md).
 
   // Flip an edge. Unlike all the other mutation routines, this _does not_ invalidate pointers, though it does break the
-  // canonical ordering.
+  // canonical ordering. Edge is rotated clockwise.
   // Return true if the edge was actually flipped (can't flip boundary or non-triangular edges)
   bool flip(Edge e);
 
