@@ -25,6 +25,10 @@ using Vector = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 template <typename T>
 using SparseMatrix = Eigen::SparseMatrix<T>;
 
+// Nicer name for dense matrix
+template <typename T>
+using DenseMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
+
 // ==== Simple utilities
 
 template <typename T>
