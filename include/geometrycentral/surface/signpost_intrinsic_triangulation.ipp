@@ -174,5 +174,16 @@ inline std::array<Vector2, 3> SignpostIntrinsicTriangulation::vertexCoordinatesI
           -halfedgeVectorsInFace[face.halfedge().next().next()]};
 }
 
+
+template <typename T>
+VertexData<T> SignpostIntrinsicTriangulation::sampleAtInput(const VertexData<T>& dataOnIntrinsic) {
+  VertexData<T> output(mesh);
+  for (Vertex v : mesh.vertices()) {
+    output[v] = vertexLocations[v].interpolate(dataOnIntrinsic);
+  }
+
+  return output;
+}
+
 } // namespace surface
 } // namespace geometrycentral
