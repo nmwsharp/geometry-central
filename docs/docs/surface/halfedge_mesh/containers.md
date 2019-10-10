@@ -165,7 +165,7 @@ Under the hood, all `MeshData<>` types use a `std::vector<T>` to store their val
 
 - For the scalar type `bool`, these containers are essentially broken, [because `std::vector<bool>` is a weird, broken special case](https://stackoverflow.com/questions/17794569/why-is-vectorbool-not-a-stl-container). Using `char` instead is usually a fine substitute: you can construct `VertexData<char> flags` and set `flags[vert] = true` as you would expect.
 
-- A special allocator is needed for aligned objects, in particular fixed-size Eigen types (see [gotchas](/utilities/matrix_types.md#gotchas)). These `MeshData<>` containers all internally use the aligned allocator `std::vector<T, Eigen::aligned_allocator<T>>`, so **they can safely store fixed-sized Eigen types**.
+- A special allocator is needed for aligned objects, in particular fixed-size Eigen types (see [gotchas](/numerical/matrix_types#gotchas)). These `MeshData<>` containers all internally use the aligned allocator `std::vector<T, Eigen::aligned_allocator<T>>`, so **they can safely store fixed-sized Eigen types**.
 
 ### Oriented edge data 
 
