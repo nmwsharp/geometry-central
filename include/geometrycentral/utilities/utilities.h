@@ -2,12 +2,12 @@
 
 #include <cmath>
 #include <complex>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <random>
 #include <string>
 #include <typeinfo>
-#include <iostream>
 
 // Error checking macro. CONDITION should be true if life is good (like in assert(CONDITION))
 #ifdef NGC_SAFTEY_CHECKS
@@ -66,9 +66,9 @@ T clamp(T val, T low, T high);
 double regularizeAngle(double theta); // Map theta in to [0,2pi)
 
 // Missing isfinite function
-inline bool isfinite(const std::complex<double>& c) { 
-  //std::cout << "calling isfinite complex" << std::endl;  
-  return std::isfinite(c.real()) && std::isfinite(c.imag()); 
+inline bool isfinite(const std::complex<double>& c) {
+  // std::cout << "calling isfinite complex" << std::endl;
+  return std::isfinite(c.real()) && std::isfinite(c.imag());
 }
 
 // Conjugate which does nothing to non-complex values
@@ -93,9 +93,9 @@ inline double regularizeAngle(double theta) { return theta - 2 * PI * ::std::flo
 
 // Applies a permutation such that d_new[i] = d_old[p[i]].
 // Permutation should be injection to [0,sourceData.size()). Return vector has length permOldToNew.size().
-template <typename T>
-std::vector<T> applyPermutation(const std::vector<T>& sourceData, const std::vector<size_t>& permOldToNew) {
-  std::vector<T> retVal(permOldToNew.size());
+template <typename T, typename A1, typename A2>
+std::vector<T, A1> applyPermutation(const std::vector<T, A1>& sourceData, const std::vector<size_t, A2>& permOldToNew) {
+  std::vector<T, A1> retVal(permOldToNew.size());
   for (size_t i = 0; i < permOldToNew.size(); i++) {
     retVal[i] = sourceData[permOldToNew[i]];
   }

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "geometrycentral/surface/halfedge_element_types.h"
 #include "geometrycentral/utilities/dependent_quantity.h"
 
-#include "geometrycentral/surface/halfedge_element_types.h"
-
-#include "Eigen/Core"
+#include <Eigen/Core>
+#include <Eigen/StdVector>
 
 #include <cassert>
 
@@ -30,7 +30,10 @@ private:
   // The raw buffer which holds the data.
   // As a mesh is being modified, data.size() might be larger than the number of elements. Don't attempt any direct
   // access to this buffer.
-  std::vector<T> data;
+  // Notice that here we _always_ use Eigen's aligned allocator. This is necessary for std::vectors of fixed-size Eigen
+  // types (see https://eigen.tuxfamily.org/dox/group__TopicStlContainers.html ). There seems to be no downside to just
+  // using it for all types (???). If anything, alignment may help vectorization.
+  std::vector<T, Eigen::aligned_allocator<T>> data;
 
   // Mutability behavior:
   // From the user's point of view, this container can always be accessed with a valid element pointer, no matter what
@@ -81,7 +84,7 @@ public:
   // Essentially resets to MeshData<>(), can no longer be used to hold data.
   void clear();
 
-  // Convert to and from vector types
+  // Convert to and from (Eigen) vector types
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector() const;
   Eigen::Matrix<T, Eigen::Dynamic, 1> toVector(const MeshData<E, size_t>& indexer) const;
   void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
