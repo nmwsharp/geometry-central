@@ -21,21 +21,6 @@ inline double SignpostIntrinsicTriangulation::vertexAngleScaling(Vertex v) const
   return intrinsicVertexAngleSums[v] / (v.isBoundary() ? M_PI : 2. * M_PI);
 }
 
-inline double SignpostIntrinsicTriangulation::faceArea(Face f) const {
-  Halfedge he = f.halfedge();
-  double a = intrinsicEdgeLengths[he.edge()];
-  he = he.next();
-  double b = intrinsicEdgeLengths[he.edge()];
-  he = he.next();
-  double c = intrinsicEdgeLengths[he.edge()];
-  // Herons formula
-  double s = (a + b + c) / 2.0;
-  double arg = s * (s - a) * (s - b) * (s - c);
-  arg = std::fmax(0., arg);
-  double area = std::sqrt(arg);
-  return area;
-}
-
 inline double SignpostIntrinsicTriangulation::cornerAngle(Corner c) const {
   Halfedge heA = c.halfedge();
   Halfedge heOpp = heA.next();
@@ -62,8 +47,8 @@ inline double SignpostIntrinsicTriangulation::halfedgeCotanWeight(Halfedge heI) 
     double l_ki = intrinsicEdgeLengths[he.edge()];
     he = he.next();
     GC_SAFETY_ASSERT(he == heI, "faces mush be triangular");
-    double area = faceArea(he.face());
-    double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
+    double areaV = area(he.face());
+    double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * areaV);
     return cotValue / 2;
   } else {
     return 0.;
@@ -137,7 +122,7 @@ inline Vector2 SignpostIntrinsicTriangulation::layoutTriangleVertex(const Vector
   return pC;
 }
 
-inline double SignpostIntrinsicTriangulation::shortestEdge(Face f) {
+inline double SignpostIntrinsicTriangulation::shortestEdge(Face f) const {
   Halfedge he = f.halfedge();
   double lA = intrinsicEdgeLengths[he.edge()];
   he = he.next();
@@ -147,7 +132,7 @@ inline double SignpostIntrinsicTriangulation::shortestEdge(Face f) {
   return std::fmin(std::fmin(lA, lB), lC);
 }
 
-inline double SignpostIntrinsicTriangulation::area(Face f) {
+inline double SignpostIntrinsicTriangulation::area(Face f) const {
   Halfedge he = f.halfedge();
   double a = intrinsicEdgeLengths[he.edge()];
   he = he.next();
@@ -157,7 +142,7 @@ inline double SignpostIntrinsicTriangulation::area(Face f) {
   return area(a, b, c);
 }
 
-inline double SignpostIntrinsicTriangulation::circumradius(Face f) {
+inline double SignpostIntrinsicTriangulation::circumradius(Face f) const {
   Halfedge he = f.halfedge();
   double a = intrinsicEdgeLengths[he.edge()];
   he = he.next();

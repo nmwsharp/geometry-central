@@ -123,10 +123,12 @@ public:
   // ======================================================
 
   // Computed on the intrinsic triangulation
-  double faceArea(Face f) const;
   double cornerAngle(Corner c) const;
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
+  double area(Face f) const;
+  double shortestEdge(Face f) const;
+  double circumradius(Face f) const;
 
 
 private:
@@ -170,9 +172,6 @@ private:
   // Isometrically lay out the vertices around a halfedge in 2D coordinates
   // he points from vertex 2 to 0; others are numbered CCW
   std::array<Vector2, 4> layoutDiamond(Halfedge he);
-  double area(Face f);
-  double shortestEdge(Face f);
-  double circumradius(Face f);
   std::array<Vector2, 3> vertexCoordinatesInTriangle(Face face);
 
   // Helper for layoutDiamond()
