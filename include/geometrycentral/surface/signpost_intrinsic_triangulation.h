@@ -87,9 +87,16 @@ public:
   //   - has no angles smaller than `angleThreshDegrees` (values > 30 degrees may not terminate)
   //   - has no triangles larger than `circumradiusThresh`
   // Terminates no matter what after maxInsertions insertions (infinite by default)
-  void delaunyRefine(double angleThreshDegrees = 25.,
+  void delaunayRefine(double angleThreshDegrees = 25.,
                      double circumradiusThresh = std::numeric_limits<double>::infinity(),
                      size_t maxInsertions = INVALID_IND);
+
+
+  // General version of intrinsic Delaunay refinement, taking a function which will be called
+  // to determine if a triangle should be refined.
+  // Will return only when all triangles pass this function, or maxInsertions is exceeded, so
+  // be sure to chose arguments such that the function terminates.
+  void delaunayRefine(const std::function<bool(Face)>& shouldRefine, size_t maxInsertions = INVALID_IND);
 
 
   // ======================================================
@@ -104,7 +111,7 @@ public:
   // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
   // flipped.
   bool flipEdgeIfPossible(Edge e);
-  
+
   // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic);
 

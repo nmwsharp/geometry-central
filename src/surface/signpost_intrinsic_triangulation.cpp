@@ -22,7 +22,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
       intrinsicMesh(&mesh) {
 
   // Make sure the input mesh is triangular
-  if(!mesh.isTriangular()) {
+  if (!mesh.isTriangular()) {
     throw std::runtime_error("signpost triangulation requires triangle mesh as input");
   }
 
@@ -311,22 +311,14 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
   refreshQuantities();
 }
 
-void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, double circumradiusThresh,
-                                                   size_t maxInsertions) {
-
-  if (inputMesh.hasBoundary()) {
-    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
-  }
+void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
+                                                    size_t maxInsertions) {
 
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
 
-  // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
-  int recheckCount = 0;
-  const int MAX_RECHECK_COUNT = 5;
-
-  // Helper to test if a face violates the circumradius ratio condition
+  // Build a function to test if a face violates the circumradius ratio condition
   auto needsCircumcenterRefinement = [&](Face f) {
     double c = circumradius(f);
     double l = shortestEdge(f);
@@ -353,6 +345,23 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
     return needsRefinementAngle || needsRefinementLength;
   };
 
+  // Call the general version
+  delaunayRefine(needsCircumcenterRefinement, maxInsertions);
+}
+
+
+void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& shouldRefine,
+                                                    size_t maxInsertions) {
+
+  if (inputMesh.hasBoundary()) {
+    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
+  }
+
+
+  // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
+  int recheckCount = 0;
+  const int MAX_RECHECK_COUNT = 5;
+
 
   // Initialize queue of (possibly) non-delaunay edges
   std::deque<Edge> delaunayCheckQueue;
@@ -367,7 +376,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
   typedef std::pair<double, Face> AreaFace;
   std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>> circumradiusCheckQueue;
   for (Face f : mesh.faces()) {
-    if (needsCircumcenterRefinement(f)) {
+    if (shouldRefine(f)) {
       circumradiusCheckQueue.push(std::make_pair(area(f), f));
     }
   }
@@ -396,7 +405,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
       // Add neighboring faces, which might violate circumradius constraint
       std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
       for (Face nF : neighFaces) {
-        if (needsCircumcenterRefinement(nF)) {
+        if (shouldRefine(nF)) {
           circumradiusCheckQueue.push(std::make_pair(area(nF), nF));
         }
       }
@@ -439,7 +448,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
       //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
       //    re-add it, because it must have been placed in the queue when its area was changed
       //   - This face might have been flipped to no longer violate constraint
-      if (A == area(f) && needsCircumcenterRefinement(f)) {
+      if (A == area(f) && shouldRefine(f)) {
 
         Vertex newVert = insertCircumcenter(f);
         nInsertions++;
@@ -448,7 +457,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
         for (Face nF : newVert.adjacentFaces()) {
 
           // Check circumradius constraint
-          if (needsCircumcenterRefinement(nF)) {
+          if (shouldRefine(nF)) {
             circumradiusCheckQueue.push(std::make_pair(area(nF), nF));
           }
 
@@ -470,7 +479,7 @@ void SignpostIntrinsicTriangulation::delaunyRefine(double angleThreshDegrees, do
       recheckCount++;
       if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
         for (Face f : mesh.faces()) {
-          if (needsCircumcenterRefinement(f)) {
+          if (shouldRefine(f)) {
             circumradiusCheckQueue.push(std::make_pair(area(f), f));
           }
         }
