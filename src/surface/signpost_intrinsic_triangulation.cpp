@@ -343,6 +343,12 @@ Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
   return insertVertex(newPositionOnIntrinsic);
 }
 
+Vertex SignpostIntrinsicTriangulation::insertBarycenter(Face f) {
+  SurfacePoint barycenterOnIntrinsic(f, Vector3::constant(1. / 3.));
+  return insertVertex(barycenterOnIntrinsic);
+}
+
+
 
 void SignpostIntrinsicTriangulation::flipToDelaunay() {
 
@@ -384,8 +390,11 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
   refreshQuantities();
 }
 
-void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
-                                                    size_t maxInsertions) {
+void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh, size_t maxInsertions) {
+
+  if (inputMesh.hasBoundary()) {
+    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
+  }
 
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
