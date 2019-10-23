@@ -120,6 +120,9 @@ public:
   // Insert the circumcenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
   Vertex insertCircumcenter(Face f);
 
+  // Insert the barycenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
+  Vertex insertBarycenter(Face f);
+
   // ======================================================
   // ======== Geometry Immediates
   // ======================================================
