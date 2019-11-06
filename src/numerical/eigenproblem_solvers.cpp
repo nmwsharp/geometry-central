@@ -13,7 +13,7 @@ namespace {
 
 template <typename T>
 double norm(Vector<T>& x, SparseMatrix<T>& massMatrix) {
-  return std::sqrt(std::abs((x.transpose() * massMatrix * x)[0]));
+  return std::sqrt(std::abs(x.dot(massMatrix * x)));
 }
 template double norm(Vector<double>& x, SparseMatrix<double>& massMatrix);
 template double norm(Vector<float>& x, SparseMatrix<float>& massMatrix);
@@ -67,7 +67,7 @@ std::vector<Vector<T>> smallestKEigenvectorsPositiveDefinite(SparseMatrix<T>& en
 
   auto projectOutPreviousVectors = [&](Vector<T>& x) {
     for (Vector<T>& v : res) {
-      T proj = (((x.transpose() * massMatrix * v)[0]));
+      T proj = ((v.dot(massMatrix * x)));
       x -= v * proj;
     }
   };
