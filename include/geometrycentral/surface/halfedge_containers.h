@@ -19,7 +19,7 @@ namespace surface {
 // T is the data type that it holds (eg double)
 template <typename E, typename T>
 class MeshData {
-private:
+protected:
   // The mesh that this data is defined on
   HalfedgeMesh* mesh = nullptr;
 
