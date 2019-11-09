@@ -24,6 +24,10 @@ Vector<T> smallestEigenvectorPositiveDefinite(SparseMatrix<T>& energyMatrix, Spa
 template <typename T>
 std::vector<Vector<T>> smallestKEigenvectorsPositiveDefinite(SparseMatrix<T>& energyMatrix, SparseMatrix<T>& massMatrix,
                                                              size_t kEigenvalues, size_t nIterations = 50);
+template <typename T>
+std::vector<Vector<T>> smallestKEigenvectorsPositiveDefiniteTol(SparseMatrix<T>& energyMatrix,
+                                                                SparseMatrix<T>& massMatrix, size_t kEigenvalues,
+                                                                double tol = 1e-8);
 
 // Returns smallest (positive-eigenvalued) nontirivial eigenvector
 template <typename T>
@@ -33,6 +37,10 @@ Vector<T> smallestEigenvectorSquare(SparseMatrix<T>& energyMatrix, SparseMatrix<
 // Mass matrix must be positive definite
 template <typename T>
 Vector<T> largestEigenvector(SparseMatrix<T>& energyMatrix, SparseMatrix<T>& massMatrix, size_t nIterations = 50);
+
+// Measure L2 residual
+template <typename T>
+double eigenvectorResidual(const SparseMatrix<T>& energyMatrix, const SparseMatrix<T>& massMatrix, const Vector<T>& v);
 
 // Quick and easy solvers which do not retain factorization
 template <typename T>
@@ -119,7 +127,7 @@ public:
   Vector<T> solve(const Vector<T>& rhs) override;
 
 protected:
-// Implementation-specific quantities
+  // Implementation-specific quantities
   std::unique_ptr<SquareSolverInternals<T>> internals;
 };
 

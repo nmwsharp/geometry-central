@@ -12,12 +12,12 @@ namespace geometrycentral {
 namespace {
 
 template <typename T>
-double norm(Vector<T>& x, SparseMatrix<T>& massMatrix) {
-  return std::sqrt(std::abs((x.transpose() * massMatrix * x)[0]));
+double norm(const Vector<T>& x, const SparseMatrix<T>& massMatrix) {
+  return std::sqrt(std::abs(x.dot(massMatrix * x)));
 }
-template double norm(Vector<double>& x, SparseMatrix<double>& massMatrix);
-template double norm(Vector<float>& x, SparseMatrix<float>& massMatrix);
-template double norm(Vector<std::complex<double>>& x, SparseMatrix<std::complex<double>>& massMatrix);
+template double norm(const Vector<double>& x, const SparseMatrix<double>& massMatrix);
+template double norm(const Vector<float>& x, const SparseMatrix<float>& massMatrix);
+template double norm(const Vector<std::complex<double>>& x, const SparseMatrix<std::complex<double>>& massMatrix);
 
 template <typename T>
 void normalize(Vector<T>& x, SparseMatrix<T>& massMatrix) {
@@ -67,8 +67,8 @@ std::vector<Vector<T>> smallestKEigenvectorsPositiveDefinite(SparseMatrix<T>& en
 
   auto projectOutPreviousVectors = [&](Vector<T>& x) {
     for (Vector<T>& v : res) {
-      T proj = (((x.transpose() * massMatrix * v)[0]));
-      x -= v * proj;
+      T proj = ((v.dot(massMatrix * x)));
+      x -= proj * v;
     }
   };
 
@@ -86,6 +86,46 @@ std::vector<Vector<T>> smallestKEigenvectorsPositiveDefinite(SparseMatrix<T>& en
 
       // Update
       u = x;
+    }
+
+    res.push_back(x);
+  }
+
+  return res;
+}
+
+template <typename T>
+std::vector<Vector<T>> smallestKEigenvectorsPositiveDefiniteTol(SparseMatrix<T>& energyMatrix,
+                                                                SparseMatrix<T>& massMatrix, size_t kEigenvalues,
+                                                                double tol) {
+
+  std::vector<Vector<T>> res;
+
+  size_t N = energyMatrix.rows();
+  PositiveDefiniteSolver<T> solver(energyMatrix);
+
+  auto projectOutPreviousVectors = [&](Vector<T>& x) {
+    for (Vector<T>& v : res) {
+      T proj = ((v.dot(massMatrix * x)));
+      x -= proj * v;
+    }
+  };
+
+  for (size_t kEig = 0; kEig < kEigenvalues; kEig++) {
+    Vector<T> u = Vector<T>::Random(N);
+    projectOutPreviousVectors(u);
+    Vector<T> x = u;
+    double residual = eigenvectorResidual(energyMatrix, massMatrix, x);
+    while (residual > tol) {
+      // Solve
+      solver.solve(x, massMatrix * u);
+
+      projectOutPreviousVectors(x);
+      normalize(x, massMatrix);
+
+      // Update
+      u = x;
+      residual = eigenvectorResidual(energyMatrix, massMatrix, x);
     }
 
     res.push_back(x);
@@ -136,6 +176,14 @@ Vector<T> largestEigenvector(SparseMatrix<T>& energyMatrix, SparseMatrix<T>& mas
   return x;
 }
 
+// Measure L2 residual
+template <typename T>
+double eigenvectorResidual(const SparseMatrix<T>& energyMatrix, const SparseMatrix<T>& massMatrix, const Vector<T>& v) {
+  T candidateEigenvalue = v.dot(energyMatrix * v);
+  Vector<T> err = energyMatrix * v - candidateEigenvalue * massMatrix * v;
+  return norm(err, massMatrix);
+}
+
 // Explicit instantiations
 template Vector<double> smallestEigenvectorPositiveDefinite(SparseMatrix<double>& energyMatrix,
                                                             SparseMatrix<double>& massMatrix, size_t nIterations);
@@ -155,6 +203,18 @@ template std::vector<Vector<std::complex<double>>>
 smallestKEigenvectorsPositiveDefinite(SparseMatrix<std::complex<double>>& energyMatrix,
                                       SparseMatrix<std::complex<double>>& massMatrix, size_t kEigenvalues,
                                       size_t nIterations);
+
+
+template std::vector<Vector<float>> smallestKEigenvectorsPositiveDefiniteTol(SparseMatrix<float>& energyMatrix,
+                                                                             SparseMatrix<float>& massMatrix,
+                                                                             size_t kEigenvalues, double tol);
+template std::vector<Vector<double>> smallestKEigenvectorsPositiveDefiniteTol(SparseMatrix<double>& energyMatrix,
+                                                                              SparseMatrix<double>& massMatrix,
+                                                                              size_t kEigenvalues, double tol);
+template std::vector<Vector<std::complex<double>>>
+smallestKEigenvectorsPositiveDefiniteTol(SparseMatrix<std::complex<double>>& energyMatrix,
+                                         SparseMatrix<std::complex<double>>& massMatrix, size_t kEigenvalues,
+                                         double tol);
 
 template Vector<double> smallestEigenvectorSquare(SparseMatrix<double>& energyMatrix, SparseMatrix<double>& massMatrix,
                                                   size_t nIterations);
