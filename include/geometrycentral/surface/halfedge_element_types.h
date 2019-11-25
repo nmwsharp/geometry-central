@@ -202,8 +202,13 @@ private:
 
 class Vertex : public Element<Vertex> {
 public:
-  // Constructors (inherit from base)
-  using Element<Vertex>::Element;
+  // Constructors
+  // inheriting constructor would work here, and replace the constructors below, but gcc-5 erroneously rejects the combo
+  // with CRTP :( perhaps resurrect here and in other elements below once gcc-5 is sufficiently old
+  // using Element<Vertex>::Element;
+  Vertex();                                // construct an empty (null) element
+  Vertex(HalfedgeMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Vertex(const DynamicElement<Vertex>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -240,8 +245,10 @@ typedef RangeSetBase<VertexRangeF> VertexSet;
 
 class Halfedge : public Element<Halfedge> {
 public:
-  // Constructors (inherit from base)
-  using Element<Halfedge>::Element;
+  // Constructors
+  Halfedge();                                  // construct an empty (null) element
+  Halfedge(HalfedgeMesh* mesh, size_t ind);    // construct pointing to the i'th element of that type on a mesh.
+  Halfedge(const DynamicElement<Halfedge>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge twin() const;
@@ -292,8 +299,10 @@ typedef RangeSetBase<HalfedgeExteriorRangeF> HalfedgeExteriorSet;
 
 class Corner : public Element<Corner> {
 public:
-  // Constructors (inherit from base)
-  using Element<Corner>::Element;
+  // Constructors
+  Corner();                                // construct an empty (null) element
+  Corner(HalfedgeMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Corner(const DynamicElement<Corner>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -318,8 +327,10 @@ typedef RangeSetBase<CornerRangeF> CornerSet;
 
 class Edge : public Element<Edge> {
 public:
-  // Constructors (inherit from base)
-  using Element<Edge>::Element;
+  // Constructors
+  Edge();                               // construct an empty (null) element
+  Edge(HalfedgeMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  Edge(const DynamicElement<Edge>& e);  // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -349,8 +360,10 @@ typedef RangeSetBase<EdgeRangeF> EdgeSet;
 
 class Face : public Element<Face> {
 public:
-  // Constructors (inherit from base)
-  using Element<Face>::Element;
+  // Constructors
+  Face();                               // construct an empty (null) element
+  Face(HalfedgeMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  Face(const DynamicElement<Face>& e);  // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -389,8 +402,10 @@ typedef RangeSetBase<FaceRangeF> FaceSet;
 
 class BoundaryLoop : public Element<BoundaryLoop> {
 public:
-  // Constructors (inherit from base)
-  using Element<BoundaryLoop>::Element;
+  // Constructors
+  BoundaryLoop();                                      // construct an empty (null) element
+  BoundaryLoop(HalfedgeMesh* mesh, size_t ind);        // construct pointing to the i'th element of that type on a mesh.
+  BoundaryLoop(const DynamicElement<BoundaryLoop>& e); // construct from a dynamic element of matching type
 
   Halfedge halfedge() const;
   Face asFace() const;

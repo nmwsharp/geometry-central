@@ -161,6 +161,12 @@ inline RangeIteratorBase<F> RangeSetBase<F>::end() const { return RangeIteratorB
 // ================        Vertex          ==================
 // ==========================================================
 
+// Constructors
+// (see note in header, these should be inherited but aren't due to compiler issues)
+inline Vertex::Vertex() {}
+inline Vertex::Vertex(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.getIndex()) {}
+
 // Navigators
 inline Halfedge Vertex::halfedge() const    { return Halfedge(mesh, mesh->vHalfedge[ind]); }
 inline Corner Vertex::corner() const        { return halfedge().corner(); }
@@ -210,6 +216,11 @@ inline bool VertexRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 // ================        Halfedge        ==================
 // ==========================================================
 
+// Constructors
+inline Halfedge::Halfedge() {}
+inline Halfedge::Halfedge(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
+
 // Navigators
 inline Halfedge Halfedge::twin() const  { return Halfedge(mesh, HalfedgeMesh::heTwin(ind)); }
 inline Halfedge Halfedge::next() const  { return Halfedge(mesh, mesh->heNext[ind]); }
@@ -257,6 +268,11 @@ inline bool HalfedgeExteriorRangeF::elementOkay(const HalfedgeMesh& mesh, size_t
 // ================        Corner          ==================
 // ==========================================================
 
+// Constructors
+inline Corner::Corner() {}
+inline Corner::Corner(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.getIndex()) {}
+
 // Navigators
 inline Halfedge Corner::halfedge() const { return Halfedge(mesh, ind); }
 inline Vertex Corner::vertex() const { return halfedge().vertex(); }
@@ -270,6 +286,11 @@ inline bool CornerRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 // ==========================================================
 // ================          Edge          ==================
 // ==========================================================
+
+// Constructors
+inline Edge::Edge() {}
+inline Edge::Edge(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Edge::halfedge() const { return Halfedge(mesh, HalfedgeMesh::eHalfedge(ind)); }
@@ -286,6 +307,11 @@ inline bool EdgeRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 // ==========================================================
 // ================          Face          ==================
 // ==========================================================
+
+// Constructors
+inline Face::Face() {}
+inline Face::Face(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline Face::Face(const DynamicElement<Face>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Face::halfedge() const { return Halfedge(mesh, mesh->fHalfedge[ind]); }
@@ -333,6 +359,12 @@ inline bool FaceRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 // ==========================================================
 // ================     Boundary Loop      ==================
 // ==========================================================
+
+// Constructors
+inline BoundaryLoop::BoundaryLoop() {}
+inline BoundaryLoop::BoundaryLoop(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Element(e.getMesh(), e.getIndex()) {}
+
 
 inline Halfedge BoundaryLoop::halfedge() const { return asFace().halfedge(); }
 inline Face BoundaryLoop::asFace() const { return Face(mesh, mesh->boundaryLoopIndToFaceInd(ind)); }
