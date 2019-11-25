@@ -15,7 +15,7 @@ template<> inline size_t nElements<Corner       >(HalfedgeMesh* mesh)   { return
 template<> inline size_t nElements<BoundaryLoop >(HalfedgeMesh* mesh)   { return mesh->nBoundaryLoops();    }
 
 template<> inline size_t elementCapacity<Vertex      >(HalfedgeMesh* mesh)   { return mesh->nVerticesCapacity();   }
-template<> inline size_t elementCapacity<Face        >(HalfedgeMesh* mesh)   { return mesh->nFacesCapacity() + mesh->nBoundaryLoops(); }
+template<> inline size_t elementCapacity<Face        >(HalfedgeMesh* mesh)   { return mesh->nFacesCapacity(); }
 template<> inline size_t elementCapacity<Edge        >(HalfedgeMesh* mesh)   { return mesh->nEdgesCapacity();      }
 template<> inline size_t elementCapacity<Halfedge    >(HalfedgeMesh* mesh)   { return mesh->nHalfedgesCapacity();}
 template<> inline size_t elementCapacity<Corner      >(HalfedgeMesh* mesh)   { return mesh->nHalfedgesCapacity();    }
