@@ -59,6 +59,11 @@ struct SurfacePoint {
 
   // Throws an exception if the surface point is invalid in any way
   inline void validate() const;
+
+
+  // === Operators
+  bool operator==(const SurfacePoint& other) const;
+  bool operator!=(const SurfacePoint& other) const;
 };
 
 // Printing
