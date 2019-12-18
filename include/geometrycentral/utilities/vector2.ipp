@@ -119,6 +119,11 @@ inline double dot(const Vector2& u, const Vector2& v) { return u.x * v.x + u.y *
 inline double angle(const Vector2& u, const Vector2& v) {
   return std::acos(std::fmax(-1., std::fmin(1., dot(unit(u), unit(v)))));
 }
+inline double orientedAngle(const Vector2& u, const Vector2& v) {
+  Vector2 uHat = unit(u);
+  Vector2 vHat = unit(v);
+  return std::atan2(cross(uHat, vHat), dot(uHat, vHat));
+}
 
 inline double cross(const Vector2& u, const Vector2& v) { return u.x * v.y - u.y * v.x; }
 inline Vector3 cross3(const Vector2& u, const Vector2& v) { return Vector3{0., 0., u.x * v.y - u.y * v.x}; }

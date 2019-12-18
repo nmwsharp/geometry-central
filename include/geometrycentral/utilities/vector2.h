@@ -80,13 +80,13 @@ Vector2 operator*(const T s, const Vector2& v);
 ::std::ostream& operator<<(std::ostream& output, const Vector2& v);
 
 // Notice that all of these functions return a new vector when applicable.
-// The member functions above modify in place
 
 double arg(const Vector2& v);
 double norm(const Vector2& v);
 double norm2(const Vector2& v);
 
 double angle(const Vector2& u, const Vector2& v);
+double orientedAngle(const Vector2& u, const Vector2& v);
 double dot(const Vector2& u, const Vector2& v);
 double cross(const Vector2& u, const Vector2& v);
 Vector3 cross3(const Vector2& u, const Vector2& v); // assumes arguments are in x-y plane
