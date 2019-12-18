@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/geometry.h"
+#include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/utilities/utilities.h"
 
 #include <cmath>
@@ -11,13 +11,9 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<double> FMMDistance(Geometry<Euclidean>* geometry,
+VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
                                const std::vector<std::pair<Vertex, double>>& initialDistances);
 
-VertexData<double> FMMDistance(HalfedgeMesh* mesh, const std::vector<std::pair<Vertex, double>>& initialDistances,
-                               const EdgeData<double>& edgeLengths, const HalfedgeData<double>& oppAngles);
-
-double eikonalDistanceSubroutine(double a, double b, double theta, double dA, double dB);
 
 } // namespace surface
 } // namespace geometrycentral
