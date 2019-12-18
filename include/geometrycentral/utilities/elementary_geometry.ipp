@@ -9,7 +9,7 @@ inline double triangleArea(double lAB, double lBC, double lCA) {
 }
 
 inline SegmentSegmentIntersectionResult2D segmentSegmentIntersection(Vector2 pAStart, Vector2 pAEnd, Vector2 pBStart,
-                                                              Vector2 pBEnd) {
+                                                                     Vector2 pBEnd) {
 
   // Lean on the ray version for now (can do better numerically)
   double lenA = norm(pAEnd - pAStart);
@@ -17,6 +17,7 @@ inline SegmentSegmentIntersectionResult2D segmentSegmentIntersection(Vector2 pAS
 
 
   SegmentSegmentIntersectionResult2D result{rayResult.tRay / lenA, rayResult.tLine, false};
+  result.hit = result.tA >= 0 && result.tA <= 1 && result.tB >= 0 && result.tB <= 1;
 
   return result;
 }
