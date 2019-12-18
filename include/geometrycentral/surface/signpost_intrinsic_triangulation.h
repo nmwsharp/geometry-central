@@ -3,6 +3,7 @@
 #include "geometrycentral/surface/halfedge_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/surface_point.h"
+#include "geometrycentral/utilities/elementary_geometry.h"
 
 
 // An implmementation of the Signpost datastructure from
@@ -90,8 +91,8 @@ public:
   //   - has no triangles larger than `circumradiusThresh`
   // Terminates no matter what after maxInsertions insertions (infinite by default)
   void delaunayRefine(double angleThreshDegrees = 25.,
-                     double circumradiusThresh = std::numeric_limits<double>::infinity(),
-                     size_t maxInsertions = INVALID_IND);
+                      double circumradiusThresh = std::numeric_limits<double>::infinity(),
+                      size_t maxInsertions = INVALID_IND);
 
 
   // General version of intrinsic Delaunay refinement, taking a function which will be called
@@ -181,9 +182,6 @@ private:
 
   // Helper for layoutDiamond()
   static Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA);
-
-  // Herons rule
-  static double area(double lA, double lB, double lC);
 };
 
 

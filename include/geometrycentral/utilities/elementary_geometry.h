@@ -16,10 +16,9 @@ double triangleArea(double lA, double lB, double lC);
 Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA);
 
 
-double pointLineSegmentDistance(Vector2 p, Vector2 lineA, Vector2 lineB);
-
 // === Line-line intersections
 
+double pointLineSegmentDistance(Vector2 p, Vector2 lineA, Vector2 lineB);
 
 // TODO for now, makes no special attempt at numerical robustness. In particular, may behave badly for colinear lines.
 struct SegmentSegmentIntersectionResult2D {

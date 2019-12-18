@@ -59,13 +59,6 @@ inline double SignpostIntrinsicTriangulation::edgeCotanWeight(Edge e) const {
   return halfedgeCotanWeight(e.halfedge()) + halfedgeCotanWeight(e.halfedge().twin());
 }
 
-inline double SignpostIntrinsicTriangulation::area(double lAB, double lBC, double lCA) {
-  double s = (lAB + lBC + lCA) / 2.0;
-  double arg = std::max(0., s * (s - lAB) * (s - lBC) * (s - lCA));
-  double area = std::sqrt(arg);
-  return area;
-}
-
 inline std::array<Vector2, 4> SignpostIntrinsicTriangulation::layoutDiamond(Halfedge iHe) {
 
   // Conventions:
@@ -105,7 +98,7 @@ inline Vector2 SignpostIntrinsicTriangulation::layoutTriangleVertex(const Vector
                                                                     const double& lBC, const double& lCA) {
 
   const double lAB = norm(pB - pA);
-  double tArea = area(lAB, lBC, lCA);
+  double tArea = triangleArea(lAB, lBC, lCA);
 
   // Compute width and height of right triangle formed via altitude from C
   double h = 2. * tArea / lAB;
@@ -139,7 +132,7 @@ inline double SignpostIntrinsicTriangulation::area(Face f) const {
   double b = intrinsicEdgeLengths[he.edge()];
   he = he.next();
   double c = intrinsicEdgeLengths[he.edge()];
-  return area(a, b, c);
+  return triangleArea(a, b, c);
 }
 
 inline double SignpostIntrinsicTriangulation::circumradius(Face f) const {
@@ -150,7 +143,7 @@ inline double SignpostIntrinsicTriangulation::circumradius(Face f) const {
   he = he.next();
   double c = intrinsicEdgeLengths[he.edge()];
 
-  double A = area(a, b, c);
+  double A = triangleArea(a, b, c);
   return a * b * c / (4. * A);
 }
 
