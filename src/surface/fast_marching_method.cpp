@@ -7,115 +7,7 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<double> FMMDistance(Geometry<Euclidean>* geometry,
-                               const std::vector<std::pair<Vertex, double>>& initialDistances) {
-
-  HalfedgeMesh* mesh = geometry->getMesh();
-
-  // Necessary geometric quantities
-  EdgeData<double> edgeLengths;
-  geometry->getEdgeLengths(edgeLengths);
-  HalfedgeData<double> oppAngles;
-  geometry->getHalfedgeAngles(oppAngles);
-
-  return FMMDistance(mesh, initialDistances, edgeLengths, oppAngles);
-}
-
-VertexData<double> FMMDistance(HalfedgeMesh* mesh, const std::vector<std::pair<Vertex, double>>& initialDistances,
-                               const EdgeData<double>& edgeLengths, const HalfedgeData<double>& oppAngles) {
-
-  typedef std::pair<double, Vertex> Entry;
-
-  // Initialize
-  VertexData<double> distances(*mesh, std::numeric_limits<double>::infinity());
-  VertexData<char> finalized(*mesh, false);
-
-  std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> frontierPQ;
-  for (auto& x : initialDistances) {
-    frontierPQ.push(std::make_pair(x.second, x.first));
-  }
-  size_t nFound = 0;
-  size_t nVert = mesh->nVertices();
-
-  // Search
-  while (nFound < nVert && !frontierPQ.empty()) {
-
-    // Pop the nearest element
-    Entry currPair = frontierPQ.top();
-    frontierPQ.pop();
-    Vertex currV = currPair.second;
-    double currDist = currPair.first;
-
-
-    // Accept it if not stale
-    if (finalized[currV]) {
-      continue;
-    }
-    distances[currV] = currDist;
-    finalized[currV] = true;
-    nFound++;
-
-
-    // Add any eligible neighbors
-    for (Halfedge he : currV.incomingHalfedges()) {
-      Vertex neighVert = he.vertex();
-
-      // Add with length
-      if (!finalized[neighVert]) {
-        double newDist = currDist + edgeLengths[he.edge()];
-        if (newDist < distances[neighVert]) {
-          frontierPQ.push(std::make_pair(currDist + edgeLengths[he.edge()], neighVert));
-          distances[neighVert] = newDist;
-        }
-        continue;
-      }
-
-      // Check the third point of the "left" triangle straddling this edge
-      if (he.isInterior()) {
-        Vertex newVert = he.next().next().vertex();
-        if (!finalized[newVert]) {
-
-          // Compute the distance
-          double lenB = edgeLengths[he.next().next().edge()];
-          double distB = currDist;
-          double lenA = edgeLengths[he.next().edge()];
-          double distA = distances[neighVert];
-          double theta = oppAngles[he];
-          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
-
-          if (newDist < distances[newVert]) {
-            frontierPQ.push(std::make_pair(newDist, newVert));
-            distances[newVert] = newDist;
-          }
-        }
-      }
-
-      // Check the third point of the "right" triangle straddling this edge
-      Halfedge heT = he.twin();
-      if (heT.isInterior()) {
-        Vertex newVert = heT.next().next().vertex();
-        if (!finalized[newVert]) {
-
-          // Compute the distance
-          double lenB = edgeLengths[heT.next().edge()];
-          double distB = currDist;
-          double lenA = edgeLengths[heT.next().next().edge()];
-          double distA = distances[neighVert];
-          double theta = oppAngles[heT];
-          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
-
-          if (newDist < distances[newVert]) {
-            frontierPQ.push(std::make_pair(newDist, newVert));
-            distances[newVert] = newDist;
-          }
-        }
-      }
-    }
-  }
-
-  return distances;
-}
-
+namespace {
 
 // The super fun quadratic distance function in the Fast Marching Method on triangle meshes
 // TODO parameter c isn't actually defined in paper, so I guessed that it was an error
@@ -154,6 +46,109 @@ double eikonalDistanceSubroutine(double a, double b, double theta, double dA, do
 
     return std::min({b + dA, a + dB, baseDist});
   }
+}
+
+
+} // namespace
+
+
+VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
+                               const std::vector<std::pair<Vertex, double>>& initialDistances) {
+
+  typedef std::pair<double, Vertex> Entry;
+
+  HalfedgeMesh& mesh = geometry.mesh;
+  geometry.requireEdgeLengths();
+  geometry.requireCornerAngles();
+
+  // Initialize
+  VertexData<double> distances(mesh, std::numeric_limits<double>::infinity());
+  VertexData<char> finalized(mesh, false);
+
+  std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> frontierPQ;
+  for (auto& x : initialDistances) {
+    frontierPQ.push(std::make_pair(x.second, x.first));
+  }
+  size_t nFound = 0;
+  size_t nVert = mesh.nVertices();
+
+  // Search
+  while (nFound < nVert && !frontierPQ.empty()) {
+
+    // Pop the nearest element
+    Entry currPair = frontierPQ.top();
+    frontierPQ.pop();
+    Vertex currV = currPair.second;
+    double currDist = currPair.first;
+
+
+    // Accept it if not stale
+    if (finalized[currV]) {
+      continue;
+    }
+    distances[currV] = currDist;
+    finalized[currV] = true;
+    nFound++;
+
+
+    // Add any eligible neighbors
+    for (Halfedge he : currV.incomingHalfedges()) {
+      Vertex neighVert = he.vertex();
+
+      // Add with length
+      if (!finalized[neighVert]) {
+        double newDist = currDist + geometry.edgeLengths[he.edge()];
+        if (newDist < distances[neighVert]) {
+          frontierPQ.push(std::make_pair(currDist + geometry.edgeLengths[he.edge()], neighVert));
+          distances[neighVert] = newDist;
+        }
+        continue;
+      }
+
+      // Check the third point of the "left" triangle straddling this edge
+      if (he.isInterior()) {
+        Vertex newVert = he.next().next().vertex();
+        if (!finalized[newVert]) {
+
+          // Compute the distance
+          double lenB = geometry.edgeLengths[he.next().next().edge()];
+          double distB = currDist;
+          double lenA = geometry.edgeLengths[he.next().edge()];
+          double distA = distances[neighVert];
+          double theta = geometry.cornerAngles[he.next().next().corner()];
+          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
+
+          if (newDist < distances[newVert]) {
+            frontierPQ.push(std::make_pair(newDist, newVert));
+            distances[newVert] = newDist;
+          }
+        }
+      }
+
+      // Check the third point of the "right" triangle straddling this edge
+      Halfedge heT = he.twin();
+      if (heT.isInterior()) {
+        Vertex newVert = heT.next().next().vertex();
+        if (!finalized[newVert]) {
+
+          // Compute the distance
+          double lenB = geometry.edgeLengths[heT.next().edge()];
+          double distB = currDist;
+          double lenA = geometry.edgeLengths[heT.next().next().edge()];
+          double distA = distances[neighVert];
+          double theta = geometry.cornerAngles[heT.next().next().corner()];
+          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
+
+          if (newDist < distances[newVert]) {
+            frontierPQ.push(std::make_pair(newDist, newVert));
+            distances[newVert] = newDist;
+          }
+        }
+      }
+    }
+  }
+
+  return distances;
 }
 
 

@@ -29,10 +29,10 @@ SET(SRCS
   surface/simple_idt.cpp
   surface/mesh_graph_algorithms.cpp
   surface/surface_point.cpp
+  surface/fast_marching_method.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   #surface/exact_polyhedral_geodesics.cpp
-  #surface/fast_marching_method.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp
