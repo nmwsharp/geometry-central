@@ -8,6 +8,8 @@ namespace surface {
 inline SurfacePoint::SurfacePoint() : type(SurfacePointType::Vertex) {}
 inline SurfacePoint::SurfacePoint(Vertex v) : type(SurfacePointType::Vertex), vertex(v) {}
 inline SurfacePoint::SurfacePoint(Edge e, double tEdge_) : type(SurfacePointType::Edge), edge(e), tEdge(tEdge_) {}
+inline SurfacePoint::SurfacePoint(Halfedge he, double tHalfedge)
+    : type(SurfacePointType::Edge), edge(he.edge()), tEdge(he == he.edge().halfedge() ? tHalfedge : (1. - tHalfedge)) {}
 inline SurfacePoint::SurfacePoint(Face f, Vector3 faceCoords_)
     : type(SurfacePointType::Face), face(f), faceCoords(faceCoords_) {}
 
