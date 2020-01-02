@@ -94,27 +94,6 @@ inline std::array<Vector2, 4> SignpostIntrinsicTriangulation::layoutDiamond(Half
   return {p0, p1, p2, p3};
 }
 
-inline Vector2 SignpostIntrinsicTriangulation::layoutTriangleVertex(const Vector2& pA, const Vector2& pB,
-                                                                    const double& lBC, const double& lCA) {
-
-  const double lAB = norm(pB - pA);
-  double tArea = triangleArea(lAB, lBC, lCA);
-
-  // Compute width and height of right triangle formed via altitude from C
-  double h = 2. * tArea / lAB;
-  double w = std::sqrt(std::max(0., lCA * lCA - h * h));
-
-  // Take the closer of the positive and negative solutions
-  if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
-
-  // Project some vectors to get the actual position
-  Vector2 vABn = (pB - pA) / lAB;
-  Vector2 vABnPerp{-vABn.y, vABn.x};
-  Vector2 pC = pA + w * vABn + h * vABnPerp;
-
-  return pC;
-}
-
 inline double SignpostIntrinsicTriangulation::shortestEdge(Face f) const {
   Halfedge he = f.halfedge();
   double lA = intrinsicEdgeLengths[he.edge()];
