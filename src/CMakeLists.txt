@@ -29,6 +29,8 @@ SET(SRCS
   surface/mesh_graph_algorithms.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp
+  surface/uniformize.cpp
+  surface/parameterize.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   #surface/exact_polyhedral_geodesics.cpp
@@ -79,6 +81,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/meshio.h
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
   ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
+  ${INCLUDE_ROOT}/surface/parameterize.h
   ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.h
   ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
@@ -88,6 +91,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/surface_point.h
   ${INCLUDE_ROOT}/surface/surface_point.ipp
   ${INCLUDE_ROOT}/surface/trace_geodesic.h
+  ${INCLUDE_ROOT}/surface/uniformize.h
   ${INCLUDE_ROOT}/surface/vector_heat_method.h
   ${INCLUDE_ROOT}/surface/vertex_position_geometry.h
   ${INCLUDE_ROOT}/surface/vertex_position_geometry.ipp
