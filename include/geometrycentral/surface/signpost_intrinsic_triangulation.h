@@ -179,9 +179,6 @@ private:
   // he points from vertex 2 to 0; others are numbered CCW
   std::array<Vector2, 4> layoutDiamond(Halfedge he);
   std::array<Vector2, 3> vertexCoordinatesInTriangle(Face face);
-
-  // Helper for layoutDiamond()
-  static Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA);
 };
 
 

@@ -11,6 +11,10 @@ namespace geometrycentral {
 double triangleArea(double lA, double lB, double lC);
 
 
+// For triangle A,B,C, given vertex positions pA and pB, compute pC, such that lengths lBC and lCA are realized.
+// pC will be placed on the side which gives CCW winding of ABC.
+Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA);
+
 // === Line-line intersections
 
 

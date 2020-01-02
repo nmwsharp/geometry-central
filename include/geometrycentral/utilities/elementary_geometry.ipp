@@ -8,6 +8,27 @@ inline double triangleArea(double lAB, double lBC, double lCA) {
   return area;
 }
 
+inline Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA) {
+
+  const double lAB = norm(pB - pA);
+  double tArea = triangleArea(lAB, lBC, lCA);
+
+  // Compute width and height of right triangle formed via altitude from C
+  double h = 2. * tArea / lAB;
+  double w = std::sqrt(std::max(0., lCA * lCA - h * h));
+
+  // Take the closer of the positive and negative solutions
+  if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
+
+  // Project some vectors to get the actual position
+  Vector2 vABn = (pB - pA) / lAB;
+  Vector2 vABnPerp{-vABn.y, vABn.x};
+  Vector2 pC = pA + w * vABn + h * vABnPerp;
+
+  return pC;
+}
+
+
 inline SegmentSegmentIntersectionResult2D segmentSegmentIntersection(Vector2 pAStart, Vector2 pAEnd, Vector2 pBStart,
                                                                      Vector2 pBEnd) {
 
