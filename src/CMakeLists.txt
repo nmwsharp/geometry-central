@@ -31,6 +31,8 @@ SET(SRCS
   surface/fast_marching_method.cpp
   surface/uniformize.cpp
   surface/parameterize.cpp
+  surface/surgery.cpp
+  surface/simple_idt.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   #surface/exact_polyhedral_geodesics.cpp
@@ -87,9 +89,11 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
+  ${INCLUDE_ROOT}/surface/simple_idt.h
   ${INCLUDE_ROOT}/surface/surface_centers.h
   ${INCLUDE_ROOT}/surface/surface_point.h
   ${INCLUDE_ROOT}/surface/surface_point.ipp
+  ${INCLUDE_ROOT}/surface/surgery.h
   ${INCLUDE_ROOT}/surface/trace_geodesic.h
   ${INCLUDE_ROOT}/surface/uniformize.h
   ${INCLUDE_ROOT}/surface/vector_heat_method.h

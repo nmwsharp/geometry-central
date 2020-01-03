@@ -91,7 +91,10 @@ public:
   void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const MeshData<E, size_t>& indexer);
 
   // Naively reinterpret the data as residing on another mesh, constructing a new container
-  MeshData<E, T> reinterpretTo(HalfedgeMesh& targetMesh);
+  MeshData<E, T> reinterpretTo(HalfedgeMesh& targetMesh) const;
+
+  void setDefault(T newDefault);
+  T getDefault() const;
 };
 
 // === Typdefs for the usual VertexData<> etc
