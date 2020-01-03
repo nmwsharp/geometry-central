@@ -95,6 +95,12 @@ public:
   // Returns new halfedge with vA at tail. he.twin().face() is the new face.
   Halfedge connectVertices(Halfedge heA, Halfedge heB);
 
+  // Given a non-boundary edge e, cuts the mesh such that there are two copies of e with a boundary between them.
+  // As necessary, either creates a new boundary loop or merges adjacent boundary loops.
+  // Returns returns the halfedges along the cut edge which exist where {e.halfedge(), e.halfedge().twin()} were (which
+  // may or may not be new)
+  std::tuple<Halfedge, Halfedge> separateEdge(Edge e);
+
   // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
   // collapsible.
   // Vertex collapseEdge(Edge e); TODO
@@ -103,6 +109,9 @@ public:
   // Face must have exactly one boundary edge.
   // Returns true if could remove
   // bool removeFaceAlongBoundary(Face f); TODO
+
+  // Make the edge a mirror image of itself, switching the side the two halfedges are on.
+  Halfedge switchHalfedgeSides(Edge e);
 
 
   // Triangulate in a face, returns all subfaces
@@ -247,6 +256,7 @@ private:
   Halfedge getNewEdgeTriple(bool onBoundary); // returns e.halfedge() from the newly created edge
   Face getNewFace();
   BoundaryLoop getNewBoundaryLoop();
+  void expandFaceStorage(); // helper used in getNewFace() and getNewBoundaryLoop()
 
   // Detect dead elements
   bool vertexIsDead(size_t iV) const;
@@ -270,6 +280,7 @@ private:
 
   // Helpers for mutation methods
   void ensureVertexHasBoundaryHalfedge(Vertex v); // impose invariant that v.halfedge is start of half-disk
+  bool ensureEdgeHasInteriorHalfedge(Edge e);     // impose invariant that e.halfedge is interior
   Vertex collapseEdgeAlongBoundary(Edge e);
 
 

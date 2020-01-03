@@ -851,6 +851,208 @@ Halfedge HalfedgeMesh::connectVertices(Halfedge heA, Halfedge heB) {
   return heANew;
 }
 
+
+std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
+
+  // Must not be a boundary edge
+  if (e.isBoundary()) {
+    throw std::runtime_error("tried to separate boundary edge");
+  }
+
+  // Gather values
+  Halfedge he = e.halfedge();
+  Vertex vA = he.vertex();
+  bool vAIsBoundary = vA.isBoundary();
+  Vertex vB = he.twin().vertex();
+  bool vBIsBoundary = vB.isBoundary();
+
+  // Swap if needed to simplify case 2, so he.vertex() is always on boundary if any vertex is
+  bool swapAB = false; // notice: only possibly swap if case 2 below
+  if (vBIsBoundary && !vAIsBoundary) {
+    swapAB = true;
+    he = he.twin();
+    std::swap(vA, vB);
+    std::swap(vAIsBoundary, vBIsBoundary);
+  }
+
+  // Gather some more values
+  Halfedge heT = he.twin();
+  Halfedge heTNext = heT.next();
+  Halfedge heTPrev = heT.prevOrbitFace();
+  Face fA = he.face();
+  Face fB = heT.face();
+
+  // Gather boundary loops (set to BoundaryLoop() if they don't exist)
+  BoundaryLoop boundaryLoopA = BoundaryLoop();
+  if (vAIsBoundary) {
+    boundaryLoopA = vA.halfedge().twin().face().asBoundaryLoop();
+  }
+  BoundaryLoop boundaryLoopB = BoundaryLoop();
+  if (vBIsBoundary) {
+    boundaryLoopB = vB.halfedge().twin().face().asBoundaryLoop();
+  }
+
+
+  // === Case 1: neither vertex is already boundary
+  if (!vAIsBoundary && !vBIsBoundary) {
+
+    // = Create a new (two-sided) boundary loop
+
+    // Get new mesh elements
+    Halfedge heN1 = getNewEdgeTriple(true);
+    Halfedge heN2 = heN1.twin();
+    Edge eN = heN1.edge();
+    BoundaryLoop blN = getNewBoundaryLoop();
+
+    // Hook up references
+    heNext[heT.getIndex()] = heN2.getIndex();
+    heNext[heN2.getIndex()] = heT.getIndex();
+    heNext[heN1.getIndex()] = heTNext.getIndex();
+    heNext[heTPrev.getIndex()] = heN1.getIndex();
+
+    heVertex[heN1.getIndex()] = vB.getIndex();
+    heVertex[heN2.getIndex()] = vA.getIndex();
+
+    heFace[heT.getIndex()] = blN.getIndex();
+    heFace[heN1.getIndex()] = fB.getIndex();
+    heFace[heN2.getIndex()] = blN.getIndex();
+
+    fHalfedge[fB.getIndex()] = heN1.getIndex();
+    fHalfedge[blN.getIndex()] = heT.getIndex();
+
+    vHalfedge[vA.getIndex()] = he.getIndex();
+    vHalfedge[vB.getIndex()] = heN1.getIndex();
+
+    return {he, heN1};
+  }
+
+
+  // === Case 2: one vertex is already boundary, other is not
+  if (vAIsBoundary && !vBIsBoundary) {
+
+    // Gather some more values
+    Halfedge heB = vA.halfedge().twin();
+    Halfedge heBN = heB.next();
+    BoundaryLoop bl = heB.face().asBoundaryLoop();
+
+    // Create a new vertex, join to the existing boundary loop
+
+    Halfedge heN1 = getNewEdgeTriple(true);
+    Halfedge heN2 = heN1.twin();
+    Edge eN = heN1.edge();
+    Vertex vN = getNewVertex();
+
+    // Hook up references
+    heNext[heT.getIndex()] = heBN.getIndex();
+    heNext[heN2.getIndex()] = heT.getIndex();
+    heNext[heN1.getIndex()] = heTNext.getIndex();
+    heNext[heTPrev.getIndex()] = heN1.getIndex();
+    heNext[heB.getIndex()] = heN2.getIndex();
+
+    heVertex[heN1.getIndex()] = vB.getIndex();
+    heVertex[heN2.getIndex()] = vA.getIndex();
+    Halfedge heCurr = he;
+    do { // set new outgoing halfedge from vN
+      heVertex[heCurr.getIndex()] = vN.getIndex();
+      heCurr = heCurr.next().next().twin();
+    } while (heCurr != heBN);
+    heVertex[heCurr.getIndex()] = vN.getIndex();
+
+    heFace[heT.getIndex()] = bl.asFace().getIndex();
+    // std::cout << heFace[heT.getIndex()] << std::endl;
+    heFace[heN1.getIndex()] = fB.getIndex();
+    heFace[heN2.getIndex()] = bl.asFace().getIndex();
+
+    fHalfedge[fB.getIndex()] = heN1.getIndex();
+
+    vHalfedge[vB.getIndex()] = heN1.getIndex();
+    vHalfedge[vN.getIndex()] = he.getIndex();
+
+    ensureEdgeHasInteriorHalfedge(he.edge());
+
+    std::tuple<Halfedge, Halfedge> result{he.edge().halfedge(), heN1};
+    if (swapAB) {
+      std::swap(std::get<0>(result), std::get<1>(result));
+    } 
+    return result;
+  }
+
+
+  // === Case 3: both vertices are distinct boundaries
+  // need to merge boundary loops
+  // TODO implement
+  if (vAIsBoundary && vBIsBoundary && boundaryLoopA != boundaryLoopB) {
+    throw std::runtime_error("not implemented: separateEdge() merging distinct boundaries");
+    return {Halfedge(), Halfedge()};
+  }
+
+
+  // === Case 4: both vertices are same boundaries
+  // need to split off disconnected compoent of surface
+  // TODO implement
+  if (vAIsBoundary && vBIsBoundary && boundaryLoopA == boundaryLoopB) {
+    throw std::runtime_error("not implemented: separateEdge() creating disconnected components");
+    return {Halfedge(), Halfedge()};
+  }
+
+  throw std::runtime_error("logically unreachable");
+  return {Halfedge(), Halfedge()};
+}
+
+
+Halfedge HalfedgeMesh::switchHalfedgeSides(Edge e) {
+
+  // NOTE: Written to be safe to call even if the invariant that e.halfedge() is interior is violated, so we can use it
+  // to impose that invariant.
+
+  // Gather values
+  Halfedge he = e.halfedge();
+  Halfedge heN = he.next();
+  Halfedge heP = he.prevOrbitVertex();
+
+  Halfedge heT = he.twin();
+  Halfedge heTN = heT.next();
+  Halfedge heTP = heT.prevOrbitVertex();
+
+  Face fA = he.face();  // might be a boundary loop
+  Face fB = heT.face(); // might be a boundary loop
+
+  Vertex vA = he.vertex();
+  Vertex vB = heT.vertex();
+
+  // Set references
+  heNext[he.getIndex()] = heTN.getIndex();
+  heNext[heTP.getIndex()] = he.getIndex();
+  heNext[heT.getIndex()] = heN.getIndex();
+  heNext[heP.getIndex()] = heT.getIndex();
+
+  heFace[he.getIndex()] = fB.getIndex();
+  heFace[heT.getIndex()] = fA.getIndex();
+
+  heVertex[he.getIndex()] = vB.getIndex();
+  heVertex[heT.getIndex()] = vA.getIndex();
+
+  fHalfedge[fB.getIndex()] = he.getIndex();
+  fHalfedge[fA.getIndex()] = heT.getIndex();
+
+  if (fA.isBoundaryLoop() || vB.halfedge() == heT) {
+    vHalfedge[vB.getIndex()] = he.getIndex();
+  }
+  if (fB.isBoundaryLoop() || vA.halfedge() == he) {
+    vHalfedge[vA.getIndex()] = heT.getIndex();
+  }
+
+  return e.halfedge();
+}
+
+bool HalfedgeMesh::ensureEdgeHasInteriorHalfedge(Edge e) {
+  if (!e.halfedge().isInterior()) {
+    switchHalfedgeSides(e);
+    return true;
+  }
+  return false;
+}
+
 /*
 
 Halfedge HalfedgeMesh::connectVertices(Face faceIn, Vertex vAIn, Vertex vBIn) {
@@ -1480,7 +1682,7 @@ void HalfedgeMesh::validateConnectivity() {
       if (count > nHalfedgesCount) throw std::logic_error("next forms non-face loop");
     } while (currHe != firstHe);
 
-    if (count < 3) throw std::logic_error("face of degree < 2");
+    if (count < 2) throw std::logic_error("face of degree < 2");
   }
 
 
@@ -1505,7 +1707,7 @@ void HalfedgeMesh::validateConnectivity() {
       if (count > nHalfedgesCount) throw std::logic_error("(boundary loop) next forms non-face loop");
     } while (currHe != firstHe);
 
-    if (count < 3) throw std::logic_error("(boundary loop) face of degree < 2");
+    if (count < 2) throw std::logic_error("(boundary loop) face of degree < 2");
   }
 
 
@@ -1819,41 +2021,62 @@ Face HalfedgeMesh::getNewFace() {
   }
   // The intesting case, where vectors resize
   else {
-    size_t newCapacity = nFacesCapacityCount * 2;
-
-    // Resize internal arrays
-    fHalfedge.resize(newCapacity);
-
-    // Scooch boundary data back
-    for (size_t iBack = 0; iBack < nBoundaryLoopsFillCount; iBack++) {
-      size_t iOld = nFacesCapacityCount - iBack - 1;
-      size_t iNew = fHalfedge.size() - iBack - 1;
-      fHalfedge[iNew] = fHalfedge[iOld];
-      fHalfedge[iOld] = INVALID_IND; // will help catch bugs
-    }
-
-    // Scooch back he.face() indices that point to boundary loops
-    for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
-      if (halfedgeIsDead(iHe)) {
-        continue;
-      }
-      if (heFace[iHe] >= nFacesFillCount) {
-        heFace[iHe] += (newCapacity - nFacesCapacityCount);
-      }
-    }
-
-    nFacesCapacityCount = newCapacity;
-
-    // Invoke relevant callback functions
-    for (auto& f : faceExpandCallbackList) {
-      f(newCapacity);
-    }
+    expandFaceStorage();
   }
 
   nFacesCount++;
   nFacesFillCount++;
 
   return Face(this, nFacesFillCount - 1);
+}
+
+BoundaryLoop HalfedgeMesh::getNewBoundaryLoop() {
+
+  // The boring case, when no resize is needed
+  if (nFacesFillCount + nBoundaryLoopsCount < nFacesCapacityCount) {
+    // No work needed
+  }
+  // The intesting case, where vectors resize
+  else {
+    expandFaceStorage();
+  }
+
+  nBoundaryLoopsCount++;
+  nBoundaryLoopsFillCount++;
+
+  return BoundaryLoop(this, nFacesCapacityCount - nBoundaryLoopsFillCount);
+}
+
+void HalfedgeMesh::expandFaceStorage() {
+  size_t newCapacity = nFacesCapacityCount * 2;
+
+  // Resize internal arrays
+  fHalfedge.resize(newCapacity);
+
+  // Scooch boundary data back
+  for (size_t iBack = 0; iBack < nBoundaryLoopsFillCount; iBack++) {
+    size_t iOld = nFacesCapacityCount - iBack - 1;
+    size_t iNew = fHalfedge.size() - iBack - 1;
+    fHalfedge[iNew] = fHalfedge[iOld];
+    fHalfedge[iOld] = INVALID_IND; // will help catch bugs
+  }
+
+  // Scooch back he.face() indices that point to boundary loops
+  for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+    if (halfedgeIsDead(iHe)) {
+      continue;
+    }
+    if (heFace[iHe] >= nFacesFillCount) {
+      heFace[iHe] += (newCapacity - nFacesCapacityCount);
+    }
+  }
+
+  nFacesCapacityCount = newCapacity;
+
+  // Invoke relevant callback functions
+  for (auto& f : faceExpandCallbackList) {
+    f(newCapacity);
+  }
 }
 
 /*

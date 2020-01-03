@@ -1,6 +1,7 @@
 #include "geometrycentral/surface/parameterize.h"
 
 #include "geometrycentral/numerical/linear_solvers.h"
+#include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/uniformize.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
@@ -13,20 +14,29 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& geometry) {
-  HalfedgeMesh& mesh = geometry.mesh;
+VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& origGeom) {
+  HalfedgeMesh& origMesh = origGeom.mesh;
 
-  // Check that it's a disk
-  if (mesh.nBoundaryLoops() != 1) {
-    throw std::runtime_error("parameterizeDisk(): input mesh must have exactly one boundary loop");
+  // Check that it's a (punctured) disk
+
+  /*
+   if ((long long int)origMesh.eulerCharacteristic() - (long long int)(2 * origMesh.nBoundaryLoops()) != -2) {
+    long long int val =
+        ((long long int)origMesh.eulerCharacteristic() - (long long int)(2 * origMesh.nBoundaryLoops()));
+    throw std::runtime_error("parameterizeDisk(): input origMesh must be a (possibly punctured) disk, chi - 2b = " +
+                             std::to_string(val));
   }
-  if (mesh.eulerCharacteristic() != 2) {
-    throw std::runtime_error("parameterizeDisk(): input mesh must be topological disk");
-  }
+  */
 
   // Get uniformized edge lengths
-  // can't trivially use edge flips, which means this will only work on nice-ish surfaces as written
-  EdgeData<double> uLens = uniformizeDisk(geometry, false);
+  // Copy the mesh, since we will flip its edges
+  std::unique_ptr<HalfedgeMesh> meshPtr = origMesh.copy();
+  HalfedgeMesh& mesh = *meshPtr;
+  origGeom.requireEdgeLengths();
+  EdgeData<double> copyLens = origGeom.edgeLengths.reinterpretTo(mesh);
+  EdgeLengthGeometry geometry(mesh, copyLens);
+  origGeom.unrequireEdgeLengths();
+  EdgeData<double> uLens = uniformizeDisk(geometry, true);
 
   // Layout
   VertexData<Vector2> coords(mesh);
@@ -74,7 +84,7 @@ VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& geometry) {
 
     if (haveCoords[topVert]) continue;
 
-    //std::cout << "laying out " << topVert << " with " << topCount << " neighbors" << std::endl;
+    // std::cout << "laying out " << topVert << " with " << topCount << " neighbors" << std::endl;
 
     // Compute a new position for the vertex, as an average of laid out position from all neighbors
     Vector2 avgPos{0., 0.};
@@ -109,8 +119,7 @@ VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& geometry) {
     layoutRound++;
   }
 
-
-  return coords;
+  return coords.reinterpretTo(origMesh);
 }
 
 } // namespace surface

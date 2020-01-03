@@ -227,12 +227,22 @@ inline size_t MeshData<E, T>::size() const {
 
 
 template <typename E, typename T>
-inline MeshData<E, T> MeshData<E, T>::reinterpretTo(HalfedgeMesh& targetMesh) {
+inline MeshData<E, T> MeshData<E, T>::reinterpretTo(HalfedgeMesh& targetMesh) const {
   GC_SAFETY_ASSERT(nElements<E>(mesh) == nElements<E>(&targetMesh),
                    "meshes must have same number of elements to reinterpret");
   MeshData<E, T> newData(targetMesh, defaultValue);
   newData.data = data;
   return newData;
+}
+
+template <typename E, typename T>
+inline void MeshData<E, T>::setDefault(T newDefault) {
+  defaultValue = newDefault;
+}
+
+template <typename E, typename T>
+inline T MeshData<E, T>::getDefault() const {
+  return defaultValue;
 }
 
 } // namespace surface

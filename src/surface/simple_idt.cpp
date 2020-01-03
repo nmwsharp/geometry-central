@@ -177,7 +177,7 @@ size_t flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipTyp
     }
   }
 
-  //std::cout << "nFlips = " << nFlips << std::endl;
+  // std::cout << "nFlips = " << nFlips << std::endl;
   return nFlips;
 }
 
