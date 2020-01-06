@@ -64,12 +64,8 @@ public:
   // the index space may have gaps in it). This can be remedied by calling compress(), which _does_ invalidate
   // non-dynamic element handles (but still keeps MeshData<> containers valid).
 
-<<<<<<< HEAD
   // Flip an edge. Unlike all the other mutation routines, this _does not_ invalidate pointers, though it does break the
   // canonical ordering. Edge is rotated clockwise.
-=======
-  // Flip an edge. Preserves all element counts.
->>>>>>> origin/deletion
   // Return true if the edge was actually flipped (can't flip boundary or non-triangular edges)
   bool flip(Edge e);
 
