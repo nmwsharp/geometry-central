@@ -64,7 +64,6 @@ inline BoundaryLoop HalfedgeMesh::boundaryLoop(size_t index) { return BoundaryLo
 // Misc utility methods =====================================
 
 inline bool HalfedgeMesh::isCompressed() const { return isCompressedFlag; }
-inline bool HalfedgeMesh::isCanonical() const { return isCanonicalFlag; }
 inline bool HalfedgeMesh::hasBoundary() const { return nBoundaryLoopsCount > 0; }
 
 // clang-format on
