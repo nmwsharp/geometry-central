@@ -259,11 +259,77 @@ Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIn
   return Vertex();
 }
 
-Vertex SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newPositionOnIntrinsic) {
-  throw std::logic_error("not yet implemented");
+Vertex SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
+
+  std::cout << "inserting at edge " << newP << std::endl;
+
+  // === (1) Gather some data about the edge we're about to insert into
+
+  Edge insertionEdge = newP.edge;
+  Face fA = insertionEdge.halfedge().face();
+  Face fB = insertionEdge.halfedge().twin().face();
+  bool isOnBoundary = fB.isBoundaryLoop();
+
+  // Find coordinates in (both) faces and compute the lengths of the new wedges
+  double backLen, frontLen, Alen, Blen;
+
+  // in A
+  backLen = newP.tEdge * intrinsicEdgeLengths[insertionEdge];
+  frontLen = (1. - newP.tEdge) * intrinsicEdgeLengths[insertionEdge];
+
+  int iA = halfedgeIndexInTriangle(insertionEdge.halfedge());
+  std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(fA);
+  Vector2 posA = (1. * newP.tEdge) * vertCoords[iA] + newP.tEdge * vertCoords[(iA + 1) % 3];
+  Alen = (posA - vertCoords[(iA + 2) % 3]).norm();
+
+
+  if (!isOnBoundary) { // in B
+    // WARNING: these code paths are not as well-tested, since they don't happen in the common insert-along-boundary
+    // case
+    int iB = halfedgeIndexInTriangle(insertionEdge.halfedge().twin());
+    std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(fB);
+    Vector2 posB = newP.tEdge * vertCoords[iB] + (1. - newP.tEdge) * vertCoords[(iB + 1) % 3];
+    Blen = (posB - vertCoords[(iB + 2) % 3]).norm();
+  } else {
+    Blen = -777;
+  }
+
+
+  // === (2) Insert vertex
+
+  // Put a new vertex inside of the proper intrinsic face
+  Halfedge newHeFront = mesh.splitEdgeTriangular(insertionEdge);
+  edgeIsOriginal[insertionEdge] = false;
+  Vertex newV = newHeFront.vertex();
+
+  // = Update data arrays for the new vertex
+  if (isOnBoundary) {
+    intrinsicVertexAngleSums[newV] = M_PI;
+    vertexAngleSums[newV] = M_PI;
+  } else {
+    intrinsicVertexAngleSums[newV] = 2. * M_PI;
+    vertexAngleSums[newV] = 2. * M_PI;
+  }
+
+
+  // == (3) Assign edge lengths to the new edges
+  Halfedge currHe = newHeFront;
+  std::array<double, 4> newLens = {frontLen, Alen, backLen, Blen};
+  for (int i = 0; i < (isOnBoundary ? 3 : 4); i++) {
+    std::cout << "setting new edge len " << currHe.edge() << " = " << newLens[i] << std::endl;
+    intrinsicEdgeLengths[currHe.edge()] = newLens[i];
+    currHe = currHe.next().next().twin();
+  }
+
+  // === (4) Now that we have edge lengths, sort out tangent spaces and position on supporting.
+  resolveNewVertex(newV);
+
+  return newV;
 }
 
 Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
+
+  std::cout << "inserting at face " << newP << std::endl;
 
   // === (1) Gather some data about the face we're about to insert into
   Face insertionFace = newP.face;
@@ -336,7 +402,8 @@ Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
   // Data we need from the intrinsic trace
   TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, false);
   // intrinsicTracer->snapEndToEdgeIfClose(intrinsicCrumbs); TODO
-  SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
+  // SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
+  SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint;
 
 
   // === Phase 3: Add the new vertex
@@ -348,7 +415,34 @@ Vertex SignpostIntrinsicTriangulation::insertBarycenter(Face f) {
   return insertVertex(barycenterOnIntrinsic);
 }
 
+void SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
+  // Strategy: flip edges until the vertex has degree three, then remove by replacing with a single face
+  // TODO needs a proof that this always works... what about self edges, etc?
 
+  // What about starting with degree < 3? Since this vertex necessarily has angle sum 2PI, this could only happen in the
+  // case of degree 2, with exactly degenerate triangles. Since we assume non-degenerate triangles throughout, we'll
+  // consider that to not happen.
+
+  // Flip edges until
+  size_t iterCount = 0;
+  while (v.degree() != 3)  {
+
+    // Find any edge we can flip
+    bool anyFlipped = false;
+    for(Edge e : v.adjacentEdges()) {
+      anyFlipped = flipEdgeIfNotDelaunay(e);
+      if(anyFlipped) break;
+    }
+
+    // failsafe, in case we get numerically stuck (or the algorithm is broken)
+    if(!anyFlipped || iterCount > 10 * v.degree()) return;
+  }
+
+  // give up if something went wrong
+  if(v.degree() != 3) return;
+
+  //  
+}
 
 void SignpostIntrinsicTriangulation::flipToDelaunay() {
 
@@ -390,11 +484,8 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
   refreshQuantities();
 }
 
-void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh, size_t maxInsertions) {
-
-  if (inputMesh.hasBoundary()) {
-    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
-  }
+void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
+                                                    size_t maxInsertions) {
 
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
@@ -434,10 +525,6 @@ void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, d
 
 void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& shouldRefine,
                                                     size_t maxInsertions) {
-
-  if (inputMesh.hasBoundary()) {
-    throw std::runtime_error("delaunay refinement not implemented for meshes with boundary");
-  }
 
 
   // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
@@ -510,7 +597,6 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
     }
 
     // == Second, insert one circumcenter
-    // TODO handle boundary
 
     // If we've already inserted the max number of points, empty the queue and call it a day
     if (maxInsertions != INVALID_IND && nInsertions == maxInsertions) {
@@ -597,6 +683,18 @@ void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
 
 void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
 
+  // Handle boundary cases
+  if (!he.isInterior()) {
+    intrinsicHalfedgeDirections[he] = intrinsicVertexAngleSums[he.vertex()]; // last angle in boundary wedge
+    halfedgeVectorsInVertex[he] = halfedgeVector(he);
+    return;
+  }
+  if (!he.twin().isInterior()) {
+    intrinsicHalfedgeDirections[he] = 0.; // first angle in boundary wedge
+    halfedgeVectorsInVertex[he] = halfedgeVector(he);
+    return;
+  }
+
   // Get neighbor angle
   Halfedge cwHe = he.twin().next();
   double neighAngle = intrinsicHalfedgeDirections[cwHe];
@@ -649,6 +747,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV) {
   // Heuristic: we have to choose some edge to trace from to resolve the vertex. Use the shortest one, as it will often
   // involve the fewest crossings. Furthermore, use an original vertex if possible to reduce accumulating numerical
   // error.
+  /*
   Halfedge inputTraceHe = newV.halfedge().twin();
   double shortestTraceHeLen = intrinsicEdgeLengths[inputTraceHe.edge()];
   for (Halfedge heIn : newV.incomingHalfedges()) {
@@ -661,6 +760,41 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV) {
 
     if ((newVertIsOriginal && !currVertIsOriginal) || thisLen < shortestTraceHeLen) {
       shortestTraceHeLen = thisLen;
+      inputTraceHe = heIn;
+    }
+  }
+  */
+
+
+  // We have to choose some edge to trace from to resolve the vertex. Choose from neighbors according to the following
+  // priority:
+  //  (best)  edge points along boundary
+  //          original points
+  //  (worst) other points
+  //  [break ties by shortest edge length]
+  Halfedge inputTraceHe = newV.halfedge().twin();
+  std::tuple<int, double> priorityBest{9999, 0};
+  for (Halfedge heIn : newV.incomingHalfedges()) {
+
+    // length score
+    double thisLen = intrinsicEdgeLengths[heIn.edge()];
+
+    // type score
+    int numScore = 3;
+    SurfacePoint candidateLoc = vertexLocations[inputTraceHe.vertex()];
+    if (candidateLoc.type == SurfacePointType::Vertex) {
+      numScore = 2;
+    }
+    if (!heIn.isInterior()) { // NOTE: this is important! makes CCW loop below correct for boundary
+      numScore = 1;
+    }
+
+    // combined score
+    std::tuple<int, double> priorityThis{numScore, thisLen};
+
+    // keep best
+    if (priorityThis < priorityBest) {
+      priorityBest = priorityThis;
       inputTraceHe = heIn;
     }
   }
@@ -677,10 +811,17 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV) {
   // Align the new vertex's tangent space to that of the input mesh.
   Vector2 outgoingVec = -inputTraceResult.endingDir;
   double incomingAngle = standardizeAngle(newV, outgoingVec.arg());
+  if (!inputTraceHe.isInterior()) {
+    incomingAngle = 0;
+  }
+
   intrinsicHalfedgeDirections[inputTraceHe.twin()] = incomingAngle;
-  halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * intrinsicEdgeLengths[inputTraceHe.edge()];
+  std::cout << "incoming angle = " << incomingAngle << std::endl;
+  // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * intrinsicEdgeLengths[inputTraceHe.edge()];
+  halfedgeVectorsInVertex[inputTraceHe.twin()] = halfedgeVector(inputTraceHe.twin());
 
   // Custom loop to orbit CCW from InputTraceHe
+  // NOTE: this is only correct because we always choose incoming boundary edge to trace above
   Halfedge firstHe = inputTraceHe.twin();
   Halfedge currHe = firstHe.next().next().twin();
   do {
@@ -688,7 +829,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV) {
     currHe = currHe.next().next().twin();
   } while (currHe != firstHe);
 }
-
 
 } // namespace surface
 } // namespace geometrycentral
