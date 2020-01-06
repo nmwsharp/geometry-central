@@ -1,13 +1,195 @@
 #include "geometrycentral/surface/exact_polyhedral_geodesics.h"
 
+#include "geometrycentral/utilities/elementary_geometry.h"
+
 #include <queue>
 #include <tuple>
+#include <unordered_map>
+#include <unordered_set>
 
 using std::cout;
 using std::endl;
 
 namespace geometrycentral {
 namespace surface {
+
+
+// helpers for findVerticesWithinGeodesicDistance()
+namespace {
+
+struct UnfoldingEdge {
+  Halfedge acrossHe;  // halfedge on the side which we are unfolding in to
+  Vector2 leftPos;    // left side of the edge window
+  Vector2 rightPos;   // right side of the edge window
+  Vector2 leftLimit;  // left boundary of the region for consideration
+  Vector2 rightLimit; // right boundary of the region for consideration
+  double distOffset;
+};
+
+// Lineside tests against origin. EPS is used to prefer to return true for numerically ambiguous cases.
+bool isCCW(Vector2 p1, Vector2 p2, double eps = 0.) { return cross(p1, p2) > -eps; }
+bool isStrictlyCCW(Vector2 p1, Vector2 p2) {
+  double LINESIDE_EPS = 1e-6;
+  double scale = std::fmax(p1.norm(), p2.norm());
+  return isCCW(p1, p2, LINESIDE_EPS * scale);
+}
+
+
+class SparsePolyhedralDistance {
+public:
+  IntrinsicGeometryInterface& geom;
+
+  // Store the result here: all vertices within distance
+  std::unordered_map<Vertex, double> shortestDistance;
+  // Queue holding edges to unfold over
+  std::queue<UnfoldingEdge> edgesToProcess;
+  double distanceThresh;
+
+  SparsePolyhedralDistance(IntrinsicGeometryInterface& geom_) : geom(geom_) {
+    geom.requireEdgeLengths();
+    geom.requireVertexAngleSums();
+  };
+  ~SparsePolyhedralDistance() {
+    geom.unrequireEdgeLengths();
+    geom.unrequireVertexAngleSums();
+  };
+
+  // Helper which continues the search across an edge. Rejects edges which cannot lead to solutions, then adds
+  // accepted candidates to the queue for further processing.
+  void considerEdgeForProcessing(UnfoldingEdge uEdge) {
+    // Don't unfold across boundary edges
+    if (!uEdge.acrossHe.isInterior()) return;
+
+    // Stop unfolding if no points closeer than threshold can lie across edge
+    if (pointLineSegmentDistance(Vector2::zero(), uEdge.leftPos, uEdge.rightPos) + uEdge.distOffset > distanceThresh)
+      return;
+
+    // Don't unfold across edges if all lines from orgin would pass outside window
+    if (!isStrictlyCCW(uEdge.rightPos, uEdge.leftLimit) || !isStrictlyCCW(uEdge.rightLimit, uEdge.leftPos)) return;
+
+    // Passed all the filters, add for processing
+    edgesToProcess.push(uEdge);
+  }
+
+  // Checks if this is the new shortest distance to a vertex, and if so does appropriate processing.
+  void checkShortestVertexDistance(Vertex targetVert, double newDist) {
+    if (shortestDistance.find(targetVert) == shortestDistance.end() || shortestDistance[targetVert] > newDist) {
+      shortestDistance[targetVert] = newDist;
+
+      // If the new distance is less than the threshold, and the new vertex is a boundary or saddle vertex, spawn
+      // windows
+      if (newDist < distanceThresh && (targetVert.isBoundary() || geom.vertexAngleSums[targetVert] > (2 * PI))) {
+        // Could be smarter here, and retain the incoming angle information and get more conservative limits of new
+        // windows.
+        spawnWindowsFromSouce(targetVert, newDist);
+      }
+    }
+  };
+
+  // Emit new windows from a source vertex
+  void spawnWindowsFromSouce(Vertex source, double sourceDist) {
+    for (Halfedge he : source.outgoingHalfedges()) {
+
+      double eLen = geom.edgeLengths[he.edge()];
+      double newDist = sourceDist + eLen;
+      Vertex targetVert = he.twin().vertex();
+
+      // Check distance to adjacent vertices along edges -- these might be shortest paths
+      // TODO this is kinda bad, because it will constantly spawn new searches along edge paths...
+      checkShortestVertexDistance(targetVert, newDist);
+      
+      if (!he.isInterior()) continue;  // no opposite edge for boundary halfedges
+
+      // Layout the other two vertices in the triangle (source is implicitly at origin)
+      Vector2 rightP{eLen, 0.};
+      Vector2 leftP = layoutTriangleVertex(Vector2::zero(), rightP, geom.edgeLengths[he.next().edge()],
+                                           geom.edgeLengths[he.next().next().edge()]);
+
+      // Create a window across the opposite edge
+      UnfoldingEdge newWindowRight{he.next().twin(), leftP, rightP, leftP, rightP, sourceDist};
+      considerEdgeForProcessing(newWindowRight);
+    }
+  };
+
+  void computeDistancesWithinRadius(Vertex centerVert, double distanceThreshParam) {
+    distanceThresh = distanceThreshParam;
+
+    // Add initial edges to queue
+    shortestDistance[centerVert] = 0.;
+    spawnWindowsFromSouce(centerVert, 0.);
+
+    // Process windows until there ain't no more.
+    // NOTE: in the worst case, this processes exponentially many windows, so a reasonable distance limit is important.
+    // MMP/ICH improves this to quadratic by adding a test for each triangle.
+    while (!edgesToProcess.empty()) {
+
+      UnfoldingEdge uEdge = edgesToProcess.front();
+      edgesToProcess.pop();
+
+      // Lay out the third vertex
+      Vector2 newPos =
+          layoutTriangleVertex(uEdge.leftPos, uEdge.rightPos, geom.edgeLengths[uEdge.acrossHe.next().edge()],
+                               geom.edgeLengths[uEdge.acrossHe.next().next().edge()]);
+
+      // Add to the list of close vertices if it is one, and spawn new windows if needed
+      // (need to keep searching regardless)
+      double newDist = uEdge.distOffset + newPos.norm();
+      if (isStrictlyCCW(uEdge.rightLimit, newPos) && isStrictlyCCW(newPos, uEdge.leftLimit)) {
+
+        // Check if this is the new shortest path to the vertex
+        Vertex targetVert = uEdge.acrossHe.next().next().vertex();
+        checkShortestVertexDistance(targetVert, newDist);
+      }
+
+      // Create new windows
+      // clang-format off
+      UnfoldingEdge newWindowRight{
+        uEdge.acrossHe.next().twin(), 
+        newPos, 
+        uEdge.rightPos,
+        (isCCW(uEdge.leftLimit, newPos)) ? uEdge.leftLimit : newPos, // does the new point shrink the valid window?
+        uEdge.rightLimit, // don't need to test this limit -- was already tested when prev window was opened
+        uEdge.distOffset
+      };
+      considerEdgeForProcessing(newWindowRight);
+      
+      UnfoldingEdge newWindowLeft{
+        uEdge.acrossHe.next().next().twin(), 
+        uEdge.leftPos,
+        newPos, 
+        uEdge.leftLimit,
+        (isCCW(newPos, uEdge.rightLimit)) ? uEdge.rightLimit : newPos,
+        uEdge.distOffset
+      };
+      considerEdgeForProcessing(newWindowLeft);
+      // clang-format on
+    }
+
+    // remove vertices outside of the radius, so the API makes sense
+    std::vector<Vertex> verticesToRemove; // NOTE with C++14 this loop can be simplified, since iteration order will be
+                                          // preserved under deletion
+    for (std::pair<Vertex, double> e : shortestDistance) {
+      if (e.second > distanceThresh) {
+        verticesToRemove.push_back(e.first);
+      }
+    }
+    for (Vertex v : verticesToRemove) {
+      shortestDistance.erase(v);
+    }
+  }
+};
+} // namespace
+
+
+std::unordered_map<Vertex, double> vertexGeodesicDistanceWithinRadius(IntrinsicGeometryInterface& geom,
+                                                                      Vertex centerVert, double distanceThresh) {
+
+  SparsePolyhedralDistance polyDist(geom);
+  polyDist.computeDistancesWithinRadius(centerVert, distanceThresh);
+  return polyDist.shortestDistance;
+}
+
+/*
 
 ExactPolyhedralGeodesics::ExactPolyhedralGeodesics(EdgeLengthGeometry* geom_) : geom(geom_) {
   mesh = geom->mesh;
@@ -161,10 +343,9 @@ void ExactPolyhedralGeodesics::buildWindow(const Window& pWin, Halfedge& he, dou
   win.level = pWin.level + 1;
 }
 
-double ExactPolyhedralGeodesics::intersect(const Vector2& v0, const Vector2& v1, const Vector2& p0, const Vector2& p1) {
-  double a00 = p0.x - p1.x, a01 = v1.x - v0.x, b0 = v1.x - p1.x;
-  double a10 = p0.y - p1.y, a11 = v1.y - v0.y, b1 = v1.y - p1.y;
-  return (b0 * a11 - b1 * a01) / (a00 * a11 - a10 * a01);
+double ExactPolyhedralGeodesics::intersect(const Vector2& v0, const Vector2& v1, const Vector2& p0, const Vector2& p1)
+{ double a00 = p0.x - p1.x, a01 = v1.x - v0.x, b0 = v1.x - p1.x; double a10 = p0.y - p1.y, a11 = v1.y - v0.y, b1 =
+v1.y - p1.y; return (b0 * a11 - b1 * a01) / (a00 * a11 - a10 * a01);
 }
 
 void ExactPolyhedralGeodesics::propogateWindow(const Window& win) {
@@ -495,6 +676,8 @@ VertexData<double> ExactPolyhedralGeodesics::computeDistance() {
   }
   return dists;
 }
+
+*/
 
 } // namespace surface
 } // namespace geometrycentral

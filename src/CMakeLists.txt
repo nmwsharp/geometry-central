@@ -33,9 +33,9 @@ SET(SRCS
   surface/parameterize.cpp
   surface/surgery.cpp
   surface/simple_idt.cpp
+  surface/exact_polyhedral_geodesics.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
-  #surface/exact_polyhedral_geodesics.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp

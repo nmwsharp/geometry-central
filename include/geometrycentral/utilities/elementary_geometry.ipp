@@ -28,6 +28,14 @@ inline Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const 
   return pC;
 }
 
+inline double pointLineSegmentDistance(Vector2 p, Vector2 lineA, Vector2 lineB) {
+  double len2 = (lineA - lineB).norm2();
+  if (len2 == 0.0) return (lineA - p).norm();                     // degenerate line case
+  double t = clamp(dot(p - lineA, lineB - lineA) / len2, 0., 1.); // nearest point on segment
+  Vector2 proj = lineA + t * (lineB - lineA);
+  return (p - proj).norm();
+}
+
 
 inline SegmentSegmentIntersectionResult2D segmentSegmentIntersection(Vector2 pAStart, Vector2 pAEnd, Vector2 pBStart,
                                                                      Vector2 pBEnd) {
