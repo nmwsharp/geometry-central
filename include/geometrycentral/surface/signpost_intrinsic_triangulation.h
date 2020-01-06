@@ -123,6 +123,10 @@ public:
 
   // Insert the barycenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
   Vertex insertBarycenter(Face f);
+  
+  // Remove an (inserted) vertex from the triangulation. 
+  // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
+  void removeInsertedVertex(Vertex v);
 
   // ======================================================
   // ======== Geometry Immediates
