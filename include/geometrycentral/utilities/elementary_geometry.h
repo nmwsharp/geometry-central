@@ -15,6 +15,9 @@ double triangleArea(double lA, double lB, double lC);
 // pC will be placed on the side which gives CCW winding of ABC.
 Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const double& lBC, const double& lCA);
 
+
+double pointLineSegmentDistance(Vector2 p, Vector2 lineA, Vector2 lineB);
+
 // === Line-line intersections
 
 double pointLineSegmentDistance(Vector2 p, Vector2 lineA, Vector2 lineB);
