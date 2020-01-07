@@ -13,7 +13,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
   HalfedgeMesh& mesh = geometry.mesh;
 
   // Check that it's a (punctured) disk
-  /* 
+  /*
   if ((long long int)mesh.eulerCharacteristic() - (long long int)(2 * mesh.nBoundaryLoops()) != -2) {
     long long int val = ((long long int)mesh.eulerCharacteristic() - (long long int)(2 * mesh.nBoundaryLoops()));
     throw std::runtime_error("uniformizeDisk(): input must be a (possibly punctured) disk, chi - 2b = " +
@@ -75,7 +75,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
     Vector<double> Aresult = solve(decomp.AA, combinedRHS);
 
     // Combine the two boundary conditions and interior solution to a full vector
-    Vector<double> result = 0.25 * reassembleVector(decomp, Aresult, bcVals);
+    Vector<double> result = 0.1 * reassembleVector(decomp, Aresult, bcVals);
 
     // Update edge lengths
     u.fromVector(result);
@@ -101,7 +101,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
     std::cout << " uniformize max change = " << maxRelChange << std::endl;
 
     if (withEdgeFlips) {
-      //flipToDelaunay(mesh, lengthGeom.inputEdgeLengths); FIXME re-enable
+      flipToDelaunay(mesh, lengthGeom.inputEdgeLengths);
     }
     lengthGeom.refreshQuantities();
   }
