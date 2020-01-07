@@ -97,8 +97,8 @@ public:
       // Check distance to adjacent vertices along edges -- these might be shortest paths
       // TODO this is kinda bad, because it will constantly spawn new searches along edge paths...
       checkShortestVertexDistance(targetVert, newDist);
-      
-      if (!he.isInterior()) continue;  // no opposite edge for boundary halfedges
+
+      if (!he.isInterior()) continue; // no opposite edge for boundary halfedges
 
       // Layout the other two vertices in the triangle (source is implicitly at origin)
       Vector2 rightP{eLen, 0.};
