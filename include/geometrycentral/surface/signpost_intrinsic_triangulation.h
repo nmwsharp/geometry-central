@@ -123,10 +123,28 @@ public:
 
   // Insert the barycenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
   Vertex insertBarycenter(Face f);
-  
-  // Remove an (inserted) vertex from the triangulation. 
+
+  // Remove an (inserted) vertex from the triangulation.
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
-  void removeInsertedVertex(Vertex v);
+  Face removeInsertedVertex(Vertex v);
+
+
+  // ======================================================
+  // ======== Callbacks
+  // ======================================================
+  //
+  // Get called whenever mesh mutations occur. Register a callback by inserting it in to this list.
+  //
+
+  // edge E if flipped
+  std::list<std::function<void(Edge)>> edgeFlipCallbackList;
+
+  // old face F is split by new vertex V
+  std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
+
+  // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex
+  std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
+
 
   // ======================================================
   // ======== Geometry Immediates
@@ -162,9 +180,9 @@ private:
   // Insertion helpers
   Vertex insertVertex_face(SurfacePoint newPositionOnIntrinsic);
   Vertex insertVertex_edge(SurfacePoint newPositionOnIntrinsic);
-  void resolveNewVertex(Vertex newV);
+  void resolveNewVertex(Vertex newV, SurfacePoint intrinsicPoint);
 
-  // Update a signpost angle from the clockwise neighboring angle
+  // Update a signpost angle from the (counter-)clockwise neighboring angle
   void updateAngleFromCWNeighor(Halfedge he);
 
   // Map angle to range [0, angleSum)
@@ -183,6 +201,11 @@ private:
   // he points from vertex 2 to 0; others are numbered CCW
   std::array<Vector2, 4> layoutDiamond(Halfedge he);
   std::array<Vector2, 3> vertexCoordinatesInTriangle(Face face);
+
+  // Callback helpers
+  void invokeEdgeFlipCallbacks(Edge e);
+  void invokeFaceInsertionCallbacks(Face f, Vertex v);
+  void invokeEdgeSplitCallbacks(Edge e, Halfedge he1, Halfedge he2);
 };
 
 

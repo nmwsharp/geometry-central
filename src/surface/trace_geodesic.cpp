@@ -435,7 +435,7 @@ inline TraceSubResult traceGeodesic_fromEdge(IntrinsicGeometryInterface& geom, E
     traceHe = currEdge.halfedge();
 
     // Can't go anyywhere if boundary halfedge
-    if (!traceHe.isInterior()) {
+    if (!traceHe.twin().isInterior()) {
       TraceSubResult result;
       result.terminated = true;
       result.endPoint = SurfacePoint(currEdge, tEdge);
