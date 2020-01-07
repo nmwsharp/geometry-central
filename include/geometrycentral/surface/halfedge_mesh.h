@@ -257,7 +257,6 @@ private:
   bool halfedgeIsDead(size_t iHe) const;
   bool edgeIsDead(size_t iE) const;
   bool faceIsDead(size_t iF) const;
-  bool boundaryLoopIsDead(size_t iBl) const;
 
   // Deletes leave tombstones, which can be cleaned up with compress().
   // Note that these routines merely mark the element as dead. The caller should hook up connectivity to exclude these

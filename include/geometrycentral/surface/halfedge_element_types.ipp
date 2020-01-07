@@ -170,6 +170,7 @@ inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.
 // Navigators
 inline Halfedge Vertex::halfedge() const    { return Halfedge(mesh, mesh->vHalfedge[ind]); }
 inline Corner Vertex::corner() const        { return halfedge().corner(); }
+inline bool Vertex::isDead() const          { return mesh->vertexIsDead(ind); }
 
 // Properties
 inline bool Vertex::isBoundary() const { return !halfedge().twin().isInterior(); }
@@ -228,6 +229,7 @@ inline Vertex Halfedge::vertex() const  { return Vertex(mesh, mesh->heVertex[ind
 inline Edge Halfedge::edge() const      { return Edge(mesh, HalfedgeMesh::heEdge(ind)); }
 inline Face Halfedge::face() const      { return Face(mesh, mesh->heFace[ind]); }
 inline Corner Halfedge::corner() const  { return Corner(mesh, ind); }
+inline bool Halfedge::isDead() const    { return mesh->halfedgeIsDead(ind); }
 
 
 // Super-navigators
@@ -277,6 +279,7 @@ inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.
 inline Halfedge Corner::halfedge() const { return Halfedge(mesh, ind); }
 inline Vertex Corner::vertex() const { return halfedge().vertex(); }
 inline Face Corner::face() const { return halfedge().face(); }
+inline bool Corner::isDead() const    { return halfedge().isDead(); }
 
 // Range iterators
 inline bool CornerRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
@@ -294,6 +297,7 @@ inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getInd
 
 // Navigators
 inline Halfedge Edge::halfedge() const { return Halfedge(mesh, HalfedgeMesh::eHalfedge(ind)); }
+inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
 
 // Properties
 inline bool Edge::isBoundary() const { return !halfedge().isInterior() || !halfedge().twin().isInterior(); }
@@ -319,6 +323,7 @@ inline BoundaryLoop Face::asBoundaryLoop() const {
   GC_SAFETY_ASSERT(isBoundaryLoop(), "face must be boundary loop to call asBoundaryLoop()")
   return BoundaryLoop(mesh, mesh->faceIndToBoundaryLoopInd(ind)); 
 }
+inline bool Face::isDead() const    { return mesh->faceIsDead(ind); }
 
 // Properties
 inline bool Face::isTriangle() const {
@@ -368,6 +373,8 @@ inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Eleme
 
 inline Halfedge BoundaryLoop::halfedge() const { return asFace().halfedge(); }
 inline Face BoundaryLoop::asFace() const { return Face(mesh, mesh->boundaryLoopIndToFaceInd(ind)); }
+inline bool BoundaryLoop::isDead() const    { return asFace().isDead(); }
+
 inline size_t BoundaryLoop::degree() const {
   size_t k = 0;
   for (Halfedge h : adjacentHalfedges()) { k++; }
