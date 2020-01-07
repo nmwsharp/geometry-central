@@ -760,7 +760,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     std::tuple<Halfedge, Halfedge> result{he.edge().halfedge(), heN1};
     if (swapAB) {
       std::swap(std::get<0>(result), std::get<1>(result));
-    } 
+    }
     return result;
   }
 
@@ -997,59 +997,55 @@ Vertex HalfedgeMesh::insertVertex(Face fIn) {
   return centerVert;
 }
 
-/*
 
 Vertex HalfedgeMesh::collapseEdge(Edge e) {
 
-  if (e.isBoundary()) {
-    return collapseEdgeAlongBoundary(e);
-  }
+  // Is the edge we're collapsing along the boundary
+  bool onBoundary = e.isBoundary();
 
-  // TODO for now only valid on triangle meshes and away from the boundary.
+  // Gather some values
+  Halfedge heA0 = e.halfedge();
+  Halfedge heA1 = heA0.next();
+  Halfedge heA2 = heA1.next();
+  Face fA = heA0.face();
+  Vertex vA = heA0.vertex();
+  GC_SAFETY_ASSERT(heA2.next() == heA0, "face must be triangular to collapse")
+  Halfedge heA1T = heA1.twin();
+  Halfedge heA1TPrev = heA1T.prevOrbitVertex();
+  bool vAOnBoundary = vA.isBoundary();
 
-  // === Gather some elements
-
-  Halfedge* heA0;
-  // If there's a single boundary vertex, be sure we keep it
-  if (e.halfedge().twin().vertex().isBoundary() && !e.halfedge().vertex().isBoundary()) {
-    heA0 = e.halfedge().twin().ptr;
-  } else {
-    heA0 = e.halfedge().ptr;
-  }
-
-  Halfedge* heA1 = heA0->next;
-  Halfedge* heA2 = heA1->next;
-  Face* fA = heA0->face;
-  Edge* eADelete = heA1->edge;
-  Edge* eAKeep = heA2->edge;
-
-  Halfedge* heB0 = heA0->twin;
-  Halfedge* heB1 = heB0->next;
-  Halfedge* heB2 = heB1->next;
-  Face* fB = heB0->face;
-  Edge* eBDelete = heB2->edge;
-  Edge* eBKeep = heB1->edge;
-
-  Vertex* vKeep = heA0->vertex;
-  Vertex* vDiscard = heA0->twin->vertex;
+  Halfedge heB0 = heA0.twin();
+  Halfedge heB1 = heB0.next();
+  Halfedge heB2 = heB1.next();
+  Face fB = heB0.face();
+  Vertex vB = heB0.vertex();
+  GC_SAFETY_ASSERT(heB2.next() == heB0 || onBoundary, "face must be triangular or on boundary to collapse")
+  Halfedge heB2T = heB2.twin();
+  Halfedge heB2TPrev = heB2T.prevOrbitVertex();
+  bool vBOnBoundary = vB.isBoundary();
 
   // === Check validity
 
-  // collapsing around a degree-2 vertex can be done, but this code does not handle that correctly
-  if (Vertex(vKeep).degree() <= 2 || Vertex(vDiscard).degree() <= 2) {
+  // Refuse to do a collapse which removes a boundary component
+  // (this could be done, but isn't implemented)
+  if (onBoundary && heB2.next() == heB0) {
     return Vertex();
   }
 
-  bool vKeepIsBoundary = Vertex(vKeep).isBoundary();
+  // Refuse to do a collapse which connects separate boundary components (imagine pinching the neck of an hourglass)
+  if (!onBoundary && vBOnBoundary && vAOnBoundary) {
+    return Vertex();
+  }
 
-  // (should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings)
-  std::unordered_set<Vertex> vKeepNeighbors;
-  for (Vertex vN : Vertex(vKeep).adjacentVertices()) {
-    vKeepNeighbors.insert(vN);
+  // Should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings.
+  // Checking this property ensures that triangulations stays a simplicial complex (no new self-edges, etc).
+  std::unordered_set<Vertex> vANeighbors;
+  for (Vertex vN : Vertex(vA).adjacentVertices()) {
+    vANeighbors.insert(vN);
   }
   size_t nShared = 0;
-  for (Vertex vN : Vertex(vDiscard).adjacentVertices()) {
-    if (vKeepNeighbors.find(vN) != vKeepNeighbors.end()) {
+  for (Vertex vN : Vertex(vB).adjacentVertices()) {
+    if (vANeighbors.find(vN) != vANeighbors.end()) {
       nShared++;
     }
   }
@@ -1058,165 +1054,138 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
   }
 
 
-  // === Update a whole bunch of pointers
+  // TODO degree 2 vertex case?
 
-  { // Update all of the halfedges around vDiscard (do this loop before we break things
-    Halfedge* currHe = heA1;
-    Halfedge* firstHe = heA1;
-    do {
-      currHe->vertex = vKeep;
-      currHe = currHe->twin->next;
-    } while (currHe != firstHe);
-  }
+  // == Fix connections
+  //   - the halfedge heA2 will be repurposed as heA1.twin()
+  //   - the halfedge heB1 will be repurposed as heB2.twin()
 
-  // Fix vertices
-  if (vKeep->halfedge == heA0 || vKeep->halfedge == heB1) {
-    // Only fix if needed, which ensure we don't mess up boundary vertices
-    vKeep->halfedge = heB2->twin;
-  }
-  if (heA2->vertex->halfedge == heA2) {
-    heA2->vertex->halfedge = heA1->twin;
-  }
-  if (heB2->vertex->halfedge == heB2) {
-    heB2->vertex->halfedge = heB2->twin->next;
-  }
+  // == Around face A
+  {
+    heNext[heA1TPrev.getIndex()] = heA2.getIndex();
+    heNext[heA2.getIndex()] = heNext[heA1T.getIndex()];
+    heVertex[heA2.getIndex()] = heVertex[heA1T.getIndex()];
+    heFace[heA2.getIndex()] = heFace[heA1T.getIndex()];
 
-  // Fix edges
-  eAKeep->halfedge = heA2->twin;
-  eBKeep->halfedge = heB1->twin;
+    // Vertex connections
+    if (heA1T.vertex().halfedge() == heA1T) {
+      vHalfedge[heA1T.vertex().getIndex()] = heA2.getIndex();
+    }
+    if (vA.halfedge() == heA0) {
+      vHalfedge[vA.getIndex()] = heA2.twin().getIndex();
+    }
 
-  // Fix halfedges
-  heA1->twin->edge = eAKeep;
-  heA1->twin->twin = heA2->twin;
-  heA2->twin->twin = heA1->twin;
-  heB2->twin->edge = eBKeep;
-  heB2->twin->twin = heB1->twin;
-  heB1->twin->twin = heB2->twin;
-
-  if (vKeepIsBoundary) {
-    heA1->edge->isBoundary = true;
-    heB2->edge->isBoundary = true;
-  }
-
-
-  // === Delete everything which needs to be deleted
-  deleteElement(e);
-  deleteElement(heA0);
-  deleteElement(heA1);
-  deleteElement(heA2);
-  deleteElement(heB0);
-  deleteElement(heB1);
-  deleteElement(heB2);
-  deleteElement(fA);
-  deleteElement(fB);
-  deleteElement(vDiscard);
-  deleteElement(eADelete);
-  deleteElement(eBDelete);
-
-
-  return Vertex(vKeep);
-}
-
-
-Vertex HalfedgeMesh::collapseEdgeAlongBoundary(Edge e) {
-
-  if (!e.isBoundary()) throw std::runtime_error("Called away from boundary");
-
-
-  if (e.halfedge().next().edge().isBoundary() && e.halfedge().next().next().edge().isBoundary()) {
-    throw std::runtime_error("Tried to collapse single face");
-  }
-
-  Halfedge* heA0 = e.halfedge().ptr;
-  Halfedge* heA1 = heA0->next;
-  Halfedge* heA2 = heA1->next;
-  Face* fA = heA0->face;
-  Edge* eADelete = heA1->edge;
-  Edge* eAKeep = heA2->edge;
-
-  Halfedge* heB = heA0->twin;
-  Halfedge* heBNext = heB->next;
-  Halfedge* heBPrev = heA0; // about to change
-  while (heBPrev->next != heB) heBPrev = heBPrev->next->twin;
-  Face* bL = heB->face;
-
-
-  Vertex* vKeep = heA0->vertex;
-  Vertex* vDiscard = heA0->twin->vertex;
-
-  // (should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings)
-  std::unordered_set<Vertex> vKeepNeighbors;
-  for (Vertex vN : Vertex(vKeep).adjacentVertices()) {
-    vKeepNeighbors.insert(vN);
-  }
-  size_t nShared = 0;
-  for (Vertex vN : Vertex(vDiscard).adjacentVertices()) {
-    if (vKeepNeighbors.find(vN) != vKeepNeighbors.end()) {
-      nShared++;
+    // Face connections
+    if (heA1T.face().halfedge() == heA1T) {
+      fHalfedge[heA1T.face().getIndex()] = heA2.getIndex();
     }
   }
-  if (nShared > 2) {
-    return Vertex();
-    cout << "can't collapse: vertex neighborhoods are not distinct" << endl;
-  }
 
-  // === Update pointers
+  // == Around face B
+  if (onBoundary) {
+    // The case where we're collapsing a boundary halfedge, just need to decrease the degree of the boundary loop
 
-  { // Update all of the halfedges around vDiscard (do this loop before we break things
-    Halfedge* currHe = heA1;
-    Halfedge* firstHe = heA1;
-    do {
-      currHe->vertex = vKeep;
-      currHe = currHe->twin->next;
-    } while (currHe != firstHe);
-  }
+    Halfedge heB0P = heB0.prevOrbitVertex();
+    throw std::runtime_error("not quite implemented");
 
-
-  if (heA2->vertex->halfedge == heA2) {
-    heA2->vertex->halfedge = heA1->twin;
-  }
-
-  vKeep->halfedge = heBPrev->twin;
-
-  // Fix edges
-  if (heA2->twin->isReal) {
-    eAKeep->halfedge = heA2->twin;
   } else {
-    eAKeep->halfedge = heA1->twin;
+    // The normal case where we're not collapsing a boundary halfedge, similar to what we did at face A
+
+    // Handle halfedge connections around heB2
+    heNext[heB2TPrev.getIndex()] = heB1.getIndex();
+    heNext[heB1.getIndex()] = heNext[heB2T.getIndex()];
+    heVertex[heB1.getIndex()] = heVertex[heB2T.getIndex()];
+    heFace[heB1.getIndex()] = heFace[heB2T.getIndex()];
+
+    // Vertex connections
+    // Don't need to update this vertex, since heB2T.vertex() is about to be deleted
+    // if (heB2T.vertex().halfedge() == heB2T) {
+    // vHalfedge[heB2T.vertex().getIndex()] = heB1.getIndex();
+    //}
+
+    // Face connections
+    if (heB2T.face().halfedge() == heB2T) {
+      fHalfedge[heB2T.face().getIndex()] = heB1.getIndex();
+    }
   }
 
-  // Fix halfedges
-  heA1->twin->edge = eAKeep;
-  heA1->twin->twin = heA2->twin;
-  heA2->twin->twin = heA1->twin;
-  heBPrev->next = heBNext;
+  // Make sure we set the "new" vertex to have an acceptable boundary halfedge if we pulled it on to the boundary
+  if (vBOnBoundary) {
+    ensureVertexHasBoundaryHalfedge(vA);
+  }
 
-  // Fix boundary loop
-  bL->halfedge = heBPrev;
+  // === Delete the actual elements
 
-  ensureVertexHasBoundaryHalfedge(heA2->vertex);
-
-  // === Delete everything which needs to be deleted
-  deleteElement(e);
-  deleteElement(heA0);
-  deleteElement(heA1);
-  deleteElement(heA2);
-  deleteElement(heB);
+  deleteEdgeTriple(heA0);
+  deleteElement(vB);
   deleteElement(fA);
-  deleteElement(vDiscard);
-  deleteElement(eADelete);
+  if (onBoundary) {
+    deleteElement(fB);
+  }
 
-
-  return Vertex(vKeep);
+  return vA;
 }
+
+Face HalfedgeMesh::removeVertex(Vertex v) {
+  if (v.isBoundary()) {
+    throw std::runtime_error("not implemented");
+  }
+
+  // Halfedges/edges/faces that will be removed
+  // (except first face)
+  std::vector<Halfedge> toRemove;
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge he : v.outgoingHalfedges()) {
+    toRemove.push_back(he);
+
+    // The one-ring must not contain any other copies of v, or we cannot remove the vertex
+    Halfedge oppHe = he.next();
+    if (oppHe.vertex() == v || oppHe.twin().vertex() == v) {
+      return Face();
+    }
+    ringHalfedges.push_back(oppHe);
+  }
+
+  Face keepFace = toRemove[0].face();
+
+  // Hook up next and face refs for the halfedges along the ring
+  size_t N = ringHalfedges.size();
+  for (size_t i = 0; i < N; i++) {
+    heNext[ringHalfedges[(i + 1) % N].getIndex()] = ringHalfedges[i].getIndex(); // since outgoingHalfedges orbits CW
+    heFace[ringHalfedges[i].getIndex()] = keepFace.getIndex();
+
+    if (toRemove[i].twin().vertex().halfedge().twin() == toRemove[i]) {
+      // only update vHalfedge if needed to avoid disturbing boundary halfedges
+      vHalfedge[toRemove[i].twin().vertex().getIndex()] = ringHalfedges[i].getIndex();
+    }
+  }
+  fHalfedge[keepFace.getIndex()] = ringHalfedges[0].getIndex();
+
+  // Actually delete all of the elements
+  for (Halfedge he : toRemove) {
+    if (he.face() != keepFace) {
+      deleteElement(he.face());
+    }
+    deleteEdgeTriple(he);
+  }
+  deleteElement(v);
+
+  validateConnectivity(); // FIXME
+  return keepFace;
+}
+
 
 void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
-  if (!v.isBoundary()) return;
-  Vertex* rawV = v.ptr;
-  while (rawV->halfedge->twin->isReal) {
-    rawV->halfedge = rawV->halfedge->twin->next;
+  while (true) {
+    Halfedge heT = v.halfedge().twin();
+    if (!heT.isInterior()) {
+      break;
+    }
+    vHalfedge[v.getIndex()] = heT.next().getIndex();
   }
 }
+
+/*
 
 bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
 
@@ -1514,7 +1483,6 @@ void HalfedgeMesh::validateConnectivity() {
     // This can happen in irregular triangulations
     // if (he.vertex == he.next->twin->vertex) throw std::logic_error("halfedge face spur");
 
-
     // Check halfedge orbit sanity (useful if halfedge doesn't appear in face)
     Halfedge currHe = he;
     if (halfedgeSeen[currHe.getIndex()]) continue;
@@ -1570,107 +1538,6 @@ void HalfedgeMesh::validateConnectivity() {
   }
 }
 
-/*
-
-Halfedge* HalfedgeMesh::getNewHalfedge(bool real) {
-
-  // The boring case, when no resize is needed
-  if (rawHalfedges.size() < rawHalfedges.capacity()) {
-    rawHalfedges.emplace_back();
-  }
-  // The intesting case, where the vector resizes and we need to update pointers.
-  else {
-
-    Halfedge* oldStart = &rawHalfedges.front();
-
-    // === Prep the "before" lists
-    std::vector<std::ptrdiff_t> offsetsTwin(rawHalfedges.size());
-    std::vector<std::ptrdiff_t> offsetsNext(rawHalfedges.size());
-    std::vector<std::ptrdiff_t> offsetsV(rawVertices.size());
-    std::vector<std::ptrdiff_t> offsetsE(rawEdges.size());
-    std::vector<std::ptrdiff_t> offsetsF(rawFaces.size());
-    std::vector<std::ptrdiff_t> offsetsB(rawBoundaryLoops.size());
-
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        offsetsTwin[iHe] = rawHalfedges[iHe].twin - oldStart;
-        offsetsNext[iHe] = rawHalfedges[iHe].next - oldStart;
-      }
-    }
-    for (size_t iV = 0; iV < rawVertices.size(); iV++) {
-      if (!rawVertices[iV].isDead()) {
-        offsetsV[iV] = rawVertices[iV].halfedge - oldStart;
-      }
-    }
-    for (size_t iE = 0; iE < rawEdges.size(); iE++) {
-      if (!rawEdges[iE].isDead()) {
-        offsetsE[iE] = rawEdges[iE].halfedge - oldStart;
-      }
-    }
-    for (size_t iF = 0; iF < rawFaces.size(); iF++) {
-      if (!rawFaces[iF].isDead()) {
-        offsetsF[iF] = rawFaces[iF].halfedge - oldStart;
-      }
-    }
-    for (size_t iB = 0; iB < rawBoundaryLoops.size(); iB++) {
-      if (!rawBoundaryLoops[iB].isDead()) {
-        offsetsB[iB] = rawBoundaryLoops[iB].halfedge - oldStart;
-      }
-    }
-
-
-    // Create a new halfedge, allowing the list to expand
-    rawHalfedges.emplace_back();
-    Halfedge* newStart = &rawHalfedges.front();
-
-    // === Loop back through, shifting all pointers
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        rawHalfedges[iHe].twin = newStart + offsetsTwin[iHe];
-        rawHalfedges[iHe].next = newStart + offsetsNext[iHe];
-      }
-    }
-    for (size_t iV = 0; iV < rawVertices.size(); iV++) {
-      if (!rawVertices[iV].isDead()) {
-        rawVertices[iV].halfedge = newStart + offsetsV[iV];
-      }
-    }
-    for (size_t iE = 0; iE < rawEdges.size(); iE++) {
-      if (!rawEdges[iE].isDead()) {
-        rawEdges[iE].halfedge = newStart + offsetsE[iE];
-      }
-    }
-    for (size_t iF = 0; iF < rawFaces.size(); iF++) {
-      if (!rawFaces[iF].isDead()) {
-        rawFaces[iF].halfedge = newStart + offsetsF[iF];
-      }
-    }
-    for (size_t iB = 0; iB < rawBoundaryLoops.size(); iB++) {
-      if (!rawBoundaryLoops[iB].isDead()) {
-        rawBoundaryLoops[iB].halfedge = newStart + offsetsB[iB];
-      }
-    }
-
-    // Invoke relevant callback functions
-    for (auto& f : halfedgeExpandCallbackList) {
-      f(rawHalfedges.capacity());
-    }
-  }
-
-  rawHalfedges.back().ID = nextElemID++;
-  rawHalfedges.back().isReal = real;
-  rawHalfedges.back().markDead(); // temporarily, to ensure we don't follow pointers
-  if (real) {
-    nRealHalfedgesCount++;
-  } else {
-    nImaginaryHalfedgesCount++;
-  }
-#ifndef NDEBUG
-  rawHalfedges.back().parentMesh = this;
-#endif
-  return &rawHalfedges.back();
-}
-*/
 
 Vertex HalfedgeMesh::getNewVertex() {
 
@@ -1713,29 +1580,29 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   } else {
 
     size_t initHalfedgeCapacity = nHalfedgesCapacityCount; // keep track before we start modifying for clarify
+    size_t newHalfedgeCapcity = initHalfedgeCapacity * 2;  // double the capacity
+    size_t newEdgeCapcity = newHalfedgeCapcity / 2;        // make it super clear
 
     { // expand halfedge list
-      size_t newCapacity = initHalfedgeCapacity * 2;
 
       // Resize internal arrays
-      heNext.resize(newCapacity);
-      heVertex.resize(newCapacity);
-      heFace.resize(newCapacity);
+      heNext.resize(newHalfedgeCapcity);
+      heVertex.resize(newHalfedgeCapcity);
+      heFace.resize(newHalfedgeCapcity);
 
-      nHalfedgesCapacityCount = newCapacity;
+      nHalfedgesCapacityCount = newHalfedgeCapcity;
 
       // Invoke relevant callback functions
       for (auto& f : halfedgeExpandCallbackList) {
-        f(newCapacity);
+        f(newHalfedgeCapcity);
       }
     }
 
-    {                                            // expand edges
-      size_t newCapacity = initHalfedgeCapacity; // will be double he current edge capacity cout
+    { // expand edges
 
       // Invoke relevant callback functions
       for (auto& f : edgeExpandCallbackList) {
-        f(newCapacity);
+        f(newEdgeCapcity);
       }
     }
   }
@@ -1754,51 +1621,6 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   return Halfedge(this, nHalfedgesFillCount - 2);
 }
 
-/*
-
-Edge* HalfedgeMesh::getNewEdge() {
-
-  // The boring case, when no resize is needed
-  if (rawEdges.size() < rawEdges.capacity()) {
-    rawEdges.emplace_back();
-  }
-  // The intesting case, where the vector resizes and we need to update pointers.
-  else {
-
-    Edge* oldStart = &rawEdges.front();
-    std::vector<std::ptrdiff_t> offsets(rawHalfedges.size());
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        offsets[iHe] = rawHalfedges[iHe].edge - oldStart;
-      }
-    }
-
-    // Create a new element, allowing the list to expand
-    rawEdges.emplace_back();
-
-    Edge* newStart = &rawEdges.front();
-    for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-      if (!rawHalfedges[iHe].isDead()) {
-        rawHalfedges[iHe].edge = newStart + offsets[iHe];
-      }
-    }
-
-    // Invoke relevant callback functions
-    for (auto& f : edgeExpandCallbackList) {
-      f(rawEdges.capacity());
-    }
-  }
-
-  rawEdges.back().ID = nextElemID++;
-  rawEdges.back().markDead(); // temporarily, to ensure we don't follow pointers
-  nEdgesCount++;
-#ifndef NDEBUG
-  rawEdges.back().parentMesh = this;
-#endif
-  return &rawEdges.back();
-}
-
-*/
 
 Face HalfedgeMesh::getNewFace() {
 
@@ -1865,6 +1687,60 @@ void HalfedgeMesh::expandFaceStorage() {
     f(newCapacity);
   }
 }
+
+
+void HalfedgeMesh::deleteEdgeTriple(Halfedge he) {
+  // Be sure we have the canonical halfedge
+  he = he.edge().halfedge();
+  bool isBoundary = he.twin().isInterior();
+  size_t iHe = he.getIndex();
+  size_t iHeT = he.twin().getIndex();
+
+  heNext[iHe] = INVALID_IND;
+  heVertex[iHe] = INVALID_IND;
+  heFace[iHe] = INVALID_IND;
+
+  heNext[iHeT] = INVALID_IND;
+  heVertex[iHeT] = INVALID_IND;
+  heFace[iHeT] = INVALID_IND;
+
+  nHalfedgesCount -= 2;
+  if (isBoundary) {
+    nInteriorHalfedgesCount--;
+  } else {
+    nInteriorHalfedgesCount -= 2;
+  }
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(Vertex v) {
+  size_t iV = v.getIndex();
+
+  vHalfedge[iV] = INVALID_IND;
+  nVerticesCount--;
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(Face f) {
+  size_t iF = f.getIndex();
+
+  fHalfedge[iF] = INVALID_IND;
+  nFacesCount--;
+
+  isCompressedFlag = false;
+}
+
+void HalfedgeMesh::deleteElement(BoundaryLoop bl) {
+  size_t iF = boundaryLoopIndToFaceInd(bl.getIndex());
+
+  fHalfedge[iF] = INVALID_IND;
+  nBoundaryLoopsCount--;
+
+  isCompressedFlag = false;
+}
+
 
 /*
 
