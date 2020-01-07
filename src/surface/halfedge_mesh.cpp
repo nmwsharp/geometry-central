@@ -973,7 +973,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     std::tuple<Halfedge, Halfedge> result{he.edge().halfedge(), heN1};
     if (swapAB) {
       std::swap(std::get<0>(result), std::get<1>(result));
-    } 
+    }
     return result;
   }
 
@@ -1299,6 +1299,7 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
     // The case where we're collapsing a boundary halfedge, just need to decrease the degree of the boundary loop
 
     Halfedge heB0P = heB0.prevOrbitVertex();
+    throw std::runtime_error("not quite implemented");
 
   } else {
     // The normal case where we're not collapsing a boundary halfedge, similar to what we did at face A
@@ -1338,227 +1339,54 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
   return vA;
 }
 
-/*
-
-Vertex HalfedgeMesh::collapseEdge(Edge e) {
-
-  if (e.isBoundary()) {
-    return collapseEdgeAlongBoundary(e);
+Face HalfedgeMesh::removeVertex(Vertex v) {
+  if (v.isBoundary()) {
+    throw std::runtime_error("not implemented");
   }
 
-  // TODO for now only valid on triangle meshes and away from the boundary.
+  // Halfedges/edges/faces that will be removed
+  // (except first face)
+  std::vector<Halfedge> toRemove;
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge he : v.outgoingHalfedges()) {
+    toRemove.push_back(he);
 
-  // === Gather some elements
-
-  Halfedge* heA0;
-  // If there's a single boundary vertex, be sure we keep it
-  if (e.halfedge().twin().vertex().isBoundary() && !e.halfedge().vertex().isBoundary()) {
-    heA0 = e.halfedge().twin().ptr;
-  } else {
-    heA0 = e.halfedge().ptr;
+    // The one-ring must not contain any other copies of v, or we cannot remove the vertex
+    Halfedge oppHe = he.next();
+    if (oppHe.vertex() == v || oppHe.twin().vertex() == v) {
+      return Face();
+    }
+    ringHalfedges.push_back(oppHe);
   }
 
-  Halfedge* heA1 = heA0->next;
-  Halfedge* heA2 = heA1->next;
-  Face* fA = heA0->face;
-  Edge* eADelete = heA1->edge;
-  Edge* eAKeep = heA2->edge;
+  Face keepFace = toRemove[0].face();
 
-  Halfedge* heB0 = heA0->twin;
-  Halfedge* heB1 = heB0->next;
-  Halfedge* heB2 = heB1->next;
-  Face* fB = heB0->face;
-  Edge* eBDelete = heB2->edge;
-  Edge* eBKeep = heB1->edge;
+  // Hook up next and face refs for the halfedges along the ring
+  size_t N = ringHalfedges.size();
+  for (size_t i = 0; i < N; i++) {
+    heNext[ringHalfedges[(i + 1) % N].getIndex()] = ringHalfedges[i].getIndex(); // since outgoingHalfedges orbits CW
+    heFace[ringHalfedges[i].getIndex()] = keepFace.getIndex();
 
-  Vertex* vKeep = heA0->vertex;
-  Vertex* vDiscard = heA0->twin->vertex;
-
-  // === Check validity
-
-  // collapsing around a degree-2 vertex can be done, but this code does not handle that correctly
-  if (Vertex(vKeep).degree() <= 2 || Vertex(vDiscard).degree() <= 2) {
-    return Vertex();
-  }
-
-  bool vKeepIsBoundary = Vertex(vKeep).isBoundary();
-
-  // (should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings)
-  std::unordered_set<Vertex> vKeepNeighbors;
-  for (Vertex vN : Vertex(vKeep).adjacentVertices()) {
-    vKeepNeighbors.insert(vN);
-  }
-  size_t nShared = 0;
-  for (Vertex vN : Vertex(vDiscard).adjacentVertices()) {
-    if (vKeepNeighbors.find(vN) != vKeepNeighbors.end()) {
-      nShared++;
+    if (toRemove[i].twin().vertex().halfedge().twin() == toRemove[i]) {
+      // only update vHalfedge if needed to avoid disturbing boundary halfedges
+      vHalfedge[toRemove[i].twin().vertex().getIndex()] = ringHalfedges[i].getIndex();
     }
   }
-  if (nShared > 2) {
-    return Vertex();
-  }
+  fHalfedge[keepFace.getIndex()] = ringHalfedges[0].getIndex();
 
-
-  // === Update a whole bunch of pointers
-
-  { // Update all of the halfedges around vDiscard (do this loop before we break things
-    Halfedge* currHe = heA1;
-    Halfedge* firstHe = heA1;
-    do {
-      currHe->vertex = vKeep;
-      currHe = currHe->twin->next;
-    } while (currHe != firstHe);
-  }
-
-  // Fix vertices
-  if (vKeep->halfedge == heA0 || vKeep->halfedge == heB1) {
-    // Only fix if needed, which ensure we don't mess up boundary vertices
-    vKeep->halfedge = heB2->twin;
-  }
-  if (heA2->vertex->halfedge == heA2) {
-    heA2->vertex->halfedge = heA1->twin;
-  }
-  if (heB2->vertex->halfedge == heB2) {
-    heB2->vertex->halfedge = heB2->twin->next;
-  }
-
-  // Fix edges
-  eAKeep->halfedge = heA2->twin;
-  eBKeep->halfedge = heB1->twin;
-
-  // Fix halfedges
-  heA1->twin->edge = eAKeep;
-  heA1->twin->twin = heA2->twin;
-  heA2->twin->twin = heA1->twin;
-  heB2->twin->edge = eBKeep;
-  heB2->twin->twin = heB1->twin;
-  heB1->twin->twin = heB2->twin;
-
-  if (vKeepIsBoundary) {
-    heA1->edge->isBoundary = true;
-    heB2->edge->isBoundary = true;
-  }
-
-
-  // === Delete everything which needs to be deleted
-  deleteElement(e);
-  deleteElement(heA0);
-  deleteElement(heA1);
-  deleteElement(heA2);
-  deleteElement(heB0);
-  deleteElement(heB1);
-  deleteElement(heB2);
-  deleteElement(fA);
-  deleteElement(fB);
-  deleteElement(vDiscard);
-  deleteElement(eADelete);
-  deleteElement(eBDelete);
-
-
-  return Vertex(vKeep);
-}
-
-
-Vertex HalfedgeMesh::collapseEdgeAlongBoundary(Edge e) {
-
-  if (!e.isBoundary()) throw std::runtime_error("Called away from boundary");
-
-
-  if (e.halfedge().next().edge().isBoundary() && e.halfedge().next().next().edge().isBoundary()) {
-    throw std::runtime_error("Tried to collapse single face");
-  }
-
-  Halfedge* heA0 = e.halfedge().ptr;
-  Halfedge* heA1 = heA0->next;
-  Halfedge* heA2 = heA1->next;
-  Face* fA = heA0->face;
-  Edge* eADelete = heA1->edge;
-  Edge* eAKeep = heA2->edge;
-
-  Halfedge* heB = heA0->twin;
-  Halfedge* heBNext = heB->next;
-  Halfedge* heBPrev = heA0; // about to change
-  while (heBPrev->next != heB) heBPrev = heBPrev->next->twin;
-  Face* bL = heB->face;
-
-
-  Vertex* vKeep = heA0->vertex;
-  Vertex* vDiscard = heA0->twin->vertex;
-
-  // (should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings)
-  std::unordered_set<Vertex> vKeepNeighbors;
-  for (Vertex vN : Vertex(vKeep).adjacentVertices()) {
-    vKeepNeighbors.insert(vN);
-  }
-  size_t nShared = 0;
-  for (Vertex vN : Vertex(vDiscard).adjacentVertices()) {
-    if (vKeepNeighbors.find(vN) != vKeepNeighbors.end()) {
-      nShared++;
+  // Actually delete all of the elements
+  for (Halfedge he : toRemove) {
+    if (he.face() != keepFace) {
+      deleteElement(he.face());
     }
+    deleteEdgeTriple(he);
   }
-  if (nShared > 2) {
-    return Vertex();
-    cout << "can't collapse: vertex neighborhoods are not distinct" << endl;
-  }
+  deleteElement(v);
 
-  // === Update pointers
-
-  { // Update all of the halfedges around vDiscard (do this loop before we break things
-    Halfedge* currHe = heA1;
-    Halfedge* firstHe = heA1;
-    do {
-      currHe->vertex = vKeep;
-      currHe = currHe->twin->next;
-    } while (currHe != firstHe);
-  }
-
-
-  if (heA2->vertex->halfedge == heA2) {
-    heA2->vertex->halfedge = heA1->twin;
-  }
-
-  vKeep->halfedge = heBPrev->twin;
-
-  // Fix edges
-  if (heA2->twin->isReal) {
-    eAKeep->halfedge = heA2->twin;
-  } else {
-    eAKeep->halfedge = heA1->twin;
-  }
-
-  // Fix halfedges
-  heA1->twin->edge = eAKeep;
-  heA1->twin->twin = heA2->twin;
-  heA2->twin->twin = heA1->twin;
-  heBPrev->next = heBNext;
-
-  // Fix boundary loop
-  bL->halfedge = heBPrev;
-
-  ensureVertexHasBoundaryHalfedge(heA2->vertex);
-
-  // === Delete everything which needs to be deleted
-  deleteElement(e);
-  deleteElement(heA0);
-  deleteElement(heA1);
-  deleteElement(heA2);
-  deleteElement(heB);
-  deleteElement(fA);
-  deleteElement(vDiscard);
-  deleteElement(eADelete);
-
-
-  return Vertex(vKeep);
+  validateConnectivity(); // FIXME
+  return keepFace;
 }
 
-void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
-  if (!v.isBoundary()) return;
-  Vertex* rawV = v.ptr;
-  while (rawV->halfedge->twin->isReal) {
-    rawV->halfedge = rawV->halfedge->twin->next;
-  }
-}
-*/
 
 void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
   while (true) {
@@ -2079,10 +1907,15 @@ void HalfedgeMesh::deleteEdgeTriple(Halfedge he) {
   he = he.edge().halfedge();
   bool isBoundary = he.twin().isInterior();
   size_t iHe = he.getIndex();
+  size_t iHeT = he.twin().getIndex();
 
   heNext[iHe] = INVALID_IND;
   heVertex[iHe] = INVALID_IND;
   heFace[iHe] = INVALID_IND;
+
+  heNext[iHeT] = INVALID_IND;
+  heVertex[iHeT] = INVALID_IND;
+  heFace[iHeT] = INVALID_IND;
 
   nHalfedgesCount -= 2;
   if (isBoundary) {

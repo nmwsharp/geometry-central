@@ -122,6 +122,8 @@ public:
   // Get the halfedge mesh on which the element is defined.
   HalfedgeMesh* getMesh() const;
 
+  bool isDead() const;
+
 protected:
   HalfedgeMesh* mesh = nullptr;
   size_t ind = INVALID_IND;
@@ -213,6 +215,7 @@ public:
   // Navigators
   Halfedge halfedge() const;
   Corner corner() const;
+  bool isDead() const;
 
   // Properties
   bool isBoundary() const;
@@ -257,6 +260,7 @@ public:
   Vertex vertex() const;
   Edge edge() const;
   Face face() const;
+  bool isDead() const;
 
   // Super-navigators
   Halfedge prevOrbitFace() const;
@@ -308,6 +312,7 @@ public:
   Halfedge halfedge() const;
   Vertex vertex() const;
   Face face() const;
+  bool isDead() const;
 };
 
 using DynamicCorner = DynamicElement<Corner>;
@@ -334,6 +339,7 @@ public:
 
   // Navigators
   Halfedge halfedge() const;
+  bool isDead() const;
 
   // Properties
   bool isBoundary() const;
@@ -368,6 +374,7 @@ public:
   // Navigators
   Halfedge halfedge() const;
   BoundaryLoop asBoundaryLoop() const;
+  bool isDead() const;
 
   // Properties
   bool isBoundaryLoop() const;
@@ -409,6 +416,7 @@ public:
 
   Halfedge halfedge() const;
   Face asFace() const;
+  bool isDead() const;
 
   // Properties
   size_t degree() const;
