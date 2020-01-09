@@ -8,11 +8,11 @@ namespace geometrycentral {
 namespace surface {
 
 
-void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, double delaunayEPS) {
+void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType, double delaunayEPS) {
 
   // TODO all of these helpers are duplicated from signpost_intrinsic_triangulation
 
-  auto layoutDiamond = [&](Halfedge iHe) {
+  auto flippedEdgeLen = [&](Halfedge iHe) {
     // Gather index values
     Halfedge iHeA0 = iHe;
     Halfedge iHeA1 = iHeA0.next();
@@ -28,13 +28,24 @@ void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, double de
     double l30 = edgeLengths[iHeB2.edge()];
     double l02 = edgeLengths[iHeA0.edge()];
 
-    // Lay out the vertices of the diamond
-    Vector2 p3{0., 0.};
-    Vector2 p0{l30, 0.};
-    Vector2 p2 = layoutTriangleVertex(p3, p0, l02, l23); // involves more arithmetic than strictly necessary
-    Vector2 p1 = layoutTriangleVertex(p2, p0, l01, l12);
+    switch (flipType) {
+    case FlipType::Hyperbolic: {
+      double newLen = (l01 * l23 + l12 * l30) / l02;
+      return newLen;
+      break;
+    }
+    case FlipType::Euclidean: {
 
-    return std::array<Vector2, 4>{p0, p1, p2, p3};
+      Vector2 p3{0., 0.};
+      Vector2 p0{l30, 0.};
+      Vector2 p2 = layoutTriangleVertex(p3, p0, l02, l23); // involves more arithmetic than strictly necessary
+      Vector2 p1 = layoutTriangleVertex(p2, p0, l01, l12);
+      double newLen = (p1 - p3).norm();
+      return newLen;
+      break;
+    }
+    }
+    return -1.; // unreachable
   };
 
   auto area = [&](Face f) {
@@ -70,33 +81,58 @@ void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, double de
   };
 
 
+  auto shouldFlipEdge = [&](Edge e) {
+    if (e.isBoundary()) return false;
+
+    switch (flipType) {
+    case FlipType::Hyperbolic: {
+
+      double score = 0.;
+      for (Halfedge he : {e.halfedge(), e.halfedge().twin()}) {
+
+        double lA = edgeLengths[he.edge()];
+        double lB = edgeLengths[he.next().edge()];
+        double lC = edgeLengths[he.next().next().edge()];
+
+        score -= lA / (lB * lC);
+        score += lB / (lC * lA);
+        score += lC / (lA * lB);
+      }
+
+      return score < -delaunayEPS;
+      break;
+    }
+    case FlipType::Euclidean: {
+      double cWeight = edgeCotanWeight(e);
+      return (cWeight < -delaunayEPS);
+      break;
+    }
+    }
+    return false; // unreachable
+  };
+
   auto flipEdgeIfNotDelaunay = [&](Edge e) {
     // Can't flip
     if (e.isBoundary()) return false;
 
     // Don't want to flip
-    double cWeight = edgeCotanWeight(e);
-    if (cWeight > -delaunayEPS) return false;
+    if (!shouldFlipEdge(e)) return false;
 
     // Get geometric data
     Halfedge he = e.halfedge();
-    std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
+    double newLength = flippedEdgeLen(he);
+
+    // If we're going to create a non-finite edge length, abort the flip
+    // (only happens if you're in a bad numerical place)
+    if (!std::isfinite(newLength)) {
+      return false;
+    }
 
     // Combinatorial flip
     bool flipped = mesh.flip(e);
 
     // Should always be possible, something unusual is going on if we end up here
     if (!flipped) {
-      return false;
-    }
-
-    // Compute the new edge length
-    double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
-
-    // If we're going to create a non-finite edge length, abort the flip
-    // (only happens if you're in a bad numerical place)
-    if (!std::isfinite(newLength)) {
-      mesh.flip(e);
       return false;
     }
 
