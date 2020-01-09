@@ -7,6 +7,7 @@
 #include "geometrycentral/surface/polygon_soup_mesh.h"
 
 namespace geometrycentral {
+namespace surface {
 
 PolygonSoupMesh::PolygonSoupMesh() {}
 
@@ -73,7 +74,7 @@ Index parseFaceIndex(const std::string& token) {
 
 // Read a .obj file containing a polygon mesh
 void PolygonSoupMesh::readMeshFromFile(std::string filename) {
-  //std::cout << "Reading mesh from file: " << filename << std::endl;
+  // std::cout << "Reading mesh from file: " << filename << std::endl;
 
   polygons.clear();
   vertexCoordinates.clear();
@@ -137,4 +138,26 @@ void PolygonSoupMesh::triangulate() {
   polygons = newPolygons;
 }
 
+std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups) {
+
+  std::vector<std::vector<size_t>> unionFaces;
+  std::vector<Vector3> unionVerts;
+
+  for (const PolygonSoupMesh& soup : soups) {
+
+    size_t offset = unionVerts.size();
+    for (Vector3 v : soup.vertexCoordinates) {
+      unionVerts.push_back(v);
+    }
+
+    for (std::vector<size_t> f : soup.polygons) {
+      for (size_t& i : f) i += offset;
+      unionFaces.push_back(f);
+    }
+  }
+
+  return std::unique_ptr<PolygonSoupMesh>(new PolygonSoupMesh(unionFaces, unionVerts));
+}
+
+} // namespace surface
 } // namespace geometrycentral

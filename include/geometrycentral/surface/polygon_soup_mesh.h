@@ -10,6 +10,7 @@
 #include <geometrycentral/utilities/utilities.h>
 
 namespace geometrycentral {
+namespace surface {
 
 class PolygonSoupMesh {
 public:
@@ -28,4 +29,7 @@ private:
   void readMeshFromFile(std::string filename);
 };
 
+std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups);
+
+} // namespace surface
 } // namespace geometrycentral
