@@ -12,6 +12,7 @@
 #include <geometrycentral/utilities/vector3.h>
 
 namespace geometrycentral {
+namespace surface {
 
 class PolygonSoupMesh {
 public:
@@ -51,4 +52,7 @@ private:
   void writeMeshObj(std::string filename);
 };
 
+std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups);
+
+} // namespace surface
 } // namespace geometrycentral

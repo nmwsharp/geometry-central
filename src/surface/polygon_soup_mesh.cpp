@@ -9,6 +9,7 @@
 #include "happly.h"
 
 namespace geometrycentral {
+namespace surface {
 
 PolygonSoupMesh::PolygonSoupMesh() {}
 
@@ -452,4 +453,26 @@ void PolygonSoupMesh::writeMeshObj(std::string filename) {
   }
 }
 
+std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups) {
+
+  std::vector<std::vector<size_t>> unionFaces;
+  std::vector<Vector3> unionVerts;
+
+  for (const PolygonSoupMesh& soup : soups) {
+
+    size_t offset = unionVerts.size();
+    for (Vector3 v : soup.vertexCoordinates) {
+      unionVerts.push_back(v);
+    }
+
+    for (std::vector<size_t> f : soup.polygons) {
+      for (size_t& i : f) i += offset;
+      unionFaces.push_back(f);
+    }
+  }
+
+  return std::unique_ptr<PolygonSoupMesh>(new PolygonSoupMesh(unionFaces, unionVerts));
+}
+
+} // namespace surface
 } // namespace geometrycentral
