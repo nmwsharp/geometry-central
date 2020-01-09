@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "geometrycentral/utilities/vector3.h"
+#include "geometrycentral/utilities/vector2.h"
 #include <geometrycentral/utilities/utilities.h>
 
 namespace geometrycentral {
@@ -24,6 +25,7 @@ public:
   // Mesh data
   std::vector<std::vector<size_t>> polygons;
   std::vector<Vector3> vertexCoordinates;
+  std::vector<std::vector<Vector2>> cornerCoords; // optional UV coords, in correspondence with polygons array
 
 private:
   void readMeshFromFile(std::string filename);
