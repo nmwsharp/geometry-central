@@ -26,6 +26,7 @@ public:
   // Mesh data
   std::vector<std::vector<size_t>> polygons;
   std::vector<Vector3> vertexCoordinates;
+  std::vector<std::vector<Vector2>> cornerCoords; // optional UV coords, in correspondence with polygons array
 
   // Mutate this mesh by merging vertices with identical floating point positions.
   // Useful for loading .stl files, which don't contain information about which

@@ -71,7 +71,7 @@ class Index {
 public:
   Index() {}
 
-  Index(int v, int vt, int vn) : position(v), uv(vt), normal(vn) {}
+  Index(long long int v, long long int vt, long long int vn) : position(v), uv(vt), normal(vn) {}
 
   bool operator<(const Index& i) const {
     if (position < i.position) return true;
@@ -84,9 +84,9 @@ public:
     return false;
   }
 
-  int position;
-  int uv;
-  int normal;
+  long long int position = -1;
+  long long int uv = -1;
+  long long int normal = -1;
 };
 
 Index parseFaceIndex(const std::string& token) {
@@ -112,6 +112,11 @@ void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
 
   polygons.clear();
   vertexCoordinates.clear();
+  cornerCoords.clear();
+
+  // corner UV coords, unpacked below
+  std::vector<Vector2> coords;
+  std::vector<std::vector<size_t>> polygonCoordInds;
 
   // Open the file
   std::ifstream in(filename);
@@ -132,12 +137,17 @@ void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
       vertexCoordinates.push_back(position);
 
     } else if (token == "vt") {
-      // Do nothing
+      double u, v;
+      ss >> u >> v;
+
+      coords.push_back(Vector2{u, v});
+
     } else if (token == "vn") {
       // Do nothing
 
     } else if (token == "f") {
       std::vector<size_t> face;
+      std::vector<size_t> faceCoordInds;
       while (ss >> token) {
         Index index = parseFaceIndex(token);
         if (index.position < 0) {
@@ -147,9 +157,27 @@ void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
         }
 
         face.push_back(index.position);
+
+        if (index.uv != -1) {
+          faceCoordInds.push_back(index.uv);
+        }
       }
 
       polygons.push_back(face);
+      if (!faceCoordInds.empty()) {
+        polygonCoordInds.push_back(faceCoordInds);
+      }
+    }
+  }
+
+  // If we got uv coords, unpack them in to per-corner values
+  if (!polygonCoordInds.empty()) {
+    for (std::vector<size_t>& faceCoordInd : polygonCoordInds) {
+      cornerCoords.emplace_back();
+      std::vector<Vector2>& faceCoord = cornerCoords.back();
+      for (size_t i : faceCoordInd) {
+        faceCoord.push_back(coords[i]);
+      }
     }
   }
 }

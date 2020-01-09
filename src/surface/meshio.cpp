@@ -88,6 +88,68 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry
   return makeHalfedgeAndGeometry(faceIndices, vertexPositions, verbose);
 }
 
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OFF(std::string filename,
+                                                                                                bool verbose) {
+
+  // Open the file
+  std::ifstream inStream(filename);
+  if (!inStream) throw std::runtime_error("couldn't open file " + filename);
+
+  // == Parse
+
+  auto getNextLine = [&]() {
+    std::string line;
+    do {
+      if (!std::getline(inStream, line)) {
+        throw std::runtime_error("ran out of lines while parsing " + filename);
+      }
+    } while (line.size() == 0 || line[0] == '#');
+    return line;
+  };
+
+  // header
+  std::string headerLine = getNextLine();
+  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file: " + filename);
+
+  // counts
+  size_t nVert, nFace;
+  std::string countLine = getNextLine();
+  std::stringstream countStream(countLine);
+  countStream >> nVert >> nFace; // ignore nEdges, if present
+
+  // parse vertices
+  std::vector<Vector3> vertexPositions(nVert);
+  for (size_t iV = 0; iV < nVert; iV++) {
+    std::string vertLine = getNextLine();
+    std::stringstream vertStream(vertLine);
+    Vector3 p;
+    vertStream >> p.x >> p.y >> p.z; // ignore color etc, if present
+    vertexPositions[iV] = p;
+  }
+
+  // = Get face indices
+  std::vector<std::vector<size_t>> faceIndices(nFace);
+  for (size_t iF = 0; iF < nFace; iF++) {
+    std::string faceLine = getNextLine();
+    std::stringstream faceStream(faceLine);
+
+    size_t degree;
+    faceStream >> degree;
+    std::vector<size_t>& face = faceIndices[iF];
+    for (size_t i = 0; i < degree; i++) {
+      size_t ind;
+      faceStream >> ind;
+      face.push_back(ind);
+    }
+  }
+
+  stripUnusedVertices(vertexPositions, faceIndices);
+
+  // === Build the mesh objects
+  return makeHalfedgeAndGeometry(faceIndices, vertexPositions, verbose);
+} // namespace
+
+
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OBJ(std::string filename,
                                                                                                 bool verbose) {
   PolygonSoupMesh soup(filename, "obj");
@@ -136,6 +198,8 @@ loadMesh(std::string filename, bool verbose, std::string type) {
     return loadMesh_PLY(filename, verbose);
   } else if (type == "stl") {
     return loadMesh_STL(filename, verbose);
+  } else if (type == "off") {
+    return loadMesh_OFF(filename, verbose);
   } else {
     if (typeGiven) {
       throw std::runtime_error("Did not recognize mesh file type " + type);
