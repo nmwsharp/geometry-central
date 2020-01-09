@@ -17,6 +17,13 @@ struct TraceGeodesicResult {
   bool hasPath = false;                 // is pathPoints populated?
 };
 
+struct TraceOptions {
+  bool includePath = false;
+  bool errorOnProblem = false;
+  EdgeData<char>* barrierEdges = nullptr; // if set, traces will stop when they hit barrier edges
+};
+extern const TraceOptions defaultTraceOptions;
+
 // These trace routines will always yield a path that looks like:
 //   - the start point
 //   - 0 or more edge crossings
@@ -27,13 +34,13 @@ struct TraceGeodesicResult {
 // Trace from a surface point, and a vector in the canonical tangent space of that point (represented as a vector in
 // that tangent space)
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint startP, Vector2 traceVec,
-                                  bool includePath = false, bool errorOnProblem = false);
+                                  const TraceOptions& traceOptions = defaultTraceOptions);
 
 
 // Trace from a point in barycentric coordinates inside some face, where the trace vector is a barycentric displacement
 // (which must sum to 0)
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFace, Vector3 startBary,
-                                  Vector3 traceBaryVec, bool includePath = false, bool errorOnProblem = false);
+                                  Vector3 traceBaryVec, const TraceOptions& traceOptions = defaultTraceOptions);
 
 
 // For a trace which was expected to end very near targetVertex, try to clean up the end of the path to end directly at

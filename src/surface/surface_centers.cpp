@@ -147,7 +147,9 @@ SurfacePoint findCenter(IntrinsicGeometryInterface& geom, VectorHeatMethodSolver
 
       // Try taking a step
       Vector2 stepVec = updateVec * stepSize;
-      TraceGeodesicResult traceResult = traceGeodesic(geom, currCenter, stepVec, true);
+      TraceOptions options;
+      options.includePath = true; // TODO why?
+      TraceGeodesicResult traceResult = traceGeodesic(geom, currCenter, stepVec, options);
       SurfacePoint candidatePoint = traceResult.endPoint.inSomeFace();
 
       // Compute new energy

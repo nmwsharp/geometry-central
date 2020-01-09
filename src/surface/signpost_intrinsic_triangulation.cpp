@@ -81,7 +81,9 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   Vector2 traceVec = halfedgeVector(he);
 
   // Do the actual tracing
-  TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, true);
+  TraceOptions options;
+  options.includePath = true;
+  TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, options);
 
   // Trim off end crumbs if applicable
   Vertex endVert = he.twin().vertex();
@@ -91,7 +93,7 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
     // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
     // initially
     if (!success) {
-      result = traceGeodesic(inputGeom, startP, traceVec, true);
+      result = traceGeodesic(inputGeom, startP, traceVec, options);
     }
   }
 
@@ -120,7 +122,7 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 
 
 bool SignpostIntrinsicTriangulation::isDelaunay(Edge e) {
-  if (!e.isBoundary() && edgeCotanWeight(e) < -delaunayEPS) {
+  if (!isFixed(e) && edgeCotanWeight(e) < -delaunayEPS) {
     return false;
   }
   return true;
@@ -149,7 +151,7 @@ double SignpostIntrinsicTriangulation::minAngleDegrees() {
 bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 
   // Can't flip
-  if (e.isBoundary()) return false;
+  if (isFixed(e)) return false;
 
   // Don't want to flip
   double cWeight = edgeCotanWeight(e);
@@ -196,7 +198,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleEPS) {
 
   // Can't flip
-  if (e.isBoundary()) return false;
+  if (isFixed(e)) return false;
 
   // Get geometric data
   Halfedge he = e.halfedge();
@@ -406,7 +408,11 @@ Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
   // === Trace the ray to find the location of the new point on the intrinsic meshes
 
   // Data we need from the intrinsic trace
-  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, false);
+  TraceOptions options;
+  if(markedEdges.size() > 0) {
+    options.barrierEdges = &markedEdges;
+  }
+  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, options);
   // intrinsicTracer->snapEndToEdgeIfClose(intrinsicCrumbs); TODO
   // SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
   SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint;
@@ -436,7 +442,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
 
   if (vertexLocations[v].type == SurfacePointType::Vertex) return Face(); // can't remove original vertices
 
-  if (v.isBoundary()) {
+  if (isOnFixedEdge(v)) {
     return Face(); // don't try to remove boundary vertices, for now at least
   }
 
@@ -585,7 +591,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
     // remove inserted vertices
     for (auto p : nearbyVerts) {
       Vertex v = p.first;
-      if (v != newV && !v.isBoundary() && vertexLocations[v].type != SurfacePointType::Vertex) {
+      if (v != newV && !isOnFixedEdge(v) && vertexLocations[v].type != SurfacePointType::Vertex) {
         // std::cout << "  removing inserted vertex " << v << std::endl;
         Face fReplace = removeInsertedVertex(v);
 
@@ -761,6 +767,8 @@ void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
 void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
 
   // Handle boundary cases
+  // NOTE: This makes sense because we preserve the invariant that intrinsic boundary vertices are always located along
+  // the boundary of the original mesh, which has the convention that v.halfedge() begins a ccw arc along the interior.
   if (!he.isInterior()) {
     intrinsicHalfedgeDirections[he] = intrinsicVertexAngleSums[he.vertex()]; // last angle in boundary wedge
     halfedgeVectorsInVertex[he] = halfedgeVector(he);
@@ -881,7 +889,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   Vector2 outgoingVec;
 
   // if (newV.isBoundary()) {
-  bool boundaryEdgeInsertion = (intrinsicPoint.type == SurfacePointType::Edge && intrinsicPoint.edge.isBoundary());
+  bool boundaryEdgeInsertion = (intrinsicPoint.type == SurfacePointType::Edge && isFixed(intrinsicPoint.edge));
   if (boundaryEdgeInsertion) {
     // For boundary vertices, instead of tracing, directly interpolate along the edge
     inputTraceHe = newV.halfedge().twin();
