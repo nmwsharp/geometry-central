@@ -50,6 +50,10 @@ public:
   // Minor parameters
   double delaunayEPS = 1e-6; // epsilon to use when testing if an edge is Delaunay
 
+  // Marked edges, which cannot be removed.
+  // (set to an array which holds true if an edge is fixed, and should not be flipped)
+  EdgeData<char> markedEdges;
+
   // ======================================================
   // ======== Queries & Accessors
   // ======================================================
@@ -196,6 +200,10 @@ private:
 
   // Repopulate the member halfedgeVectorInFace
   void updateFaceBasis(Face f);
+
+  // Is this a marked or boundary edge?
+  bool isFixed(Edge e);
+  bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
 
   // Isometrically lay out the vertices around a halfedge in 2D coordinates
   // he points from vertex 2 to 0; others are numbered CCW

@@ -131,6 +131,19 @@ inline std::array<Vector2, 3> SignpostIntrinsicTriangulation::vertexCoordinatesI
           -halfedgeVectorsInFace[face.halfedge().next().next()]};
 }
 
+inline bool SignpostIntrinsicTriangulation::isFixed(Edge e) {
+  if (e.isBoundary()) return true;
+  if (markedEdges.size() > 0 && markedEdges[e]) return true;
+  return false;
+}
+
+inline bool SignpostIntrinsicTriangulation::isOnFixedEdge(Vertex v) {
+  for (Edge e : v.adjacentEdges()) {
+    if (isFixed(e)) return true;
+  }
+  return false;
+}
+
 
 template <typename T>
 VertexData<T> SignpostIntrinsicTriangulation::sampleAtInput(const VertexData<T>& dataOnIntrinsic) {
