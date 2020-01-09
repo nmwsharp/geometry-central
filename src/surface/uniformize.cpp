@@ -27,7 +27,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
   // A geometry for the new edge lengths, which we will update
   EdgeLengthGeometry lengthGeom(mesh, geometry.edgeLengths);
   if (withEdgeFlips) {
-    flipToDelaunay(mesh, lengthGeom.inputEdgeLengths);
+    flipToDelaunay(mesh, lengthGeom.inputEdgeLengths, FlipType::Hyperbolic);
   }
   lengthGeom.requireCotanLaplacian();
   lengthGeom.requireVertexGaussianCurvatures();
@@ -47,7 +47,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
   }
 
 
-  int nMaxIters = 20;
+  int nMaxIters = 50;
   for (int iIter = 0; iIter < nMaxIters; iIter++) {
 
     // Boundary conditions (Dirichlet)
@@ -72,10 +72,10 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
 
     // Solve problem
     Vector<double> combinedRHS = rhsValsA - decomp.AB * bcVals;
-    Vector<double> Aresult = solve(decomp.AA, combinedRHS);
+    Vector<double> Aresult = 0.5 * solve(decomp.AA, combinedRHS);
 
     // Combine the two boundary conditions and interior solution to a full vector
-    Vector<double> result = 0.1 * reassembleVector(decomp, Aresult, bcVals);
+    Vector<double> result = reassembleVector(decomp, Aresult, bcVals);
 
     // Update edge lengths
     u.fromVector(result);
@@ -101,7 +101,7 @@ EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withE
     std::cout << " uniformize max change = " << maxRelChange << std::endl;
 
     if (withEdgeFlips) {
-      flipToDelaunay(mesh, lengthGeom.inputEdgeLengths);
+      flipToDelaunay(mesh, lengthGeom.inputEdgeLengths, FlipType::Hyperbolic);
     }
     lengthGeom.refreshQuantities();
   }
