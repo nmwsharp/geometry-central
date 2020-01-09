@@ -197,8 +197,7 @@ std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbos
 
 // ======= Output =======
 
-/*
-bool WavefrontOBJ::write(std::string filename, GeometryEuclidean>& geometry) {
+bool WavefrontOBJ::write(std::string filename, VertexPositionGeometry& geometry) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
@@ -214,7 +213,7 @@ bool WavefrontOBJ::write(std::string filename, GeometryEuclidean>& geometry) {
   return true;
 }
 
-bool WavefrontOBJ::write(std::string filename, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
+bool WavefrontOBJ::write(std::string filename, VertexPositionGeometry& geometry, CornerData<Vector2>& texcoords) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
@@ -246,23 +245,24 @@ bool WavefrontOBJ::openStream(std::ofstream& out, std::string filename) {
   return true;
 }
 
-void WavefrontOBJ::writeHeader(std::ofstream& out, Geometry<Euclidean>& geometry) {
+void WavefrontOBJ::writeHeader(std::ofstream& out, VertexPositionGeometry& geometry) {
   out << "# Mesh exported from GeometryCentral" << endl;
   out << "#  vertices: " << geometry.mesh.nVertices() << endl;
   out << "#     edges: " << geometry.mesh.nEdges() << endl;
   out << "#     faces: " << geometry.mesh.nFaces() << endl;
 }
 
-void WavefrontOBJ::writeVertices(std::ofstream& out, Geometry<Euclidean>& geometry) {
+void WavefrontOBJ::writeVertices(std::ofstream& out, VertexPositionGeometry& geometry) {
   HalfedgeMesh& mesh(geometry.mesh);
+  geometry.requireVertexPositions();
 
   for (Vertex v : mesh.vertices()) {
-    Vector3 p = geometry.position(v);
+    Vector3 p = geometry.vertexPositions[v];
     out << "v " << p.x << " " << p.y << " " << p.z << endl;
   }
 }
 
-void WavefrontOBJ::writeTexCoords(std::ofstream& out, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
+void WavefrontOBJ::writeTexCoords(std::ofstream& out, VertexPositionGeometry& geometry, CornerData<Vector2>& texcoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   for (Corner c : mesh.corners()) {
@@ -271,7 +271,7 @@ void WavefrontOBJ::writeTexCoords(std::ofstream& out, Geometry<Euclidean>& geome
   }
 }
 
-void WavefrontOBJ::writeFaces(std::ofstream& out, Geometry<Euclidean>& geometry, bool useTexCoords) {
+void WavefrontOBJ::writeFaces(std::ofstream& out, VertexPositionGeometry& geometry, bool useTexCoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   // Get vertex indices
@@ -298,7 +298,6 @@ void WavefrontOBJ::writeFaces(std::ofstream& out, Geometry<Euclidean>& geometry,
     }
   }
 }
-*/
 
 std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(HalfedgeMesh& mesh) {
   std::array<std::pair<std::vector<size_t>, size_t>, 5> result;
