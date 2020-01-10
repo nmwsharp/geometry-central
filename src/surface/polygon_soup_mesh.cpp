@@ -143,7 +143,7 @@ void PolygonSoupMesh::readMeshFromFile(std::string filename) {
       cornerCoords.emplace_back();
       std::vector<Vector2>& faceCoord = cornerCoords.back();
       for (size_t i : faceCoordInd) {
-        faceCoord.push_back(coords[i]);
+        if (i < coords.size()) faceCoord.push_back(coords[i]);
       }
     }
   }
