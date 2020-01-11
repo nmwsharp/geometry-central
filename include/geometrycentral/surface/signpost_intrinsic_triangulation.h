@@ -111,6 +111,8 @@ public:
   // ======================================================
   //
   // Basic operations to modify the intrinsic triangulation
+  // NOTE: The individual operations to not call refreshQuantities(), so you should call it if you want quantities
+  // updated.
 
   // If the edge is not Delaunay, flip it. Returns true if flipped.
   bool flipEdgeIfNotDelaunay(Edge e);
@@ -132,6 +134,8 @@ public:
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   Face removeInsertedVertex(Vertex v);
 
+  // Split a halfedge
+  Halfedge splitEdge(Halfedge he, double tSplit);
 
   // ======================================================
   // ======== Callbacks
@@ -183,7 +187,7 @@ private:
 
   // Insertion helpers
   Vertex insertVertex_face(SurfacePoint newPositionOnIntrinsic);
-  Vertex insertVertex_edge(SurfacePoint newPositionOnIntrinsic);
+  Halfedge insertVertex_edge(SurfacePoint newPositionOnIntrinsic);
   void resolveNewVertex(Vertex newV, SurfacePoint intrinsicPoint);
 
   // Update a signpost angle from the (counter-)clockwise neighboring angle

@@ -255,7 +255,7 @@ Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIn
     break;
   }
   case SurfacePointType::Edge: {
-    return insertVertex_edge(newPositionOnIntrinsic);
+    return insertVertex_edge(newPositionOnIntrinsic).vertex();
     break;
   }
   case SurfacePointType::Face: {
@@ -266,7 +266,7 @@ Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIn
   return Vertex();
 }
 
-Vertex SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
+Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
 
   // === (1) Gather some data about the edge we're about to insert into
 
@@ -332,7 +332,7 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   resolveNewVertex(newV, newP);
 
   invokeEdgeSplitCallbacks(insertionEdge, newHeFront, newHeBack);
-  return newV;
+  return newHeFront;
 }
 
 Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
@@ -409,7 +409,7 @@ Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
 
   // Data we need from the intrinsic trace
   TraceOptions options;
-  if(markedEdges.size() > 0) {
+  if (markedEdges.size() > 0) {
     options.barrierEdges = &markedEdges;
   }
   TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, options);
@@ -472,6 +472,10 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   Face newF = mesh.removeVertex(v);
   updateFaceBasis(newF);
   return newF;
+}
+
+Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
+  return insertVertex_edge(SurfacePoint(he, tSplit));
 }
 
 void SignpostIntrinsicTriangulation::flipToDelaunay() {
@@ -939,6 +943,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     // Normal case: trace an edge inward, use the result to resolve position and tangent basis
     TraceGeodesicResult inputTraceResult =
         traceGeodesic(inputGeom, vertexLocations[inputTraceHe.vertex()], halfedgeVector(inputTraceHe));
+    // snapEndToEdgeIfClose(inputTraceResult); TODO
     newPositionOnInput = inputTraceResult.endPoint;
     outgoingVec = -inputTraceResult.endingDir;
   }
