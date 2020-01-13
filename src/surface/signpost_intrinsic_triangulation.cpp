@@ -73,7 +73,22 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometry
   requireHalfedgeVectorsInVertex();
   requireHalfedgeVectorsInFace();
   requireVertexAngleSums();
+
+  // == Register the default callback which maintains marked edges
+  auto updateMarkedEdges = [&](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
+    if (markedEdges.size() > 0 && markedEdges[oldE]) {
+      markedEdges[newHe1.edge()] = true;
+      markedEdges[newHe2.edge()] = true;
+    }
+  };
+  edgeSplitCallbackList.push_back(updateMarkedEdges);
 }
+
+void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<char>& markedEdges_) {
+  markedEdges = markedEdges_;
+  markedEdges.setDefault(false);
+}
+
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) {
   // Gather values to trace
@@ -434,7 +449,7 @@ Vertex SignpostIntrinsicTriangulation::insertBarycenter(Face f) {
 
 Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   // Strategy: flip edges until the vertex has degree three, then remove by replacing with a single face
-  // TODO needs a proof that this always works... what about self edges, etc?
+  // TODO needs a proof that this always works... what about self edges, etc? Seems to work well.
 
   // What about starting with degree < 3? Since this vertex necessarily has angle sum 2PI, this could only happen in the
   // case of degree 2, with exactly degenerate triangles. Since we assume non-degenerate triangles throughout, we'll
@@ -457,7 +472,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
       if (anyFlipped) break;
     }
 
-    // failsafe, in case we get numerically stuck (or the algorithm is broken)
+    // failsafe, in case we get numerically stuck, or there are too many fixed edges (or the algorithm is broken)
     if (!anyFlipped || iterCount > 10 * v.degree()) {
       return Face();
     }
@@ -465,7 +480,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
     iterCount++;
   }
 
-  // give up if something went wrong
+  // give up if something went wrong (eg. flipped edges)
   if (v.degree() != 3) return Face();
 
   // Remove the vertex
@@ -617,7 +632,9 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       }
     }
   };
-  auto callbackHandle = edgeSplitCallbackList.insert(edgeSplitCallbackList.begin(), deleteNearbyVertices);
+  // Add our new callback at the end, so it gets invoked after any user-defined callbacks which ought to get called
+  // right after the split before we mess with the mesh.
+  auto callbackHandle = edgeSplitCallbackList.insert(std::end(edgeSplitCallbackList), deleteNearbyVertices);
 
   // === Outer iteration: flip and insert until we have a mesh that satisfies both angle and circumradius goals
   size_t nFlips = 0;
@@ -686,7 +703,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       //   - This face might have been flipped to no longer violate constraint
       if (A == area(f) && shouldRefine(f)) {
 
-        // std::cout << "  refining face " << f << std::endl;
+        //std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
         nInsertions++;
 
@@ -741,29 +758,14 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
 // ======================================================
 
 void SignpostIntrinsicTriangulation::computeEdgeLengths() {
-  if (edgeLengths.size() > 0) {
-    for (Edge e : mesh.edges()) {
-      if (std::abs(edgeLengths[e] - intrinsicEdgeLengths[e]) > 1e-4) {
-        std::cout << "Edge " << e << " length changed significantly " << edgeLengths[e] << " --> "
-                  << intrinsicEdgeLengths[e] << std::endl;
-      }
-    }
-  }
   edgeLengths = intrinsicEdgeLengths;
 }
 
 void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
-  HalfedgeData<Vector2> oldHalfedgeVecs = halfedgeVectorsInVertex;
   halfedgeVectorsInVertex = HalfedgeData<Vector2>(mesh);
 
   for (Halfedge he : mesh.halfedges()) {
     Vector2 traceVec = halfedgeVector(he);
-    if (oldHalfedgeVecs.size() > 0 && (traceVec - oldHalfedgeVecs[he]).norm() > 1e-4) {
-      cout << "Halfedge " << he << " vec changed significantly: " << oldHalfedgeVecs[he] << " --> " << traceVec
-           << std::endl;
-      cout << std::boolalpha << "  he.isInterior() " << he.isInterior() << "  he.twin().isInterior() "
-           << he.twin().isInterior() << std::endl;
-    }
     halfedgeVectorsInVertex[he] = traceVec;
   }
 }
@@ -892,8 +894,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   SurfacePoint newPositionOnInput;
   Vector2 outgoingVec;
 
-  // if (newV.isBoundary()) {
-  bool boundaryEdgeInsertion = (intrinsicPoint.type == SurfacePointType::Edge && isFixed(intrinsicPoint.edge));
+  bool boundaryEdgeInsertion = (intrinsicPoint.type == SurfacePointType::Edge && intrinsicPoint.edge.isBoundary());
   if (boundaryEdgeInsertion) {
     // For boundary vertices, instead of tracing, directly interpolate along the edge
     inputTraceHe = newV.halfedge().twin();
@@ -924,14 +925,14 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
       Vertex prevVOrig = vertexLocations[prevV].vertex;
 
       for (Halfedge he : nextVOrig.incomingHalfedges()) {
-        if (!he.twin().isInterior() && he.vertex() == prevVOrig) {
+        if (he.vertex() == prevVOrig && he.edge().isBoundary()) {
           origEdge = he.edge();
         }
       }
     }
 
     if (origEdge == Edge()) {
-      throw std::runtime_error("problem!");
+      throw std::runtime_error("edge split problem: no boundary edge connecting vertices in boundary insertion");
     }
 
     // Interpolate between the previous and next t values
