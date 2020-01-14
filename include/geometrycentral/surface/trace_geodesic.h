@@ -21,13 +21,15 @@ struct TraceOptions {
   bool includePath = false;
   bool errorOnProblem = false;
   EdgeData<char>* barrierEdges = nullptr; // if set, traces will stop when they hit barrier edges
+  //bool allowEndOnEdge = false;            // can the trace end on an edge? if so, uses epsilon below
+  //double allowEndOnEdgeEps = 1e-5;        // in absolute length
 };
 extern const TraceOptions defaultTraceOptions;
 
 // These trace routines will always yield a path that looks like:
 //   - the start point
 //   - 0 or more edge crossings
-//   - the end point in a face
+//   - the end point in a face (unless allowEndOnEdge set)
 // the only exception is tracing on a surface with boundary, which may yield an end point on a edge if the trace hit the
 // boundary
 
