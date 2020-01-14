@@ -90,7 +90,7 @@ void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<char>& marked
 }
 
 
-std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) {
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
   // Gather values to trace
   SurfacePoint startP = vertexLocations[he.vertex()];
   Vector2 traceVec = halfedgeVector(he);
@@ -102,9 +102,8 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
 
   // Trim off end crumbs if applicable
   Vertex endVert = he.twin().vertex();
-  if (vertexLocations[endVert].type == SurfacePointType::Vertex) {
+  if (trimEnd && vertexLocations[endVert].type == SurfacePointType::Vertex) {
     bool success = trimTraceResult(result, endVert);
-
     // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
     // initially
     if (!success) {
@@ -113,7 +112,9 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   }
 
   // Append the endpoint
-  result.pathPoints.push_back(vertexLocations[endVert]);
+  if (trimEnd) {
+    result.pathPoints.push_back(vertexLocations[endVert]);
+  }
 
   return result.pathPoints;
 }
@@ -124,7 +125,7 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he);
+    tracedEdges[e] = traceHalfedge(he, false); 
   }
 
   return tracedEdges;
@@ -299,7 +300,7 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
 
   int iA = halfedgeIndexInTriangle(insertionEdge.halfedge());
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(fA);
-  Vector2 posA = (1. * newP.tEdge) * vertCoords[iA] + newP.tEdge * vertCoords[(iA + 1) % 3];
+  Vector2 posA = (1. - newP.tEdge) * vertCoords[iA] + newP.tEdge * vertCoords[(iA + 1) % 3];
   Alen = (posA - vertCoords[(iA + 2) % 3]).norm();
 
 
@@ -347,6 +348,7 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   resolveNewVertex(newV, newP);
 
   invokeEdgeSplitCallbacks(insertionEdge, newHeFront, newHeBack);
+
   return newHeFront;
 }
 
@@ -703,7 +705,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       //   - This face might have been flipped to no longer violate constraint
       if (A == area(f) && shouldRefine(f)) {
 
-        //std::cout << "  refining face " << f << std::endl;
+        // std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
         nInsertions++;
 
@@ -753,13 +755,97 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
 }
 
 
+void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& posGeom, double angleThreshDeg,
+                                                    double relativeLengthEPS, size_t maxInsertions) {
+
+  posGeom.requireVertexPositions();
+
+  // == Process parameters
+
+  // Compute shape length scale as bounding box diagonal
+  Vector3 minP = Vector3::constant(std::numeric_limits<double>::infinity());
+  Vector3 maxP = Vector3::constant(-std::numeric_limits<double>::infinity());
+  for (Vertex v : posGeom.mesh.vertices()) {
+    Vector3 p = posGeom.vertexPositions[v];
+    minP = componentwiseMin(minP, p);
+    maxP = componentwiseMax(maxP, p);
+  }
+  double lengthScale = norm(minP - maxP);
+  double lengthEPS = lengthScale * relativeLengthEPS;
+
+  double angleThresh = angleThreshDeg * PI / 180.;
+
+
+  // === Make repeated passes through, splitting edges until no more bent edges remain
+  bool anySplit = true;
+  EdgeData<char> edgeIsGood(mesh, false);
+  size_t nSplit = 0;
+  while (anySplit) {
+    anySplit = false;
+    for (Edge e : mesh.edges()) {
+
+      if (maxInsertions != INVALID_IND && nSplit >= maxInsertions) break;
+
+      if (edgeIsGood[e]) continue; // ONEDAY use a queue instead
+
+      // Trace the edge
+      std::vector<SurfacePoint> surfacePoints = traceHalfedge(e.halfedge(), false);
+
+      // Detect the first sharp enough bend
+      double tSplit = -1;
+      double runningLen = 0.;
+      for (size_t iP = 1; (iP + 1) < surfacePoints.size(); iP++) {
+        SurfacePoint& prevS = surfacePoints[iP - 1];
+        SurfacePoint& currS = surfacePoints[iP];
+        SurfacePoint& nextS = surfacePoints[iP + 1];
+
+        Vector3 prevP = prevS.interpolate(posGeom.vertexPositions);
+        Vector3 currP = currS.interpolate(posGeom.vertexPositions);
+        Vector3 nextP = nextS.interpolate(posGeom.vertexPositions);
+
+        double lenFirst = (prevP - currP).norm();
+        double lenSecond = (currP - nextP).norm();
+
+        runningLen += lenFirst;
+
+        // Skip if either segment is too short
+        if (lenFirst < lengthEPS || lenSecond < lengthEPS) continue;
+
+        // Measure the angle
+        double angleBetween = PI - angle(currP - prevP, currP - nextP);
+
+        // Split if angle is too sharp
+        if (angleBetween > angleThresh) {
+          double thisTSplit = runningLen / intrinsicEdgeLengths[e];
+
+          if (thisTSplit > relativeLengthEPS && thisTSplit < 1. - relativeLengthEPS) {
+            tSplit = thisTSplit;
+            break;
+          }
+        }
+      }
+
+      // If a bend was found, split the edge
+      if (tSplit == -1) {
+        edgeIsGood[e] = true;
+      } else {
+        anySplit = true;
+        nSplit++;
+        splitEdge(e.halfedge(), tSplit);
+      }
+    }
+  }
+
+  refreshQuantities();
+
+  posGeom.unrequireVertexPositions();
+}
+
 // ======================================================
 // ======== Geometry and Helpers
 // ======================================================
 
-void SignpostIntrinsicTriangulation::computeEdgeLengths() {
-  edgeLengths = intrinsicEdgeLengths;
-}
+void SignpostIntrinsicTriangulation::computeEdgeLengths() { edgeLengths = intrinsicEdgeLengths; }
 
 void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
   halfedgeVectorsInVertex = HalfedgeData<Vector2>(mesh);
@@ -942,8 +1028,12 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     newPositionOnInput = SurfacePoint(origEdge, thisT);
   } else {
     // Normal case: trace an edge inward, use the result to resolve position and tangent basis
+    //std::cout << "tracing to resolve new vertex" << std::endl;
+    TraceOptions options;
+
     TraceGeodesicResult inputTraceResult =
-        traceGeodesic(inputGeom, vertexLocations[inputTraceHe.vertex()], halfedgeVector(inputTraceHe));
+        traceGeodesic(inputGeom, vertexLocations[inputTraceHe.vertex()], halfedgeVector(inputTraceHe), options);
+    //std::cout << " --> done tracing to resolve new vertex" << std::endl;
     // snapEndToEdgeIfClose(inputTraceResult); TODO
     newPositionOnInput = inputTraceResult.endPoint;
     outgoingVec = -inputTraceResult.endingDir;

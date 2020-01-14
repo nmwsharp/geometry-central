@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/surface/halfedge_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/surface_point.h"
@@ -71,7 +72,7 @@ public:
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points
   EdgeData<std::vector<SurfacePoint>> traceEdges();
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he); // trace a single intrinsic halfedge
+  std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
 
   // Given data defined on the intrinsic triangulation, samples it at the vertices of the input triangulation
   template <typename T>
@@ -108,6 +109,13 @@ public:
   // Will return only when all triangles pass this function, or maxInsertions is exceeded, so
   // be sure to chose arguments such that the function terminates.
   void delaunayRefine(const std::function<bool(Face)>& shouldRefine, size_t maxInsertions = INVALID_IND);
+
+
+  // Split edges which bend along an underlying surface.
+  //   - angleThreshDeg: threshold at which to split (interpret as angle between normals), 0 would mean never split
+  //   - relaiveL
+  void splitBentEdges(EmbeddedGeometryInterface& posGeom, double angleThreshDeg = 30, double relativeLengthEPS = 1e-4,
+                      size_t maxInsertions = INVALID_IND);
 
 
   // ======================================================
