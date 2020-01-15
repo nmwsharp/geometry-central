@@ -5,7 +5,7 @@ namespace geometrycentral {
 namespace surface {
 
 VertexData<double> heatMethodDistance(IntrinsicGeometryInterface& geom, Vertex v) {
-	return HeatMethodDistanceSolver(geom).computeDistance(v);
+  return HeatMethodDistanceSolver(geom).computeDistance(v);
 }
 
 HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& geom_, double tCoef_)
@@ -71,7 +71,7 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
   geom.requireHalfedgeVectorsInFace();
   geom.requireEdgeLengths();
   geom.requireVertexIndices();
-
+  geom.requireVertexDualAreas();
 
   // === Build RHS
   VertexData<double> rhs(mesh, 0.);
@@ -86,33 +86,7 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
   }
   Vector<double> rhsVec = rhs.toVector();
 
-
-  // === Solve heat
-  Vector<double> heatVec = heatSolver->solve(rhsVec);
-
-
-  // === Normalize in each face and evaluate divergence
-  Vector<double> divergenceVec = Vector<double>::Zero(mesh.nVertices());
-  for (Face f : mesh.faces()) {
-
-    Vector2 gradUDir = Vector2::zero(); // warning, wrong magnitude because we don't care
-    for (Halfedge he : f.adjacentHalfedges()) {
-      Vector2 ePerp = geom.halfedgeVectorsInFace[he.next()].rotate90();
-      gradUDir += ePerp * heatVec(geom.vertexIndices[he.vertex()]);
-    }
-
-    gradUDir = gradUDir.normalize();
-
-    for (Halfedge he : f.adjacentHalfedges()) {
-      double val = geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);
-      divergenceVec[geom.vertexIndices[he.vertex()]] += val;
-      divergenceVec[geom.vertexIndices[he.twin().vertex()]] += -val;
-    }
-  }
-
-  // === Integrate divergence to get distance
-  Vector<double> distVec = poissonSolver->solve(divergenceVec);
-
+  Vector<double> distVec = computeDistanceRHS(rhsVec);
 
   // ===  Shift distance to put zero at the source set
 
@@ -158,12 +132,55 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
   double shift = -distDiffAtSource;
   distVec = distVec.array() + shift;
 
-  geom.unrequireHalfedgeVectorsInFace();
   geom.unrequireHalfedgeCotanWeights();
-  geom.requireEdgeLengths();
+  geom.unrequireHalfedgeVectorsInFace();
+  geom.unrequireEdgeLengths();
   geom.unrequireVertexIndices();
+  geom.unrequireVertexDualAreas();
 
   return VertexData<double>(mesh, distVec);
+}
+
+Vector<double> HeatMethodDistanceSolver::computeDistanceRHS(const Vector<double>& rhsVec) {
+  geom.requireHalfedgeCotanWeights();
+  geom.requireHalfedgeVectorsInFace();
+  geom.requireEdgeLengths();
+  geom.requireVertexIndices();
+  geom.requireVertexDualAreas();
+
+  // === Solve heat
+  Vector<double> heatVec = heatSolver->solve(rhsVec);
+
+  // === Normalize in each face and evaluate divergence
+  Vector<double> divergenceVec = Vector<double>::Zero(mesh.nVertices());
+  for (Face f : mesh.faces()) {
+
+    Vector2 gradUDir = Vector2::zero(); // warning, wrong magnitude because we don't care
+    for (Halfedge he : f.adjacentHalfedges()) {
+      Vector2 ePerp = geom.halfedgeVectorsInFace[he.next()].rotate90();
+      gradUDir += ePerp * heatVec(geom.vertexIndices[he.vertex()]);
+    }
+
+    gradUDir = gradUDir.normalize();
+
+    for (Halfedge he : f.adjacentHalfedges()) {
+      double val = geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);
+      divergenceVec[geom.vertexIndices[he.vertex()]] += val;
+      divergenceVec[geom.vertexIndices[he.twin().vertex()]] += -val;
+    }
+  }
+
+  // === Integrate divergence to get distance
+  Vector<double> distVec = poissonSolver->solve(divergenceVec);
+
+
+  geom.unrequireHalfedgeVectorsInFace();
+  geom.unrequireHalfedgeCotanWeights();
+  geom.unrequireEdgeLengths();
+  geom.unrequireVertexIndices();
+  geom.unrequireVertexDualAreas();
+
+  return distVec;
 }
 
 
