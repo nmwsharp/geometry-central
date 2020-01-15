@@ -42,6 +42,9 @@ public:
   // Solve for distance from a collection of surface points
   VertexData<double> computeDistance(const std::vector<SurfacePoint>& sourcePoints);
 
+  // Solve for distance from a custom right hand side
+  // (returns WITHOUT performing constant shift to 0)
+  Vector<double> computeDistanceRHS(const Vector<double>& rhs);
 
   // === Options and parameters
 
