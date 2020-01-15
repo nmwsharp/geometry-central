@@ -125,7 +125,7 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he, false); 
+    tracedEdges[e] = traceHalfedge(he, false);
   }
 
   return tracedEdges;
@@ -562,6 +562,11 @@ void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, d
           continue;
         }
 
+        // If it's a fixed corner, can't make it smaller
+        if (isFixed(he.edge()) && isFixed(he.prevOrbitFace().edge())) {
+          continue;
+        }
+
         needsRefinementAngle = true;
       }
     }
@@ -590,12 +595,21 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
   }
 
 
+  // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces on boundary first with
+  // weight inf.
+  auto areaWeight = [&](Face f) {
+    for (Edge e : f.adjacentEdges()) {
+      if (isFixed(e)) return std::numeric_limits<double>::infinity();
+    }
+    return area(f);
+  };
+
   // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
   typedef std::pair<double, Face> AreaFace;
   std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>> circumradiusCheckQueue;
   for (Face f : mesh.faces()) {
     if (shouldRefine(f)) {
-      circumradiusCheckQueue.push(std::make_pair(area(f), f));
+      circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
     }
   }
 
@@ -628,7 +642,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
 
           // Add face for refine check
           if (shouldRefine(fReplace)) {
-            circumradiusCheckQueue.push(std::make_pair(area(fReplace), fReplace));
+            circumradiusCheckQueue.push(std::make_pair(areaWeight(fReplace), fReplace));
           }
         }
       }
@@ -664,7 +678,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
       for (Face nF : neighFaces) {
         if (shouldRefine(nF)) {
-          circumradiusCheckQueue.push(std::make_pair(area(nF), nF));
+          circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
         }
       }
 
@@ -703,7 +717,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
       //    re-add it, because it must have been placed in the queue when its area was changed
       //   - This face might have been flipped to no longer violate constraint
-      if (A == area(f) && shouldRefine(f)) {
+      if (A == areaWeight(f) && shouldRefine(f)) {
 
         // std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
@@ -714,7 +728,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
 
           // Check circumradius constraint
           if (shouldRefine(nF)) {
-            circumradiusCheckQueue.push(std::make_pair(area(nF), nF));
+            circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
           }
 
           // Check delaunay constraint
@@ -736,7 +750,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
         for (Face f : mesh.faces()) {
           if (shouldRefine(f)) {
-            circumradiusCheckQueue.push(std::make_pair(area(f), f));
+            circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
           }
         }
         for (Edge e : mesh.edges()) {
@@ -812,7 +826,7 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
         if (lenFirst < lengthEPS || lenSecond < lengthEPS) continue;
 
         // Measure the angle
-        double angleBetween = PI - angle(currP - prevP, currP - nextP);
+        double angleBetween = angle(currP - prevP, nextP - currP);
 
         // Split if angle is too sharp
         if (angleBetween > angleThresh) {
@@ -1028,12 +1042,12 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     newPositionOnInput = SurfacePoint(origEdge, thisT);
   } else {
     // Normal case: trace an edge inward, use the result to resolve position and tangent basis
-    //std::cout << "tracing to resolve new vertex" << std::endl;
+    // std::cout << "tracing to resolve new vertex" << std::endl;
     TraceOptions options;
 
     TraceGeodesicResult inputTraceResult =
         traceGeodesic(inputGeom, vertexLocations[inputTraceHe.vertex()], halfedgeVector(inputTraceHe), options);
-    //std::cout << " --> done tracing to resolve new vertex" << std::endl;
+    // std::cout << " --> done tracing to resolve new vertex" << std::endl;
     // snapEndToEdgeIfClose(inputTraceResult); TODO
     newPositionOnInput = inputTraceResult.endPoint;
     outgoingVec = -inputTraceResult.endingDir;
