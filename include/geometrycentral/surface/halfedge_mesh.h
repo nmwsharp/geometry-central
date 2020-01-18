@@ -114,6 +114,9 @@ public:
 
   // Removes an edge, unioning two faces. Input must not be a boundary edge. Returns Face() if impossible.
   Face removeEdge(Edge e);
+ 
+  // Remove a face along the boundary. Currently does not know how to remove ears or whole components.
+  bool removeFaceAlongBoundary(Face f);
 
   // Triangulate in a face, returns all subfaces
   std::vector<Face> triangulate(Face face);

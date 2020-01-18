@@ -1213,6 +1213,9 @@ Vertex HalfedgeMesh::insertVertex(Face fIn) {
 
 Vertex HalfedgeMesh::collapseEdge(Edge e) {
 
+  // FIXME I think this function is significantly buggy
+  throw std::runtime_error("don't trust this function");
+
   // Is the edge we're collapsing along the boundary
   bool onBoundary = e.isBoundary();
 
@@ -1273,6 +1276,11 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
   //   - the halfedge heA2 will be repurposed as heA1.twin()
   //   - the halfedge heB1 will be repurposed as heB2.twin()
 
+  // Neighbors of vB
+  // for(Halfedge he : vB.outgoingHalfedges()) {
+  // heVertex[he.getIndex()] = vA.getIndex();
+  //}
+
   // == Around face A
   {
     heNext[heA1TPrev.getIndex()] = heA2.getIndex();
@@ -1330,13 +1338,216 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
   // === Delete the actual elements
 
   deleteEdgeTriple(heA0);
+  deleteEdgeTriple(heA1);
   deleteElement(vB);
   deleteElement(fA);
   if (onBoundary) {
     deleteElement(fB);
+    deleteEdgeTriple(heB2);
   }
 
+  validateConnectivity();
+
   return vA;
+}
+
+bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
+
+  // Find the boundary halfedge
+  Halfedge heB;
+  int bCount = 0;
+  int fCount = 0;
+  for (Halfedge he : f.adjacentHalfedges()) {
+    if (!he.twin().isInterior()) {
+      bCount++;
+      heB = he;
+    }
+    fCount++;
+  }
+  if (bCount == 0) {
+    throw std::runtime_error("called on non-boundary face");
+  }
+  if (bCount == 1) {
+    // Remove a non-ear boundary face with one boundary edge
+
+
+    // Gather values
+    Halfedge heBNext = heB.next();
+    Halfedge heBPrev = heB.prevOrbitFace();
+
+    Halfedge heT = heB.twin();
+    Halfedge heTNext = heT.next();
+    Halfedge heTPrev = heT.prevOrbitVertex();
+
+    Face bLoop = heT.face();
+    
+    
+    // Opposite vertex must not be a bounary vertex or this creates a nonmanifold mesh (imagine hourglass)
+    if(heBPrev.vertex().isBoundary()) {
+      return false;
+    }
+
+    // Update refs
+    for (Halfedge he : f.adjacentHalfedges()) {
+      heFace[he.getIndex()] = bLoop.getIndex();
+    }
+
+    // Next refs
+    heNext[heBPrev.getIndex()] = heTNext.getIndex();
+    heNext[heTPrev.getIndex()] = heBNext.getIndex();
+
+    // Vertex halfedges
+    vHalfedge[heTNext.vertex().getIndex()] = heBPrev.twin().getIndex();
+    ensureVertexHasBoundaryHalfedge(heBPrev.vertex());
+
+    fHalfedge[bLoop.getIndex()] = heTNext.getIndex();
+
+    Halfedge currHe = heBNext;
+    do {
+      Halfedge nextHe = currHe.next();
+      ensureEdgeHasInteriorHalfedge(currHe.edge());
+      currHe = nextHe;
+    } while (currHe != heTNext);
+
+    deleteElement(f);
+    deleteEdgeTriple(heB);
+    return true;
+
+    /*
+    Halfedge* he0 = heBoundary.ptr;
+    Halfedge* he0T = he0->twin;
+    Halfedge* he1 = he0->next;
+    Halfedge* he2 = he1->next;
+    Vertex* v0 = he0->vertex;
+    Vertex* v1 = he1->vertex;
+    Vertex* v2 = he2->vertex;
+    Face* fRemove = he0->face;
+    Face* bLoop = he0T->face;
+
+    // Vertex halfedges
+    v0->halfedge = he2->twin;
+    v2->halfedge = he1->twin;
+
+    // Nexts
+    he2->next = he0T->next;
+    v1->halfedge->twin->next = he1;
+
+    // Faces
+    he1->face = bLoop;
+    he2->face = bLoop;
+
+    // mark boundary
+    v2->isBoundary = true;
+    he1->isReal = false;
+    he2->isReal = false;
+
+    deleteElement(he0->edge);
+    deleteElement(he0);
+    deleteElement(he0T);
+    deleteElement(fRemove);
+
+    isCanonicalFlag = false;
+    return true;
+    */
+
+  } else if (bCount == 2) {
+    // Remove an "ear" along the boundary
+
+    /*
+    // Gather elements
+    Halfedge* he0 = f.halfedge().ptr;
+    while (!he0->twin->isReal) he0 = he0->next;
+    Halfedge* he0T = he0->twin;
+    Halfedge* he1 = he0->next;
+    Halfedge* he1T = he1->twin;
+    Edge* e1 = he1->edge;
+    Halfedge* he2 = he1->next;
+    Halfedge* he2T = he2->twin;
+    Edge* e2 = he2->edge;
+    Vertex* v0 = he0->vertex;
+    Vertex* v1 = he1->vertex;
+    Vertex* v2 = he2->vertex;
+    Face* fRemove = he0->face;
+
+    Halfedge* heNext = he1T->next;
+    Halfedge* hePrev = he0T;
+    while (hePrev->isReal) hePrev = hePrev->next->twin;
+
+    // Vertex halfedges
+    v0->halfedge = hePrev->twin;
+    v1->halfedge = he0T;
+
+    // Nexts
+    hePrev->next = heNext;
+
+    // Boundary loop
+    hePrev->face->halfedge = hePrev;
+
+    // mark boundary
+    he0->isReal = false;
+
+    deleteElement(fRemove);
+    deleteElement(v2);
+    deleteElement(he1);
+    deleteElement(he1T);
+    deleteElement(e1);
+    deleteElement(he2);
+    deleteElement(he2T);
+    deleteElement(e2);
+
+    isCanonicalFlag = false;
+    return true;
+    */
+
+    // Not supported yet
+    return false;
+
+  } else {
+    // Remove entire component
+
+    /*
+    Halfedge* he0 = heBoundary.ptr;
+    Halfedge* he0T = he0->twin;
+    Edge* e0 = he0->edge;
+    Halfedge* he1 = he0->next;
+    Halfedge* he1T = he1->twin;
+    Edge* e1 = he1->edge;
+    Halfedge* he2 = he1->next;
+    Halfedge* he2T = he2->twin;
+    Edge* e2 = he2->edge;
+    Vertex* v0 = he0->vertex;
+    Vertex* v1 = he1->vertex;
+    Vertex* v2 = he2->vertex;
+    Face* fFace = he0->face;
+    Face* fBound = he0T->face;
+
+
+    deleteElement(he0);
+    deleteElement(he1);
+    deleteElement(he2);
+
+    deleteElement(he0T);
+    deleteElement(he1T);
+    deleteElement(he2T);
+
+    deleteElement(e0);
+    deleteElement(e1);
+    deleteElement(e2);
+
+    deleteElement(v0);
+    deleteElement(v1);
+    deleteElement(v2);
+
+    deleteElement(fFace);
+    deleteElement(fBound);
+
+    isCanonicalFlag = false;
+    return true;
+    */
+
+    // The removal/insertion code doesn't support changing boundary structure yet
+    return false;
+  }
 }
 
 Face HalfedgeMesh::removeVertex(Vertex v) {
