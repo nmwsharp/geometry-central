@@ -825,7 +825,10 @@ bool trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex) {
 
   switch (b.type) {
   case SurfacePointType::Vertex: {
-    return b.vertex == targetVertex;
+    if (b.vertex == targetVertex) return true;
+    for (Vertex n : b.vertex.adjacentVertices()) {
+      if (n == targetVertex) return true;
+    }
     break;
   }
   case SurfacePointType::Edge: {
