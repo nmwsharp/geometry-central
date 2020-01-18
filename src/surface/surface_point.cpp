@@ -113,5 +113,27 @@ bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB) {
 }
 
 
+bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB) {
+
+  if (pA.type != pB.type) return false;
+
+  switch (pA.type) {
+  case SurfacePointType::Vertex:
+    return pA.vertex == pB.vertex;
+    break;
+  case SurfacePointType::Edge:
+    return pA.edge == pB.edge;
+    break;
+  case SurfacePointType::Face:
+    return pA.face == pB.face;
+    break;
+  }
+
+  // unreachable
+  throw std::runtime_error("unreachable");
+  return false;
+}
+
+
 } // namespace surface
 } // namespace geometrycentral
