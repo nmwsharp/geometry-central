@@ -70,6 +70,9 @@ struct SurfacePoint {
 // Check if two surface points are adjacent on the mesh (aka occur in adjacent simplices)
 bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB);
 
+// Check if they are on the same vertex/edge/face
+bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB);
+
 
 // Printing
 ::std::ostream& operator<<(std::ostream& output, const SurfacePoint& p);
