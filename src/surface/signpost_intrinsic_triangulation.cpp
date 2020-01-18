@@ -104,16 +104,14 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   Vertex endVert = he.twin().vertex();
   if (trimEnd && vertexLocations[endVert].type == SurfacePointType::Vertex) {
     bool success = trimTraceResult(result, endVert);
-    // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
-    // initially
-    if (!success) {
+    if (success) {
+      // Append the endpoint
+      result.pathPoints.push_back(vertexLocations[endVert]);
+    } else {
+      // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
+      // initially
       result = traceGeodesic(inputGeom, startP, traceVec, options);
     }
-  }
-
-  // Append the endpoint
-  if (trimEnd) {
-    result.pathPoints.push_back(vertexLocations[endVert]);
   }
 
   return result.pathPoints;
