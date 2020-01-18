@@ -112,6 +112,7 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   // Do the actual tracing
   TraceOptions options;
   options.includePath = true;
+  options.maxIters = mesh.nFaces() * 10;
   TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, options);
 
   // Trim off end crumbs if applicable

@@ -629,7 +629,19 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
                              const TraceOptions& traceOptions) {
 
   // Now, points are always in faces. Trace until termination.
+  size_t iter = 0;
   while (!prevTraceEnd.terminated) {
+
+    // Terminate on iterations
+    if (traceOptions.maxIters != INVALID_IND && iter >= traceOptions.maxIters) {
+
+      // Use the last trace as ending data
+      result.endPoint = SurfacePoint(prevTraceEnd.crossHe, prevTraceEnd.tCross);
+      result.endingDir = prevTraceEnd.traceVectorInHalfedgeDir;
+
+      return;
+    }
+
 
     // Construct a point where the previous trace ended
     if (traceOptions.includePath) {
@@ -646,6 +658,7 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
     prevTraceEnd =
         traceInFaceFromEdge(geom, prevTraceEnd.crossHe, prevTraceEnd.tCross, prevTraceEnd.traceVectorInHalfedgeDir,
                             prevTraceEnd.traceVectorInHalfedgeLen, traceOptions);
+    iter++;
   }
 
   // Add the final ending point
@@ -655,7 +668,7 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
   result.endPoint = prevTraceEnd.endPoint;
   result.endingDir = prevTraceEnd.incomingDirToPoint;
 
-  //if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
+  // if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
 
   if (prevTraceEnd.endPoint.type == SurfacePointType::Edge) {
     result.hitBoundary = true;
