@@ -91,9 +91,23 @@ void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<char>& marked
 
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
+
+  // Optimization: don't both tracing original edges, just report them directly
+  if (edgeIsOriginal[he.edge()]) {
+    if (vertexLocations[he.vertex()].type != SurfacePointType::Vertex ||
+        vertexLocations[he.twin().vertex()].type != SurfacePointType::Vertex) {
+      throw std::runtime_error("edgeIsOriginal cache is out of date");
+    }
+    Vertex vA = vertexLocations[he.vertex()].vertex;
+    Vertex vB = vertexLocations[he.twin().vertex()].vertex;
+    std::vector<SurfacePoint> result{SurfacePoint(vA), SurfacePoint(vB)};
+    return result;
+  }
+
   // Gather values to trace
   SurfacePoint startP = vertexLocations[he.vertex()];
   Vector2 traceVec = halfedgeVector(he);
+
 
   // Do the actual tracing
   TraceOptions options;
