@@ -655,7 +655,7 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
   result.endPoint = prevTraceEnd.endPoint;
   result.endingDir = prevTraceEnd.incomingDirToPoint;
 
-  if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
+  //if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
 
   if (prevTraceEnd.endPoint.type == SurfacePointType::Edge) {
     result.hitBoundary = true;
