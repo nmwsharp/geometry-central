@@ -177,6 +177,34 @@ TEST_F(HalfedgeGeometrySuite, PurgeTestDEC) {
 }
 
 
+// Copying
+TEST_F(HalfedgeGeometrySuite, CopyTest) {
+  auto asset = getAsset("bob_small.ply");
+  HalfedgeMesh& mesh = *asset.mesh;
+
+  VertexPositionGeometry& geometry = *asset.geometry;
+  
+  /* This SHOULD NOT compile, there is no implicit copy constructor
+  auto testF = [](VertexPositionGeometry g) {
+    g.requireVertexIndices();
+  };
+  testF(geometry);
+  */ 
+
+  // Copy vertex position
+  std::unique_ptr<VertexPositionGeometry> copy1 = geometry.copy();
+  copy1->requireFaceAreas();
+  
+  // Construct edge length geometry
+  copy1->requireEdgeLengths();
+  EdgeLengthGeometry eGeom(mesh, copy1->edgeLengths);
+
+  // Copy vertex position
+  std::unique_ptr<EdgeLengthGeometry> copy2 = eGeom.copy();
+  copy2->requireFaceAreas();
+}
+
+
 // ============================================================
 // =============== Quantity tests
 // ============================================================

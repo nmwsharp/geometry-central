@@ -7,11 +7,7 @@ namespace geometrycentral {
 namespace surface {
 
 VertexPositionGeometry::VertexPositionGeometry(HalfedgeMesh& mesh_)
-    // clang-format off
-// formatter is having an outburst here...
-    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(mesh_, Vector3{ 0., 0., 0, })
-// clang-format on
-
+    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(mesh_, Vector3{0., 0., 0})
 {}
 
 VertexPositionGeometry::VertexPositionGeometry(HalfedgeMesh& mesh_, VertexData<Vector3>& inputVertexPositions_)
