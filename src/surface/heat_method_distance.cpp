@@ -26,8 +26,8 @@ HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& g
   // === Build & factor the linear systems
 
   // Mass matrix
-  geom.requireVertexGalerkinMassMatrix();
-  SparseMatrix<double>& M = geom.vertexGalerkinMassMatrix;
+  geom.requireVertexLumpedMassMatrix();
+  SparseMatrix<double>& M = geom.vertexLumpedMassMatrix;
 
   // Laplacian
   geom.requireCotanLaplacian();
@@ -43,7 +43,7 @@ HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& g
 
   geom.unrequireEdgeLengths();
   geom.unrequireCotanLaplacian();
-  geom.unrequireVertexGalerkinMassMatrix();
+  geom.unrequireVertexLumpedMassMatrix();
 }
 
 
