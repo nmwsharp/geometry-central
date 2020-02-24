@@ -12,6 +12,7 @@ namespace surface {
 class EdgeLengthGeometry : public IntrinsicGeometryInterface {
 
 public:
+  EdgeLengthGeometry(HalfedgeMesh& mesh_);
   EdgeLengthGeometry(HalfedgeMesh& mesh_, EdgeData<double>& inputEdgeLengths);
   virtual ~EdgeLengthGeometry() {}
   
