@@ -62,6 +62,7 @@ Vector3 operator*(const T s, const Vector3& v);
 
 // Printing
 ::std::ostream& operator<<(::std::ostream& output, const Vector3& v);
+::std::istream& operator>>(::std::istream& intput, Vector3& v);
 
 double norm(const Vector3& v);
 double norm2(const Vector3& v);
