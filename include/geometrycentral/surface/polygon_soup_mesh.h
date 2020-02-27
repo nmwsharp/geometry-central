@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <fstream>
 #include <memory>
-#include <regex>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>

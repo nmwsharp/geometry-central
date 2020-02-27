@@ -158,10 +158,12 @@ void PolygonSoupMesh::readMeshFromAsciiStlFile(std::ifstream& in) {
     std::string token;
     ss >> token;
     if (token != expected) {
-      std::cerr << "Error on line " << lineNum << ". Expected \"" << expected << "\" but token \"" << token << "\""
-                << std::endl;
-      std::cerr << "Full line: \"" << line << "\"" << std::endl;
-      exit(1);
+      std::ostringstream errorMessage;
+      errorMessage << "Failed to parse ASCII stl file." << std::endl
+                   << "Error on line " << lineNum << ". Expected \"" << expected << "\" but token \"" << token << "\""
+                   << std::endl
+                   << "Full line: \"" << line << "\"" << std::endl;
+      throw std::runtime_error(errorMessage.str());
     }
   };
 
@@ -309,7 +311,6 @@ void PolygonSoupMesh::mergeIdenticalVertices() {
   }
 
   vertexCoordinates = std::move(compressedPositions);
-  compressedPositions.clear();
 
   // Update face indices
   for (std::vector<size_t>& face : polygons) {
