@@ -10,7 +10,6 @@ namespace geometrycentral {
 
 PolygonSoupMesh::PolygonSoupMesh() {}
 
-// TODO, char* can get cast to bool, so using bool and string as optional arguments leads to horrible bugs
 PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename, std::string type) {
 
   // Attempt to detect filename
