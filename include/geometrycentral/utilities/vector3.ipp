@@ -141,6 +141,13 @@ inline std::ostream& operator<<(std::ostream& output, const Vector3& v) {
   return output;
 }
 
+inline std::istream& operator>>(std::istream& input, Vector3& v) {
+  double x, y, z;
+  input >> x >> y >> z;
+  v = Vector3{x, y, z};
+  return input;
+}
+
 } // namespace geometrycentral
 
 namespace std {
