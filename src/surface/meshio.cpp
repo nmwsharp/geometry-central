@@ -264,10 +264,9 @@ void WavefrontOBJ::writeHeader(std::ofstream& out, EmbeddedGeometryInterface& ge
 void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
   HalfedgeMesh& mesh(geometry.mesh);
   geometry.requireVertexPositions();
-  VertexData<Vector3> pos = geometry.vertexPositions;
 
   for (Vertex v : mesh.vertices()) {
-    Vector3 p = pos[v];
+    Vector3 p = geometry.vertexPositions[v];
     out << "v " << p.x << " " << p.y << " " << p.z << endl;
   }
 }
@@ -291,7 +290,7 @@ void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geo
 
   auto indexFn = [&](Corner c) {
     std::string texCoordString = (useTexCoords) ? std::to_string(cIndices[c] + 1) : "";
-    return " " + std::to_string(indices[c.vertex()] + 1) + "/" + texCoordString + "/";
+    return " " + std::to_string(indices[c.vertex()] + 1) + "/" + texCoordString;
   };
 
   for (Face f : mesh.faces()) {
