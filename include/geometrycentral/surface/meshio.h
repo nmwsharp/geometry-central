@@ -10,9 +10,6 @@
 namespace geometrycentral {
 namespace surface {
 
-// strip unused vertices from face-vertex lists. Returns the mapping from old vertices to new vertices
-std::vector<size_t> stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vector<size_t>>& faceIndices);
-
 // Loads a halfedge mesh and its geometry from file.
 // Specify a type like "ply" or "obj", if no type is specified, attempts to infer from extension.
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
@@ -25,15 +22,14 @@ std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbos
 class WavefrontOBJ {
 public:
   static bool write(std::string filename, EmbeddedGeometryInterface& geometry);
-  static bool write(std::string filename, EmbeddedGeometryInterface& geometry, CornerData<Vector3>& normals);
+  static bool write(std::string filename, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texcoords);
 
 protected:
   static bool openStream(std::ofstream& out, std::string filename);
   static void writeHeader(std::ofstream& out, EmbeddedGeometryInterface& geometry);
   static void writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry);
-  static void writeNormals(std::ofstream& out, EmbeddedGeometryInterface& geometry, CornerData<Vector3>& normals);
-  static void writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords = false,
-                         bool useNormalCoords = false);
+  static void writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texcoords);
+  static void writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords = false);
 };
 
 
