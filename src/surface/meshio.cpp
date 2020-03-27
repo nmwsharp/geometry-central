@@ -18,8 +18,9 @@ namespace surface {
 
 // ======= Input =======
 
-// strip unused vertices from face-vertex lists
-void stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vector<size_t>>& faceIndices) {
+// strip unused vertices from face-vertex lists. Returns the mapping from old vertices to new vertices
+std::vector<size_t> stripUnusedVertices(std::vector<Vector3>& positions,
+                                        std::vector<std::vector<size_t>>& faceIndices) {
 
   size_t nVert = positions.size();
 
@@ -39,9 +40,14 @@ void stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vecto
     }
   }
 
+  // TODO: this is probably useless work most of the time
   // Early exit if dense
   if (nUsedVerts == nVert) {
-    return;
+    std::vector<size_t> identity(nVert);
+    for (size_t i = 0; i < nVert; ++i) {
+      identity.push_back(nVert);
+    }
+    return identity;
   }
 
   // Else: strip unused vertices and re-index faces
@@ -60,6 +66,8 @@ void stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vecto
       i = oldToNewVertexInd[i];
     }
   }
+
+  return oldToNewVertexInd;
 }
 
 
@@ -94,6 +102,7 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry
   stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
   return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
 }
+
 } // namespace
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
@@ -133,7 +142,6 @@ loadMesh(std::string filename, bool verbose, std::string type) {
     }
   }
 }
-
 
 // connectivity loader helpers
 namespace {
@@ -196,14 +204,13 @@ std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbos
 
 
 // ======= Output =======
-
-/*
-bool WavefrontOBJ::write(std::string filename, GeometryEuclidean>& geometry) {
+bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
   writeHeader(out, geometry);
   out << "# texture coordinates: NO" << endl;
+  out << "# normals: NO" << endl;
   cout << endl;
 
   writeVertices(out, geometry);
@@ -214,19 +221,21 @@ bool WavefrontOBJ::write(std::string filename, GeometryEuclidean>& geometry) {
   return true;
 }
 
-bool WavefrontOBJ::write(std::string filename, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
+bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry, CornerData<Vector3>& normals) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
   writeHeader(out, geometry);
-  out << "# texture coordinates: YES" << endl;
+  out << "# texture coordinates: NO" << endl;
+  out << "# normals: YES" << endl;
   cout << endl;
 
   writeVertices(out, geometry);
-  writeTexCoords(out, geometry, texcoords);
+  writeNormals(out, geometry, normals);
 
-  bool useTexCoords = true;
-  writeFaces(out, geometry, useTexCoords);
+  bool useTexCoords = false;
+  bool useNormals = true;
+  writeFaces(out, geometry, useTexCoords, useNormals);
 
   return true;
 }
@@ -246,59 +255,55 @@ bool WavefrontOBJ::openStream(std::ofstream& out, std::string filename) {
   return true;
 }
 
-void WavefrontOBJ::writeHeader(std::ofstream& out, Geometry<Euclidean>& geometry) {
+void WavefrontOBJ::writeHeader(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
   out << "# Mesh exported from GeometryCentral" << endl;
   out << "#  vertices: " << geometry.mesh.nVertices() << endl;
   out << "#     edges: " << geometry.mesh.nEdges() << endl;
   out << "#     faces: " << geometry.mesh.nFaces() << endl;
 }
 
-void WavefrontOBJ::writeVertices(std::ofstream& out, Geometry<Euclidean>& geometry) {
+void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
   HalfedgeMesh& mesh(geometry.mesh);
+  geometry.requireVertexPositions();
+  VertexData<Vector3> pos = geometry.vertexPositions;
 
   for (Vertex v : mesh.vertices()) {
-    Vector3 p = geometry.position(v);
+    Vector3 p = pos[v];
     out << "v " << p.x << " " << p.y << " " << p.z << endl;
   }
 }
 
-void WavefrontOBJ::writeTexCoords(std::ofstream& out, Geometry<Euclidean>& geometry, CornerData<Vector2>& texcoords) {
+void WavefrontOBJ::writeNormals(std::ofstream& out, EmbeddedGeometryInterface& geometry, CornerData<Vector3>& normals) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   for (Corner c : mesh.corners()) {
-    Vector2 z = texcoords[c];
-    out << "vt " << z.x << " " << z.y << endl;
+    Vector3 n = normals[c];
+    out << "vn " << n.x << " " << n.y << " " << n.z << endl;
   }
 }
 
-void WavefrontOBJ::writeFaces(std::ofstream& out, Geometry<Euclidean>& geometry, bool useTexCoords) {
+void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords,
+                              bool useNormalCoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   // Get vertex indices
   VertexData<size_t> indices = mesh.getVertexIndices();
+  CornerData<size_t> cIndices = mesh.getCornerIndices();
 
-  if (useTexCoords) {
-    // Get corner indices
-    CornerData<size_t> cIndices = mesh.getCornerIndices();
+  auto indexFn = [&](Corner c) {
+    std::string texCoordString = (useTexCoords) ? std::to_string(cIndices[c] + 1) : "";
+    std::string normalCoordString = (useNormalCoords) ? std::to_string(cIndices[c] + 1) : "";
+    return " " + std::to_string(indices[c.vertex()] + 1) + "/" + texCoordString + "/" + normalCoordString;
+  };
 
-    for (Face f : mesh.faces()) {
-      out << "f";
-      for (Corner c : f.adjacentCorners()) {
-        out << " " << indices[c.vertex()] + 1 << "/" << cIndices[c] + 1; // OBJ uses 1-based indexing
-      }
-      out << endl;
+  for (Face f : mesh.faces()) {
+    out << "f";
+    for (Corner c : f.adjacentCorners()) {
+      out << indexFn(c);
     }
-  } else {
-    for (Face f : mesh.faces()) {
-      out << "f";
-      for (Halfedge h : f.adjacentHalfedges()) {
-        out << " " << indices[h.vertex()] + 1; // OBJ uses 1-based indexing
-      }
-      out << endl;
-    }
+    out << endl;
   }
 }
-*/
 
 std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(HalfedgeMesh& mesh) {
   std::array<std::pair<std::vector<size_t>, size_t>, 5> result;
