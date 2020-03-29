@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.9)
+cmake_minimum_required(VERSION 3.8)
 
 # We will accumulate all depenency includes and link libraries here
 # (can be relative paths when building list, we will convert all to absolute at end)
@@ -29,7 +29,7 @@ set(EIGEN_LOCATION "" CACHE STRING "Path to Eigen installation. Only needed if E
 # Try (1) loading from specified path
 if(GC_EIGEN_LOCATION)
   message("--    variable EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
- 
+
   # verify that the directory seems to acrtually include Eigen
   # NOTE should also hold Eigen with suitable version but we don't check that
   set(GC_EIGEN_FILE_CHECK "${GC_EIGEN_LOCATION}/Eigen/Core")
@@ -39,7 +39,7 @@ if(GC_EIGEN_LOCATION)
 
   set(EIGEN3_INCLUDE_DIR ${GC_EIGEN_LOCATION})
   set(EIGEN3_VERSION "unknown") # would be great to read this. feels like we should be able to put find_package() to work
-  
+
   message("--    success. Found suitable Eigen from EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
 
 # Try (2) hoping Eigen is already resolved
@@ -58,7 +58,7 @@ else()
 
   # The find_package() failed, manually download the package (4)
   else()
-    
+
     message("--    Could not find Eigen anywhere. Downloading it (or using cached download).")
 
     include(DownloadProject)
@@ -122,7 +122,7 @@ if(SUITESPARSE AND SUITESPARSE_FOUND)
     string(REGEX REPLACE "cholmod" "umfpack" UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
     message("-- Guesstimated umfpack location as: ${UMFPACK_LIBRARY}")
     if(EXISTS ${UMFPACK_LIBRARY})
-        list(APPEND SUITESPARSE_LIBRARIES ${UMFPACK_LIBRARY}) 
+        list(APPEND SUITESPARSE_LIBRARIES ${UMFPACK_LIBRARY})
     else()
         message(WARNING "UMFPack guess failed, so we don't actually have SUITESPARSE support.")
         set(SUITESPARSE_FOUND FALSE)
@@ -138,7 +138,7 @@ else()
     SET(GC_HAVE_SUITESPARSE FALSE)
     SET(GC_HAVE_SUITESPARSE FALSE PARENT_SCOPE)
 endif()
-  
+
 if(GC_HAVE_SUITESPARSE)
   list(APPEND GC_DEP_INCLUDES "${SUITESPARSE_INCLUDE_DIRS}")
   list(APPEND GC_DEP_LIBRARIES "${SUITESPARSE_LIBRARIES}")

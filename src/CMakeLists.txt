@@ -13,7 +13,7 @@ SET(SRCS
   surface/meshio.cpp
   surface/polygon_soup_mesh.cpp
   surface/ply_halfedge_mesh_data.cpp
-  
+
   surface/base_geometry_interface.cpp
   surface/intrinsic_geometry_interface.cpp
   surface/extrinsic_geometry_interface.cpp
@@ -109,7 +109,7 @@ SET(HEADERS
 
 # Create a single library for the project
 add_library(
-        geometry-central 
+        geometry-central
         ${SRCS} ${HEADERS}
         )
 
