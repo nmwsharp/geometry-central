@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 
 # We will accumulate all depenency includes and link libraries here
 # (can be relative paths when building list, we will convert all to absolute at end)
-SET(GC_DEP_INCLUDES "")
-SET(GC_DEP_LIBRARIES "")
+SET(GC_DEP_LIBS "")
 
 # Make sure we don't try to compile anything in the dependencies with Werror on
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -50,44 +49,43 @@ elseif((${EIGEN3_INCLUDE_DIR}) AND (NOT ${EIGEN3_VERSION} VERSION_LESS 3.3))
 else()
 
   # Try (3) find_package() Eigen
-  find_package(Eigen3 3.3)
+  find_package (Eigen3 3.3 NO_MODULE)
 
-  # The find_package() succeeded!
   if(EIGEN3_FOUND)
     message("--    success. find_package() succeeded with Eigen at ${EIGEN3_INCLUDE_DIR}")
+    list(APPEND GC_DEP_LIBS Eigen3::Eigen)
 
   # The find_package() failed, manually download the package (4)
   else()
 
     message("--    Could not find Eigen anywhere. Downloading it (or using cached download).")
 
-    include(DownloadProject)
-    download_project(
-      PROJ EIGEN3
-      PREFIX ${GC_ARCHIVE_PATH}
-      GIT_REPOSITORY https://github.com/eigenteam/eigen-git-mirror.git
-      GIT_TAG 3.3.7
-		)
+    include(FetchContent)
+    FetchContent_Declare(
+        eigen
+        GIT_REPOSITORY  https://github.com/eigenteam/eigen-git-mirror.git
+        GIT_TAG         3.3.7
+        SOURCE_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-src"
+        BINARY_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-build"
+    )
+    FetchContent_GetProperties(eigen)
+    if(NOT eigen_POPULATED)
+        FetchContent_Populate(eigen)
 
-    set(EIGEN3_INCLUDE_DIR ${EIGEN3_SOURCE_DIR})
-
-    # verify that the directory seems to actually include Eigen
-    set(GC_EIGEN_FILE_CHECK "${EIGEN3_INCLUDE_DIR}/Eigen/Core")
-    if(NOT EXISTS ${GC_EIGEN_FILE_CHECK})
-      message(FATAL_ERROR "Path from GC_EIGEN_LOCATION does not seem to point to Eigen. Could not find file ${GC_EIGEN_FILE_CHECK}")
+        # Create an interface library target
+        add_library (eigen INTERFACE)
+        target_include_directories(eigen INTERFACE $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>)
     endif()
-    message("--    success. Found/Downloaded Eigen in ${EIGEN3_INCLUDE_DIR}")
 
+    list(APPEND GC_DEP_LIBS eigen)
+    # verify that the directory seems to actually include Eigen
+    # set(GC_EIGEN_FILE_CHECK "${EIGEN3_INCLUDE_DIR}/Eigen/Core")
+    # if(NOT EXISTS ${GC_EIGEN_FILE_CHECK})
+    #   message(FATAL_ERROR "Path from GC_EIGEN_LOCATION does not seem to point to Eigen. Could not find file ${GC_EIGEN_FILE_CHECK}")
+    # endif()
+    message("--    success. Found/Downloaded Eigen in ${eigen_SOURCE_DIR}")
   endif()
-
 endif()
-
-# Propagate Eigen variables to parent scope in case we every want to use them for something else
-SET(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIR} PARENT_SCOPE)
-SET(EIGEN3_VERSION ${EIGEN3_VERSION} PARENT_SCOPE)
-
-# Add Eigen to the list of deps to include
-list(APPEND GC_DEP_INCLUDES "${EIGEN3_INCLUDE_DIR}")
 
 # ===  done finding Eigen
 
@@ -132,41 +130,43 @@ endif()
 if(SUITESPARSE AND SUITESPARSE_FOUND)
     SET(GC_HAVE_SUITESPARSE TRUE)
     SET(GC_HAVE_SUITESPARSE TRUE PARENT_SCOPE)
-    add_definitions(-DGC_HAVE_SUITESPARSE)
-    include_directories(${SUITESPARSE_INCLUDE_DIRS})
+    set(SUITESPARSE_INCLUDE_DIRS "${SUITESPARSE_INCLUDE_DIRS}" PARENT_SCOPE)
+    set(SUITESPARSE_LIBRARIES    "${SUITESPARSE_LIBRARIES}"    PARENT_SCOPE)
 else()
     SET(GC_HAVE_SUITESPARSE FALSE)
     SET(GC_HAVE_SUITESPARSE FALSE PARENT_SCOPE)
 endif()
 
-if(GC_HAVE_SUITESPARSE)
-  list(APPEND GC_DEP_INCLUDES "${SUITESPARSE_INCLUDE_DIRS}")
-  list(APPEND GC_DEP_LIBRARIES "${SUITESPARSE_LIBRARIES}")
-endif()
-
 # ===  done finding Suitesparse
 
+add_library(nanort INTERFACE)
+target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+
+add_library(nanoflann INTERFACE)
+target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include>)
+
+add_library(happly INTERFACE)
+target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
 
 # Find other simpler dependencies
-list(APPEND GC_DEP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/nanort/include")
-list(APPEND GC_DEP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include")
-list(APPEND GC_DEP_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/happly")
-
+list(APPEND GC_DEP_LIBS nanort)
+list(APPEND GC_DEP_LIBS nanoflann)
+list(APPEND GC_DEP_LIBS happly)
 
 # == Ensure all paths are absolute
 
-# Helper function
-macro(convert_paths_to_absolute files)
-  foreach(path ${${files}})
-    get_filename_component(abs_path "${path}" ABSOLUTE)
-    list(REMOVE_ITEM ${files} "${path}")
-    list(APPEND ${files} "${abs_path}")
-  endforeach()
-endmacro()
+# # Helper function
+# macro(convert_paths_to_absolute files)
+#   foreach(path ${${files}})
+#     get_filename_component(abs_path "${path}" ABSOLUTE)
+#     list(REMOVE_ITEM ${files} "${path}")
+#     list(APPEND ${files} "${abs_path}")
+#   endforeach()
+# endmacro()
 
-convert_paths_to_absolute(GC_DEP_INCLUDES)
-convert_paths_to_absolute(GC_DEP_LIBRARIES)
+# convert_paths_to_absolute(GC_DEP_LIBS)
+# convert_paths_to_absolute(GC_DEP_LIBRARIES)
 
 # Propagate dep variables up to parten
-SET(GC_DEP_INCLUDES ${GC_DEP_INCLUDES} PARENT_SCOPE)
-SET(GC_DEP_LIBRARIES ${GC_DEP_LIBRARIES} PARENT_SCOPE)
+SET(GC_DEP_LIBS ${GC_DEP_LIBS} PARENT_SCOPE)
+# SET(GC_DEP_LIBRARIES ${GC_DEP_LIBRARIES} PARENT_SCOPE)
