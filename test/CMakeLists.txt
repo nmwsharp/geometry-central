@@ -29,7 +29,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
     SET(BASE_CXX_FLAGS "${BASE_CXX_FLAGS} -fmax-errors=5")
     SET(DISABLED_WARNINGS "${DISABLED_WARNINGS} -Wno-maybe-uninitialized -Wno-format-zero-length -Wno-unused-but-set-parameter -Wno-unused-but-set-variable")
   endif()
-  
+
   SET(CMAKE_CXX_FLAGS "${BASE_CXX_FLAGS} ${DISABLED_WARNINGS}")
   SET(CMAKE_CXX_FLAGS_DEBUG          "-g3")
   SET(CMAKE_CXX_FLAGS_RELEASE        "-O3 -march=native -DNDEBUG")
@@ -54,35 +54,23 @@ else()
 endif()
 
 
-
-
-
-
 ### Download and unpack googletest at configure time
 # (from the googletest docs)
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "CMake step for googletest failed: ${result}")
-endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-  RESULT_VARIABLE result
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-  message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
+include(FetchContent)
+
+FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY    https://github.com/google/googletest.git
+    GIT_TAG           release-1.10.0
+    SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
+    BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
+)
 
 # Prevent overriding the parent project's compiler/linker
 # settings on Windows
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                 EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(googletest)
 
 set_property(TARGET gtest PROPERTY CXX_STANDARD 11)
 
@@ -94,7 +82,7 @@ add_definitions(-DGC_TEST_ASSETS_ABS_PATH=\"${ABS_ASSETS_DIR}\")
 
 
 # Build the tests
-set(TEST_SRCS 
+set(TEST_SRCS
   src/main_test.cpp
   src/load_test_meshes.cpp
   src/halfedge_mesh_test.cpp

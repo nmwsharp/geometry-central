@@ -106,18 +106,14 @@ SET(HEADERS
   ${INCLUDE_ROOT}/utilities/vector3.ipp
 )
 
-
 # Create a single library for the project
-add_library(
-        geometry-central
-        ${SRCS} ${HEADERS}
-        )
+add_library(geometry-central SHARED ${SRCS} ${HEADERS})
 
 # Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
 # Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
-target_link_libraries(geometry-central PRIVATE ${GC_DEP_LIBS})
+target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})
 
 # Set compiler properties for the library
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD 11)

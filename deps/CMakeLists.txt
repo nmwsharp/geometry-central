@@ -9,17 +9,12 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error")
 endif()
 
-
-# Directory in which to place downloaded libraries
-set(GC_ARCHIVE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/downloads/)
-
 # === Resolve Eigen dependency
 
 # This script uses the following policies in order to find Eigen:
 #  (1) If GC_EIGEN_LOCATION is set, use the copy of Eigen there (an error will be thrown if Eigen is not found there)
-#  (2) If the usual Eigen variables EIGEN3_INCLUDE_DIR and EIGEN3_VERSION are set, CMAKE already has Eigen resolved, so use that copy
-#  (3) Invoke find_package() (if no suitable Eigen is found, will proceed to next step)
-#  (4) Download Eigen in to the source tree
+#  (2) Invoke find_package() (if no suitable Eigen is found, will proceed to next step)
+#  (3) Download Eigen in to the source tree
 
 message("--  resolving Eigen dependency:")
 
@@ -29,33 +24,24 @@ set(EIGEN_LOCATION "" CACHE STRING "Path to Eigen installation. Only needed if E
 if(GC_EIGEN_LOCATION)
   message("--    variable EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
 
-  # verify that the directory seems to acrtually include Eigen
-  # NOTE should also hold Eigen with suitable version but we don't check that
-  set(GC_EIGEN_FILE_CHECK "${GC_EIGEN_LOCATION}/Eigen/Core")
-  if(NOT EXISTS ${GC_EIGEN_FILE_CHECK})
-    message(FATAL_ERROR "Path from GC_EIGEN_LOCATION does not seem to point to Eigen. Could not find file ${GC_EIGEN_FILE_CHECK}")
+  find_package (Eigen3 3.3 PATHS ${EIGEN_LOCATION} NO_DEFAULT_PATH)
+
+  if(TARGET Eigen3::Eigen)
+    message("--    success. Found suitable Eigen from EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
+  else()
+    message(FATAL_ERROR "Eigen is not at EIGEN_LOCATION.")
   endif()
 
-  set(EIGEN3_INCLUDE_DIR ${GC_EIGEN_LOCATION})
-  set(EIGEN3_VERSION "unknown") # would be great to read this. feels like we should be able to put find_package() to work
-
-  message("--    success. Found suitable Eigen from EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
-
-# Try (2) hoping Eigen is already resolved
-elseif((${EIGEN3_INCLUDE_DIR}) AND (NOT ${EIGEN3_VERSION} VERSION_LESS 3.3))
-  message("--    success. CMake environment already has suitable Eigen defined at ${EIGEN3_INCLUDE_DIR}")
-
-# Try (3 and 4) find_package() or download
+# Try (2 and 3) find_package() or download
 else()
 
-  # Try (3) find_package() Eigen
-  find_package (Eigen3 3.3 NO_MODULE)
+  # Try (2) find_package() Eigen
+  find_package (Eigen3 3.3 QUIET)
 
   if(EIGEN3_FOUND)
     message("--    success. find_package() succeeded with Eigen at ${EIGEN3_INCLUDE_DIR}")
-    list(APPEND GC_DEP_LIBS Eigen3::Eigen)
 
-  # The find_package() failed, manually download the package (4)
+  # The find_package() failed, manually download the package (3)
   else()
 
     message("--    Could not find Eigen anywhere. Downloading it (or using cached download).")
@@ -71,20 +57,17 @@ else()
     FetchContent_GetProperties(eigen)
     if(NOT eigen_POPULATED)
         FetchContent_Populate(eigen)
-
         # Create an interface library target
-        add_library (eigen INTERFACE)
-        target_include_directories(eigen INTERFACE $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>)
+        add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
+        target_include_directories(Eigen3::Eigen INTERFACE $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>)
     endif()
-
-    list(APPEND GC_DEP_LIBS eigen)
-    # verify that the directory seems to actually include Eigen
-    # set(GC_EIGEN_FILE_CHECK "${EIGEN3_INCLUDE_DIR}/Eigen/Core")
-    # if(NOT EXISTS ${GC_EIGEN_FILE_CHECK})
-    #   message(FATAL_ERROR "Path from GC_EIGEN_LOCATION does not seem to point to Eigen. Could not find file ${GC_EIGEN_FILE_CHECK}")
-    # endif()
     message("--    success. Found/Downloaded Eigen in ${eigen_SOURCE_DIR}")
   endif()
+endif()
+
+if(TARGET Eigen3::Eigen)
+  set_target_properties(Eigen3::Eigen PROPERTIES IMPORTED_GLOBAL TRUE)
+  list(APPEND GC_DEP_LIBS Eigen3::Eigen)
 endif()
 
 # ===  done finding Eigen
@@ -167,6 +150,6 @@ list(APPEND GC_DEP_LIBS happly)
 # convert_paths_to_absolute(GC_DEP_LIBS)
 # convert_paths_to_absolute(GC_DEP_LIBRARIES)
 
-# Propagate dep variables up to parten
+# Propagate dep variables up to parent
 SET(GC_DEP_LIBS ${GC_DEP_LIBS} PARENT_SCOPE)
 # SET(GC_DEP_LIBRARIES ${GC_DEP_LIBRARIES} PARENT_SCOPE)
