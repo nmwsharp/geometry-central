@@ -58,7 +58,7 @@ endif()
 
 ### Download and unpack googletest at configure time
 # (from the googletest docs)
-if(${CMAKE_VERSION} VERSION_LESS 3.11)
+if(${CMAKE_VERSION} VERSION_LESS 3.14)
   include(FetchContentLocal)
 else()
   include(FetchContent)
