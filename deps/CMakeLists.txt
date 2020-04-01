@@ -12,68 +12,81 @@ endif()
 # === Resolve Eigen dependency
 
 # This script uses the following policies in order to find Eigen:
-#  (1) If GC_EIGEN_LOCATION is set, use the copy of Eigen there (an error will be thrown if Eigen is not found there)
-#  (2) Invoke find_package() (if no suitable Eigen is found, will proceed to next step)
-#  (3) Download Eigen in to the source tree
+#  (1) Use Eigen3::Eigen target if it's already defined ignoring (2,3,4)
+#  (2) If GC_EIGEN_LOCATION is set, use the copy of Eigen there (an error will be thrown if Eigen is not found there)
+#  (3) Invoke find_package() (if no suitable Eigen is found, will proceed to next step)
+#  (4) Download Eigen into the source tree
 
 message("--  resolving Eigen dependency:")
 
 set(GC_EIGEN_LOCATION "" CACHE STRING "Path to Eigen installation. Only needed if Eigen is not already available in CMAKE, will not be found by find_package(), and should not be auto-downloaded.")
 
-# Try (1) loading from specified path
-if(GC_EIGEN_LOCATION)
-  message("--    variable GC_EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
-
-  include(EigenChecker)
-  eigen3checker(${GC_EIGEN_LOCATION} 3.3)
-
-  if(EIGEN3_FOUND AND TARGET Eigen3::Eigen)
-    message("--    success. Found suitable Eigen from GC_EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
-  else()
-    message(FATAL_ERROR "Eigen could not be found at GC_EIGEN_LOCATION = ${GC_EIGEN_LOCATION}.")
-  endif()
-
-# Try (2 and 3) find_package() or download
-else()
-
-  # Try (2) find_package() Eigen
-  find_package (Eigen3 3.3 QUIET)
-
-  if(EIGEN3_FOUND)
-    message("--    success. find_package() succeeded with Eigen at ${EIGEN3_INCLUDE_DIR}")
-
-  # The find_package() failed, manually download the package (3)
-  else()
-
-    message("--    Could not find Eigen anywhere. Downloading it (or using cached download).")
-
-    if(${CMAKE_VERSION} VERSION_LESS 3.11)
-      include(FetchContentLocal)
-    else()
-      include(FetchContent)
-    endif()
-    FetchContent_Declare(
-        eigen
-        GIT_REPOSITORY  https://github.com/eigenteam/eigen-git-mirror.git
-        GIT_TAG         3.3.7
-        SOURCE_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-src"
-        BINARY_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-build"
-    )
-    FetchContent_GetProperties(eigen)
-    if(NOT eigen_POPULATED)
-        FetchContent_Populate(eigen)
-        # Create an interface library target
-        add_library(Eigen3::Eigen INTERFACE IMPORTED GLOBAL)
-        target_include_directories(Eigen3::Eigen INTERFACE $<BUILD_INTERFACE:${eigen_SOURCE_DIR}>)
-    endif()
-    message("--    success. Found/Downloaded Eigen in ${eigen_SOURCE_DIR}")
-  endif()
-endif()
-
+# (1) Target exists already from somewhere else
 if(TARGET Eigen3::Eigen)
-  set_target_properties(Eigen3::Eigen PROPERTIES IMPORTED_GLOBAL TRUE)
-  list(APPEND GC_DEP_LIBS Eigen3::Eigen)
+  if(${GC_EIGEN_LOCATION})
+    # Change this to a FATAL_ERROR if the constraint should be observed
+    message(WARNING "Target Eigen3::Eigen already exists. "
+                    "Ignoring constraint from GC_EIGEN_LOCATION.")
+  endif()
+else()
+  # Target Eigen3::Eigen isn't already definedV
+  if(GC_EIGEN_LOCATION)
+    # (2) GC_EIGEN_LOCATION is set so look here first
+    message(STATUS "--    variable GC_EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
+
+    include(EigenChecker)
+    eigen3checker(${GC_EIGEN_LOCATION} 3.3)
+
+    if(EIGEN3_FOUND)
+      message(STATUS "--    success. Found suitable Eigen from GC_EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
+    else()
+      # Assume that the user is serious about this constraint and quit
+      message(FATAL_ERROR "Eigen could not be found at GC_EIGEN_LOCATION = ${GC_EIGEN_LOCATION}.")
+    endif()
+  else()
+    # GC_EIGEN_LOCATION is not set
+    # (3) Search using the normal method
+    find_package (Eigen3 3.3 QUIET)
+
+    if(EIGEN3_FOUND)
+      message(STATUS "--    success. find_package() succeeded with Eigen at ${EIGEN3_INCLUDE_DIR}")
+
+    # The find_package() failed, manually download the package (4)
+    else()
+
+      message(STATUS "--    Could not find Eigen anywhere. Downloading it (or using cached download).")
+
+      if(${CMAKE_VERSION} VERSION_LESS 3.11)
+        include(FetchContentLocal)
+      else()
+        include(FetchContent)
+      endif()
+      FetchContent_Declare(
+          eigen
+          GIT_REPOSITORY  https://github.com/eigenteam/eigen-git-mirror.git
+          GIT_TAG         3.3.7
+          SOURCE_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-src"
+          BINARY_DIR      "${CMAKE_CURRENT_BINARY_DIR}/eigen-build"
+      )
+      FetchContent_GetProperties(eigen)
+      if(NOT eigen_POPULATED)
+          FetchContent_Populate(eigen)
+
+          include(EigenChecker)
+          eigen3checker(${eigen_SOURCE_DIR} 3.3)
+      endif()
+      message(STATUS "--    success. Downloaded Eigen in ${eigen_SOURCE_DIR}")
+    endif()
+  endif()
+  add_library (eigen INTERFACE)
+  add_library (Eigen3::Eigen ALIAS eigen)
+  target_include_directories(eigen INTERFACE
+      $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
+      $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
+      )
 endif()
+
+list(APPEND GC_DEP_LIBS Eigen3::Eigen)
 
 # ===  done finding Eigen
 

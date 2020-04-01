@@ -15,15 +15,16 @@ git submodule update --init --recursive
 
 ## Eigen
 
-[Eigen](https://eigen.tuxfamily.org) is used for linear algebra within geometry-central. Eigen presents a bit of a special challenge as a dependency because many programmers already have Eigen in the project or system, and intermingling multiple copies of Eigen can be problematic. 
+[Eigen](https://eigen.tuxfamily.org) is used for linear algebra within geometry-central. Eigen presents a bit of a special challenge as a dependency because many programmers already have Eigen in the project or system, and intermingling multiple copies of Eigen can be problematic.
 
 As such, the build system uses the following strategies in order to resolve Eigen:
 
-1. Using Eigen in any directory passed via the `GC_EIGEN_LOCATION` CMake variable (empty by default)
-2. Using Eigen from your system libraries, as resolved via `find_package(Eigen3 3.3)`
-3. Downloading a copy of Eigen in to the `deps/downloads/` directory
+1. The target `Eigen3::Eigen` is already defined somewhere. Use the predefined target over any hints from the user
+2. Using Eigen in any directory passed via the `GC_EIGEN_LOCATION` CMake variable (empty by default)
+3. Using Eigen from your system libraries, as resolved via `find_package(Eigen3 3.3)`
+4. Downloading a copy of Eigen in to the `deps/downloads/` directory
 
-For instance, if your project already has a copy of Eigen in its source tree, you can use with (1) by setting `GC_EIGEN_LOCATION`. If not, many programmers have installed Eigen, which will be found in (2). Finally, as a last resort the build system will download a copy of Eigen as in (3).
+For instance, if your project already has a copy of Eigen in its source tree, you can use with (2) by setting `GC_EIGEN_LOCATION`. If not, many programmers have installed Eigen, which will be found in (3). Finally, as a last resort the build system will download a copy of Eigen as in (4).
 
 geometry-central is known to work with version 3.3 of Eigen; other versions have not been tested (but recent versions probably work).
 
