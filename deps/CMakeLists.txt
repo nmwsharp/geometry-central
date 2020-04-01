@@ -18,18 +18,19 @@ endif()
 
 message("--  resolving Eigen dependency:")
 
-set(EIGEN_LOCATION "" CACHE STRING "Path to Eigen installation. Only needed if Eigen is not already available in CMAKE, will not be found by find_package(), and should not be auto-downloaded.")
+set(GC_EIGEN_LOCATION "" CACHE STRING "Path to Eigen installation. Only needed if Eigen is not already available in CMAKE, will not be found by find_package(), and should not be auto-downloaded.")
 
 # Try (1) loading from specified path
 if(GC_EIGEN_LOCATION)
-  message("--    variable EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
+  message("--    variable GC_EIGEN_LOCATION was set with value ${GC_EIGEN_LOCATION}")
 
-  find_package (Eigen3 3.3 PATHS ${EIGEN_LOCATION} NO_DEFAULT_PATH)
+  include(EigenChecker)
+  eigen3checker(${GC_EIGEN_LOCATION} 3.3)
 
-  if(TARGET Eigen3::Eigen)
-    message("--    success. Found suitable Eigen from EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
+  if(EIGEN3_FOUND AND TARGET Eigen3::Eigen)
+    message("--    success. Found suitable Eigen from GC_EIGEN_LOCATION at ${EIGEN3_INCLUDE_DIR}")
   else()
-    message(FATAL_ERROR "Eigen is not at EIGEN_LOCATION.")
+    message(FATAL_ERROR "Eigen could not be found at GC_EIGEN_LOCATION = ${GC_EIGEN_LOCATION}.")
   endif()
 
 # Try (2 and 3) find_package() or download
@@ -46,7 +47,11 @@ else()
 
     message("--    Could not find Eigen anywhere. Downloading it (or using cached download).")
 
-    include(FetchContent)
+    if(${CMAKE_VERSION} VERSION_LESS 3.11)
+      include(FetchContentLocal)
+    else()
+      include(FetchContent)
+    endif()
     FetchContent_Declare(
         eigen
         GIT_REPOSITORY  https://github.com/eigenteam/eigen-git-mirror.git
