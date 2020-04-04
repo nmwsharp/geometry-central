@@ -257,13 +257,16 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, boo
   }
 }
 
-HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
-             const std::vector<std::vector<std::pair<size_t, size_t>>>& twin, bool verbose) {
+HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
+                           const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                           bool allowVertexNonmanifold, bool verbose) {
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
 
   START_TIMING(construction)
+
+  GC_SAFETY_ASSERT(polygons.size() == twins.size(), "twin list should be same shape as polygon list");
 
   // Check input list and measure some element counts
   nFacesCount = polygons.size();
@@ -280,15 +283,24 @@ HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   vHalfedge = std::vector<size_t>(nVerticesCount, INVALID_IND);
   fHalfedge = std::vector<size_t>(nFacesCount, INVALID_IND);
 
-  // Create all of the halfedge objects
-  for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+  // NOTE IMPORTANT DIFFERENCE: in the first face-only constructor, these keys are (vInd, vInd) pairs, but here they
+  // are (fInd, heInFInd) pairs.
 
-  }
-    
+  // Track halfedges which have already been created
+  // TODO replace with compressed list for performance
+  std::unordered_map<std::tuple<size_t, size_t>, size_t> createdHalfedges;
+  auto createdHeLookup = [&](std::tuple<size_t, size_t> key) -> size_t& {
+    if (createdHalfedges.find(key) == createdHalfedges.end()) {
+      createdHalfedges[key] = INVALID_IND;
+    }
+    return createdHalfedges[key];
+  };
 
   // Walk the faces, creating halfedges and hooking up pointers
   for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
     const std::vector<size_t>& poly = polygons[iFace];
+    const std::vector<std::tuple<size_t, size_t>>& polyTwin = twins[iFace];
+    GC_SAFETY_ASSERT(poly.size() == polyTwin.size(), "twin list should be same shape as polygon list");
 
     // Walk around this face
     size_t faceDegree = poly.size();
@@ -300,8 +312,8 @@ HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
       size_t indTip = poly[(iFaceHe + 1) % faceDegree];
 
       // Get an index for this halfedge
-      std::tuple<size_t, size_t> heKey{indTail, indTip};
-      std::tuple<size_t, size_t> heTwinKey{indTip, indTail};
+      std::tuple<size_t, size_t> heKey{iFace, iFaceHe};
+      std::tuple<size_t, size_t> heTwinKey{std::get<0>(polyTwin[iFaceHe]), std::get<1>(polyTwin[iFaceHe])};
       size_t& halfedgeInd = createdHeLookup(heKey);
 
       // Some sanity checks
@@ -425,7 +437,8 @@ HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   isCompressedFlag = true;
 
 #ifndef NGC_SAFTEY_CHECKS
-  { // Check that the input was manifold in the sense that each vertex has a single connected loop of faces around it.
+  if (!allowVertexNonmanifold) { // Check that the input was manifold in the sense that each vertex has a single
+                                 // connected loop of faces around it.
     std::vector<char> halfedgeSeen(nHalfedgesCount, false);
     for (size_t iV = 0; iV < nVerticesCount; iV++) {
 

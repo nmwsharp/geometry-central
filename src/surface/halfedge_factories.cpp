@@ -3,9 +3,19 @@
 
 namespace geometrycentral {
 namespace surface {
+
+
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions,
                         bool compressIndices, bool verbose) {
+
+  return makeHalfedgeAndGeometry(polygons, {}, vertexPositions, compressIndices, verbose);
+}
+
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                        const std::vector<Vector3> vertexPositions, bool compressIndices, bool verbose) {
 
   if (compressIndices) {
 
@@ -42,7 +52,12 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const 
 
 
     // Construct
-    std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(newPolygons, verbose));
+    std::unique_ptr<HalfedgeMesh> mesh;
+    if (twins.empty()) {
+      mesh.reset(new HalfedgeMesh(newPolygons, verbose));
+    } else {
+      mesh.reset(new HalfedgeMesh(newPolygons, twins, verbose));
+    }
     std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
     for (Vertex v : mesh->vertices()) {
       // Use the low-level indexers here since we're constructing
@@ -54,7 +69,12 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const 
   } else {
 
     // Construct
-    std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(polygons, verbose));
+    std::unique_ptr<HalfedgeMesh> mesh;
+    if (twins.empty()) {
+      mesh.reset(new HalfedgeMesh(polygons, verbose));
+    } else {
+      mesh.reset(new HalfedgeMesh(polygons, twins, verbose));
+    }
     std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
     for (Vertex v : mesh->vertices()) {
       // Use the low-level indexers here since we're constructing

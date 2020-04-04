@@ -30,10 +30,11 @@ public:
 
   // Build a halfedge mesh from connectivity information (0-indexed as always)
   // - `polygons` is the usual vertex indices for each face
-  // - `twin` is indices for the halfedge twin pointers. For each halfedge, holds the index of the twin face and
+  // - `twins` is indices for the halfedge twin pointers. For each halfedge, holds the index of the twin face and
   // halfedge within that face. In each face, the 0'th halfedge goes from vert 0-->1. Use INVALID_IND for boundary.
   HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
-               const std::vector<std::vector<std::pair<size_t, size_t>>>& twin, bool verbose = false);
+               const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins, bool allowVertexNonmanifold = false,
+               bool verbose = false);
 
   ~HalfedgeMesh();
 

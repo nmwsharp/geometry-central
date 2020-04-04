@@ -1,7 +1,7 @@
 #pragma once
 
-#include "geometrycentral/surface/vertex_position_geometry.h"
 #include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include <memory>
 #include <tuple>
@@ -21,6 +21,13 @@ namespace surface {
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions,
                         bool compressIndices = true, bool verbose = false);
+
+
+// Like above, but with known twin connectivity
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                        const std::vector<Vector3> vertexPositions, bool compressIndices = true, bool verbose = false);
 
 } // namespace surface
 } // namespace geometrycentral
