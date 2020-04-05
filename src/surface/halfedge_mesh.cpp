@@ -267,7 +267,7 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   START_TIMING(construction)
 
   GC_SAFETY_ASSERT(polygons.size() == twins.size(), "twin list should be same shape as polygon list");
-
+  
   // Check input list and measure some element counts
   nFacesCount = polygons.size();
   nVerticesCount = 0;

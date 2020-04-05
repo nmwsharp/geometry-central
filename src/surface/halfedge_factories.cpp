@@ -12,10 +12,9 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const 
   return makeHalfedgeAndGeometry(polygons, {}, vertexPositions, compressIndices, verbose);
 }
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
-makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
-                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
-                        const std::vector<Vector3> vertexPositions, bool compressIndices, bool verbose) {
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> makeHalfedgeAndGeometry(
+    const std::vector<std::vector<size_t>>& polygons, const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+    const std::vector<Vector3> vertexPositions, bool compressIndices, bool verbose, bool allowVertexNonmanifold) {
 
   if (compressIndices) {
 
@@ -56,7 +55,7 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
     if (twins.empty()) {
       mesh.reset(new HalfedgeMesh(newPolygons, verbose));
     } else {
-      mesh.reset(new HalfedgeMesh(newPolygons, twins, verbose));
+      mesh.reset(new HalfedgeMesh(newPolygons, twins, allowVertexNonmanifold, verbose));
     }
     std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
     for (Vertex v : mesh->vertices()) {
@@ -73,7 +72,7 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
     if (twins.empty()) {
       mesh.reset(new HalfedgeMesh(polygons, verbose));
     } else {
-      mesh.reset(new HalfedgeMesh(polygons, twins, verbose));
+      mesh.reset(new HalfedgeMesh(polygons, twins, allowVertexNonmanifold, verbose));
     }
     std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
     for (Vertex v : mesh->vertices()) {

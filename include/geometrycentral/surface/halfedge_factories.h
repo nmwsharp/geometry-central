@@ -27,7 +27,8 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
-                        const std::vector<Vector3> vertexPositions, bool compressIndices = true, bool verbose = false);
+                        const std::vector<Vector3> vertexPositions, bool compressIndices = true, bool verbose = false,
+                        bool allowVertexNonmanifold = false);
 
 } // namespace surface
 } // namespace geometrycentral
