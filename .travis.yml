@@ -5,8 +5,8 @@ branches:
 language: cpp
 
 os:
- - linux
- - osx
+  - linux
+  - osx
 
 dist: xenial
 
@@ -14,10 +14,31 @@ compiler:
   - gcc
   - clang
 
+jobs:
+  # do this here rather than in matrix since we don't need multiple compilers
+  include:
+    - os: windows
+
 before_script:
   - cd test
   - mkdir build
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
 
-script: make && ./bin/geometry-central-test
+script: 
+  - |
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then 
+      make 
+      ./bin/geometry-central-test
+    fi
+  - |
+    if [ "$TRAVIS_OS_NAME" = "osx" ]; then 
+      make 
+      ./bin/geometry-central-test
+    fi
+  - |
+    if [ "$TRAVIS_OS_NAME" = "windows" ]; then 
+      cmake --build "."
+      ls
+      ./bin/Debug/geometry-central-test.exe
+    fi
