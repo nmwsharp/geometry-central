@@ -13,7 +13,7 @@ SET(SRCS
   surface/meshio.cpp
   surface/polygon_soup_mesh.cpp
   surface/ply_halfedge_mesh_data.cpp
-  
+
   surface/base_geometry_interface.cpp
   surface/intrinsic_geometry_interface.cpp
   surface/extrinsic_geometry_interface.cpp
@@ -106,27 +106,23 @@ SET(HEADERS
   ${INCLUDE_ROOT}/utilities/vector3.ipp
 )
 
-
 # Create a single library for the project
-add_library(
-        geometry-central 
-        ${SRCS} ${HEADERS}
-        )
+add_library(geometry-central SHARED ${SRCS} ${HEADERS})
 
 # Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
 # Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
-target_include_directories(geometry-central PUBLIC "${GC_DEP_INCLUDES}")
-target_link_libraries(geometry-central ${GC_DEP_LIBRARIES})
+target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})
 
 # Set compiler properties for the library
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD 11)
 set_property(TARGET geometry-central PROPERTY CXX_STANDARD_REQUIRED TRUE)
-add_definitions(-DNOMINMAX)
-add_definitions(-D_USE_MATH_DEFINES)
+target_compile_definitions(geometry-central PUBLIC NOMINMAX _USE_MATH_DEFINES)
 
 # Define CMAKE flag used in these sources (but should be kept OUT of headers)
 if(GC_HAVE_SUITESPARSE)
-  add_definitions(-DGC_HAVE_SUITESPARSE)
+  target_compile_definitions(geometry-central PUBLIC GC_HAVE_SUITESPARSE)
+  target_include_directories(geometry-central PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
+  target_link_libraries(geometry-central PRIVATE ${SUITESPARSE_LIBRARIES})
 endif()
