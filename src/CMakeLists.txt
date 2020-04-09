@@ -107,7 +107,7 @@ SET(HEADERS
 )
 
 # Create a single library for the project
-add_library(geometry-central SHARED ${SRCS} ${HEADERS})
+add_library(geometry-central ${SRCS} ${HEADERS})
 
 # Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
