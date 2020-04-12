@@ -13,8 +13,8 @@ namespace surface {
 
 // Modifies both the underlying mesh and edge lengths to make the intrinsic Delaunay
 enum class FlipType { Euclidean = 0, Hyperbolic };
-void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType = FlipType::Euclidean,
-                    double delaunayEPS = 1e-6);
+size_t flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType = FlipType::Euclidean,
+                      double delaunayEPS = 1e-6);
 
 } // namespace surface
 } // namespace geometrycentral

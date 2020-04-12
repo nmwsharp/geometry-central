@@ -152,10 +152,19 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OBJ(std::string filename,
                                                                                                 bool verbose) {
-  PolygonSoupMesh soup(filename);
+  PolygonSoupMesh soup(filename, "obj");
   stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
   return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
 }
+
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_STL(std::string filename,
+                                                                                                bool verbose) {
+  PolygonSoupMesh soup(filename, std::string("stl"));
+  soup.mergeIdenticalVertices();
+  stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
+  return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
+}
+
 } // namespace
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
@@ -187,6 +196,8 @@ loadMesh(std::string filename, bool verbose, std::string type) {
     return loadMesh_OBJ(filename, verbose);
   } else if (type == "ply") {
     return loadMesh_PLY(filename, verbose);
+  } else if (type == "stl") {
+    return loadMesh_STL(filename, verbose);
   } else if (type == "off") {
     return loadMesh_OFF(filename, verbose);
   } else {
@@ -197,7 +208,6 @@ loadMesh(std::string filename, bool verbose, std::string type) {
     }
   }
 }
-
 
 // connectivity loader helpers
 namespace {
@@ -260,8 +270,7 @@ std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbos
 
 
 // ======= Output =======
-
-bool WavefrontOBJ::write(std::string filename, VertexPositionGeometry& geometry) {
+bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
@@ -277,7 +286,7 @@ bool WavefrontOBJ::write(std::string filename, VertexPositionGeometry& geometry)
   return true;
 }
 
-bool WavefrontOBJ::write(std::string filename, VertexPositionGeometry& geometry, CornerData<Vector2>& texcoords) {
+bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texcoords) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
 
@@ -309,14 +318,14 @@ bool WavefrontOBJ::openStream(std::ofstream& out, std::string filename) {
   return true;
 }
 
-void WavefrontOBJ::writeHeader(std::ofstream& out, VertexPositionGeometry& geometry) {
+void WavefrontOBJ::writeHeader(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
   out << "# Mesh exported from GeometryCentral" << endl;
   out << "#  vertices: " << geometry.mesh.nVertices() << endl;
   out << "#     edges: " << geometry.mesh.nEdges() << endl;
   out << "#     faces: " << geometry.mesh.nFaces() << endl;
 }
 
-void WavefrontOBJ::writeVertices(std::ofstream& out, VertexPositionGeometry& geometry) {
+void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
   HalfedgeMesh& mesh(geometry.mesh);
   geometry.requireVertexPositions();
 
@@ -326,7 +335,7 @@ void WavefrontOBJ::writeVertices(std::ofstream& out, VertexPositionGeometry& geo
   }
 }
 
-void WavefrontOBJ::writeTexCoords(std::ofstream& out, VertexPositionGeometry& geometry,
+void WavefrontOBJ::writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface& geometry,
                                   CornerData<Vector2>& texcoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
@@ -336,31 +345,24 @@ void WavefrontOBJ::writeTexCoords(std::ofstream& out, VertexPositionGeometry& ge
   }
 }
 
-void WavefrontOBJ::writeFaces(std::ofstream& out, VertexPositionGeometry& geometry, bool useTexCoords) {
+void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords) {
   HalfedgeMesh& mesh(geometry.mesh);
 
   // Get vertex indices
   VertexData<size_t> indices = mesh.getVertexIndices();
+  CornerData<size_t> cIndices = mesh.getCornerIndices();
 
-  if (useTexCoords) {
-    // Get corner indices
-    CornerData<size_t> cIndices = mesh.getCornerIndices();
+  auto indexFn = [&](Corner c) {
+    std::string texCoordString = (useTexCoords) ? std::to_string(cIndices[c] + 1) : "";
+    return " " + std::to_string(indices[c.vertex()] + 1) + "/" + texCoordString;
+  };
 
-    for (Face f : mesh.faces()) {
-      out << "f";
-      for (Corner c : f.adjacentCorners()) {
-        out << " " << indices[c.vertex()] + 1 << "/" << cIndices[c] + 1; // OBJ uses 1-based indexing
-      }
-      out << endl;
+  for (Face f : mesh.faces()) {
+    out << "f";
+    for (Corner c : f.adjacentCorners()) {
+      out << indexFn(c);
     }
-  } else {
-    for (Face f : mesh.faces()) {
-      out << "f";
-      for (Halfedge h : f.adjacentHalfedges()) {
-        out << " " << indices[h.vertex()] + 1; // OBJ uses 1-based indexing
-      }
-      out << endl;
-    }
+    out << endl;
   }
 }
 

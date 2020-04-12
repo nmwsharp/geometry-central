@@ -257,6 +257,219 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, boo
   }
 }
 
+HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
+                           const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                           bool allowVertexNonmanifold, bool verbose) {
+
+  // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
+  // internet, so consider removing unused vertices first when reading from foreign sources.
+
+  START_TIMING(construction)
+
+  GC_SAFETY_ASSERT(polygons.size() == twins.size(), "twin list should be same shape as polygon list");
+  
+  // Check input list and measure some element counts
+  nFacesCount = polygons.size();
+  nVerticesCount = 0;
+  for (const std::vector<size_t>& poly : polygons) {
+    GC_SAFETY_ASSERT(poly.size() >= 3, "faces must have degree >= 3");
+    for (auto i : poly) {
+      nVerticesCount = std::max(nVerticesCount, i);
+    }
+  }
+  nVerticesCount++; // 0-based means count is max+1
+
+  // Pre-allocate face and vertex arrays
+  vHalfedge = std::vector<size_t>(nVerticesCount, INVALID_IND);
+  fHalfedge = std::vector<size_t>(nFacesCount, INVALID_IND);
+
+  // NOTE IMPORTANT DIFFERENCE: in the first face-only constructor, these keys are (vInd, vInd) pairs, but here they
+  // are (fInd, heInFInd) pairs.
+
+  // Track halfedges which have already been created
+  // TODO replace with compressed list for performance
+  std::unordered_map<std::tuple<size_t, size_t>, size_t> createdHalfedges;
+  auto createdHeLookup = [&](std::tuple<size_t, size_t> key) -> size_t& {
+    if (createdHalfedges.find(key) == createdHalfedges.end()) {
+      createdHalfedges[key] = INVALID_IND;
+    }
+    return createdHalfedges[key];
+  };
+
+  // Walk the faces, creating halfedges and hooking up pointers
+  for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+    const std::vector<size_t>& poly = polygons[iFace];
+    const std::vector<std::tuple<size_t, size_t>>& polyTwin = twins[iFace];
+    GC_SAFETY_ASSERT(poly.size() == polyTwin.size(), "twin list should be same shape as polygon list");
+
+    // Walk around this face
+    size_t faceDegree = poly.size();
+    size_t prevHeInd = INVALID_IND;
+    size_t firstHeInd = INVALID_IND;
+    for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+
+      size_t indTail = poly[iFaceHe];
+      size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+      // Get an index for this halfedge
+      std::tuple<size_t, size_t> heKey{iFace, iFaceHe};
+      std::tuple<size_t, size_t> heTwinKey{std::get<0>(polyTwin[iFaceHe]), std::get<1>(polyTwin[iFaceHe])};
+      size_t& halfedgeInd = createdHeLookup(heKey);
+
+      // Some sanity checks
+      GC_SAFETY_ASSERT(indTail != indTip,
+                       "self-edge in face list " + std::to_string(indTail) + " -- " + std::to_string(indTip));
+      GC_SAFETY_ASSERT(halfedgeInd == INVALID_IND,
+                       "duplicate edge in list " + std::to_string(indTail) + " -- " + std::to_string(indTip));
+
+      // Find the twin to check if the element is already created
+      size_t twinInd = createdHeLookup(heTwinKey);
+      if (twinInd == INVALID_IND) {
+        // If we haven't seen the twin yet either, create a new edge
+        // TODO use createHalfedge() or something here?
+        halfedgeInd = nHalfedgesCount;
+        nHalfedgesCount += 2;
+
+        // Grow arrays to make space
+        heNext.push_back(INVALID_IND);
+        heNext.push_back(INVALID_IND);
+        heVertex.push_back(indTail);
+        heVertex.push_back(indTip);
+        heFace.push_back(INVALID_IND);
+        heFace.push_back(INVALID_IND);
+      } else {
+        // If the twin has already been created, we have an index for the halfedge
+        halfedgeInd = heTwin(twinInd);
+      }
+
+      // Hook up a bunch of pointers
+      heFace[halfedgeInd] = iFace;
+      vHalfedge[indTail] = halfedgeInd;
+      if (iFaceHe == 0) {
+        fHalfedge[iFace] = halfedgeInd;
+        firstHeInd = halfedgeInd;
+      } else {
+        heNext[prevHeInd] = halfedgeInd;
+      }
+      prevHeInd = halfedgeInd;
+    }
+
+    heNext[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
+  }
+
+// Ensure that each boundary neighborhood is either a disk or a half-disk. Harder to diagnose if we wait until the
+// boundary walk below.
+#ifndef NGC_SAFTEY_CHECKS
+  {
+    std::vector<char> vertexOnBoundary(nVerticesCount, false);
+    for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+      if (heNext[iHe] == INVALID_IND) {
+        size_t v = heVertex[iHe];
+        GC_SAFETY_ASSERT(!vertexOnBoundary[v],
+                         "vertex " + std::to_string(v) + " appears in more than one boundary loop");
+        vertexOnBoundary[v] = true;
+      }
+    }
+  }
+#endif
+
+  // == Resolve boundary loops
+  nInteriorHalfedgesCount = nHalfedgesCount; // will decrement as we find exterior
+  for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+
+    // If the face pointer is invalid, the halfedge must be along an unresolved boundary loop
+    if (heFace[iHe] != INVALID_IND) continue;
+
+    // Create the new boundary loop
+    size_t boundaryLoopInd = nFacesCount + nBoundaryLoopsCount;
+    fHalfedge.push_back(iHe);
+    nBoundaryLoopsCount++;
+
+    // = Walk around the loop (CW)
+    size_t currHe = iHe;
+    size_t prevHe = INVALID_IND;
+    size_t loopCount = 0;
+    do {
+
+      // The boundary loop is the face for these halfedges
+      heFace[currHe] = boundaryLoopInd;
+
+      // currHe.twin() is a boundary interior halfedge, this is a good time to enforce that v.halfedge() is always the
+      // boundary interior halfedge for a boundary vertex.
+      size_t currHeT = heTwin(currHe);
+      vHalfedge[heVertex[currHeT]] = currHeT;
+
+      // This isn't an interior halfedge.
+      nInteriorHalfedgesCount--;
+
+      // Advance to the next halfedge along the boundary
+      prevHe = currHe;
+      currHe = heTwin(heNext[heTwin(currHe)]);
+      size_t loopCountInnter = 0;
+      while (heFace[currHe] != INVALID_IND) {
+        if (currHe == iHe) break;
+        currHe = heTwin(heNext[currHe]);
+        loopCountInnter++;
+        GC_SAFETY_ASSERT(loopCountInnter < nHalfedgesCount, "boundary infinite loop orbit");
+      }
+
+      // Set the next pointer around the boundary loop
+      heNext[currHe] = prevHe;
+
+      // Make sure this loop doesn't infinite-loop. Certainly won't happen for proper input, but might happen for bogus
+      // input. I don't _think_ it can happen, but there might be some non-manifold input which manfests failure via an
+      // infinte loop here, and such a loop is an inconvenient failure mode.
+      loopCount++;
+      GC_SAFETY_ASSERT(loopCount < nHalfedgesCount, "boundary infinite loop");
+    } while (currHe != iHe);
+  }
+
+  // SOMEDAY: could shrink_to_fit() std::vectors here, at the cost of a copy. What's preferable?
+
+  // Set capacities and other properties
+  nVerticesCapacityCount = nVerticesCount;
+  nHalfedgesCapacityCount = nHalfedgesCount;
+  nFacesCapacityCount = nFacesCount + nBoundaryLoopsCount;
+  nVerticesFillCount = nVerticesCount;
+  nHalfedgesFillCount = nHalfedgesCount;
+  nFacesFillCount = nFacesCount;
+  nBoundaryLoopsFillCount = nBoundaryLoopsCount;
+  isCompressedFlag = true;
+
+#ifndef NGC_SAFTEY_CHECKS
+  if (!allowVertexNonmanifold) { // Check that the input was manifold in the sense that each vertex has a single
+                                 // connected loop of faces around it.
+    std::vector<char> halfedgeSeen(nHalfedgesCount, false);
+    for (size_t iV = 0; iV < nVerticesCount; iV++) {
+
+      // For each vertex, orbit around the outgoing halfedges. This _should_ touch every halfedge.
+      size_t currHe = vHalfedge[iV];
+      size_t firstHe = currHe;
+      do {
+
+        GC_SAFETY_ASSERT(!halfedgeSeen[currHe], "somehow encountered outgoing halfedge before orbiting v");
+        halfedgeSeen[currHe] = true;
+
+        currHe = heNext[heTwin(currHe)];
+      } while (currHe != firstHe);
+    }
+
+    // Verify that we actually did touch every halfedge.
+    for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+      GC_SAFETY_ASSERT(halfedgeSeen[iHe], "mesh not manifold. Vertex " + std::to_string(heVertex[iHe]) +
+                                              " has disconnected neighborhoods incident (imagine an hourglass)");
+    }
+  }
+#endif
+
+
+  // Print some nice statistics
+  if (verbose) {
+    printStatistics();
+    std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
+  }
+} // namespace surface
+
 
 HalfedgeMesh::~HalfedgeMesh() {
   for (auto& f : meshDeleteCallbackList) {

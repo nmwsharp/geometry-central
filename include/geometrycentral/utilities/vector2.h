@@ -78,6 +78,7 @@ template <typename T>
 Vector2 operator*(const T s, const Vector2& v);
 
 ::std::ostream& operator<<(std::ostream& output, const Vector2& v);
+::std::istream& operator<<(std::istream& input, Vector2& v);
 
 // Notice that all of these functions return a new vector when applicable.
 

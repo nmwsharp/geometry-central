@@ -6,19 +6,53 @@
 #include "geometrycentral/surface/halfedge_mesh.h"
 #include "geometrycentral/surface/polygon_soup_mesh.h"
 
+#include "happly.h"
+
 namespace geometrycentral {
 namespace surface {
 
 PolygonSoupMesh::PolygonSoupMesh() {}
 
-PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename) { readMeshFromFile(meshFilename); }
+PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename, std::string type) {
+
+  // Attempt to detect filename
+  bool typeGiven = type != "";
+  std::string::size_type sepInd = meshFilename.rfind('.');
+  if (!typeGiven) {
+    if (sepInd != std::string::npos) {
+      std::string extension;
+      extension = meshFilename.substr(sepInd + 1);
+
+      // Convert to all lowercase
+      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+      type = extension;
+    }
+  }
+
+  if (type == "obj") {
+    readMeshFromObjFile(meshFilename);
+  } else if (type == "stl") {
+    readMeshFromStlFile(meshFilename);
+  } else if (type == "ply") {
+    readMeshFromPlyFile(meshFilename);
+  } else {
+    if (typeGiven) {
+      throw std::runtime_error("Did not recognize mesh file type " + type);
+    } else {
+      throw std::runtime_error("Could not detect file type to load mesh from " + meshFilename + ". (Found type " +
+                               type + ", but cannot load this)");
+    }
+  }
+}
 
 PolygonSoupMesh::PolygonSoupMesh(const std::vector<std::vector<size_t>>& polygons_,
                                  const std::vector<Vector3>& vertexCoordinates_)
     : polygons(polygons_), vertexCoordinates(vertexCoordinates_) {}
 
+
 // String manipulation helpers to parse .obj files
 // See http://stackoverflow.com/a/236803
+// TODO namespace / move to utility
 std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems) {
   std::stringstream ss(s);
   std::string item;
@@ -73,7 +107,7 @@ Index parseFaceIndex(const std::string& token) {
 }
 
 // Read a .obj file containing a polygon mesh
-void PolygonSoupMesh::readMeshFromFile(std::string filename) {
+void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
   // std::cout << "Reading mesh from file: " << filename << std::endl;
 
   polygons.clear();
@@ -97,18 +131,16 @@ void PolygonSoupMesh::readMeshFromFile(std::string filename) {
     ss >> token;
 
     if (token == "v") {
-      double x, y, z;
-      ss >> x >> y >> z;
+      Vector3 position;
+      ss >> position;
 
-      vertexCoordinates.push_back(Vector3{x, y, z});
+      vertexCoordinates.push_back(position);
 
     } else if (token == "vt") {
       double u, v;
       ss >> u >> v;
 
       coords.push_back(Vector2{u, v});
-
-
     } else if (token == "vn") {
       // Do nothing
 
@@ -149,6 +181,232 @@ void PolygonSoupMesh::readMeshFromFile(std::string filename) {
   }
 }
 
+// Assumes that first line has already been consumed
+void PolygonSoupMesh::readMeshFromAsciiStlFile(std::ifstream& in) {
+  std::string line;
+  std::stringstream ss;
+  size_t lineNum = 1;
+
+  auto assertToken = [&](const std::string& expected) {
+    std::string token;
+    ss >> token;
+    if (token != expected) {
+      std::ostringstream errorMessage;
+      errorMessage << "Failed to parse ASCII stl file." << std::endl
+                   << "Error on line " << lineNum << ". Expected \"" << expected << "\" but token \"" << token << "\""
+                   << std::endl
+                   << "Full line: \"" << line << "\"" << std::endl;
+      throw std::runtime_error(errorMessage.str());
+    }
+  };
+
+  auto nextLine = [&]() {
+    if (!getline(in, line)) {
+      return false;
+    }
+
+    ss = std::stringstream(line);
+    lineNum++;
+    return true;
+  };
+
+  auto startsWithToken = [](const std::string& str, const std::string& prefix) {
+    std::stringstream ss(str);
+    std::string token;
+    ss >> token;
+    return token == prefix;
+  };
+
+  // Parse STL file
+  while (nextLine() && !startsWithToken(line, "endsolid")) {
+    assertToken("facet");
+    assertToken("normal");
+
+    // TODO: store this normal?
+    Vector3 normal;
+    ss >> normal;
+
+    nextLine();
+
+    assertToken("outer");
+    assertToken("loop");
+
+    std::vector<size_t> face;
+    while (nextLine() && !startsWithToken(line, "endloop")) {
+      assertToken("vertex");
+
+      Vector3 position;
+      ss >> position;
+      vertexCoordinates.push_back(position);
+
+      face.push_back(vertexCoordinates.size() - 1);
+    }
+
+    nextLine();
+    assertToken("endfacet");
+
+    // Orient face using normal
+    Vector3 faceNormal = cross(vertexCoordinates[face[1]] - vertexCoordinates[face[0]],
+                               vertexCoordinates[face[2]] - vertexCoordinates[face[0]]);
+    if (dot(faceNormal, normal) < 0) {
+      std::reverse(std::begin(face), std::end(face));
+    }
+
+    polygons.push_back(face);
+  }
+}
+
+void PolygonSoupMesh::readMeshFromBinaryStlFile(std::ifstream in) {
+  auto parseVector3 = [&](std::ifstream& in) {
+    char buffer[3 * sizeof(float)];
+    in.read(buffer, 3 * sizeof(float));
+    float* fVec = (float*)buffer;
+    return Vector3{fVec[0], fVec[1], fVec[2]};
+  };
+
+  char header[80];
+  char nTriangleChars[4];
+  in.read(header, 80);
+  in.read(nTriangleChars, 4);
+  unsigned int* intPtr = (unsigned int*)nTriangleChars;
+  size_t nTriangles = *intPtr;
+
+  for (size_t iT = 0; iT < nTriangles; ++iT) {
+    // TODO: store this normal?
+    Vector3 normal = parseVector3(in);
+    std::vector<size_t> face;
+    for (size_t iV = 0; iV < 3; ++iV) {
+      vertexCoordinates.push_back(parseVector3(in));
+      face.push_back(vertexCoordinates.size() - 1);
+    }
+
+    // Orient face using normal
+    Vector3 faceNormal = cross(vertexCoordinates[face[1]] - vertexCoordinates[face[0]],
+                               vertexCoordinates[face[2]] - vertexCoordinates[face[0]]);
+    if (dot(faceNormal, normal) < 0) {
+      std::reverse(std::begin(face), std::end(face));
+    }
+
+    polygons.push_back(face);
+    char dummy[2];
+    in.read(dummy, 2);
+  }
+}
+
+// Read a .stl file containing a polygon mesh
+void PolygonSoupMesh::readMeshFromStlFile(std::string filename) {
+  // TODO: read stl file name
+  polygons.clear();
+  vertexCoordinates.clear();
+
+  // Open the file
+  std::ifstream in(filename);
+  if (!in) throw std::invalid_argument("Could not open mesh file " + filename);
+
+  // parse stl format
+  std::string line;
+  getline(in, line);
+  std::stringstream ss(line);
+  std::string token;
+  ss >> token;
+  if (token == "solid") {
+    readMeshFromAsciiStlFile(in);
+  } else {
+    readMeshFromBinaryStlFile(std::ifstream(filename, std::ios::in | std::ios::binary));
+  }
+}
+
+// Read a .ply file containing a polygon mesh
+void PolygonSoupMesh::readMeshFromPlyFile(std::string filename) {
+  polygons.clear();
+  vertexCoordinates.clear();
+
+  happly::PLYData plyIn(filename);
+
+
+  std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
+  vertexCoordinates.resize(vPos.size());
+  for (size_t iV = 0; iV < vPos.size(); iV++) {
+    for (int j = 0; j < 3; j++) {
+      vertexCoordinates[iV][j] = vPos[iV][j];
+    }
+  }
+
+  polygons = plyIn.getFaceIndices<size_t>();
+}
+
+// Mutate this mesh by merging vertices with identical floating point positions.
+// Useful for loading .stl files, which don't contain information about which
+// triangle corners meet at vertices.
+void PolygonSoupMesh::mergeIdenticalVertices() {
+  std::vector<Vector3> compressedPositions;
+  // Store mapping from original vertex index to merged vertex index
+  std::vector<size_t> compressVertex;
+  compressVertex.reserve(vertexCoordinates.size());
+
+  std::unordered_map<Vector3, size_t> canonicalIndex;
+
+  for (size_t iV = 0; iV < vertexCoordinates.size(); ++iV) {
+    Vector3 v = vertexCoordinates[iV];
+    auto it = canonicalIndex.find(v);
+
+    // Check if vertex exists in map or not
+    if (it == canonicalIndex.end()) {
+      compressedPositions.push_back(v);
+      size_t vecIndex = compressedPositions.size() - 1;
+      canonicalIndex[v] = vecIndex;
+      compressVertex.push_back(vecIndex);
+    } else {
+      size_t vecIndex = it->second;
+      compressVertex.push_back(vecIndex);
+    }
+  }
+
+  vertexCoordinates = std::move(compressedPositions);
+
+  // Update face indices
+  for (std::vector<size_t>& face : polygons) {
+    for (size_t& iV : face) {
+      iV = compressVertex[iV];
+    }
+  }
+}
+
+
+void PolygonSoupMesh::stripUnusedVertices() {
+
+  // Check which indices are used
+  size_t nV = vertexCoordinates.size();
+  std::vector<char> vertexUsed(nV, false);
+  for (auto poly : polygons) {
+    for (auto i : poly) {
+      GC_SAFETY_ASSERT(i < nV,
+                       "polygon list has index " + std::to_string(i) + " >= num vertices " + std::to_string(nV));
+      vertexUsed[i] = true;
+    }
+  }
+
+
+  // Re-index
+  std::vector<size_t> newInd(nV, INVALID_IND);
+  std::vector<Vector3> newVertexCoordinates(nV);
+  size_t nNewV = 0;
+  for (size_t iOldV = 0; iOldV < nV; iOldV++) {
+    if (!vertexUsed[iOldV]) continue;
+    size_t iNewV = nNewV++;
+    newInd[iOldV] = iNewV;
+    newVertexCoordinates[iNewV] = vertexCoordinates[iOldV];
+  }
+  vertexCoordinates = newVertexCoordinates;
+
+  // Translate the polygon listing
+  for (auto& poly : polygons) {
+    for (auto& i : poly) {
+      i = newInd[i];
+    }
+  }
+}
+
 void PolygonSoupMesh::triangulate() {
   std::vector<std::vector<size_t>> newPolygons;
 
@@ -164,6 +422,62 @@ void PolygonSoupMesh::triangulate() {
   }
 
   polygons = newPolygons;
+}
+
+void PolygonSoupMesh::writeMesh(std::string filename, std::string type) {
+
+  // Attempt to detect filename
+  bool typeGiven = type != "";
+  std::string::size_type sepInd = filename.rfind('.');
+  if (!typeGiven) {
+    if (sepInd != std::string::npos) {
+      std::string extension;
+      extension = filename.substr(sepInd + 1);
+
+      // Convert to all lowercase
+      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+      type = extension;
+    }
+  }
+
+  if (type == "obj") {
+    return writeMeshObj(filename);
+  } else {
+    if (typeGiven) {
+      throw std::runtime_error("Can not write mesh file type " + type);
+    } else {
+      throw std::runtime_error("Could not detect file type to write mesh to " + filename);
+    }
+  }
+}
+
+void PolygonSoupMesh::writeMeshObj(std::string filename) {
+
+  std::ofstream out(filename);
+  if (!out) {
+    throw std::runtime_error("failed to create output stream " + filename);
+  }
+
+  // Write header
+  out << "# Mesh exported from GeometryCentral" << std::endl;
+  out << "#  vertices: " << vertexCoordinates.size() << std::endl;
+  out << "#     faces: " << polygons.size() << std::endl;
+  out << "#     texture coordinates: NO" << std::endl;
+  out << std::endl;
+
+  // Write vertices
+  for (Vector3 p : vertexCoordinates) {
+    out << "v " << p.x << " " << p.y << " " << p.z << std::endl;
+  }
+
+  // Write faces
+  for (std::vector<size_t>& face : polygons) {
+    out << "f";
+    for (size_t ind : face) {
+      out << " " << (ind + 1);
+    }
+    out << std::endl;
+  }
 }
 
 std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups) {

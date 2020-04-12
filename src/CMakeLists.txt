@@ -26,6 +26,7 @@ SET(SRCS
   surface/trace_geodesic.cpp
   surface/surface_centers.cpp
   surface/signpost_intrinsic_triangulation.cpp
+  surface/simple_idt.cpp
   surface/mesh_graph_algorithms.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp

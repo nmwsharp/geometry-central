@@ -136,9 +136,29 @@ inline Vector3 Vector3::normalize() const {
 
 inline Vector3 Vector3::removeComponent(const Vector3& unitDir) const { return *this - unitDir * dot(unitDir, *this); }
 
+inline std::tuple<Vector3, Vector3> Vector3::buildTangentBasis() const {
+  Vector3 unitDir = normalize();
+  Vector3 testVec{1., 0., 0.};
+  if (std::fabs(dot(testVec, unitDir)) > 0.9) {
+    testVec = Vector3{0., 1., 0.};
+  }
+
+  Vector3 basisX = cross(testVec, unitDir).normalize();
+  Vector3 basisY = cross(unitDir, basisX).normalize();
+
+  return std::tuple<Vector3, Vector3>{basisX, basisY};
+};
+
 inline std::ostream& operator<<(std::ostream& output, const Vector3& v) {
   output << "<" << v.x << ", " << v.y << ", " << v.z << ">";
   return output;
+}
+
+inline std::istream& operator>>(std::istream& input, Vector3& v) {
+  double x, y, z;
+  input >> x >> y >> z;
+  v = Vector3{x, y, z};
+  return input;
 }
 
 } // namespace geometrycentral
