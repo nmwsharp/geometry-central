@@ -25,6 +25,8 @@ IntrinsicGeometryInterface::IntrinsicGeometryInterface(HalfedgeMesh& mesh_) :
   faceGaussianCurvaturesQ   (&faceGaussianCurvatures,       std::bind(&IntrinsicGeometryInterface::computeFaceGaussianCurvatures, this),    quantities),
   halfedgeCotanWeightsQ     (&halfedgeCotanWeights,         std::bind(&IntrinsicGeometryInterface::computeHalfedgeCotanWeights, this),      quantities),
   edgeCotanWeightsQ         (&edgeCotanWeights,             std::bind(&IntrinsicGeometryInterface::computeEdgeCotanWeights, this),          quantities),
+  shapeLengthScaleQ         (&shapeLengthScale,             std::bind(&IntrinsicGeometryInterface::computeShapeLengthScale, this),          quantities),
+  meshLengthScaleQ          (&meshLengthScale,              std::bind(&IntrinsicGeometryInterface::computeMeshLengthScale, this),          quantities),
   
   halfedgeVectorsInFaceQ            (&halfedgeVectorsInFace,            std::bind(&IntrinsicGeometryInterface::computeHalfedgeVectorsInFace, this),             quantities),
   transportVectorsAcrossHalfedgeQ   (&transportVectorsAcrossHalfedge,   std::bind(&IntrinsicGeometryInterface::computeTransportVectorsAcrossHalfedge, this),    quantities),
@@ -268,6 +270,34 @@ void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
 }
 void IntrinsicGeometryInterface::requireEdgeCotanWeights() { edgeCotanWeightsQ.require(); }
 void IntrinsicGeometryInterface::unrequireEdgeCotanWeights() { edgeCotanWeightsQ.unrequire(); }
+
+// Shape length scale
+void IntrinsicGeometryInterface::computeShapeLengthScale() {
+  faceAreasQ.ensureHave();
+
+  double totalArea = 0.;
+  for (Face f : mesh.faces()) {
+    totalArea += faceAreas[f];
+  }
+
+  shapeLengthScale = std::sqrt(totalArea);
+}
+void IntrinsicGeometryInterface::requireShapeLengthScale() { shapeLengthScaleQ.require(); }
+void IntrinsicGeometryInterface::unrequireShapeLengthScale() { shapeLengthScaleQ.unrequire(); }
+
+// Mesh length scale
+void IntrinsicGeometryInterface::computeMeshLengthScale() {
+  edgeLengthsQ.ensureHave();
+
+  double totalEdgeLength = 0.;
+  for (Edge e : mesh.edges()) {
+    totalEdgeLength += edgeLengths[e];
+  }
+
+  meshLengthScale = totalEdgeLength / mesh.nEdges();
+}
+void IntrinsicGeometryInterface::requireMeshLengthScale() { meshLengthScaleQ.require(); }
+void IntrinsicGeometryInterface::unrequireMeshLengthScale() { meshLengthScaleQ.unrequire(); }
 
 
 // Halfedge vectors in face

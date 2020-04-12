@@ -133,6 +133,20 @@ The corresponding vectors are indexed according to the indices of the underlying
     
 
     
+## Default values
+
+All containers track a default value for their elements, which can optionally be set at construction; if not set it is simply `T()`. After construction this value is significant because it will be used as the value for any newly-created mesh elements if the underlying mesh is mutated. The getter and setter below allow you to modify the default value for an existing container.
+
+??? func "`#!cpp void MeshData<E,T>::setDefault(T newDefault)`"
+
+    Sets a new default value for the container. 
+    
+    Does not modify any existing data in the container.
+
+
+??? func "`#!cpp T MeshData<E,T>::getDefault() const`"
+
+    Get the current default value for the container. 
 
 
 ## Transferring data

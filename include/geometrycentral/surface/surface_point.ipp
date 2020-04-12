@@ -8,6 +8,8 @@ namespace surface {
 inline SurfacePoint::SurfacePoint() : type(SurfacePointType::Vertex) {}
 inline SurfacePoint::SurfacePoint(Vertex v) : type(SurfacePointType::Vertex), vertex(v) {}
 inline SurfacePoint::SurfacePoint(Edge e, double tEdge_) : type(SurfacePointType::Edge), edge(e), tEdge(tEdge_) {}
+inline SurfacePoint::SurfacePoint(Halfedge he, double tHalfedge)
+    : type(SurfacePointType::Edge), edge(he.edge()), tEdge(he == he.edge().halfedge() ? tHalfedge : (1. - tHalfedge)) {}
 inline SurfacePoint::SurfacePoint(Face f, Vector3 faceCoords_)
     : type(SurfacePointType::Face), face(f), faceCoords(faceCoords_) {}
 
@@ -168,6 +170,27 @@ inline void SurfacePoint::validate() const {
   }
   }
 }
+
+inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
+  if (type != other.type) return false;
+  switch (type) {
+  case SurfacePointType::Vertex: {
+    return vertex == other.vertex;
+    break;
+  }
+  case SurfacePointType::Edge: {
+    return edge == other.edge && tEdge == other.tEdge;
+    break;
+  }
+  case SurfacePointType::Face: {
+    return face == other.face && faceCoords == other.faceCoords;
+    break;
+  }
+  }
+  return false; // should never be reached
+}
+inline bool SurfacePoint::operator!=(const SurfacePoint& other) const { return !(*this == other); }
+
 
 } // namespace surface
 } // namespace geometrycentral

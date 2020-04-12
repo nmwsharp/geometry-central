@@ -13,6 +13,8 @@ using std::endl;
 namespace geometrycentral {
 namespace surface {
 
+// The default trace options
+const TraceOptions defaultTraceOptions;
 
 // Helper functions which support tracing
 namespace {
@@ -102,7 +104,7 @@ inline Vector2 convertVecToEdge(Halfedge he, Vector2 halfedgeVec) {
 
 
 // Return type from tracing subroutines
-// When trace ends, will set newFace = Face() and newVector = Vector3::zero(). only then is incomingVecToPoint populated
+// When trace ends, will set newFace = Face() and newVector = Vector3::zero(). only then is incomingDirToPoint populated
 struct TraceSubResult {
   // Did the trace end?
   bool terminated;
@@ -110,13 +112,14 @@ struct TraceSubResult {
   // One of the two sets of values will be defined:
 
   // If the trace continues (terminated == false)
-  Halfedge crossHe;              // halfedge we crossed over from (crossHe.twin().face() is new face)
-  double tCross;                 // t along crossHe
-  Vector2 traceVectorInHalfedge; // vector to keep tracing, measured against crossHe
+  Halfedge crossHe;                 // halfedge we crossed over from (crossHe.twin().face() is new face)
+  double tCross;                    // t along crossHe
+  Vector2 traceVectorInHalfedgeDir; // vector to keep tracing, measured against crossHe
+  double traceVectorInHalfedgeLen;  // vector to keep tracing, measured against crossHe
 
   // If the trace ends (terminated == true)
   SurfacePoint endPoint;      // ending location
-  Vector2 incomingVecToPoint; // final incoming direction
+  Vector2 incomingDirToPoint; // final incoming direction
 };
 
 
@@ -132,8 +135,8 @@ struct TraceSubResult {
 // different representations of the same data! This is useful the barycentric representation is good for relilably
 // performing tracing, while the cartesian representation is good for transforming the trace vector between triangles.
 inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, Face face, Vector3 startPoint,
-                                             Vector3 vecBary, Vector2 vecCartesian,
-                                             const std::array<bool, 3>& edgeIsHittable, bool errorOnProblem) {
+                                             Vector3 vecBary, Vector2 vecCartesianDir, double vecCartesianLen,
+                                             std::array<bool, 3> edgeIsHittable, const TraceOptions& traceOptions) {
 
   // Gather values
   std::array<Vector2, 3> vertexCoords = vertexCoordinatesInTriangle(geom, face);
@@ -144,7 +147,7 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     if (TRACE_PRINT) {
       cout << "  bad bary point: " << startPoint << endl;
     }
-    if (errorOnProblem) {
+    if (traceOptions.errorOnProblem) {
       throw std::runtime_error("bad bary point");
     }
   }
@@ -152,12 +155,12 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
   if (TRACE_PRINT) {
     cout << "  general trace in face: " << endl;
     cout << "  face: " << face << " startPoint " << startPoint << " vecBary = " << vecBary << " vecCartesian "
-         << vecCartesian << endl;
+         << vecCartesianDir << " " << vecCartesianLen << endl;
   }
 
   if (TRACE_PRINT) {
     cout << "  vec bary  = " << vecBary << endl;
-    cout << "  reconvert = " << cartesianVectorToBarycentric(vertexCoords, vecCartesian) << endl;
+    cout << "  reconvert = " << cartesianVectorToBarycentric(vertexCoords, vecCartesianDir) * vecCartesianLen << endl;
   }
 
   // Test if the vector ends in the triangle
@@ -165,12 +168,45 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
   if (TRACE_PRINT) {
     cout << "    endpoint: " << endPoint << endl;
   }
+
+  /*
+  if (isInsideTriangle(endPoint)) {
+    // Fancy test if ending on edges
+    // (to detect when we're within eps of edge)
+    bool foundEpsEdge = false;
+    if (traceOptions.allowEndOnEdge) {
+      double A = 0.5 * cross(vertexCoords[1] - vertexCoords[0], vertexCoords[2] - vertexCoords[0]);
+      Halfedge endHe = face.halfedge();
+      for (int i = 0; i < 3; i++) {
+        double dist = 2. * endPoint[i] * A / triangleLengths[i]; // perp distance to edge
+        if (endPoint[i] > 0 && dist < traceOptions.allowEndOnEdgeEps) {
+          // force the process below to hit this edge, let other logic proceed
+          edgeIsHittable[i] = true;
+          edgeIsHittable[(i + 1) % 3] = false;
+          edgeIsHittable[(i + 2) % 3] = false;
+          foundEpsEdge = true;
+          break;
+        }
+      }
+    }
+    // Simple test if not ending on edges
+    if (!foundEpsEdge) {
+      // The trace ended! Call it a day.
+      TraceSubResult result;
+      result.terminated = true;
+      result.endPoint = SurfacePoint(face, endPoint);
+      result.incomingDirToPoint = vecCartesian;
+      return result;
+    }
+  }
+  */
+
   if (isInsideTriangle(endPoint)) {
     // The trace ended! Call it a day.
     TraceSubResult result;
     result.terminated = true;
     result.endPoint = SurfacePoint(face, endPoint);
-    result.incomingVecToPoint = vecCartesian;
+    result.incomingDirToPoint = vecCartesianDir;
     return result;
   }
 
@@ -204,9 +240,9 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
       continue;
     }
 
-    if (tRayThis < tRay) {
+    if (tRayThisRaw < tRay) {
       // This is the new closest intersection
-      tRay = tRayThis;
+      tRay = tRayThisRaw;
       crossHe = currHe;
       iOppVertEnd = i;
     }
@@ -219,8 +255,12 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     cout << "      iOppVertEnd: " << iOppVertEnd << endl;
   }
 
+  // Clamp to a sane range
+  tRay = clamp(tRay, 0., 1. - TRACE_EPS_LOOSE);
+
+
   if (crossHe == Halfedge()) {
-    if (errorOnProblem) {
+    if (traceOptions.errorOnProblem) {
       throw std::logic_error("no halfedge intersection was selected, precondition problem?");
     }
     if (TRACE_PRINT) {
@@ -231,7 +271,7 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     TraceSubResult result;
     result.terminated = true;
     result.endPoint = SurfacePoint(face, startPoint);
-    result.incomingVecToPoint = vecCartesian;
+    result.incomingDirToPoint = vecCartesianDir;
     return result;
   }
 
@@ -246,30 +286,30 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
   tCross = clamp(tCross, 0., 1.);
 
   // Rotate the vector in to the frame of crossHe and shorten it
-  Vector2 vecCartesianRemaining = (1.0 - tRay) * vecCartesian;
+  double lenRemaining = (1.0 - tRay) * vecCartesianLen;
   Vector2 crossingEdgeVec = (vertexCoords[(iOppVertEnd + 2) % 3] - vertexCoords[(iOppVertEnd + 1) % 3]);
-  Vector2 remainingVecInHalfedge = vecCartesianRemaining / crossingEdgeVec.normalize();
-  if (!isfinite(remainingVecInHalfedge)) {
+  Vector2 remainingDirInHalfedge = vecCartesianDir / crossingEdgeVec.normalize();
+  if (!isfinite(remainingDirInHalfedge)) {
     if (TRACE_PRINT) {
       cout << "    NON FINITE REMAINING TRACE" << endl;
-      cout << "    vecCartesianRemaining = " << vecCartesianRemaining << endl;
+      cout << "    lenRemaining = " << lenRemaining << endl;
       cout << "    crossingEdgeVec = " << crossingEdgeVec << endl;
-      cout << "    remainingVecInHalfedge = " << remainingVecInHalfedge << endl;
+      cout << "    remainingDirInHalfedge = " << remainingDirInHalfedge << endl;
     }
 
-    if (errorOnProblem) {
+    if (traceOptions.errorOnProblem) {
       throw std::runtime_error("bad value transforming to new edge. is there a zero-length edge?");
     }
   }
 
 
   // Stop tracing if we hit a boundary
-  if (!crossHe.twin().isInterior()) {
+  if (!crossHe.twin().isInterior() || (traceOptions.barrierEdges && (*traceOptions.barrierEdges)[crossHe.edge()])) {
     // Build the result
     TraceSubResult result;
     result.terminated = true;
     result.endPoint = SurfacePoint(crossHe.edge(), convertTToEdge(crossHe, tCross));
-    result.incomingVecToPoint = remainingVecInHalfedge;
+    result.incomingDirToPoint = remainingDirInHalfedge;
 
     return result;
   }
@@ -279,15 +319,17 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
   result.terminated = false;
   result.crossHe = crossHe;
   result.tCross = tCross;
-  result.traceVectorInHalfedge = remainingVecInHalfedge;
+  result.traceVectorInHalfedgeDir = remainingDirInHalfedge;
+  result.traceVectorInHalfedgeLen = lenRemaining;
   return result;
 }
 
 // Trace within a face towards a given edge. The trace is assumed to start at the vertex opposite towardsHe.
 //   - towardsHe: the halfedge we are tracing towards (opposite the source vertex)
 //   - vecCartesian: vector to trace, in the cartesian basis of the face
-inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, Halfedge towardsHe, Vector2 vecCartesian,
-                                             bool errorOnProblem) {
+inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, Halfedge towardsHe,
+                                             Vector2 vecCartesianDir, double vecCartesianLen,
+                                             const TraceOptions& traceOptions) {
 
   // Gather some values
   Face face = towardsHe.face();
@@ -295,7 +337,7 @@ inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, H
   std::array<Vector2, 3> vertexCoords = vertexCoordinatesInTriangle(geom, face);
 
   if (TRACE_PRINT) {
-    cout << "  face trace towards edge " << towardsHe << " vec = " << vecCartesian << endl;
+    cout << "  face trace towards edge " << towardsHe << " vec = " << vecCartesianDir << endl;
     cout << "  wedge vec right = " << geom.halfedgeVectorsInFace[towardsHe.next().next()] << endl;
     cout << "  wedge vec left  = " << -geom.halfedgeVectorsInFace[towardsHe.next()] << endl;
     cout << "  wedge vec opp = " << geom.halfedgeVectorsInFace[towardsHe] << endl;
@@ -304,7 +346,7 @@ inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, H
   // TODO do some reasonable angular projection on the cartesian vector
 
   // Convert to barycentric
-  Vector3 vecBaryCanonical = cartesianVectorToBarycentric(vertexCoords, vecCartesian);
+  Vector3 vecBaryCanonical = cartesianVectorToBarycentric(vertexCoords, vecCartesianDir) * vecCartesianLen;
   Vector3 vecBaryFromRoot = permuteBarycentricFromCanonical(vecBaryCanonical, towardsHe.next().next());
 
   if (TRACE_PRINT) {
@@ -339,7 +381,8 @@ inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, H
   std::array<bool, 3> hittable = {{false, false, false}};
   hittable[(iHe + 1) % 3] = true;
 
-  return traceInFaceBarycentric(geom, face, startPoint, vecBaryCanonicalFixed, vecCartesian, hittable, errorOnProblem);
+  return traceInFaceBarycentric(geom, face, startPoint, vecBaryCanonicalFixed, vecCartesianDir, vecCartesianLen,
+                                hittable, traceOptions);
 }
 
 
@@ -348,47 +391,62 @@ inline TraceSubResult traceInFaceTowardsEdge(IntrinsicGeometryInterface& geom, H
 //   - tCrossFrom: t value in [0, 1] along fromHe we we enter the face
 //   - traceVecInHalfedge: vector to trace, in the basis of fromHe
 inline TraceSubResult traceInFaceFromEdge(IntrinsicGeometryInterface& geom, Halfedge fromHe, double tCrossFrom,
-                                          Vector2 traceVecInHalfedge, bool errorOnProblem) {
+                                          Vector2 traceVecInHalfedgeDir, double traceVecInHalfedgeLen,
+                                          const TraceOptions& traceOptions) {
+
+  // Possibly terminate at this edge
+  /*
+  std::cout << "  norm tracevec = " << norm(traceVecInHalfedge) << std::endl;
+  if (traceOptions.allowEndOnEdge && norm(traceVecInHalfedge) < traceOptions.allowEndOnEdgeEps) {
+    std::cout << "TERMINATING AT EDGE" << std::endl;
+    TraceSubResult result;
+    result.terminated = true;
+    result.endPoint = SurfacePoint(fromHe, tCrossFrom);
+    result.incomingDirToPoint = traceVecInHalfedge;
+    if (fromHe != fromHe.edge().halfedge()) result.incomingDirToPoint *= -1.;
+    return result;
+  }
+  */
 
   // Gather some values
   Halfedge faceHe = fromHe.twin(); // the halfedge in hte face we're heading in to
   Face face = faceHe.face();
   std::array<Vector2, 3> vertexCoords = vertexCoordinatesInTriangle(geom, face);
 
-  if (TRACE_PRINT) cout << "  face trace from edge " << fromHe << " vec = " << traceVecInHalfedge << endl;
+  if (TRACE_PRINT) cout << "  face trace from edge " << fromHe << " vec = " << traceVecInHalfedgeDir << endl;
 
 
   // Project the cartesian vector to definitely point in the right direction
-  Vector2 traceVecInFaceHalfedge = -traceVecInHalfedge;
-  if (TRACE_PRINT) cout << "    vec in face before project " << traceVecInFaceHalfedge << endl;
-  traceVecInFaceHalfedge.y = std::fmax(traceVecInFaceHalfedge.y, TRACE_EPS_LOOSE);
-  if (TRACE_PRINT) cout << "    vec in face after project " << traceVecInFaceHalfedge << endl;
+  Vector2 traceVecInFaceHalfedgeDir = -traceVecInHalfedgeDir;
+  if (TRACE_PRINT) cout << "    vec in face before project " << traceVecInFaceHalfedgeDir << endl;
+  traceVecInFaceHalfedgeDir.y = std::fmax(traceVecInFaceHalfedgeDir.y, TRACE_EPS_LOOSE);
+  if (TRACE_PRINT) cout << "    vec in face after project " << traceVecInFaceHalfedgeDir << endl;
 
   // Convert to face coordinates
   Vector2 heDir = geom.halfedgeVectorsInFace[faceHe].normalize();
-  Vector2 traceVecInFace = heDir * traceVecInFaceHalfedge;
-  if (TRACE_PRINT) cout << "    traceVec in face " << traceVecInFace << endl;
+  Vector2 traceVecInFaceDir = heDir * traceVecInFaceHalfedgeDir;
+  if (TRACE_PRINT) cout << "    traceVec in face " << traceVecInFaceDir << endl;
 
   // Convert to barycentric
-  Vector3 vecBaryCanonical = cartesianVectorToBarycentric(vertexCoords, traceVecInFace);
-  if (TRACE_PRINT) cout << "    vecBaryCanonical " << vecBaryCanonical << endl;
-  Vector3 vecBaryFromEdge = permuteBarycentricFromCanonical(vecBaryCanonical, faceHe);
+  Vector3 vecBaryCanonicalDir = cartesianVectorToBarycentric(vertexCoords, traceVecInFaceDir);
+  if (TRACE_PRINT) cout << "    vecBaryCanonical " << vecBaryCanonicalDir << endl;
+  Vector3 vecBaryFromEdgeDir = permuteBarycentricFromCanonical(vecBaryCanonicalDir, faceHe);
 
-  if (TRACE_PRINT) cout << "    vec bary before project " << vecBaryFromEdge << endl;
+  if (TRACE_PRINT) cout << "    vec bary before project " << vecBaryFromEdgeDir << endl;
   { // Project to ensure the vector is in the right direction
-    vecBaryFromEdge.z = std::fmax(vecBaryFromEdge.z, TRACE_EPS_TIGHT);
+    vecBaryFromEdgeDir.z = std::fmax(vecBaryFromEdgeDir.z, TRACE_EPS_TIGHT);
 
     // Manual displacement projection to sum to 0 which perserves above properties
-    double diff = -sum(vecBaryFromEdge);
+    double diff = -sum(vecBaryFromEdgeDir);
     if (diff > 0) {
-      vecBaryFromEdge.z += diff;
+      vecBaryFromEdgeDir.z += diff;
     } else {
-      vecBaryFromEdge.x += diff / 3.;
-      vecBaryFromEdge.y += diff / 3.;
-      vecBaryFromEdge.z += diff / 3.;
+      vecBaryFromEdgeDir.x += diff / 3.;
+      vecBaryFromEdgeDir.y += diff / 3.;
+      vecBaryFromEdgeDir.z += diff / 3.;
     }
   }
-  if (TRACE_PRINT) cout << "    vec bary after project " << vecBaryFromEdge << endl;
+  if (TRACE_PRINT) cout << "    vec bary after project " << vecBaryFromEdgeDir << endl;
 
   // Project ensure tCrossFrom is valid
   tCrossFrom = clamp(tCrossFrom, 0., 1.);
@@ -399,25 +457,25 @@ inline TraceSubResult traceInFaceFromEdge(IntrinsicGeometryInterface& geom, Half
   Vector3 startPoint{0., 0., 0.};
   startPoint[iHe] = tCrossFrom; // notice: switched from what you'd expect becasue tCrossFrom is defined on twin
   startPoint[(iHe + 1) % 3] = 1.0 - tCrossFrom;
-  Vector3 vecBaryCanonicalFixed = permuteBarycentricToCanonical(vecBaryFromEdge, faceHe);
+  Vector3 vecBaryCanonicalFixedDir = permuteBarycentricToCanonical(vecBaryFromEdgeDir, faceHe);
   if (TRACE_PRINT) {
     cout << "    iHe = " << iHe << endl;
     cout << "    startPoint = " << startPoint << endl;
-    cout << "    canonical bary " << vecBaryCanonicalFixed << endl;
+    cout << "    canonical bary " << vecBaryCanonicalFixedDir << endl;
   }
   std::array<bool, 3> hittable = {{true, true, true}};
   hittable[iHe] = false;
 
-  return traceInFaceBarycentric(geom, face, startPoint, vecBaryCanonicalFixed, traceVecInFace, hittable,
-                                errorOnProblem);
+  return traceInFaceBarycentric(geom, face, startPoint, vecBaryCanonicalFixedDir * traceVecInHalfedgeLen,
+                                traceVecInFaceDir, traceVecInHalfedgeLen, hittable, traceOptions);
 }
 
 
 // Trace starting from an edge
 inline TraceSubResult traceGeodesic_fromEdge(IntrinsicGeometryInterface& geom, Edge currEdge, double tEdge,
-                                             Vector2 currVec, bool errorOnProblem) {
+                                             Vector2 currVecDir, double currVecLen, const TraceOptions& traceOptions) {
 
-  if (TRACE_PRINT) cout << "  edge trace " << currEdge << " tEdge = " << tEdge << " edge vec = " << currVec << endl;
+  if (TRACE_PRINT) cout << "  edge trace " << currEdge << " tEdge = " << tEdge << " edge vec = " << currVecDir << endl;
 
   // Project to ensure tEdge is valid
   tEdge = clamp(tEdge, 0., 1.);
@@ -426,59 +484,58 @@ inline TraceSubResult traceGeodesic_fromEdge(IntrinsicGeometryInterface& geom, E
 
   // Check which side of the face we're exiting
   Halfedge traceHe;
-  Vector2 halfedgeTraceVec;
-  if (currVec.y >= 0.) {
+  Vector2 halfedgeTraceDir;
+  if (currVecDir.y >= 0.) {
     traceHe = currEdge.halfedge().twin();
-    halfedgeTraceVec = -currVec;
+    halfedgeTraceDir = -currVecDir;
     tEdge = 1.0 - tEdge;
   } else {
     traceHe = currEdge.halfedge();
 
     // Can't go anyywhere if boundary halfedge
-    if (!traceHe.isInterior()) {
+    if (!traceHe.twin().isInterior() || (traceOptions.barrierEdges && (*traceOptions.barrierEdges)[traceHe.edge()])) {
       TraceSubResult result;
       result.terminated = true;
       result.endPoint = SurfacePoint(currEdge, tEdge);
-      result.incomingVecToPoint = currVec;
+      result.incomingDirToPoint = currVecDir;
 
       return result;
     }
 
-    halfedgeTraceVec = currVec;
+    halfedgeTraceDir = currVecDir;
   }
 
-  return traceInFaceFromEdge(geom, traceHe, tEdge, halfedgeTraceVec, errorOnProblem);
+  return traceInFaceFromEdge(geom, traceHe, tEdge, halfedgeTraceDir, currVecLen, traceOptions);
 }
 
 // Trace starting from a face
 inline TraceSubResult traceGeodesic_fromFace(IntrinsicGeometryInterface& geom, Face currFace, Vector3 faceBary,
-                                             Vector2 currVec, bool errorOnProblem) {
+                                             Vector2 currVecDir, double currVecLen, const TraceOptions& traceOptions) {
 
   // Convert the vector to barycentric
   std::array<Vector2, 3> vertexCoords = vertexCoordinatesInTriangle(geom, currFace);
-  Vector3 vecBary = cartesianVectorToBarycentric(vertexCoords, currVec);
+  Vector3 vecBary = cartesianVectorToBarycentric(vertexCoords, currVecDir) * currVecLen;
 
-  return traceInFaceBarycentric(geom, currFace, faceBary, vecBary, currVec, {true, true, true}, errorOnProblem);
+  return traceInFaceBarycentric(geom, currFace, faceBary, vecBary, currVecDir, currVecLen, {true, true, true},
+                                traceOptions);
 }
 
 
 // Trace starting from a vertex (with a rescaled cartesian vector)
-inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom, Vertex currVert, Vector2 currVec,
-                                               bool errorOnProblem) {
-  if (TRACE_PRINT) cout << "  vertex trace " << currVert << " edge vec = " << currVec << endl;
-
-  double traceLen = currVec.norm();
+inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom, Vertex currVert, Vector2 currVecDir,
+                                               double currVecLen, const TraceOptions& traceOptions) {
+  if (TRACE_PRINT) cout << "  vertex trace " << currVert << " edge vec = " << currVecDir << endl;
 
   // Find the halfedge opening the wedge where tracing will start
   Halfedge wedgeHe;
-  Vector2 traceVecRelativeToStart;
+  Vector2 traceDirRelativeToStart;
 
   // Normally, one of the interval tests below will return positive and we'll simply launch the trace in to that
   // interval. However, due to numerical misfortune, it is possible that none of the intervals will test positive. In
   // that case, we'll simply launch along whichever halfedge was closest.
   double minCross = std::numeric_limits<double>::infinity();
   Halfedge minCrossHalfedge;
-  Vector2 minCrossHalfedgeVec; // the trace vector in this closest halfedge
+  Vector2 minCrossHalfedgeDir; // the trace vector in this closest halfedge
 
   Halfedge currHe = currVert.halfedge();
   do {
@@ -507,12 +564,12 @@ inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom,
 
 
     // Check if our trace vector lies within the interval
-    double crossStart = cross(intervalStart, currVec);
-    double crossEnd = cross(intervalEnd, currVec);
+    double crossStart = cross(intervalStart, currVecDir);
+    double crossEnd = cross(intervalEnd, currVecDir);
     if (crossStart > 0. && crossEnd <= 0.) {
       wedgeHe = currHe;
-      traceVecRelativeToStart = currVec / intervalStart;
-      if (TRACE_PRINT) cout << "    wedge match! relative angle " << traceVecRelativeToStart << endl;
+      traceDirRelativeToStart = currVecDir / intervalStart;
+      if (TRACE_PRINT) cout << "    wedge match! relative angle " << traceDirRelativeToStart << endl;
       if (TRACE_PRINT) cout << "    cross start = " << crossStart << " cross end = " << crossEnd << endl;
       break;
     }
@@ -521,12 +578,12 @@ inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom,
     if (std::fabs(crossStart) < minCross) {
       minCross = std::fabs(crossStart);
       minCrossHalfedge = currHe;
-      minCrossHalfedgeVec = Vector2{1, TRACE_EPS_TIGHT} * traceLen;
+      minCrossHalfedgeDir = Vector2{1, TRACE_EPS_TIGHT};
     }
     if (std::fabs(crossEnd) < minCross) {
       minCross = std::fabs(crossEnd);
       minCrossHalfedge = nextHe;
-      minCrossHalfedgeVec = Vector2{1, -TRACE_EPS_TIGHT} * traceLen;
+      minCrossHalfedgeDir = Vector2{1, -TRACE_EPS_TIGHT};
     }
 
     currHe = nextHe;
@@ -535,11 +592,11 @@ inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom,
   // None of the interval tests passed (probably due to unfortunate numerics), so just trace along the closest
   // halfedge
   if (wedgeHe == Halfedge()) {
-    if (TRACE_PRINT) cout << "  no wedge worked. following closest edge with dir " << minCrossHalfedgeVec << endl;
+    if (TRACE_PRINT) cout << "  no wedge worked. following closest edge with dir " << minCrossHalfedgeDir << endl;
     // Convert to edge coordinates
-    currVec = convertVecToEdge(minCrossHalfedge, minCrossHalfedgeVec);
-    return traceGeodesic_fromEdge(geom, minCrossHalfedge.edge(), convertTToEdge(minCrossHalfedge, 0.), currVec,
-                                  errorOnProblem);
+    currVecDir = convertVecToEdge(minCrossHalfedge, minCrossHalfedgeDir);
+    return traceGeodesic_fromEdge(geom, minCrossHalfedge.edge(), convertTToEdge(minCrossHalfedge, 0.), currVecDir,
+                                  currVecLen, traceOptions);
   }
 
   // Compute the actual starting face point, slightly inside and adjacent face
@@ -548,54 +605,70 @@ inline TraceSubResult traceGeodesic_fromVertex(IntrinsicGeometryInterface& geom,
 
   // Need to convert from "powered" representation to flat vector in face
   double sum = currVert.isBoundary() ? M_PI : 2. * M_PI;
-  traceVecRelativeToStart = traceVecRelativeToStart.pow(geom.vertexAngleSums[currVert] / sum);
-  traceVecRelativeToStart = traceVecRelativeToStart.normalize() * currVec.norm(); // fix length
+  traceDirRelativeToStart = traceDirRelativeToStart.pow(geom.vertexAngleSums[currVert] / sum);
+  traceDirRelativeToStart = traceDirRelativeToStart.normalize();
 
   // Compute the starting vector
   Vector2 startDirInFace = geom.halfedgeVectorsInFace[wedgeHe].normalize();
-  Vector2 traceVecInFace = traceVecRelativeToStart * startDirInFace;
+  Vector2 traceDirInFace = traceDirRelativeToStart * startDirInFace;
   if (TRACE_PRINT) {
     cout << "  starting vector" << endl;
     cout << "    start wedge vec " << geom.halfedgeVectorsInFace[wedgeHe] << endl;
     cout << "    start wedge vec unit " << geom.halfedgeVectorsInFace[wedgeHe].normalize() << endl;
-    cout << "    trace vec in face " << traceVecInFace << endl;
+    cout << "    trace dir in face " << traceDirInFace << endl;
   }
 
 
-  return traceInFaceTowardsEdge(geom, wedgeHe.next(), traceVecInFace, errorOnProblem);
+  return traceInFaceTowardsEdge(geom, wedgeHe.next(), traceDirInFace, currVecLen, traceOptions);
 }
 
 
 // Run tracing iteratively in faces, after on of the variants below has gotten it started.
 // Will internally add the point path point encoded by prevTraceEnd, don't add beforehand.
 void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResult& result, TraceSubResult prevTraceEnd,
-                             bool includePath, bool errorOnProblem) {
+                             const TraceOptions& traceOptions) {
 
   // Now, points are always in faces. Trace until termination.
+  size_t iter = 0;
   while (!prevTraceEnd.terminated) {
 
+    // Terminate on iterations
+    if (traceOptions.maxIters != INVALID_IND && iter >= traceOptions.maxIters) {
+
+      // Use the last trace as ending data
+      result.endPoint = SurfacePoint(prevTraceEnd.crossHe, prevTraceEnd.tCross);
+      result.endingDir = prevTraceEnd.traceVectorInHalfedgeDir;
+
+      return;
+    }
+
+
     // Construct a point where the previous trace ended
-    if (includePath) {
+    if (traceOptions.includePath) {
       SurfacePoint currPoint(prevTraceEnd.crossHe.edge(), convertTToEdge(prevTraceEnd.crossHe, prevTraceEnd.tCross));
       result.pathPoints.push_back(currPoint);
     }
 
     if (TRACE_PRINT) {
       cout << "> tracing from " << prevTraceEnd.crossHe << " t = " << prevTraceEnd.tCross
-           << " vec = " << prevTraceEnd.traceVectorInHalfedge << endl;
+           << " dir = " << prevTraceEnd.traceVectorInHalfedgeDir << endl;
     }
 
     // Execute the next step of tracing
-    prevTraceEnd = traceInFaceFromEdge(geom, prevTraceEnd.crossHe, prevTraceEnd.tCross,
-                                       prevTraceEnd.traceVectorInHalfedge, errorOnProblem);
+    prevTraceEnd =
+        traceInFaceFromEdge(geom, prevTraceEnd.crossHe, prevTraceEnd.tCross, prevTraceEnd.traceVectorInHalfedgeDir,
+                            prevTraceEnd.traceVectorInHalfedgeLen, traceOptions);
+    iter++;
   }
 
   // Add the final ending point
-  if (includePath) {
+  if (traceOptions.includePath) {
     result.pathPoints.push_back(prevTraceEnd.endPoint);
   }
   result.endPoint = prevTraceEnd.endPoint;
-  result.endingDir = prevTraceEnd.incomingVecToPoint.normalize();
+  result.endingDir = prevTraceEnd.incomingDirToPoint;
+
+  // if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
 
   if (prevTraceEnd.endPoint.type == SurfacePointType::Edge) {
     result.hitBoundary = true;
@@ -606,15 +679,15 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
 } // namespace
 
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint startP, Vector2 traceVec,
-                                  bool includePath, bool errorOnProblem) {
+                                  const TraceOptions& traceOptions) {
   geom.requireVertexAngleSums();
   geom.requireHalfedgeVectorsInVertex();
   geom.requireHalfedgeVectorsInFace();
 
   // The output data
   TraceGeodesicResult result;
-  result.hasPath = includePath;
-  if (includePath) {
+  result.hasPath = traceOptions.includePath;
+  if (traceOptions.includePath) {
     result.pathPoints.push_back(startP);
   }
 
@@ -629,7 +702,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
     result.endingDir = Vector2::zero();
 
     // probably want to ensure we still return a point in a face...
-    if (errorOnProblem) {
+    if (traceOptions.errorOnProblem) {
       throw std::runtime_error("zero vec passed to trace, do something good here");
     }
 
@@ -641,21 +714,23 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
   TraceSubResult prevTraceEnd;
   switch (startP.type) {
   case SurfacePointType::Vertex: {
-    prevTraceEnd = traceGeodesic_fromVertex(geom, startP.vertex, traceVec, errorOnProblem);
+    prevTraceEnd = traceGeodesic_fromVertex(geom, startP.vertex, unit(traceVec), norm(traceVec), traceOptions);
     break;
   }
   case SurfacePointType::Edge: {
-    prevTraceEnd = traceGeodesic_fromEdge(geom, startP.edge, startP.tEdge, traceVec, errorOnProblem);
+    prevTraceEnd =
+        traceGeodesic_fromEdge(geom, startP.edge, startP.tEdge, unit(traceVec), norm(traceVec), traceOptions);
     break;
   }
   case SurfacePointType::Face: {
-    prevTraceEnd = traceGeodesic_fromFace(geom, startP.face, startP.faceCoords, traceVec, errorOnProblem);
+    prevTraceEnd =
+        traceGeodesic_fromFace(geom, startP.face, startP.faceCoords, unit(traceVec), norm(traceVec), traceOptions);
     break;
   }
   }
 
   // Keep tracing through triangles until finished
-  traceGeodesic_iterative(geom, result, prevTraceEnd, includePath, errorOnProblem);
+  traceGeodesic_iterative(geom, result, prevTraceEnd, traceOptions);
 
   geom.unrequireVertexAngleSums();
   geom.unrequireHalfedgeVectorsInVertex();
@@ -666,7 +741,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
 
 
 TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFace, Vector3 startBary,
-                                  Vector3 traceBaryVec, bool includePath, bool errorOnProblem) {
+                                  Vector3 traceBaryVec, const TraceOptions& traceOptions) {
 
 
   geom.requireVertexAngleSums();
@@ -675,8 +750,8 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
 
   // The output data
   TraceGeodesicResult result;
-  result.hasPath = includePath;
-  if (includePath) {
+  result.hasPath = traceOptions.includePath;
+  if (traceOptions.includePath) {
     result.pathPoints.push_back(SurfacePoint(startFace, startBary));
   }
 
@@ -692,7 +767,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
     geom.unrequireHalfedgeVectorsInFace();
 
     // probably want to ensure we still return a point in a face...
-    if (errorOnProblem) {
+    if (traceOptions.errorOnProblem) {
       throw std::runtime_error("zero vec passed to trace, do something good here");
     }
 
@@ -709,11 +784,12 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
   Vector2 traceVectorCartesian = barycentricDisplacementToCartesian(vertexCoords, traceBaryVec);
 
   // Trace the first point starting inside the face
-  TraceSubResult prevTraceEnd = traceInFaceBarycentric(geom, startFace, startBary, traceBaryVec, traceVectorCartesian,
-                                                       {true, true, true}, errorOnProblem);
+  TraceSubResult prevTraceEnd =
+      traceInFaceBarycentric(geom, startFace, startBary, traceBaryVec, unit(traceVectorCartesian),
+                             norm(traceVectorCartesian), {true, true, true}, traceOptions);
 
   // Keep tracing through triangles until finished
-  traceGeodesic_iterative(geom, result, prevTraceEnd, includePath, errorOnProblem);
+  traceGeodesic_iterative(geom, result, prevTraceEnd, traceOptions);
 
   geom.unrequireVertexAngleSums();
   geom.unrequireHalfedgeVectorsInVertex();
@@ -721,6 +797,74 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
 
   return result;
 }
+
+bool trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex) {
+
+  while (traceResult.pathPoints.size() > 1) {
+    SurfacePoint& b = traceResult.pathPoints.back();
+
+    // Remove any edge crossings connected to the target vertex: they're numerical noise because we're already in the
+    // 1-ring
+    if (b.type == SurfacePointType::Edge &&
+        (b.edge.halfedge().vertex() == targetVertex || b.edge.halfedge().twin().vertex() == targetVertex)) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // Always trim face points
+    if (b.type == SurfacePointType::Face) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // Always trim vertex points
+    if (b.type == SurfacePointType::Vertex) {
+      traceResult.pathPoints.pop_back();
+      traceResult.endingDir = Vector2::undefined();
+      continue;
+    }
+
+    // we're done here
+    break;
+  }
+
+
+  // Check success
+  if (traceResult.pathPoints.empty()) return false;
+
+  SurfacePoint& b = traceResult.pathPoints.back();
+
+  switch (b.type) {
+  case SurfacePointType::Vertex: {
+    if (b.vertex == targetVertex) return true;
+    for (Vertex n : b.vertex.adjacentVertices()) {
+      if (n == targetVertex) return true;
+    }
+    break;
+  }
+  case SurfacePointType::Edge: {
+    Halfedge bHe = b.edge.halfedge();
+    if (bHe.vertex() == targetVertex) return true;
+    if (bHe.twin().vertex() == targetVertex) return true;
+    if (bHe.next().next().vertex() == targetVertex) return true;
+    if (bHe.twin().next().next().vertex() == targetVertex) return true;
+    return false;
+    break;
+  }
+  case SurfacePointType::Face: {
+    for (Vertex v : b.face.adjacentVertices()) {
+      if (v == targetVertex) return true;
+    }
+    return false;
+    break;
+  }
+  }
+
+  return false;
+}
+
 
 } // namespace surface
 } // namespace geometrycentral

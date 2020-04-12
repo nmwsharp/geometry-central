@@ -13,9 +13,6 @@
 
 namespace geometrycentral {
 namespace surface {
-// Foward declare some return types from below
-// template<typename T> class VertexData;
-// template<> class VertexData<size_t>;
 
 class HalfedgeMesh {
 
@@ -70,11 +67,14 @@ public:
   Face face(size_t index);
   BoundaryLoop boundaryLoop(size_t index);
 
-  // Methods that mutate the mesh. Note that these occasionally trigger a resize, which invaliates
-  // any outstanding Vertex or MeshData<> objects. See the guide (currently in docs/mutable_mesh_docs.md).
+  // === Methods that mutate the mesh.
+  // Note that all of these methods retain the validity of any MeshData<> containers, as well as any element handles
+  // (like Vertex). The only thing that can happen is that deletions may make the mesh no longer be _compressed_ (i.e.
+  // the index space may have gaps in it). This can be remedied by calling compress(), which _does_ invalidate
+  // non-dynamic element handles (but still keeps MeshData<> containers valid).
 
   // Flip an edge. Unlike all the other mutation routines, this _does not_ invalidate pointers, though it does break the
-  // canonical ordering.
+  // canonical ordering. Edge is rotated clockwise.
   // Return true if the edge was actually flipped (can't flip boundary or non-triangular edges)
   bool flip(Edge e);
 
@@ -95,14 +95,28 @@ public:
   // Returns new halfedge with vA at tail. he.twin().face() is the new face.
   Halfedge connectVertices(Halfedge heA, Halfedge heB);
 
-  // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
-  // collapsible.
-  // Vertex collapseEdge(Edge e); TODO
+  // Given a non-boundary edge e, cuts the mesh such that there are two copies of e with a boundary between them.
+  // As necessary, either creates a new boundary loop or merges adjacent boundary loops.
+  // Returns returns the halfedges along the cut edge which exist where {e.halfedge(), e.halfedge().twin()} were (which
+  // may or may not be new)
+  std::tuple<Halfedge, Halfedge> separateEdge(Edge e);
+  
+  // Make the edge a mirror image of itself, switching the side the two halfedges are on.
+  Halfedge switchHalfedgeSides(Edge e);
 
-  // Remove a face which is adjacent to the boundary of the mesh (along with its edge on the boundary).
-  // Face must have exactly one boundary edge.
-  // Returns true if could remove
-  // bool removeFaceAlongBoundary(Face f); TODO
+  // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
+  // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
+  Vertex collapseEdge(Edge e);
+
+  // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
+  // boundary. Return Face() if impossible.
+  Face removeVertex(Vertex v);
+
+  // Removes an edge, unioning two faces. Input must not be a boundary edge. Returns Face() if impossible.
+  Face removeEdge(Edge e);
+ 
+  // Remove a face along the boundary. Currently does not know how to remove ears or whole components.
+  bool removeFaceAlongBoundary(Face f);
 
 
   // Triangulate in a face, returns all subfaces
@@ -142,17 +156,16 @@ public:
 
   // Expansion callbacks
   // Argument is the new size of the element list. Elements up to this index may now be used (but _might_ not be
-  // immediately)
+  // immediately).
   std::list<std::function<void(size_t)>> vertexExpandCallbackList;
   std::list<std::function<void(size_t)>> faceExpandCallbackList;
   std::list<std::function<void(size_t)>> edgeExpandCallbackList;
   std::list<std::function<void(size_t)>> halfedgeExpandCallbackList;
 
   // Compression callbacks
-  // Argument is a permutation to a apply, such that d_new[i] = d_old[p[i]]
-  // TODO FIXME there's a big problem here, in that this format of callbacks does not allow DynamicElement update in
-  // O(1)
-  // TODO think about capacity rules with callbacks: old rule was that new size may be smaller
+  // Argument is a permutation to a apply, such that d_new[p[i]] = d_old[i]. The size of the list is the new capacity
+  // for the buffer (as in ___ExpandCallbackList), which may or may not be the same size as the current capacity. Any
+  // elements with p[i] == INVALID_IND are unused in the new index space.
   std::list<std::function<void(const std::vector<size_t>&)>> vertexPermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> facePermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> edgePermuteCallbackList;
@@ -228,7 +241,10 @@ private:
   size_t nFacesFillCount = 0;         // where the real faces stop, and empty/boundary loops begin
   size_t nBoundaryLoopsFillCount = 0; // remember, these fill from the back of the face buffer
 
-  bool isCanonicalFlag = true;
+  // The mesh is _compressed_ if all of the index spaces are dense. E.g. if thare are |V| vertices, then the vertices
+  // are densely indexed from 0 ... |V|-1 (and likewise for the other elements). The mesh can become not-compressed as
+  // deletions mark elements with tombstones--this is how we support constant time deletion.
+  // Call compress() to re-index and return to usual dense indexing.
   bool isCompressedFlag = true;
 
   // Hide copy and move constructors, we don't wanna mess with that
@@ -236,7 +252,6 @@ private:
   HalfedgeMesh& operator=(const HalfedgeMesh& other) = delete;
   HalfedgeMesh(HalfedgeMesh&& other) = delete;
   HalfedgeMesh& operator=(HalfedgeMesh&& other) = delete;
-
 
   // Implementation note: the getNew() and delete() functions below cannot operate on a single halfedge or edge. We must
   // simultaneously create or delete the triple of an edge and both adjacent halfedges. This constraint arises because
@@ -247,15 +262,17 @@ private:
   Halfedge getNewEdgeTriple(bool onBoundary); // returns e.halfedge() from the newly created edge
   Face getNewFace();
   BoundaryLoop getNewBoundaryLoop();
+  void expandFaceStorage(); // helper used in getNewFace() and getNewBoundaryLoop()
 
   // Detect dead elements
   bool vertexIsDead(size_t iV) const;
   bool halfedgeIsDead(size_t iHe) const;
   bool edgeIsDead(size_t iE) const;
   bool faceIsDead(size_t iF) const;
-  bool boundaryLoopIsDead(size_t iBl) const;
 
-  // Deletes leave tombstones, which can be cleaned up with compress()
+  // Deletes leave tombstones, which can be cleaned up with compress().
+  // Note that these routines merely mark the element as dead. The caller should hook up connectivity to exclude these
+  // elements before invoking.
   void deleteEdgeTriple(Halfedge he);
   void deleteElement(Vertex v);
   void deleteElement(Face f);
@@ -270,6 +287,7 @@ private:
 
   // Helpers for mutation methods
   void ensureVertexHasBoundaryHalfedge(Vertex v); // impose invariant that v.halfedge is start of half-disk
+  bool ensureEdgeHasInteriorHalfedge(Edge e);     // impose invariant that e.halfedge is interior
   Vertex collapseEdgeAlongBoundary(Edge e);
 
 
@@ -281,7 +299,6 @@ private:
   friend class Face;
   friend class BoundaryLoop;
 
-  // friend class VertexRangeIterator;
   friend struct VertexRangeF;
   friend struct HalfedgeRangeF;
   friend struct HalfedgeInteriorRangeF;

@@ -22,6 +22,7 @@ struct SurfacePoint {
   SurfacePoint();                           // default: yields invalid SurfacePoint with Type::Vertex and null vertex
   SurfacePoint(Vertex v);                   // at vertex
   SurfacePoint(Edge e, double tEdge);       // in edge
+  SurfacePoint(Halfedge he, double tHalfedge); // in edge (flips direction if needed)
   SurfacePoint(Face f, Vector3 faceCoords); // in face
 
 
@@ -46,7 +47,7 @@ struct SurfacePoint {
   // returns one of the equivalent surface points in a face (chosen arbitrarily). If this point is a face point, the
   // output is a copy of this point.
   inline SurfacePoint inSomeFace() const;
-  
+
   // Return the nearest vertex to this surface point
   inline Vertex nearestVertex() const;
 
@@ -59,7 +60,19 @@ struct SurfacePoint {
 
   // Throws an exception if the surface point is invalid in any way
   inline void validate() const;
+
+
+  // === Operators
+  bool operator==(const SurfacePoint& other) const;
+  bool operator!=(const SurfacePoint& other) const;
 };
+
+// Check if two surface points are adjacent on the mesh (aka occur in adjacent simplices)
+bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB);
+
+// Check if they are on the same vertex/edge/face
+bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB);
+
 
 // Printing
 ::std::ostream& operator<<(std::ostream& output, const SurfacePoint& p);
