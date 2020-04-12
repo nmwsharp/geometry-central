@@ -6,13 +6,20 @@
 
 #define NOW (std::chrono::steady_clock::now())
 #define START_TIMING(name) auto generated_timer_777_##name = NOW;
+
+// pretty-prints to stdout
 #define FINISH_TIMING_PRINT(name)                                                                                      \
   auto generated_timer_777_elapsed_##name =                                                                            \
-      std::chrono::duration_cast<std::chrono::milliseconds>(NOW - generated_timer_777_##name);                         \
-  std::cout << "--- TIMER RESULT: section " << #name << " took " << generated_timer_777_elapsed_##name.count()         \
-            << " ms" << std::endl;
+      std::chrono::duration_cast<std::chrono::microseconds>(NOW - generated_timer_777_##name);                         \
+  std::cout << "--- TIMER RESULT: section " << #name << " took "                                                       \
+            << pretty_time(generated_timer_777_elapsed_##name.count()) << std::endl;
+
+// reports as integer wth microseconds
 #define FINISH_TIMING(name)                                                                                            \
   (std::chrono::duration_cast<std::chrono::microseconds>(NOW - generated_timer_777_##name).count())
+// reports as double with seconds
+#define FINISH_TIMING_SEC(name)                                                                                            \
+  (((double)std::chrono::duration_cast<std::chrono::microseconds>(NOW - generated_timer_777_##name).count())/(1e6))
 
 inline std::string pretty_time(long long microsec) {
   // Useful constants
