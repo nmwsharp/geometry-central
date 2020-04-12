@@ -6,6 +6,8 @@
 #include "geometrycentral/surface/halfedge_mesh.h"
 #include "geometrycentral/surface/polygon_soup_mesh.h"
 
+#include "happly.h"
+
 namespace geometrycentral {
 
 PolygonSoupMesh::PolygonSoupMesh() {}
@@ -30,6 +32,8 @@ PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename, std::string type) {
     readMeshFromObjFile(meshFilename);
   } else if (type == "stl") {
     readMeshFromStlFile(meshFilename);
+  } else if (type == "ply") {
+    readMeshFromPlyFile(meshFilename);
   } else {
     if (typeGiven) {
       throw std::runtime_error("Did not recognize mesh file type " + type);
@@ -44,8 +48,10 @@ PolygonSoupMesh::PolygonSoupMesh(const std::vector<std::vector<size_t>>& polygon
                                  const std::vector<Vector3>& vertexCoordinates_)
     : polygons(polygons_), vertexCoordinates(vertexCoordinates_) {}
 
+
 // String manipulation helpers to parse .obj files
 // See http://stackoverflow.com/a/236803
+// TODO namespace / move to utility
 std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems) {
   std::stringstream ss(s);
   std::string item;
@@ -282,6 +288,25 @@ void PolygonSoupMesh::readMeshFromStlFile(std::string filename) {
   }
 }
 
+// Read a .ply file containing a polygon mesh
+void PolygonSoupMesh::readMeshFromPlyFile(std::string filename) {
+  polygons.clear();
+  vertexCoordinates.clear();
+
+  happly::PLYData plyIn(filename);
+
+
+  std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
+  vertexCoordinates.resize(vPos.size());
+  for (size_t iV = 0; iV < vPos.size(); iV++) {
+    for (int j = 0; j < 3; j++) {
+      vertexCoordinates[iV][j] = vPos[iV][j];
+    }
+  }
+
+  polygons = plyIn.getFaceIndices<size_t>();
+}
+
 // Mutate this mesh by merging vertices with identical floating point positions.
 // Useful for loading .stl files, which don't contain information about which
 // triangle corners meet at vertices.
@@ -319,6 +344,41 @@ void PolygonSoupMesh::mergeIdenticalVertices() {
   }
 }
 
+
+void PolygonSoupMesh::stripUnusedVertices() {
+
+  // Check which indices are used
+  size_t nV = vertexCoordinates.size();
+  std::vector<char> vertexUsed(nV, false);
+  for (auto poly : polygons) {
+    for (auto i : poly) {
+      GC_SAFETY_ASSERT(i < nV,
+                       "polygon list has index " + std::to_string(i) + " >= num vertices " + std::to_string(nV));
+      vertexUsed[i] = true;
+    }
+  }
+
+
+  // Re-index
+  std::vector<size_t> newInd(nV, INVALID_IND);
+  std::vector<Vector3> newVertexCoordinates(nV);
+  size_t nNewV = 0;
+  for (size_t iOldV = 0; iOldV < nV; iOldV++) {
+    if (!vertexUsed[iOldV]) continue;
+    size_t iNewV = nNewV++;
+    newInd[iOldV] = iNewV;
+    newVertexCoordinates[iNewV] = vertexCoordinates[iOldV];
+  }
+  vertexCoordinates = newVertexCoordinates;
+
+  // Translate the polygon listing
+  for (auto& poly : polygons) {
+    for (auto& i : poly) {
+      i = newInd[i];
+    }
+  }
+}
+
 void PolygonSoupMesh::triangulate() {
   std::vector<std::vector<size_t>> newPolygons;
 
@@ -334,6 +394,62 @@ void PolygonSoupMesh::triangulate() {
   }
 
   polygons = newPolygons;
+}
+
+void PolygonSoupMesh::writeMesh(std::string filename, std::string type) {
+
+  // Attempt to detect filename
+  bool typeGiven = type != "";
+  std::string::size_type sepInd = filename.rfind('.');
+  if (!typeGiven) {
+    if (sepInd != std::string::npos) {
+      std::string extension;
+      extension = filename.substr(sepInd + 1);
+
+      // Convert to all lowercase
+      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+      type = extension;
+    }
+  }
+
+  if (type == "obj") {
+    return writeMeshObj(filename);
+  } else {
+    if (typeGiven) {
+      throw std::runtime_error("Can not write mesh file type " + type);
+    } else {
+      throw std::runtime_error("Could not detect file type to write mesh to " + filename);
+    }
+  }
+}
+
+void PolygonSoupMesh::writeMeshObj(std::string filename) {
+
+  std::ofstream out(filename);
+  if (!out) {
+    throw std::runtime_error("failed to create output stream " + filename);
+  }
+
+  // Write header
+  out << "# Mesh exported from GeometryCentral" << std::endl;
+  out << "#  vertices: " << vertexCoordinates.size() << std::endl;
+  out << "#     faces: " << polygons.size() << std::endl;
+  out << "#     texture coordinates: NO" << std::endl;
+  out << std::endl;
+
+  // Write vertices
+  for (Vector3 p : vertexCoordinates) {
+    out << "v " << p.x << " " << p.y << " " << p.z << std::endl;
+  }
+
+  // Write faces
+  for (std::vector<size_t>& face : polygons) {
+    out << "f";
+    for (size_t ind : face) {
+      out << " " << (ind + 1);
+    }
+    out << std::endl;
+  }
 }
 
 } // namespace geometrycentral

@@ -8,7 +8,7 @@ namespace geometrycentral {
 namespace surface {
 
 
-void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType, double delaunayEPS) {
+size_t flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType, double delaunayEPS) {
 
   // TODO all of these helpers are duplicated from signpost_intrinsic_triangulation
 
@@ -177,7 +177,8 @@ void flipToDelaunay(HalfedgeMesh& mesh, EdgeData<double>& edgeLengths, FlipType 
     }
   }
 
-  std::cout << "nFlips = " << nFlips << std::endl;
+  //std::cout << "nFlips = " << nFlips << std::endl;
+  return nFlips;
 }
 
 } // namespace surface

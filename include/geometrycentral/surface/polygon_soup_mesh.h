@@ -31,11 +31,24 @@ public:
   // triangle corners meet at vertices.
   void mergeIdenticalVertices();
 
+  // Mutate this mesh by removing any entries in vertexCoordinates which appear in any polygon. Update polygon indexing
+  // accordingly.
+  void stripUnusedVertices();
+
+
+  // Simple output
+  void writeMesh(std::string filename, std::string type = "");
+
 private:
+  // Read helpers
   void readMeshFromObjFile(std::string filename);
+  void readMeshFromPlyFile(std::string filename);
   void readMeshFromStlFile(std::string filename);
   void readMeshFromAsciiStlFile(std::ifstream& in);
   void readMeshFromBinaryStlFile(std::ifstream in);
+
+  // Write helpers
+  void writeMeshObj(std::string filename);
 };
 
 } // namespace geometrycentral
