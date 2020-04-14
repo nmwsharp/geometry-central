@@ -16,7 +16,7 @@ public:
   VertexPositionGeometry(HalfedgeMesh& mesh_);
 
   // Construct from positions
-  VertexPositionGeometry(HalfedgeMesh& mesh_, VertexData<Vector3>& inputVertexPositions);
+  VertexPositionGeometry(HalfedgeMesh& mesh_, const VertexData<Vector3>& inputVertexPositions);
 
   // Boring destructor
   virtual ~VertexPositionGeometry() {}

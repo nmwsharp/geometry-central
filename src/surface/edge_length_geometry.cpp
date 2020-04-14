@@ -10,7 +10,7 @@ EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh_)
     : IntrinsicGeometryInterface(mesh_), inputEdgeLengths(mesh_, 0.)
 {}
 
-EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh_, EdgeData<double>& inputEdgeLengths_)
+EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh_, const EdgeData<double>& inputEdgeLengths_)
     : IntrinsicGeometryInterface(mesh_), inputEdgeLengths(inputEdgeLengths_) {}
 
 std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::copy() { return reinterpretTo(mesh); }
