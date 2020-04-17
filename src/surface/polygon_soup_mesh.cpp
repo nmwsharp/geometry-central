@@ -419,6 +419,8 @@ void PolygonSoupMesh::triangulate() {
       std::vector<size_t> tri = {poly[0], poly[i - 1], poly[i]};
       newPolygons.push_back(tri);
     }
+
+    // TODO support corner coords
   }
 
   polygons = newPolygons;
@@ -470,11 +472,27 @@ void PolygonSoupMesh::writeMeshObj(std::string filename) {
     out << "v " << p.x << " " << p.y << " " << p.z << std::endl;
   }
 
+  // Write texture coords (if present)
+  for (std::vector<Vector2>& coords : cornerCoords) {
+    for (Vector2 c : coords) {
+      out << "vt " << c.x << " " << c.y << std::endl;
+    }
+  }
+
   // Write faces
-  for (std::vector<size_t>& face : polygons) {
+  size_t iC = 0;
+  for (size_t iF = 0; iF < polygons.size(); iF++) {
+    std::vector<size_t>& face = polygons[iF];
+
     out << "f";
-    for (size_t ind : face) {
+    for (size_t i = 0; i < face.size(); i++) {
+      size_t ind = face[i];
       out << " " << (ind + 1);
+
+      if (!cornerCoords.empty()) {
+        out << "/" << (iC + 1);
+        iC++;
+      }
     }
     out << std::endl;
   }
