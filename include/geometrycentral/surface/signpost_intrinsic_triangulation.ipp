@@ -146,10 +146,23 @@ inline bool SignpostIntrinsicTriangulation::isOnFixedEdge(Vertex v) {
 
 
 template <typename T>
-VertexData<T> SignpostIntrinsicTriangulation::sampleAtInput(const VertexData<T>& dataOnIntrinsic) {
+VertexData<T> SignpostIntrinsicTriangulation::sampleToInput(const VertexData<T>& dataOnIntrinsic) {
+  VertexData<T> output(inputMesh);
+  for (Vertex v : mesh.vertices()) {
+    if(vertexLocations[v].type == SurfacePointType::Vertex) {
+      Vertex inputVert = vertexLocations[v].vertex;
+      output[inputVert] = dataOnIntrinsic[v];
+    }
+  }
+
+  return output;
+}
+
+template <typename T>
+VertexData<T> SignpostIntrinsicTriangulation::sampleFromInput(const VertexData<T>& dataOnInput) {
   VertexData<T> output(mesh);
   for (Vertex v : mesh.vertices()) {
-    output[v] = vertexLocations[v].interpolate(dataOnIntrinsic);
+    output[v] = vertexLocations[v].interpolate(dataOnInput);
   }
 
   return output;

@@ -470,7 +470,10 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   // case of degree 2, with exactly degenerate triangles. Since we assume non-degenerate triangles throughout, we'll
   // consider that to not happen.
 
-  if (vertexLocations[v].type == SurfacePointType::Vertex) return Face(); // can't remove original vertices
+  if (vertexLocations[v].type == SurfacePointType::Vertex && vertexLocations[v].vertex != Vertex()) {
+    // != Vertex condition allows us to remove invalid vertices from failed insertions
+    return Face(); // can't remove original vertices
+  }
 
   if (isOnFixedEdge(v)) {
     return Face(); // don't try to remove boundary vertices, for now at least
@@ -821,6 +824,7 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
       // Detect the first sharp enough bend
       double tSplit = -1;
       double runningLen = 0.;
+      double angleCumSum = 0.;
       for (size_t iP = 1; (iP + 1) < surfacePoints.size(); iP++) {
         SurfacePoint& prevS = surfacePoints[iP - 1];
         SurfacePoint& currS = surfacePoints[iP];
@@ -840,9 +844,10 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
 
         // Measure the angle
         double angleBetween = angle(currP - prevP, nextP - currP);
+        angleCumSum += angleBetween;
 
         // Split if angle is too sharp
-        if (angleBetween > angleThresh) {
+        if (angleCumSum > angleThresh) {
           double thisTSplit = runningLen / intrinsicEdgeLengths[e];
 
           if (thisTSplit > relativeLengthEPS && thisTSplit < 1. - relativeLengthEPS) {
@@ -858,7 +863,25 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
       } else {
         anySplit = true;
         nSplit++;
-        splitEdge(e.halfedge(), tSplit);
+        Vertex newV = splitEdge(e.halfedge(), tSplit).vertex();
+
+        // recover from numerical failures
+        try {
+          vertexLocations[newV].validate();
+        } catch (const std::exception&) {
+          std::cout << "backing out bad insertion" << std::endl;
+          Face ret = removeInsertedVertex(newV);
+          if (ret == Face()) {
+            throw std::runtime_error("could not recover");
+          }
+
+          // never try again
+          edgeIsGood[e] = true;
+
+          // quit imediately
+          // refreshQuantities();
+          // return;
+        }
       }
     }
   }
@@ -1053,6 +1076,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     double thisT = (1. - localT) * tPrev + (localT)*tNext;
 
     newPositionOnInput = SurfacePoint(origEdge, thisT);
+    // newPositionOnInput.validate();
   } else {
     // Normal case: trace an edge inward, use the result to resolve position and tangent basis
     // std::cout << "tracing to resolve new vertex" << std::endl;
@@ -1063,6 +1087,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     // std::cout << " --> done tracing to resolve new vertex" << std::endl;
     // snapEndToEdgeIfClose(inputTraceResult); TODO
     newPositionOnInput = inputTraceResult.endPoint;
+    // newPositionOnInput.validate();
     outgoingVec = -inputTraceResult.endingDir;
   }
 
