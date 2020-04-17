@@ -100,7 +100,7 @@ public:
   // Returns returns the halfedges along the cut edge which exist where {e.halfedge(), e.halfedge().twin()} were (which
   // may or may not be new)
   std::tuple<Halfedge, Halfedge> separateEdge(Edge e);
-  
+
   // Make the edge a mirror image of itself, switching the side the two halfedges are on.
   Halfedge switchHalfedgeSides(Edge e);
 
@@ -108,13 +108,22 @@ public:
   // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
   Vertex collapseEdge(Edge e);
 
+  // "Glue" two vertices of the halfedge mesh together. Always creates a non-manifold vertex.
+  // - `unionTo`: will be used as the single vertex for the output, and returned
+  // - `unionFrom`: will be deleted, and replaced with unionTo wherever it occurs.
+  Vertex glueVertices(Vertex unionTo, Vertex unionFrom);
+
+  // Split each vertex in to 1+ copies, such that each connected neighbhood has its own copy of the vertex and the mesh
+  // is vertex-manifold. Note that this is possible because the mesh must be edge-manifold due to the representation.
+  VertexData<Vertex> splitNonmanifoldVertices();
+
   // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
   // boundary. Return Face() if impossible.
   Face removeVertex(Vertex v);
 
   // Removes an edge, unioning two faces. Input must not be a boundary edge. Returns Face() if impossible.
   Face removeEdge(Edge e);
- 
+
   // Remove a face along the boundary. Currently does not know how to remove ears or whole components.
   bool removeFaceAlongBoundary(Face f);
 

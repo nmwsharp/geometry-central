@@ -267,7 +267,7 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   START_TIMING(construction)
 
   GC_SAFETY_ASSERT(polygons.size() == twins.size(), "twin list should be same shape as polygon list");
-  
+
   // Check input list and measure some element counts
   nFacesCount = polygons.size();
   nVerticesCount = 0;
@@ -1380,10 +1380,10 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     Halfedge heTPrev = heT.prevOrbitVertex();
 
     Face bLoop = heT.face();
-    
-    
+
+
     // Opposite vertex must not be a bounary vertex or this creates a nonmanifold mesh (imagine hourglass)
-    if(heBPrev.vertex().isBoundary()) {
+    if (heBPrev.vertex().isBoundary()) {
       return false;
     }
 
@@ -1548,6 +1548,59 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     // The removal/insertion code doesn't support changing boundary structure yet
     return false;
   }
+}
+
+Vertex HalfedgeMesh::glueVertices(Vertex unionTo, Vertex unionFrom) {
+
+  for (Halfedge he : unionFrom.outgoingHalfedges()) {
+    heVertex[he.getIndex()] = unionTo.getIndex();
+  }
+
+  deleteElement(unionFrom);
+  return unionTo;
+}
+
+VertexData<Vertex> HalfedgeMesh::splitNonmanifoldVertices() {
+
+  VertexData<Vertex> parentVert(*this, Vertex());
+  VertexData<char> vertexUsed(*this, false);
+  CornerData<char> cornerTouched(*this, false);
+
+  for (Halfedge he : halfedges()) {
+    if (cornerTouched[he.corner()]) continue;
+
+    // Found a new neighborhood!
+    Vertex origV = he.vertex();
+
+    // Get the new vertex
+    Vertex newV;
+    if (vertexUsed[origV]) {
+      newV = getNewVertex();
+    } else {
+      newV = origV;
+      vertexUsed[origV] = true;
+    }
+    parentVert[newV] = origV;
+
+    // Update pointers to the new vertex
+    Halfedge startHe = he;
+    Halfedge currHe = he;
+    do {
+      heVertex[currHe.getIndex()] = newV.getIndex();
+      cornerTouched[currHe.corner()] = true;
+      currHe = currHe.twin().next();
+    } while (currHe != startHe);
+
+    vHalfedge[newV.getIndex()] = startHe.getIndex();
+
+    if (newV.isBoundary()) {
+      ensureVertexHasBoundaryHalfedge(newV);
+    }
+  }
+
+  validateConnectivity();
+
+  return parentVert;
 }
 
 Face HalfedgeMesh::removeVertex(Vertex v) {
