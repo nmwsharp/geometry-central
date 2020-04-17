@@ -206,7 +206,9 @@ inline const T& MeshData<E, T>::operator[](E e) const {
 template <typename E, typename T>
 inline T& MeshData<E, T>::operator[](size_t i) {
 #ifndef NDEBUG
-  assert(i < size() && "Attempted to access MeshData with out of bounds index");
+  // NOTE: This intentionally checks against data.size() rather than size() to allow access beyond the number of
+  // elements E. Doing so is often a bug, but might sometimes make sense when working with not-compressed meshes.
+  assert(i < data.size() && "Attempted to access MeshData with out of bounds index");
 #endif
   return data[i];
 }
@@ -214,7 +216,7 @@ inline T& MeshData<E, T>::operator[](size_t i) {
 template <typename E, typename T>
 inline const T& MeshData<E, T>::operator[](size_t i) const {
 #ifndef NDEBUG
-  assert(i < size() && "Attempted to access MeshData with out of bounds index");
+  assert(i < data.size() && "Attempted to access MeshData with out of bounds index");
 #endif
   return data[i];
 }
