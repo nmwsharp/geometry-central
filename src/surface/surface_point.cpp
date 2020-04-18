@@ -359,6 +359,35 @@ bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB) {
   return false;
 }
 
+Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
+
+  switch (pA.type) {
+
+  case SurfacePointType::Vertex:
+    for (Face f : pA.vertex.adjacentFaces()) {
+      if (checkAdjacent(SurfacePoint(f, Vector3::zero()), pB)) return f;
+    }
+    break;
+
+  case SurfacePointType::Edge:
+
+    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().face(), Vector3::zero()), pB)) {
+      return pA.edge.halfedge().face();
+    }
+    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().twin().face(), Vector3::zero()), pB)) {
+      return pA.edge.halfedge().twin().face();
+    }
+    break;
+
+  case SurfacePointType::Face:
+    if (checkAdjacent(pA, pB)) return pA.face;
+    break;
+  }
+
+  // no shared face
+  return Face();
+}
+
 } // namespace surface
 } // namespace geometrycentral
 
