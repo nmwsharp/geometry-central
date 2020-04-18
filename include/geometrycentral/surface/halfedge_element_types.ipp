@@ -38,12 +38,25 @@ size_t Element<T>::getIndex() const { return ind; }
 
 template <typename T>
 HalfedgeMesh* Element<T>::getMesh() const { return mesh; }
+}}
 
+namespace std {
 template <typename T>
-inline ::std::ostream& operator<<(::std::ostream& output, const Element<T>& e) {
-  output << typeShortName<T>() << "_" << e.ind;
+inline ostream& operator<<(ostream& output, const geometrycentral::surface::Element<T>& e) {
+  output << geometrycentral::surface::typeShortName<T>() << "_" << e.ind;
   return output;
 }
+
+template <typename T>
+inline std::string to_string(const geometrycentral::surface::Element<T>& e) {
+  ostringstream output;
+  output << e;
+  return output.str();
+}
+}
+
+namespace geometrycentral {
+namespace surface {
 
 // Dynamic element
 template<typename S> 

@@ -83,8 +83,18 @@ template <typename E> std::string typeShortName() { return "X"; }
 // (see https://isocpp.org/wiki/faq/templates#template-friends)
 template <typename T>
 class Element;
+} // namespace surface
+} // namespace geometrycentral
+
+namespace std {
 template <typename T>
-std::ostream& operator<<(std::ostream& o, const Element<T>& x);
+std::ostream& operator<<(std::ostream& o, const geometrycentral::surface::Element<T>& x);
+template <typename T>
+std::string to_string(const geometrycentral::surface::Element<T>& e);
+} // namespace std
+
+namespace geometrycentral {
+namespace surface {
 
 // Forward-declare dynamic equivalent so we can declare a conversion constructor
 template <typename S>
@@ -129,12 +139,23 @@ protected:
   size_t ind = INVALID_IND;
 
   // Friends
-  friend std::ostream& operator<<<>(std::ostream& output, const Element<T>& e);
+  friend std::ostream& std::operator<<<>(std::ostream& output, const Element<T>& e);
   friend struct std::hash<Element<T>>;
+  friend std::string std::to_string<>(const Element<T>& e);
 };
+} // namespace surface
+} // namespace geometrycentral
 
+namespace std {
 template <typename T>
-std::ostream& operator<<(std::ostream& output, const Element<T>& e);
+std::ostream& operator<<(std::ostream& output, const geometrycentral::surface::Element<T>& e);
+template <typename T>
+std::string to_string(const geometrycentral::surface::Element<T>& e);
+} // namespace std
+
+
+namespace geometrycentral {
+namespace surface {
 
 // The equivalent dynamic pointers. These should be rarely used, but are guaranteed to be preserved through _all_ mesh
 // operations, including compress().
