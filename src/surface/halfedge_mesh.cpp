@@ -1835,7 +1835,7 @@ std::vector<Face> HalfedgeMesh::triangulate(Face f) {
 }
 
 
-void HalfedgeMesh::validateConnectivity() {
+void HalfedgeMesh::validateConnectivity(bool checkManifoldVertices) {
 
   // Sanity check sizes and counts
   if (nInteriorHalfedges() + nExteriorHalfedges() != nHalfedges())
@@ -2011,6 +2011,33 @@ void HalfedgeMesh::validateConnectivity() {
       if (!v.isBoundary()) {
         throw std::logic_error("computed v.isBoundary is wrong");
       }
+    }
+  }
+
+
+  if (checkManifoldVertices) {
+    // Check that the mesh is vertex-manifold in the sense that each vertex has a single connected loop of faces around
+    // it.
+
+    std::vector<char> halfedgeSeen(nHalfedgesCapacityCount, false);
+    for (Vertex v : vertices()) {
+      // For each vertex, orbit around the outgoing halfedges. This _should_ touch every halfedge.
+      Halfedge currHe = v.halfedge();
+      Halfedge firstHe = currHe;
+      do {
+        if (halfedgeSeen[currHe.getIndex()]) {
+          throw std::logic_error("somehow encountered outgoing halfedge before orbiting v");
+        }
+        halfedgeSeen[currHe.getIndex()] = true;
+        currHe = currHe.twin().next();
+      } while (currHe != firstHe);
+    }
+
+    // Verify that we actually did touch every halfedge.
+    for (Halfedge he : halfedges()) {
+      GC_SAFETY_ASSERT(halfedgeSeen[he.getIndex()],
+                       "mesh not vertex-manifold. Vertex " + std::to_string(he.vertex()) +
+                           " has disconnected neighborhoods incident (imagine an hourglass)");
     }
   }
 }

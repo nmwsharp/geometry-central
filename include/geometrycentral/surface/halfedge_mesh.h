@@ -197,7 +197,7 @@ public:
   // == Debugging, etc
 
   // Performs a sanity checks on halfedge structure; throws on fail
-  void validateConnectivity();
+  void validateConnectivity(bool checkManifoldVertices=false);
 
 
 private:
