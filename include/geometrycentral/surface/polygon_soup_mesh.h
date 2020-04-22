@@ -36,6 +36,9 @@ public:
   // Mutate this mesh by removing any entries in vertexCoordinates which appear in any polygon. Update polygon indexing
   // accordingly.
   void stripUnusedVertices();
+  
+  // Mutate this mesh by removing any faces with repeated vertices.
+  void stripFacesWithDuplicateVertices();
 
 
   // Simple output
@@ -46,6 +49,7 @@ private:
   void readMeshFromObjFile(std::string filename);
   void readMeshFromPlyFile(std::string filename);
   void readMeshFromStlFile(std::string filename);
+  void readMeshFromOffFile(std::string filename);
   void readMeshFromAsciiStlFile(std::ifstream& in);
   void readMeshFromBinaryStlFile(std::ifstream in);
 

@@ -1,12 +1,14 @@
+#include "geometrycentral/surface/polygon_soup_mesh.h"
+
+#include "geometrycentral/surface/halfedge_mesh.h"
+
+#include "happly.h"
+
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
-
-#include "geometrycentral/surface/halfedge_mesh.h"
-#include "geometrycentral/surface/polygon_soup_mesh.h"
-
-#include "happly.h"
+#include <unordered_set>
 
 namespace geometrycentral {
 namespace surface {
@@ -35,6 +37,8 @@ PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename, std::string type) {
     readMeshFromStlFile(meshFilename);
   } else if (type == "ply") {
     readMeshFromPlyFile(meshFilename);
+  } else if (type == "off") {
+    readMeshFromOffFile(meshFilename);
   } else {
     if (typeGiven) {
       throw std::runtime_error("Did not recognize mesh file type " + type);
@@ -316,6 +320,64 @@ void PolygonSoupMesh::readMeshFromStlFile(std::string filename) {
   }
 }
 
+// Read a .stl file containing a polygon mesh
+void PolygonSoupMesh::readMeshFromOffFile(std::string filename) {
+  // TODO: read stl file name
+  polygons.clear();
+  vertexCoordinates.clear();
+
+  // Open the file
+  std::ifstream inStream(filename);
+  if (!inStream) throw std::runtime_error("couldn't open file " + filename);
+
+  // == Parse
+  auto getNextLine = [&]() {
+    std::string line;
+    do {
+      if (!std::getline(inStream, line)) {
+        throw std::runtime_error("ran out of lines while parsing " + filename);
+      }
+    } while (line.size() == 0 || line[0] == '#');
+    return line;
+  };
+
+  // header
+  std::string headerLine = getNextLine();
+  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file: " + filename);
+
+  // counts
+  size_t nVert, nFace;
+  std::string countLine = getNextLine();
+  std::stringstream countStream(countLine);
+  countStream >> nVert >> nFace; // ignore nEdges, if present
+
+  // parse vertices
+  vertexCoordinates.resize(nVert);
+  for (size_t iV = 0; iV < nVert; iV++) {
+    std::string vertLine = getNextLine();
+    std::stringstream vertStream(vertLine);
+    Vector3 p;
+    vertStream >> p.x >> p.y >> p.z; // ignore color etc, if present
+    vertexCoordinates[iV] = p;
+  }
+
+  // = Get face indices
+  polygons.resize(nFace);
+  for (size_t iF = 0; iF < nFace; iF++) {
+    std::string faceLine = getNextLine();
+    std::stringstream faceStream(faceLine);
+
+    size_t degree;
+    faceStream >> degree;
+    std::vector<size_t>& face = polygons[iF];
+    for (size_t i = 0; i < degree; i++) {
+      size_t ind;
+      faceStream >> ind;
+      face.push_back(ind);
+    }
+  }
+}
+
 // Read a .ply file containing a polygon mesh
 void PolygonSoupMesh::readMeshFromPlyFile(std::string filename) {
   polygons.clear();
@@ -405,6 +467,38 @@ void PolygonSoupMesh::stripUnusedVertices() {
       i = newInd[i];
     }
   }
+}
+
+void PolygonSoupMesh::stripFacesWithDuplicateVertices() {
+
+  std::vector<std::vector<size_t>> newFaces;
+  for (const std::vector<size_t>& face : polygons) {
+
+    // Generally use a simple search
+    size_t D = face.size();
+    bool hasRepeat = false;
+    if (D < 8) {
+      for (size_t i = 0; i < D; i++) {
+        for (size_t j = i + 1; j < D; j++) {
+          if (face[i] == face[j]) hasRepeat = true;
+        }
+      }
+    }
+    // Use a hashset to avoid n^2 for big faces
+    else {
+      std::unordered_set<size_t> inds;
+      for (size_t ind : face) {
+        if (inds.find(ind) != inds.end()) hasRepeat = true;
+        inds.insert(ind);
+      }
+    }
+
+    if (!hasRepeat) {
+      newFaces.push_back(face);
+    }
+  }
+
+  polygons = newFaces;
 }
 
 void PolygonSoupMesh::triangulate() {
