@@ -47,6 +47,10 @@ function(eigen3checker GC_EIGEN_LOCATION EIGEN3_FIND_VERSION)
       set(EIGEN3_FOUND true PARENT_SCOPE)
       set(EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIR} PARENT_SCOPE)
     endif(${EIGEN3_VERSION} VERSION_LESS ${EIGEN3_FIND_VERSION})
+  else()
+    # Purge EIGEN3_INCLUDE_DIR value since it's invalid
+    # Required so find_path will actually search instead of defaulting
+    set(EIGEN3_INCLUDE_DIR "EIGEN3_INCLUDE_DIR-NOTFOUND" PARENT_SCOPE)
   endif()
 endfunction()
 
