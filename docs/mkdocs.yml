@@ -24,8 +24,8 @@ theme:
   font:
     text: 'Merriweather'
     code: 'Inconsolata'
-  logo:
-    icon: 'home'
+  icon: 
+    logo: material/home
 
 extra_css:
   - extras.css
