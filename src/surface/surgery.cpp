@@ -97,7 +97,7 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, HalfedgeData<Halfedge>> cutAlongEdges(
     parentHalfedges[he] = Halfedge();
   }
 
-  return {std::move(mesh), parentHalfedges};
+  return std::tuple<std::unique_ptr<HalfedgeMesh>, HalfedgeData<Halfedge>>{std::move(mesh), parentHalfedges};
 }
 
 
