@@ -30,7 +30,7 @@ namespace { // helpers for parsing
 
 // String manipulation helpers to parse .obj files
 // See http://stackoverflow.com/a/236803
-// TODO namespace / move to utility
+// ONEDAY: move to utility?
 std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems) {
   std::stringstream ss(s);
   std::string item;
@@ -135,9 +135,9 @@ void SimplePolygonMesh::readMeshFromFile(std::istream& in, std::string type) {
     readMeshFromStlFile(in);
   } else if (type == "ply") {
     readMeshFromPlyFile(in);
-  }
-  // TODO OFF
-  else {
+  } else if (type == "off") {
+    readMeshFromOffFile(in);
+  } else {
     throw std::runtime_error("Did not recognize mesh file type " + type);
   }
 }
@@ -342,6 +342,58 @@ void SimplePolygonMesh::readMeshFromStlFile(std::istream& in) {
   }
 }
 
+void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
+  clear();
+
+  // == Parse
+  auto getNextLine = [&]() {
+    std::string line;
+    do {
+      if (!std::getline(in, line)) {
+        throw std::runtime_error("ran out of lines while parsing " + filename);
+      }
+    } while (line.size() == 0 || line[0] == '#');
+    return line;
+  };
+
+  // header
+  std::string headerLine = getNextLine();
+  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file: " + filename);
+
+  // counts
+  size_t nVert, nFace;
+  std::string countLine = getNextLine();
+  std::stringstream countStream(countLine);
+  countStream >> nVert >> nFace; // ignore nEdges, if present
+
+  // parse vertices
+  vertexCoordinates.resize(nVert);
+  for (size_t iV = 0; iV < nVert; iV++) {
+    std::string vertLine = getNextLine();
+    std::stringstream vertStream(vertLine);
+    Vector3 p;
+    vertStream >> p.x >> p.y >> p.z; // ignore color etc, if present
+    vertexCoordinates[iV] = p;
+  }
+
+  // = Get face indices
+  polygons.resize(nFace);
+  for (size_t iF = 0; iF < nFace; iF++) {
+    std::string faceLine = getNextLine();
+    std::stringstream faceStream(faceLine);
+
+    size_t degree;
+    faceStream >> degree;
+    std::vector<size_t>& face = polygons[iF];
+    for (size_t i = 0; i < degree; i++) {
+      size_t ind;
+      faceStream >> ind;
+      face.push_back(ind);
+    }
+  }
+}
+
+
 // Read a .ply file containing a polygon mesh
 void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
   clear();
@@ -437,6 +489,40 @@ void SimplePolygonMesh::clear() {
   paramCoordinates.clear();
 }
 
+
+void SimplePolygonMesh::stripFacesWithDuplicateVertices() {
+
+  std::vector<std::vector<size_t>> newFaces;
+  for (const std::vector<size_t>& face : polygons) {
+
+    // Generally use a simple search
+    size_t D = face.size();
+    bool hasRepeat = false;
+    if (D < 8) {
+      for (size_t i = 0; i < D; i++) {
+        for (size_t j = i + 1; j < D; j++) {
+          if (face[i] == face[j]) hasRepeat = true;
+        }
+      }
+    }
+    // Use a hashset to avoid n^2 for big faces
+    else {
+      std::unordered_set<size_t> inds;
+      for (size_t ind : face) {
+        if (inds.find(ind) != inds.end()) hasRepeat = true;
+        inds.insert(ind);
+      }
+    }
+
+    if (!hasRepeat) {
+      newFaces.push_back(face);
+    }
+  }
+
+  polygons = newFaces;
+}
+
+
 void SimplePolygonMesh::triangulate() {
   std::vector<std::vector<size_t>> newPolygons;
 
@@ -483,7 +569,6 @@ void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
   out << "# Mesh exported from geometry-central" << std::endl;
   out << "#  vertices: " << vertexCoordinates.size() << std::endl;
   out << "#     faces: " << polygons.size() << std::endl;
-  out << "#     texture coordinates: NO" << std::endl;
   out << std::endl;
 
   // Write vertices
@@ -491,11 +576,24 @@ void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
     out << "v " << p.x << " " << p.y << " " << p.z << std::endl;
   }
 
+
+  // Write texture coords (if present)
+  for (std::vector<Vector2>& coords : paramCoordinates) {
+    for (Vector2 c : coords) {
+      out << "vt " << c.x << " " << c.y << std::endl;
+    }
+  }
+
   // Write faces
   for (std::vector<size_t>& face : polygons) {
     out << "f";
     for (size_t ind : face) {
       out << " " << (ind + 1);
+
+      if (!paramCoordinates.empty()) {
+        out << "/" << (iC + 1);
+        iC++;
+      }
     }
     out << std::endl;
   }

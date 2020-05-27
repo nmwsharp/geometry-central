@@ -267,7 +267,7 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   START_TIMING(construction)
 
   GC_SAFETY_ASSERT(polygons.size() == twins.size(), "twin list should be same shape as polygon list");
-  
+
   // Check input list and measure some element counts
   nFacesCount = polygons.size();
   nVerticesCount = 0;
@@ -923,7 +923,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     vHalfedge[vA.getIndex()] = he.getIndex();
     vHalfedge[vB.getIndex()] = heN1.getIndex();
 
-    return {he, heN1};
+    return std::tuple<Halfedge, Halfedge>{he, heN1};
   }
 
 
@@ -983,7 +983,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
   // TODO implement
   if (vAIsBoundary && vBIsBoundary && boundaryLoopA != boundaryLoopB) {
     throw std::runtime_error("not implemented: separateEdge() merging distinct boundaries");
-    return {Halfedge(), Halfedge()};
+    return std::tuple<Halfedge, Halfedge>{Halfedge(), Halfedge()};
   }
 
 
@@ -992,11 +992,11 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
   // TODO implement
   if (vAIsBoundary && vBIsBoundary && boundaryLoopA == boundaryLoopB) {
     throw std::runtime_error("not implemented: separateEdge() creating disconnected components");
-    return {Halfedge(), Halfedge()};
+    return std::tuple<Halfedge, Halfedge>{Halfedge(), Halfedge()};
   }
 
   throw std::runtime_error("logically unreachable");
-  return {Halfedge(), Halfedge()};
+  return std::tuple<Halfedge, Halfedge>{Halfedge(), Halfedge()};
 }
 
 
@@ -1380,10 +1380,10 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     Halfedge heTPrev = heT.prevOrbitVertex();
 
     Face bLoop = heT.face();
-    
-    
+
+
     // Opposite vertex must not be a bounary vertex or this creates a nonmanifold mesh (imagine hourglass)
-    if(heBPrev.vertex().isBoundary()) {
+    if (heBPrev.vertex().isBoundary()) {
       return false;
     }
 

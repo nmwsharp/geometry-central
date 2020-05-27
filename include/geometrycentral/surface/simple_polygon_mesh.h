@@ -42,6 +42,9 @@ public:
   // accordingly.
   void stripUnusedVertices();
 
+  // Mutate this mesh by removing any faces with repeated vertices.
+  void stripFacesWithDuplicateVertices();
+
   // Mutate this mesh and by naively triangulating polygons
   void triangulate();
 
@@ -64,6 +67,7 @@ private:
   void readMeshFromObjFile(std::istream& in);
   void readMeshFromPlyFile(std::istream& in);
   void readMeshFromStlFile(std::istream& in);
+  void readMeshFromOffFile(std::istream& in);
   void readMeshFromAsciiStlFile(std::istream& in);
   void readMeshFromBinaryStlFile(std::istream& in);
 
