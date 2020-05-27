@@ -8,6 +8,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 
 namespace geometrycentral {
@@ -350,7 +351,7 @@ void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
     std::string line;
     do {
       if (!std::getline(in, line)) {
-        throw std::runtime_error("ran out of lines while parsing " + filename);
+        throw std::runtime_error("ran out of lines while parsing off file");
       }
     } while (line.size() == 0 || line[0] == '#');
     return line;
@@ -358,7 +359,7 @@ void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
 
   // header
   std::string headerLine = getNextLine();
-  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file: " + filename);
+  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file");
 
   // counts
   size_t nVert, nFace;
@@ -585,6 +586,7 @@ void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
   }
 
   // Write faces
+  size_t iC = 0;
   for (std::vector<size_t>& face : polygons) {
     out << "f";
     for (size_t ind : face) {
