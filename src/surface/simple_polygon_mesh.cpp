@@ -26,6 +26,11 @@ SimplePolygonMesh::SimplePolygonMesh(const std::vector<std::vector<size_t>>& pol
                                      const std::vector<Vector3>& vertexCoordinates_)
     : polygons(polygons_), vertexCoordinates(vertexCoordinates_) {}
 
+SimplePolygonMesh::SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_,
+                                     const std::vector<Vector3>& vertexCoordinates_,
+                                     const std::vector<std::vector<Vector2>>& paramCoordinates_)
+    : polygons(polygons_), vertexCoordinates(vertexCoordinates_), paramCoordinates(paramCoordinates_) {}
+
 
 namespace { // helpers for parsing
 
@@ -604,7 +609,15 @@ void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
 std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMesh>& meshes) {
 
   std::vector<std::vector<size_t>> unionFaces;
+  std::vector<std::vector<Vector2>> unionCoords;
   std::vector<Vector3> unionVerts;
+
+  bool keepCoords = true;
+  for (const SimplePolygonMesh& mesh : meshes) {
+    if (!mesh.hasParameterization()) {
+      keepCoords = false;
+    }
+  }
 
   for (const SimplePolygonMesh& mesh : meshes) {
 
@@ -617,9 +630,15 @@ std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMe
       for (size_t& i : f) i += offset;
       unionFaces.push_back(f);
     }
+
+    if (keepCoords) {
+      for (std::vector<Vector2> c : mesh.paramCoordinates) {
+        unionCoords.push_back(c);
+      }
+    }
   }
 
-  return std::unique_ptr<SimplePolygonMesh>(new SimplePolygonMesh(unionFaces, unionVerts));
+  return std::unique_ptr<SimplePolygonMesh>(new SimplePolygonMesh(unionFaces, unionVerts, unionCoords));
 }
 
 } // namespace surface

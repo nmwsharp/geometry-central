@@ -39,6 +39,14 @@
 
     Construct a mesh from a list of polygons and vertex coordinates.
 
+??? func "`#!cpp SimplePolygonMesh::SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_, const std::vector<std::vector<Vector2>>& paramCoordinates_)`"
+
+    Construct a mesh from a list of polygons, vertex coordinates, and parameterization coordinates.
+
+??? func "`#!cpp std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMesh>& meshes)`"
+
+    Union a collection of polygon meshes in to a single mesh.
+
 ### Input & Output
     
 Currently the following mesh types are supported for reading:
@@ -74,7 +82,6 @@ The desired file type can be passed as the `type` to any of the routines below a
 
     Write a mesh to file. `filename` should be the full path to the file. The type can be manually specified (see above), or given as the empty string (`""`) to attempt to auto-detect from the filename extension.
 
-
 ### Accessors
 
 
@@ -99,9 +106,16 @@ The desired file type can be passed as the `type` to any of the routines below a
 
     Identity is tested using a simple exact floating-point comparison test, no radius or threshold is supported.
 
+
 ??? func "`#!cpp void SimplePolygonMesh::stripUnusedVertices()`"
 
     Remove vertices from `vertexCoordinates` which do not appear in any face. Face indices are updated accordingly.
+
+
+??? func "`#!cpp void SimplePolygonMesh::stripFacesWithDuplicateVertices()`"
+
+    Remove any faces from `polygons` for which some vertex index appears multiple times.
+
 
 ??? func "`#!cpp void SimplePolygonMesh::triangulate()`"
 

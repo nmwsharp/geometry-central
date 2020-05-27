@@ -20,6 +20,7 @@ public:
   SimplePolygonMesh(std::string meshFilename, std::string type = "");
   SimplePolygonMesh(std::istream& in, std::string type);
   SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_);
+  SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_, const std::vector<std::vector<Vector2>>& paramCoordinates_);
 
   // == Mesh data
   std::vector<std::vector<size_t>> polygons;
