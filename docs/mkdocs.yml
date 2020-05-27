@@ -60,6 +60,7 @@ nav:
       - 'Overview' : 'surface/geometry/geometry.md'
       - 'Quantities' : 'surface/geometry/quantities.md'
     - Utilities: 
+      - 'Simple Polygon Mesh' : 'surface/utilities/simple_polygon_mesh.md'
       - 'I/O' : 'surface/utilities/io.md'
       - 'Surface Point' : 'surface/utilities/surface_point.md'
     - Algorithms: 

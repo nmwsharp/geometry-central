@@ -1,7 +1,6 @@
 #include "load_test_meshes.h"
 
 #include "geometrycentral/surface/meshio.h"
-#include "geometrycentral/surface/polygon_soup_mesh.h"
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;

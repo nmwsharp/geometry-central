@@ -11,7 +11,7 @@ SET(SRCS
   surface/halfedge_mesh.cpp
   surface/halfedge_factories.cpp
   surface/meshio.cpp
-  surface/polygon_soup_mesh.cpp
+  surface/simple_polygon_mesh.cpp
   surface/ply_halfedge_mesh_data.cpp
 
   surface/base_geometry_interface.cpp
@@ -91,6 +91,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
+  ${INCLUDE_ROOT}/surface/simple_polygon_mesh.h
   ${INCLUDE_ROOT}/surface/surface_centers.h
   ${INCLUDE_ROOT}/surface/surface_point.h
   ${INCLUDE_ROOT}/surface/surface_point.ipp

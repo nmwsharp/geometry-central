@@ -1,54 +1,32 @@
+#include "geometrycentral/surface/simple_polygon_mesh.h"
+
+#include "geometrycentral/surface/halfedge_mesh.h"
+
+#include "happly.h"
+
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
 
-#include "geometrycentral/surface/halfedge_mesh.h"
-#include "geometrycentral/surface/polygon_soup_mesh.h"
-
-#include "happly.h"
 
 namespace geometrycentral {
 namespace surface {
 
-PolygonSoupMesh::PolygonSoupMesh() {}
+SimplePolygonMesh::SimplePolygonMesh() {}
 
-PolygonSoupMesh::PolygonSoupMesh(std::string meshFilename, std::string type) {
-
-  // Attempt to detect filename
-  bool typeGiven = type != "";
-  std::string::size_type sepInd = meshFilename.rfind('.');
-  if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = meshFilename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
-  }
-
-  if (type == "obj") {
-    readMeshFromObjFile(meshFilename);
-  } else if (type == "stl") {
-    readMeshFromStlFile(meshFilename);
-  } else if (type == "ply") {
-    readMeshFromPlyFile(meshFilename);
-  } else {
-    if (typeGiven) {
-      throw std::runtime_error("Did not recognize mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to load mesh from " + meshFilename + ". (Found type " +
-                               type + ", but cannot load this)");
-    }
-  }
+SimplePolygonMesh::SimplePolygonMesh(std::string meshFilename, std::string type) {
+  readMeshFromFile(meshFilename, type);
 }
 
-PolygonSoupMesh::PolygonSoupMesh(const std::vector<std::vector<size_t>>& polygons_,
-                                 const std::vector<Vector3>& vertexCoordinates_)
+SimplePolygonMesh::SimplePolygonMesh(std::istream& in, std::string type) { readMeshFromFile(in, type); }
+
+SimplePolygonMesh::SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_,
+                                     const std::vector<Vector3>& vertexCoordinates_)
     : polygons(polygons_), vertexCoordinates(vertexCoordinates_) {}
 
+
+namespace { // helpers for parsing
 
 // String manipulation helpers to parse .obj files
 // See http://stackoverflow.com/a/236803
@@ -106,21 +84,71 @@ Index parseFaceIndex(const std::string& token) {
   return Index(indices[0] - 1, indices[1] - 1, indices[2] - 1);
 }
 
-// Read a .obj file containing a polygon mesh
-void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
-  // std::cout << "Reading mesh from file: " << filename << std::endl;
+std::vector<std::string> supportedMeshTypes = {"obj", "ply", "stl", "off"};
 
-  polygons.clear();
-  vertexCoordinates.clear();
-  cornerCoords.clear();
+} // namespace
+
+
+std::string SimplePolygonMesh::detectFileType(std::string filename) {
+  std::string::size_type sepInd = filename.rfind('.');
+  std::string type;
+
+  if (sepInd != std::string::npos) {
+    std::string extension;
+    extension = filename.substr(sepInd + 1);
+
+    // Convert to all lowercase
+    std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+    type = extension;
+  } else {
+    throw std::runtime_error("Could not auto-detect file type to load mesh from " + filename);
+  }
+
+  // Check if this is one of the filetypes we're aware of
+  if (std::find(std::begin(supportedMeshTypes), std::end(supportedMeshTypes), type) == std::end(supportedMeshTypes)) {
+    throw std::runtime_error("Detected file type " + type + " to load mesh from " + filename +
+                             ". This is not a supported file type.");
+  }
+
+  return type;
+}
+
+void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type) {
+
+  // Attempt to detect filename
+  bool typeGiven = type != "";
+  if (!typeGiven) {
+    type = detectFileType(filename);
+  }
+
+  // Open the file and load it
+  std::ifstream inStream(filename);
+  if (!inStream) throw std::runtime_error("couldn't open file " + filename);
+  readMeshFromFile(inStream, type);
+}
+
+void SimplePolygonMesh::readMeshFromFile(std::istream& in, std::string type) {
+
+  if (type == "obj") {
+    readMeshFromObjFile(in);
+  } else if (type == "stl") {
+    readMeshFromStlFile(in);
+  } else if (type == "ply") {
+    readMeshFromPlyFile(in);
+  }
+  // TODO OFF
+  else {
+    throw std::runtime_error("Did not recognize mesh file type " + type);
+  }
+}
+
+// Read a .obj file containing a polygon mesh
+void SimplePolygonMesh::readMeshFromObjFile(std::istream& in) {
+  clear();
 
   // corner UV coords, unpacked below
   std::vector<Vector2> coords;
   std::vector<std::vector<size_t>> polygonCoordInds;
-
-  // Open the file
-  std::ifstream in(filename);
-  if (!in) throw std::invalid_argument("Could not open mesh file " + filename);
 
   // parse obj format
   std::string line;
@@ -173,8 +201,8 @@ void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
   // If we got uv coords, unpack them in to per-corner values
   if (!polygonCoordInds.empty()) {
     for (std::vector<size_t>& faceCoordInd : polygonCoordInds) {
-      cornerCoords.emplace_back();
-      std::vector<Vector2>& faceCoord = cornerCoords.back();
+      paramCoordinates.emplace_back();
+      std::vector<Vector2>& faceCoord = paramCoordinates.back();
       for (size_t i : faceCoordInd) {
         if (i < coords.size()) faceCoord.push_back(coords[i]);
       }
@@ -183,7 +211,9 @@ void PolygonSoupMesh::readMeshFromObjFile(std::string filename) {
 }
 
 // Assumes that first line has already been consumed
-void PolygonSoupMesh::readMeshFromAsciiStlFile(std::ifstream& in) {
+void SimplePolygonMesh::readMeshFromAsciiStlFile(std::istream& in) {
+  clear();
+
   std::string line;
   std::stringstream ss;
   size_t lineNum = 1;
@@ -257,8 +287,10 @@ void PolygonSoupMesh::readMeshFromAsciiStlFile(std::ifstream& in) {
   }
 }
 
-void PolygonSoupMesh::readMeshFromBinaryStlFile(std::ifstream in) {
-  auto parseVector3 = [&](std::ifstream& in) {
+void SimplePolygonMesh::readMeshFromBinaryStlFile(std::istream& in) {
+  clear();
+
+  auto parseVector3 = [&](std::istream& in) {
     char buffer[3 * sizeof(float)];
     in.read(buffer, 3 * sizeof(float));
     float* fVec = (float*)buffer;
@@ -273,7 +305,6 @@ void PolygonSoupMesh::readMeshFromBinaryStlFile(std::ifstream in) {
   size_t nTriangles = *intPtr;
 
   for (size_t iT = 0; iT < nTriangles; ++iT) {
-    // TODO: store this normal?
     Vector3 normal = parseVector3(in);
     std::vector<size_t> face;
     for (size_t iV = 0; iV < 3; ++iV) {
@@ -295,14 +326,8 @@ void PolygonSoupMesh::readMeshFromBinaryStlFile(std::ifstream in) {
 }
 
 // Read a .stl file containing a polygon mesh
-void PolygonSoupMesh::readMeshFromStlFile(std::string filename) {
-  // TODO: read stl file name
-  polygons.clear();
-  vertexCoordinates.clear();
-
-  // Open the file
-  std::ifstream in(filename);
-  if (!in) throw std::invalid_argument("Could not open mesh file " + filename);
+void SimplePolygonMesh::readMeshFromStlFile(std::istream& in) {
+  clear();
 
   // parse stl format
   std::string line;
@@ -313,17 +338,15 @@ void PolygonSoupMesh::readMeshFromStlFile(std::string filename) {
   if (token == "solid") {
     readMeshFromAsciiStlFile(in);
   } else {
-    readMeshFromBinaryStlFile(std::ifstream(filename, std::ios::in | std::ios::binary));
+    readMeshFromBinaryStlFile(in);
   }
 }
 
 // Read a .ply file containing a polygon mesh
-void PolygonSoupMesh::readMeshFromPlyFile(std::string filename) {
-  polygons.clear();
-  vertexCoordinates.clear();
+void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
+  clear();
 
-  happly::PLYData plyIn(filename);
-
+  happly::PLYData plyIn(in);
 
   std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
   vertexCoordinates.resize(vPos.size());
@@ -339,7 +362,7 @@ void PolygonSoupMesh::readMeshFromPlyFile(std::string filename) {
 // Mutate this mesh by merging vertices with identical floating point positions.
 // Useful for loading .stl files, which don't contain information about which
 // triangle corners meet at vertices.
-void PolygonSoupMesh::mergeIdenticalVertices() {
+void SimplePolygonMesh::mergeIdenticalVertices() {
   std::vector<Vector3> compressedPositions;
   // Store mapping from original vertex index to merged vertex index
   std::vector<size_t> compressVertex;
@@ -374,7 +397,7 @@ void PolygonSoupMesh::mergeIdenticalVertices() {
 }
 
 
-void PolygonSoupMesh::stripUnusedVertices() {
+void SimplePolygonMesh::stripUnusedVertices() {
 
   // Check which indices are used
   size_t nV = vertexCoordinates.size();
@@ -408,12 +431,18 @@ void PolygonSoupMesh::stripUnusedVertices() {
   }
 }
 
-void PolygonSoupMesh::triangulate() {
+void SimplePolygonMesh::clear() {
+  polygons.clear();
+  vertexCoordinates.clear();
+  paramCoordinates.clear();
+}
+
+void SimplePolygonMesh::triangulate() {
   std::vector<std::vector<size_t>> newPolygons;
 
   for (auto poly : polygons) {
     if (poly.size() <= 2) {
-      throw std::runtime_error("ERROR: PolygonSoupMesh has degree < 3 polygon");
+      throw std::runtime_error("ERROR: SimplePolygonMesh has degree < 3 polygon");
     }
 
     for (size_t i = 2; i < poly.size(); i++) {
@@ -425,42 +454,33 @@ void PolygonSoupMesh::triangulate() {
   polygons = newPolygons;
 }
 
-void PolygonSoupMesh::writeMesh(std::string filename, std::string type) {
+void SimplePolygonMesh::writeMesh(std::string filename, std::string type) {
 
-  // Attempt to detect filename
+  // Auto-detect type if needed
   bool typeGiven = type != "";
-  std::string::size_type sepInd = filename.rfind('.');
   if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = filename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
+    type = detectFileType(filename);
   }
 
+  // NOTE if/when we ever start writing binary file formats, will need to open in binary mode for those formats
+  std::ofstream outStream(filename);
+  if (!outStream) throw std::runtime_error("couldn't open output file " + filename);
+  writeMesh(outStream, type);
+}
+
+void SimplePolygonMesh::writeMesh(std::ostream& out, std::string type) {
   if (type == "obj") {
-    return writeMeshObj(filename);
+    return writeMeshObj(out);
   } else {
-    if (typeGiven) {
-      throw std::runtime_error("Can not write mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to write mesh to " + filename);
-    }
+    throw std::runtime_error("Write mesh file type " + type + " not supported");
   }
 }
 
-void PolygonSoupMesh::writeMeshObj(std::string filename) {
+void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
 
-  std::ofstream out(filename);
-  if (!out) {
-    throw std::runtime_error("failed to create output stream " + filename);
-  }
 
   // Write header
-  out << "# Mesh exported from GeometryCentral" << std::endl;
+  out << "# Mesh exported from geometry-central" << std::endl;
   out << "#  vertices: " << vertexCoordinates.size() << std::endl;
   out << "#     faces: " << polygons.size() << std::endl;
   out << "#     texture coordinates: NO" << std::endl;
@@ -481,25 +501,25 @@ void PolygonSoupMesh::writeMeshObj(std::string filename) {
   }
 }
 
-std::unique_ptr<PolygonSoupMesh> unionMeshes(const std::vector<PolygonSoupMesh>& soups) {
+std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMesh>& meshes) {
 
   std::vector<std::vector<size_t>> unionFaces;
   std::vector<Vector3> unionVerts;
 
-  for (const PolygonSoupMesh& soup : soups) {
+  for (const SimplePolygonMesh& mesh : meshes) {
 
     size_t offset = unionVerts.size();
-    for (Vector3 v : soup.vertexCoordinates) {
+    for (Vector3 v : mesh.vertexCoordinates) {
       unionVerts.push_back(v);
     }
 
-    for (std::vector<size_t> f : soup.polygons) {
+    for (std::vector<size_t> f : mesh.polygons) {
       for (size_t& i : f) i += offset;
       unionFaces.push_back(f);
     }
   }
 
-  return std::unique_ptr<PolygonSoupMesh>(new PolygonSoupMesh(unionFaces, unionVerts));
+  return std::unique_ptr<SimplePolygonMesh>(new SimplePolygonMesh(unionFaces, unionVerts));
 }
 
 } // namespace surface

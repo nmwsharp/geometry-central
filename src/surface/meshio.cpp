@@ -3,7 +3,7 @@
 #include "geometrycentral/surface/halfedge_containers.h"
 #include "geometrycentral/surface/halfedge_factories.h"
 #include "geometrycentral/surface/halfedge_mesh.h"
-#include "geometrycentral/surface/polygon_soup_mesh.h"
+#include "geometrycentral/surface/simple_polygon_mesh.h"
 
 #include "happly.h"
 
@@ -152,17 +152,17 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OBJ(std::string filename,
                                                                                                 bool verbose) {
-  PolygonSoupMesh soup(filename, "obj");
-  stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
-  return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
+  SimplePolygonMesh simpleMesh(filename, "obj");
+  stripUnusedVertices(simpleMesh.vertexCoordinates, simpleMesh.polygons);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates, verbose);
 }
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_STL(std::string filename,
                                                                                                 bool verbose) {
-  PolygonSoupMesh soup(filename, std::string("stl"));
-  soup.mergeIdenticalVertices();
-  stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
-  return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
+  SimplePolygonMesh simpleMesh(filename, std::string("stl"));
+  simpleMesh.mergeIdenticalVertices();
+  stripUnusedVertices(simpleMesh.vertexCoordinates, simpleMesh.polygons);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates, verbose);
 }
 
 } // namespace
@@ -223,10 +223,10 @@ std::unique_ptr<HalfedgeMesh> loadConnectivity_PLY(std::string filename, bool ve
 }
 
 std::unique_ptr<HalfedgeMesh> loadConnectivity_OBJ(std::string filename, bool verbose) {
-  // TODO this will fail unless the obj file has vertex listings, which is not strictly needed to load connectivity. I'm
+  // NOTE this will fail unless the obj file has vertex listings, which is not strictly needed to load connectivity. I'm
   // not sure if that's really a valid .obj file, but nonetheless this function could certainly process such .obj files.
-  PolygonSoupMesh soup(filename);
-  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(soup.polygons, verbose));
+  SimplePolygonMesh mesh(filename);
+  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(mesh.polygons, verbose));
 }
 } // namespace
 
