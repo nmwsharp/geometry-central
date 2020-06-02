@@ -14,6 +14,51 @@ std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh("spot.obj"); 
 ```
 
+
+??? note "Why unique pointers?"
+
+    The mesh loader, like many functions in geometry-central, returns constructed objects via a `unique_ptr`. Unique pointers are an important tool for memory management in modern C++; if you haven't used them before, we suggest you give them a try!
+
+    In most ways, a `unique_ptr` acts just like a normal C++ pointer. You can dereference it with `*uPtr`, and access its members and function like `uPtr->function()`. However, the `unique_ptr` helps prevent common memory-management mistakes, and communicates the programmer's intent about object lifetime. This is accomplished with two properties:
+
+      - You don't need to call `delete` on a `unique_ptr`, it happens automatically when the pointer is destructed, e.g. when it goes out of scope at the end of a function, or when the object it is a member of gets deleted. This helps prevent memory leaks where you forget to deallocate the object.
+
+      - You cannot copy the `unique_ptr`; hence it is "unique"! You can still pass around references, or `std::move()` the pointer, which are sufficient for most reasonable uses. This helps prevent you from creating a copy, and then accidentally deleting the pointer twice.
+
+    ---
+
+    The general paradigm in geometry-central (and a recommended style in modern C++) is to return long-lived, allocated objects with a `unique_ptr`, and pass these objects in to functions and dependent classes by reference.
+
+    For instance, we might write a function which takes a mesh as an argument like
+
+    ```cpp
+    void processMesh(HalfedgeMesh& inputMesh) { /* do stuff */}
+    ```
+   
+    and call it by dereferencing the unique pointer to pass a reference
+
+    ```cpp
+    std::unique_ptr<HalfedgeMesh> mesh;
+    std::unique_ptr<VertexPositionGeometry> geometry;
+    std::tie(mesh, geometry) = loadMesh("spot.obj"); 
+    
+    processMesh(*mesh);
+    ```
+
+    For more details about unique pointers, see the [language documentation](https://en.cppreference.com/w/cpp/memory/unique_ptr), or many tutorials around the web.
+
+    --- 
+
+    If you really don't want to use unique pointers, you can simply release the unique pointer to an ordinary pointer:
+
+    ```cpp
+    std::unique_ptr<HalfedgeMesh> mesh /* populated as above */;
+    HalfedgeMesh* meshPtr = mesh.release();
+    ```
+    
+    The `meshPtr` now points the mesh object, and you are responsible for eventually deleting this pointer. After calling `release()`, the unique pointer points to nothing and will no longer deallocate the object.
+
+
 ??? func "`#!cpp std::tuple<std::unique_ptr<HalfedgeMesh>,std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename, std::string type="")`"
 
     Load a mesh from file. Returns both a `HalfedgeMesh` representing the connectivity, and a `Geometry` representing the geometry. See example below to concisely unpack.
@@ -26,6 +71,9 @@ std::tie(mesh, geometry) = loadMesh("spot.obj");
     
     - `obj`
     - `ply` (using [hapPLY](https://github.com/nmwsharp/happly))
+
+
+
 
 ## Writing meshes
 

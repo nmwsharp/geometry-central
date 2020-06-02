@@ -23,15 +23,14 @@ public:
   // Assumes that the vertex listing in polygons is dense; all indices from [0,MAX_IND) must appear in some face.
   // (some functions, like in meshio.h preprocess inputs to strip out unused indices).
   // The output will preserve the ordering of vertices and faces.
-  HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, bool verbose = false);
+  HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons);
 
   // Build a halfedge mesh from connectivity information (0-indexed as always)
   // - `polygons` is the usual vertex indices for each face
   // - `twins` is indices for the halfedge twin pointers. For each halfedge, holds the index of the twin face and
   // halfedge within that face. In each face, the 0'th halfedge goes from vert 0-->1. Use INVALID_IND for boundary.
   HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
-               const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins, bool allowVertexNonmanifold = false,
-               bool verbose = false);
+               const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins, bool allowVertexNonmanifold = false);
 
   ~HalfedgeMesh();
 
@@ -114,7 +113,7 @@ public:
 
   // Removes an edge, unioning two faces. Input must not be a boundary edge. Returns Face() if impossible.
   Face removeEdge(Edge e);
- 
+
   // Remove a face along the boundary. Currently does not know how to remove ears or whole components.
   bool removeFaceAlongBoundary(Face f);
 

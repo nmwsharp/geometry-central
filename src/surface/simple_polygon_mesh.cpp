@@ -120,6 +120,11 @@ std::string SimplePolygonMesh::detectFileType(std::string filename) {
 }
 
 void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type) {
+  std::string unused;
+  readMeshFromFile(filename, type, unused);
+}
+
+void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type, std::string& detectedType) {
 
   // Attempt to detect filename
   bool typeGiven = type != "";
@@ -131,6 +136,8 @@ void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type)
   std::ifstream inStream(filename);
   if (!inStream) throw std::runtime_error("couldn't open file " + filename);
   readMeshFromFile(inStream, type);
+
+  detectedType = type;
 }
 
 void SimplePolygonMesh::readMeshFromFile(std::istream& in, std::string type) {

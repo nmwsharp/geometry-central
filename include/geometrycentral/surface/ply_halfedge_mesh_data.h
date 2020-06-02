@@ -27,14 +27,14 @@ class PlyHalfedgeMeshData {
 public:
   // Construct by reading from file, mapping the elements on to an existing mesh.
   // To simultaneously read the mesh encoded by the file, see the static method loadMeshAndData below.
-  PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename, bool verbose = false);
+  PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename);
 
   // Construct a data object. Connectivity will be added automatically, geometry and other data fields can be added.
-  PlyHalfedgeMeshData(HalfedgeMesh& mesh_, bool verbose = false);
+  PlyHalfedgeMeshData(HalfedgeMesh& mesh_);
 
   // Convenience factory method to simultaneously read the mesh from a file and
   static std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<PlyHalfedgeMeshData>>
-  loadMeshAndData(std::string filename, bool verbose = false);
+  loadMeshAndData(std::string filename);
 
   // The mesh on which the properties in this file are presumed to exist
   HalfedgeMesh& mesh;
@@ -46,7 +46,6 @@ public:
   void write(std::string filename);
 
   // Options
-  bool verbose;
   happly::DataFormat outputFormat = happly::DataFormat::Binary;
 
   // === Get properties as geometrycentral types.

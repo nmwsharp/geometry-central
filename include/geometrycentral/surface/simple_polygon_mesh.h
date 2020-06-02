@@ -20,7 +20,8 @@ public:
   SimplePolygonMesh(std::string meshFilename, std::string type = "");
   SimplePolygonMesh(std::istream& in, std::string type);
   SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_);
-  SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_, const std::vector<std::vector<Vector2>>& paramCoordinates_);
+  SimplePolygonMesh(const std::vector<std::vector<size_t>>& polygons_, const std::vector<Vector3>& vertexCoordinates_,
+                    const std::vector<std::vector<Vector2>>& paramCoordinates_);
 
   // == Mesh data
   std::vector<std::vector<size_t>> polygons;
@@ -57,6 +58,8 @@ public:
 
   void readMeshFromFile(std::istream& in, std::string type);
   void readMeshFromFile(std::string filename, std::string type = "");
+  void readMeshFromFile(std::string filename, std::string type,
+                        std::string& detectedType); // also returns type string for filetype that was used
   void writeMesh(std::ostream& out, std::string type);
   void writeMesh(std::string filename, std::string type = "");
 

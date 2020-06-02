@@ -18,258 +18,34 @@ namespace surface {
 
 // ======= Input =======
 
-// strip unused vertices from face-vertex lists
-void stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vector<size_t>>& faceIndices) {
-
-  size_t nVert = positions.size();
-
-  // Find any unused vertices
-  std::vector<size_t> vertexDegreeCount(nVert, 0);
-  size_t nUsedVerts = 0;
-  for (auto& f : faceIndices) {
-    for (auto& i : f) {
-      // Make sure we can safely index positions
-      GC_SAFETY_ASSERT(i < positions.size(),
-                       "face index list has a vertex index which is greater than the number of vertices");
-
-      vertexDegreeCount[i]++;
-      if (vertexDegreeCount[i] == 1) {
-        nUsedVerts++;
-      }
-    }
-  }
-
-  // Early exit if dense
-  if (nUsedVerts == nVert) {
-    return;
-  }
-
-  // Else: strip unused vertices and re-index faces
-  size_t nNewVertices = 0;
-  std::vector<size_t> oldToNewVertexInd(nVert);
-  for (size_t iV = 0; iV < nVert; iV++) {
-    if (vertexDegreeCount[iV] > 0) {
-      oldToNewVertexInd[iV] = nNewVertices;
-      positions[nNewVertices] = positions[iV];
-      nNewVertices++;
-    }
-  }
-  positions.resize(nNewVertices);
-  for (auto& f : faceIndices) {
-    for (auto& i : f) {
-      i = oldToNewVertexInd[i];
-    }
-  }
-}
-
-
-// Mesh loader helpers
+// Helpers for mesh loading
 namespace {
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_PLY(std::string filename,
-                                                                                                bool verbose) {
+void processLoadedMesh(SimplePolygonMesh& mesh, std::string type) {
+  mesh.stripUnusedVertices();
 
-  happly::PLYData plyData(filename);
-
-  // === Get vertex positions
-  std::vector<std::array<double, 3>> rawPos = plyData.getVertexPositions();
-  std::vector<Vector3> vertexPositions(rawPos.size());
-  for (size_t i = 0; i < rawPos.size(); i++) {
-    vertexPositions[i][0] = rawPos[i][0];
-    vertexPositions[i][1] = rawPos[i][1];
-    vertexPositions[i][2] = rawPos[i][2];
+  // Apply any special processing for particular filetypes
+  if (type == "stl") {
+    mesh.mergeIdenticalVertices();
   }
-
-  // Get face list
-  std::vector<std::vector<size_t>> faceIndices = plyData.getFaceIndices();
-
-  stripUnusedVertices(vertexPositions, faceIndices);
-
-  // === Build the mesh objects
-  return makeHalfedgeAndGeometry(faceIndices, vertexPositions, verbose);
-}
-
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OFF(std::string filename,
-                                                                                                bool verbose) {
-
-  // Open the file
-  std::ifstream inStream(filename);
-  if (!inStream) throw std::runtime_error("couldn't open file " + filename);
-
-  // == Parse
-
-  auto getNextLine = [&]() {
-    std::string line;
-    do {
-      if (!std::getline(inStream, line)) {
-        throw std::runtime_error("ran out of lines while parsing " + filename);
-      }
-    } while (line.size() == 0 || line[0] == '#');
-    return line;
-  };
-
-  // header
-  std::string headerLine = getNextLine();
-  if (headerLine.rfind("OFF", 0) != 0) throw std::runtime_error("does not seem to be valid OFF file: " + filename);
-
-  // counts
-  size_t nVert, nFace;
-  std::string countLine = getNextLine();
-  std::stringstream countStream(countLine);
-  countStream >> nVert >> nFace; // ignore nEdges, if present
-
-  // parse vertices
-  std::vector<Vector3> vertexPositions(nVert);
-  for (size_t iV = 0; iV < nVert; iV++) {
-    std::string vertLine = getNextLine();
-    std::stringstream vertStream(vertLine);
-    Vector3 p;
-    vertStream >> p.x >> p.y >> p.z; // ignore color etc, if present
-    vertexPositions[iV] = p;
-  }
-
-  // = Get face indices
-  std::vector<std::vector<size_t>> faceIndices(nFace);
-  for (size_t iF = 0; iF < nFace; iF++) {
-    std::string faceLine = getNextLine();
-    std::stringstream faceStream(faceLine);
-
-    size_t degree;
-    faceStream >> degree;
-    std::vector<size_t>& face = faceIndices[iF];
-    for (size_t i = 0; i < degree; i++) {
-      size_t ind;
-      faceStream >> ind;
-      face.push_back(ind);
-    }
-  }
-
-  stripUnusedVertices(vertexPositions, faceIndices);
-
-  // === Build the mesh objects
-  return makeHalfedgeAndGeometry(faceIndices, vertexPositions, verbose);
-} // namespace
-
-
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OBJ(std::string filename,
-                                                                                                bool verbose) {
-  SimplePolygonMesh simpleMesh(filename, "obj");
-  stripUnusedVertices(simpleMesh.vertexCoordinates, simpleMesh.polygons);
-  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates, verbose);
-}
-
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_STL(std::string filename,
-                                                                                                bool verbose) {
-  SimplePolygonMesh simpleMesh(filename, std::string("stl"));
-  simpleMesh.mergeIdenticalVertices();
-  stripUnusedVertices(simpleMesh.vertexCoordinates, simpleMesh.polygons);
-  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates, verbose);
 }
 
 } // namespace
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
-loadMesh(std::string filename, bool verbose, std::string type) {
+std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename,
+                                                                                            std::string type) {
+  // Load the mesh using the SimplePolygonMesh loaders
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
 
-  // Check if file exists
-  std::ifstream testStream(filename);
-  if (!testStream) {
-    throw std::runtime_error("Could not load mesh; file does not exist: " + filename);
-  }
-  testStream.close();
+  processLoadedMesh(simpleMesh, loadType);
 
-  // Attempt to detect filename
-  bool typeGiven = type != "";
-  std::string::size_type sepInd = filename.rfind('.');
-  if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = filename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
-  }
-
-
-  if (type == "obj") {
-    return loadMesh_OBJ(filename, verbose);
-  } else if (type == "ply") {
-    return loadMesh_PLY(filename, verbose);
-  } else if (type == "stl") {
-    return loadMesh_STL(filename, verbose);
-  } else if (type == "off") {
-    return loadMesh_OFF(filename, verbose);
-  } else {
-    if (typeGiven) {
-      throw std::runtime_error("Did not recognize mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to load mesh from " + filename);
-    }
-  }
-}
-
-// connectivity loader helpers
-namespace {
-std::unique_ptr<HalfedgeMesh> loadConnectivity_PLY(std::string filename, bool verbose) {
-
-  happly::PLYData plyData(filename);
-
-  // Get face list
-  std::vector<std::vector<size_t>> faceIndices = plyData.getFaceIndices();
-
-  // === Build the mesh objects
-  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(faceIndices, verbose));
-}
-
-std::unique_ptr<HalfedgeMesh> loadConnectivity_OBJ(std::string filename, bool verbose) {
-  // NOTE this will fail unless the obj file has vertex listings, which is not strictly needed to load connectivity. I'm
-  // not sure if that's really a valid .obj file, but nonetheless this function could certainly process such .obj files.
-  SimplePolygonMesh mesh(filename);
-  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(mesh.polygons, verbose));
-}
-} // namespace
-
-
-std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbose, std::string type) {
-
-  // Check if file exists
-  std::ifstream testStream(filename);
-  if (!testStream) {
-    throw std::runtime_error("Could not load mesh; file does not exist: " + filename);
-  }
-  testStream.close();
-
-  // Attempt to detect filename
-  bool typeGiven = type != "";
-  std::string::size_type sepInd = filename.rfind('.');
-  if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = filename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
-  }
-
-
-  if (type == "obj") {
-    return loadConnectivity_OBJ(filename, verbose);
-  } else if (type == "ply") {
-    return loadConnectivity_PLY(filename, verbose);
-  } else {
-    if (typeGiven) {
-      throw std::runtime_error("Did not recognize mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to load mesh from " + filename);
-    }
-  }
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
 
 // ======= Output =======
+
 bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;

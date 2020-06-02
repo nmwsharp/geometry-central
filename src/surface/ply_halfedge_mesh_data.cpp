@@ -16,24 +16,25 @@ namespace geometrycentral {
 namespace surface {
 
 
-PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename_, bool verbose_)
-    : mesh(mesh_), plyData(filename_, verbose_), verbose(verbose_) {}
+PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename_)
+    : mesh(mesh_), plyData(filename_) {}
 
-PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_, bool verbose_)
-    : mesh(mesh_), plyData(), verbose(verbose_) {
+PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_)
+    : mesh(mesh_), plyData() {
   // Write connectiviy as indices
   std::vector<std::vector<size_t>> faceIndices = mesh.getFaceVertexList();
   plyData.addFaceIndices(faceIndices);
 }
 
 std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<PlyHalfedgeMeshData>>
-PlyHalfedgeMeshData::loadMeshAndData(std::string filename, bool verbose) {
+PlyHalfedgeMeshData::loadMeshAndData(std::string filename) {
 
   // First, just load the connectivity
-  std::unique_ptr<HalfedgeMesh> mesh = loadConnectivity(filename, verbose, "ply");
+  SimplePolygonMesh simpleMesh(filename, "ply");
+  std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(simpleMesh.polygons));
 
   // Now, open file on that mesh
-  std::unique_ptr<PlyHalfedgeMeshData> data(new PlyHalfedgeMeshData(*mesh, filename, verbose));
+  std::unique_ptr<PlyHalfedgeMeshData> data(new PlyHalfedgeMeshData(*mesh, filename));
 
   return std::make_tuple(std::move(mesh), std::move(data));
 }

@@ -54,7 +54,7 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target, 
 
 } // namespace
 
-HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, bool verbose) {
+HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
@@ -251,15 +251,13 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, boo
 
 
   // Print some nice statistics
-  if (verbose) {
-    printStatistics();
-    std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
-  }
+  // printStatistics();
+  // std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
 }
 
 HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
                            const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
-                           bool allowVertexNonmanifold, bool verbose) {
+                           bool allowVertexNonmanifold) {
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
@@ -464,11 +462,9 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
 
 
   // Print some nice statistics
-  if (verbose) {
-    printStatistics();
-    std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
-  }
-} // namespace surface
+  // printStatistics();
+  // std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
+}
 
 
 HalfedgeMesh::~HalfedgeMesh() {
