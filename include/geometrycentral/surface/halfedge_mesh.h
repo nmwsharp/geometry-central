@@ -1,8 +1,7 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_containers.h"
 #include "geometrycentral/surface/halfedge_element_types.h"
-#include "geometrycentral/surface/halfedge_iterators.h"
+#include "geometrycentral/utilities/mesh_data.h"
 #include "geometrycentral/utilities/utilities.h"
 
 #include <list>
@@ -13,6 +12,20 @@
 
 namespace geometrycentral {
 namespace surface {
+
+// === Typdefs for the usual VertexData<> etc
+template <typename T>
+using VertexData = MeshData<Vertex, T>;
+template <typename T>
+using FaceData = MeshData<Face, T>;
+template <typename T>
+using EdgeData = MeshData<Edge, T>;
+template <typename T>
+using HalfedgeData = MeshData<Halfedge, T>;
+template <typename T>
+using CornerData = MeshData<Corner, T>;
+template <typename T>
+using BoundaryLoopData = MeshData<BoundaryLoop, T>;
 
 class HalfedgeMesh {
 
@@ -72,9 +85,8 @@ public:
   // the index space may have gaps in it). This can be remedied by calling compress(), which _does_ invalidate
   // non-dynamic element handles (but still keeps MeshData<> containers valid).
 
-  // Flip an edge. Unlike all the other mutation routines, this _does not_ invalidate pointers, though it does break the
-  // canonical ordering. Edge is rotated clockwise.
-  // Return true if the edge was actually flipped (can't flip boundary or non-triangular edges)
+  // Flip an edge. Unlike all the other mutation routines, this _does not_ invalidate pointers. Edge is rotated
+  // clockwise. Return true if the edge was actually flipped (can't flip boundary or non-triangular edges).
   bool flip(Edge e);
 
   // Adds a vertex along an edge, increasing degree of faces. Returns ptr along the edge, with he.vertex() as new
@@ -146,10 +158,6 @@ public:
   bool isCompressed() const;
   void compress();
 
-  // Canonicalize the element ordering to be the same indexing convention as after construction from polygon soup.
-  bool isCanonical() const;
-  void canonicalize();
-
   // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
 
   // Expansion callbacks
@@ -189,7 +197,7 @@ public:
   void validateConnectivity();
 
 
-private:
+protected:
   // = Core arrays which hold the connectivity
   // Note: it should always be true that heFace.size() == nHalfedgesCapacityCount, but any elements after
   // nHalfedgesFillCount will be valid indices (in the std::vector sense), but contain uninitialized data. Similarly,
@@ -312,8 +320,7 @@ private:
 
 // clang-format off
 // preserve ordering
-#include "geometrycentral/surface/halfedge_containers.ipp"
-#include "geometrycentral/surface/halfedge_iterators.ipp"
+#include "geometrycentral/utilities/mesh_data.ipp"
 #include "geometrycentral/surface/halfedge_element_types.ipp"
 #include "geometrycentral/surface/halfedge_logic_templates.ipp"
 #include "geometrycentral/surface/halfedge_mesh.ipp"

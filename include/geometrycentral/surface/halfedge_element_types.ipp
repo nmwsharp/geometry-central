@@ -8,156 +8,6 @@ namespace surface {
 // clang-format off
 
 // ==========================================================
-// ================      Base Element      ==================
-// ==========================================================
-
-// Constructors
-template<typename T> 
-Element<T>::Element() {}
-template<typename T> 
-Element<T>::Element(HalfedgeMesh* mesh_, size_t ind_) : mesh(mesh_), ind(ind_) {}
-template<typename T> 
-Element<T>::Element(const DynamicElement<T>& e) : mesh(e.getMesh()), ind(e.getIndex()) {}
-
-// Comparators
-template<typename T> 
-inline bool Element<T>::operator==(const Element<T>& other) const { return ind == other.ind; }
-template<typename T> 
-inline bool Element<T>::operator!=(const Element<T>& other) const { return !(*this == other); }
-template<typename T> 
-inline bool Element<T>::operator>(const Element<T>& other) const { return ind > other.ind; }
-template<typename T> 
-inline bool Element<T>::operator>=(const Element<T>& other) const { return ind >= other.ind; }
-template<typename T> 
-inline bool Element<T>::operator<(const Element<T>& other) const { return ind < other.ind; }
-template<typename T> 
-inline bool Element<T>::operator<=(const Element<T>& other) const { return ind <= other.ind; }
-
-template <typename T>
-size_t Element<T>::getIndex() const { return ind; }
-
-template <typename T>
-HalfedgeMesh* Element<T>::getMesh() const { return mesh; }
-
-template <typename T>
-inline ::std::ostream& operator<<(::std::ostream& output, const Element<T>& e) {
-  output << typeShortName<T>() << "_" << e.ind;
-  return output;
-}
-
-// Dynamic element
-template<typename S> 
-DynamicElement<S>::DynamicElement() {}
-
-template<typename S> 
-DynamicElement<S>::DynamicElement(HalfedgeMesh* mesh_, size_t ind_) : S(mesh_, ind_) {
-  registerWithMesh();
-}
-
-template<typename S> 
-DynamicElement<S>::DynamicElement(const S& e) : S(e) {
-  registerWithMesh();
-}
-  
-template <typename S>
-DynamicElement<S>::DynamicElement(const DynamicElement& other) : S(other.mesh, other.ind) {
-  registerWithMesh();
-}
-
-template <typename S>
-DynamicElement<S>::DynamicElement(DynamicElement&& other) : S(other.mesh, other.ind) {
-  registerWithMesh();
-}
-
-template <typename S>
-DynamicElement<S>& DynamicElement<S>::operator=(const DynamicElement<S>& other) {
-  deregisterWithMesh();
-  this->mesh = other.mesh;
-  this->ind = other.ind;
-  registerWithMesh();
-  return *this;
-}
-
-template <typename S>
-DynamicElement<S>& DynamicElement<S>::operator=(DynamicElement<S>&& other) noexcept {
-  deregisterWithMesh();
-  this->mesh = other.mesh;
-  this->ind = other.ind;
-  registerWithMesh();
-  return *this;
-}
-
-template<typename S> 
-DynamicElement<S>::~DynamicElement() {
-  deregisterWithMesh();
-}
-
-template<typename S> 
-void DynamicElement<S>::registerWithMesh() {
-  
-  // Callback function on permutation
-  std::function<void(const std::vector<size_t>&)> permuteFunc = [this](const std::vector<size_t>& perm) {
-    // TODO FIXME not implemented. See note in mesh compression callbacks.
-  };
-
-  // Callback function on mesh delete
-  std::function<void()> deleteFunc = [this]() {
-    // Ensures that we don't try to remove with iterators on deconstruct of this object
-    this->mesh = nullptr;
-  };
-
-  permuteCallbackIt = getPermuteCallbackList<S>(this->mesh).insert(getPermuteCallbackList<S>(this->mesh).end(), permuteFunc);
-  deleteCallbackIt = this->mesh->meshDeleteCallbackList.insert(this->mesh->meshDeleteCallbackList.end(), deleteFunc);
-}
-
-template<typename S> 
-void DynamicElement<S>::deregisterWithMesh() {
-  if (this->mesh == nullptr) return;
-  getPermuteCallbackList<S>(this->mesh).erase(permuteCallbackIt);
-  this->mesh->meshDeleteCallbackList.erase(deleteCallbackIt);
-}
-
-
-// Base iterators
-template <typename F>
-inline RangeIteratorBase<F>::RangeIteratorBase(HalfedgeMesh* mesh_, size_t iStart_, size_t iEnd_) : mesh(mesh_), iCurr(iStart_), iEnd(iEnd_) {
-  if (iCurr != iEnd && !F::elementOkay(*mesh, iCurr)) {
-    this->operator++();
-  }
-}
-
-template <typename F>
-inline const RangeIteratorBase<F>& RangeIteratorBase<F>::operator++() {
-  iCurr++;
-  while (iCurr != iEnd && !F::elementOkay(*mesh, iCurr)) {
-    iCurr++;
-  }
-  return *this;
-}
-
-template <typename F>
-inline bool RangeIteratorBase<F>::operator==(const RangeIteratorBase<F>& other) const {
-	return iCurr == other.iCurr;
-}
-
-template <typename F>
-inline bool RangeIteratorBase<F>::operator!=(const RangeIteratorBase<F>& other) const {
-	return !(*this == other);
-}
-
-template <typename F>
-inline typename F::Etype RangeIteratorBase<F>::operator*() const { return typename F::Etype(mesh, iCurr); }
-
-template <typename F>
-RangeSetBase<F>::RangeSetBase(HalfedgeMesh* mesh_, size_t iStart_, size_t iEnd_) : mesh(mesh_), iStart(iStart_), iEnd(iEnd_) {}  
-
-template <typename F>
-inline RangeIteratorBase<F> RangeSetBase<F>::begin() const { return RangeIteratorBase<F>(mesh, iStart, iEnd); }
-
-template <typename F>
-inline RangeIteratorBase<F> RangeSetBase<F>::end() const { return RangeIteratorBase<F>(mesh, iEnd, iEnd); }
-
-// ==========================================================
 // ================        Vertex          ==================
 // ==========================================================
 
@@ -208,10 +58,37 @@ inline NavigationSetBase<VertexAdjacentCornerNavigator> Vertex::adjacentCorners(
   return NavigationSetBase<VertexAdjacentCornerNavigator>(halfedge());
 }
 
-// Range iterators
+// == Range iterators
 inline bool VertexRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
   return !mesh.vertexIsDead(ind);
 }
+
+// == Navigation iterators
+
+inline void VertexAdjacentVertexNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexAdjacentVertexNavigator::isValid() const { return true; }
+inline Vertex VertexAdjacentVertexNavigator::getCurrent() const { return currE.twin().vertex(); }
+
+inline void VertexIncomingHalfedgeNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexIncomingHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge VertexIncomingHalfedgeNavigator::getCurrent() const { return currE.twin(); }
+
+inline void VertexOutgoingHalfedgeNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexOutgoingHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge VertexOutgoingHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void VertexAdjacentCornerNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexAdjacentCornerNavigator::isValid() const { return currE.isInterior(); }
+inline Corner VertexAdjacentCornerNavigator::getCurrent() const { return currE.corner(); }
+
+inline void VertexAdjacentEdgeNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexAdjacentEdgeNavigator::isValid() const { return true; }
+inline Edge VertexAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
+
+inline void VertexAdjacentFaceNavigator::advance() { currE = currE.twin().next(); }
+inline bool VertexAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
+inline Face VertexAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
+
 
 // ==========================================================
 // ================        Halfedge        ==================
@@ -356,10 +233,33 @@ inline NavigationSetBase<FaceAdjacentCornerNavigator> Face::adjacentCorners() co
 }
 
 
-// Range iterators
+// == Range iterators
 inline bool FaceRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
   return !mesh.faceIsDead(ind);
 }
+
+// == Navigation iterators
+
+inline void FaceAdjacentVertexNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentVertexNavigator::isValid() const { return true; }
+inline Vertex FaceAdjacentVertexNavigator::getCurrent() const { return currE.vertex(); }
+
+inline void FaceAdjacentHalfedgeNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge FaceAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void FaceAdjacentCornerNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentCornerNavigator::isValid() const { return true; }
+inline Corner FaceAdjacentCornerNavigator::getCurrent() const { return currE.corner(); }
+
+inline void FaceAdjacentEdgeNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentEdgeNavigator::isValid() const { return true; }
+inline Edge FaceAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
+
+inline void FaceAdjacentFaceNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.twin().isInterior(); }
+inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.twin().face(); }
+
 
 // ==========================================================
 // ================     Boundary Loop      ==================
@@ -391,10 +291,24 @@ inline NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator> BoundaryLoop::adjace
   return NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator>(halfedge()); 
 }
 
-// Range iterators
+// == Range iterators
 inline bool BoundaryLoopRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
   return !mesh.faceIsDead(mesh.boundaryLoopIndToFaceInd(ind));
 }
+
+// == Navigation iterators
+
+inline void BoundaryLoopAdjacentVertexNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentVertexNavigator::isValid() const { return true; }
+inline Vertex BoundaryLoopAdjacentVertexNavigator::getCurrent() const { return currE.vertex(); }
+
+inline void BoundaryLoopAdjacentHalfedgeNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge BoundaryLoopAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void BoundaryLoopAdjacentEdgeNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentEdgeNavigator::isValid() const { return true; }
+inline Edge BoundaryLoopAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
 
 
 // clang-format on

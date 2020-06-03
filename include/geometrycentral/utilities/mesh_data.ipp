@@ -11,7 +11,7 @@ template <typename E, typename T>
 MeshData<E, T>::MeshData() {}
 
 template <typename E, typename T>
-MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh) : mesh(&parentMesh) {
+MeshData<E, T>::MeshData(ParentMeshT& parentMesh) : mesh(&parentMesh) {
   data.resize(elementCapacity<E>(mesh));
   fill(defaultValue);
 
@@ -19,7 +19,7 @@ MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh) : mesh(&parentMesh) {
 }
 
 template <typename E, typename T>
-MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh, T initVal) : mesh(&parentMesh), defaultValue(initVal) {
+MeshData<E, T>::MeshData(ParentMeshT& parentMesh, T initVal) : mesh(&parentMesh), defaultValue(initVal) {
   data.resize(elementCapacity<E>(mesh));
   fill(defaultValue);
 
@@ -27,13 +27,13 @@ MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh, T initVal) : mesh(&parentMesh
 }
 
 template <typename E, typename T>
-MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
+MeshData<E, T>::MeshData(ParentMeshT& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector)
     : MeshData(parentMesh) {
   fromVector(vector);
 }
 
 template <typename E, typename T>
-MeshData<E, T>::MeshData(HalfedgeMesh& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
+MeshData<E, T>::MeshData(ParentMeshT& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
                          const MeshData<E, size_t>& indexer)
     : MeshData(parentMesh) {
   fromVector(vector, indexer);
@@ -88,16 +88,25 @@ void MeshData<E, T>::registerWithMesh() {
   // Callback function on expansion
   std::function<void(size_t)> expandFunc = [&](size_t newSize) {
     size_t oldSize = data.size();
-    data.resize(newSize);
-    for (size_t i = oldSize; i < data.size(); i++) {
-      data[i] = defaultValue;
+    Eigen::Matrix<T, Eigen::Dynamic, 1> newData(newSize);
+    for (size_t i = 0; i < oldSize; i++) { 
+      newData[i] = data[i];
     }
+    for (size_t i = oldSize; i < newSize; i++) {
+      newData[i] = defaultValue;
+    }
+    data = newData;
   };
 
 
   // Callback function on compression
   std::function<void(const std::vector<size_t>&)> permuteFunc = [this](const std::vector<size_t>& perm) {
-    data = applyPermutation(data, perm);
+    // inline applyPermutation() for Eigen vectors
+    Eigen::Matrix<T, Eigen::Dynamic, 1> newData(perm.size());
+    for (size_t i = 0; i < perm.size(); i++) {
+      newData[i] = data[perm[i]];
+    }
+    data = newData;
   };
 
 
@@ -125,7 +134,7 @@ void MeshData<E, T>::deregisterWithMesh() {
 
 template <typename E, typename T>
 void MeshData<E, T>::fill(T val) {
-  std::fill(data.begin(), data.begin() + size(), val);
+  data.setConstant(data.size(), val);
 }
 
 template <typename E, typename T>
@@ -133,7 +142,7 @@ inline void MeshData<E, T>::clear() {
   deregisterWithMesh();
   mesh = nullptr;
   defaultValue = T();
-  data.clear();
+  data = Eigen::Matrix<T, Eigen::Dynamic, 1>();
 }
 
 template <typename E, typename T>
@@ -227,7 +236,7 @@ inline size_t MeshData<E, T>::size() const {
 
 
 template <typename E, typename T>
-inline MeshData<E, T> MeshData<E, T>::reinterpretTo(HalfedgeMesh& targetMesh) const {
+inline MeshData<E, T> MeshData<E, T>::reinterpretTo(ParentMeshT& targetMesh) const {
   GC_SAFETY_ASSERT(nElements<E>(mesh) == nElements<E>(&targetMesh),
                    "meshes must have same number of elements to reinterpret");
   MeshData<E, T> newData(targetMesh, defaultValue);

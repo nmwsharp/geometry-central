@@ -1,6 +1,5 @@
 #include "geometrycentral/surface/meshio.h"
 
-#include "geometrycentral/surface/halfedge_containers.h"
 #include "geometrycentral/surface/halfedge_factories.h"
 #include "geometrycentral/surface/halfedge_mesh.h"
 #include "geometrycentral/surface/simple_polygon_mesh.h"

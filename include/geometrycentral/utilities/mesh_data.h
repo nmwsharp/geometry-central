@@ -1,10 +1,8 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_element_types.h"
-#include "geometrycentral/utilities/dependent_quantity.h"
+#include "geometrycentral/utilities/element.h"
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <cassert>
 
@@ -21,19 +19,19 @@ template <typename E, typename T>
 class MeshData {
 protected:
   // The mesh that this data is defined on
-  HalfedgeMesh* mesh = nullptr;
+  using ParentMeshT = typename E::ParentMeshT;
+  ParentMeshT* mesh = nullptr;
 
   // A default value used to initialize all entries (both on creation, and if the container is expanded due to mesh
   // modification).
-  T defaultValue;
+  T defaultValue = T();
 
   // The raw buffer which holds the data.
   // As a mesh is being modified, data.size() might be larger than the number of elements. Don't attempt any direct
   // access to this buffer.
-  // Notice that here we _always_ use Eigen's aligned allocator. This is necessary for std::vectors of fixed-size Eigen
-  // types (see https://eigen.tuxfamily.org/dox/group__TopicStlContainers.html ). There seems to be no downside to just
-  // using it for all types (???). If anything, alignment may help vectorization.
-  std::vector<T, Eigen::aligned_allocator<T>> data;
+  // Note that this is Eigen's vector type. In particular, it should (???) implement alignment policies which may
+  // improve vectorization and performance.
+  Eigen::Matrix<T, Eigen::Dynamic, 1> data;
 
   // Mutability behavior:
   // From the user's point of view, this container can always be accessed with a valid element pointer, no matter what
@@ -51,10 +49,10 @@ protected:
 
 public:
   MeshData();
-  MeshData(HalfedgeMesh& parentMesh);
-  MeshData(HalfedgeMesh& parentMesh, T initVal);
-  MeshData(HalfedgeMesh& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
-  MeshData(HalfedgeMesh& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
+  MeshData(ParentMeshT& parentMesh);
+  MeshData(ParentMeshT& parentMesh, T initVal);
+  MeshData(ParentMeshT& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector);
+  MeshData(ParentMeshT& parentMesh, const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector,
            const MeshData<E, size_t>& indexer);
 
   // Rule of 5
@@ -91,30 +89,12 @@ public:
   void fromVector(const Eigen::Matrix<T, Eigen::Dynamic, 1>& vector, const MeshData<E, size_t>& indexer);
 
   // Naively reinterpret the data as residing on another mesh, constructing a new container
-  MeshData<E, T> reinterpretTo(HalfedgeMesh& targetMesh) const;
+  MeshData<E, T> reinterpretTo(ParentMeshT& targetMesh) const;
 
   void setDefault(T newDefault);
   T getDefault() const;
 };
 
-// === Typdefs for the usual VertexData<> etc
-template <typename T>
-using VertexData = MeshData<Vertex, T>;
-
-template <typename T>
-using FaceData = MeshData<Face, T>;
-
-template <typename T>
-using EdgeData = MeshData<Edge, T>;
-
-template <typename T>
-using HalfedgeData = MeshData<Halfedge, T>;
-
-template <typename T>
-using CornerData = MeshData<Corner, T>;
-
-template <typename T>
-using BoundaryLoopData = MeshData<BoundaryLoop, T>;
 
 } // namespace surface
 } // namespace geometrycentral
