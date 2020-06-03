@@ -2,6 +2,7 @@
 
 #include "geometrycentral/utilities/element.h"
 #include "geometrycentral/utilities/element_iterators.h"
+#include "geometrycentral/utilities/mesh_data.h"
 #include "geometrycentral/utilities/utilities.h"
 
 #include <cstddef>
@@ -70,7 +71,6 @@ public:
   NavigationSetBase<VertexAdjacentCornerNavigator> adjacentCorners() const;
   NavigationSetBase<VertexAdjacentEdgeNavigator> adjacentEdges() const;
   NavigationSetBase<VertexAdjacentFaceNavigator> adjacentFaces() const;
-
 };
 
 using DynamicVertex = DynamicElement<Vertex>;
@@ -252,7 +252,6 @@ struct FaceRangeF {
   typedef HalfedgeMesh ParentMeshT;
 };
 typedef RangeSetBase<FaceRangeF> FaceSet;
-
 
 
 // ==========================================================
@@ -449,6 +448,68 @@ struct BoundaryLoopAdjacentEdgeNavigator {
 };
 
 
-
 } // namespace surface
+
+// Declare specializations of the logic templates. This is important, because these need to be declared before any of the templates using them are instantiated.
+
+// clang-format off
+
+template<> inline size_t nElements<surface::Vertex       >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::Face         >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::Edge         >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::Halfedge     >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::Corner       >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::BoundaryLoop >(surface::HalfedgeMesh* mesh); 
+
+template<> inline size_t elementCapacity<surface::Vertex      >(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::Face        >(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::Edge        >(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::Corner      >(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+
+template<> inline size_t dataIndexOfElement<surface::Vertex          >(surface::HalfedgeMesh* mesh, surface::Vertex e           );
+template<> inline size_t dataIndexOfElement<surface::Face            >(surface::HalfedgeMesh* mesh, surface::Face e             );
+template<> inline size_t dataIndexOfElement<surface::Edge            >(surface::HalfedgeMesh* mesh, surface::Edge e             );
+template<> inline size_t dataIndexOfElement<surface::Halfedge        >(surface::HalfedgeMesh* mesh, surface::Halfedge e         );
+template<> inline size_t dataIndexOfElement<surface::Corner          >(surface::HalfedgeMesh* mesh, surface::Corner e           );
+template<> inline size_t dataIndexOfElement<surface::BoundaryLoop    >(surface::HalfedgeMesh* mesh, surface::BoundaryLoop e     );
+
+template<> struct ElementSetType<surface::Vertex        >   { typedef surface::VertexSet       type; };
+template<> struct ElementSetType<surface::Face          >   { typedef surface::FaceSet         type; };
+template<> struct ElementSetType<surface::Edge          >   { typedef surface::EdgeSet         type; };
+template<> struct ElementSetType<surface::Halfedge      >   { typedef surface::HalfedgeSet     type; };
+template<> struct ElementSetType<surface::Corner        >   { typedef surface::CornerSet       type; };
+template<> struct ElementSetType<surface::BoundaryLoop  >   { typedef surface::BoundaryLoopSet type; };
+
+template<> inline surface::VertexSet         iterateElements<surface::Vertex      >(surface::HalfedgeMesh* mesh);
+template<> inline surface::HalfedgeSet       iterateElements<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
+template<> inline surface::CornerSet         iterateElements<surface::Corner      >(surface::HalfedgeMesh* mesh);
+template<> inline surface::EdgeSet           iterateElements<surface::Edge        >(surface::HalfedgeMesh* mesh);
+template<> inline surface::FaceSet           iterateElements<surface::Face        >(surface::HalfedgeMesh* mesh);
+template<> inline surface::BoundaryLoopSet   iterateElements<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Vertex      >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Corner      >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Edge        >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Face        >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Vertex       >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Halfedge     >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Corner       >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Edge         >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Face         >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::BoundaryLoop >(surface::HalfedgeMesh* mesh);
+
+template<> inline std::string typeShortName<surface::Vertex       >();
+template<> inline std::string typeShortName<surface::Halfedge     >();
+template<> inline std::string typeShortName<surface::Corner       >();
+template<> inline std::string typeShortName<surface::Edge         >();
+template<> inline std::string typeShortName<surface::Face         >();
+template<> inline std::string typeShortName<surface::BoundaryLoop >();
+
+// clang-format on
+
 } // namespace geometrycentral

@@ -13,7 +13,10 @@
 namespace geometrycentral {
 namespace surface {
 
-// === Typdefs for the usual VertexData<> etc
+// ==========================================================
+// ===================    Containers    =====================
+// ==========================================================
+
 template <typename T>
 using VertexData = MeshData<Vertex, T>;
 template <typename T>
@@ -26,6 +29,11 @@ template <typename T>
 using CornerData = MeshData<Corner, T>;
 template <typename T>
 using BoundaryLoopData = MeshData<BoundaryLoop, T>;
+
+
+// ==========================================================
+// ===================    Halfedge Mesh   ===================
+// ==========================================================
 
 class HalfedgeMesh {
 
@@ -134,7 +142,9 @@ public:
 
 
   // Methods for obtaining canonical indices for mesh elements
-  // (Note that in some situations, custom indices might instead be needed)
+  // When the mesh is compressed, these will be equivalent to `vertex.getIndex()`, etc. However, even when the mesh is
+  // not compressed they will still provide a dense enumeration. Of course in some situations, custom indices might
+  // instead be needed, this is just a default dense enumeration.
   VertexData<size_t> getVertexIndices();
   VertexData<size_t> getInteriorVertexIndices();
   HalfedgeData<size_t> getHalfedgeIndices();
@@ -320,8 +330,7 @@ protected:
 
 // clang-format off
 // preserve ordering
-#include "geometrycentral/utilities/mesh_data.ipp"
-#include "geometrycentral/surface/halfedge_element_types.ipp"
 #include "geometrycentral/surface/halfedge_logic_templates.ipp"
+#include "geometrycentral/surface/halfedge_element_types.ipp"
 #include "geometrycentral/surface/halfedge_mesh.ipp"
 // clang-format on

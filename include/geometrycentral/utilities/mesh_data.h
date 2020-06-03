@@ -2,8 +2,11 @@
 
 #include "geometrycentral/utilities/element.h"
 
-#include <Eigen/Core>
+// Need to include all of the relevant mesh types, so that we get forward declarations of template specializations which
+// are used below.
+#include "geometrycentral/surface/halfedge_element_types.h"
 
+#include <Eigen/Core>
 #include <cassert>
 
 // === Datatypes which hold data stored on the mesh
@@ -95,6 +98,7 @@ public:
   T getDefault() const;
 };
 
-
 } // namespace surface
 } // namespace geometrycentral
+
+#include "geometrycentral/utilities/mesh_data.ipp"

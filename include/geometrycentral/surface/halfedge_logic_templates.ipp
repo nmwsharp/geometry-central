@@ -27,13 +27,6 @@ template<> inline size_t dataIndexOfElement<surface::Halfedge        >(surface::
 template<> inline size_t dataIndexOfElement<surface::Corner          >(surface::HalfedgeMesh* mesh, surface::Corner e)         { return e.getIndex(); }
 template<> inline size_t dataIndexOfElement<surface::BoundaryLoop    >(surface::HalfedgeMesh* mesh, surface::BoundaryLoop e)   { return e.getIndex(); }
 
-template <> struct ElementSetType<surface::Vertex        >   { typedef surface::VertexSet       type; };
-template <> struct ElementSetType<surface::Face          >   { typedef surface::FaceSet         type; };
-template <> struct ElementSetType<surface::Edge          >   { typedef surface::EdgeSet         type; };
-template <> struct ElementSetType<surface::Halfedge      >   { typedef surface::HalfedgeSet     type; };
-template <> struct ElementSetType<surface::Corner        >   { typedef surface::CornerSet       type; };
-template <> struct ElementSetType<surface::BoundaryLoop  >   { typedef surface::BoundaryLoopSet type; };
-
 template<> inline surface::VertexSet         iterateElements<surface::Vertex      >(surface::HalfedgeMesh* mesh)   { return mesh->vertices();      }
 template<> inline surface::HalfedgeSet       iterateElements<surface::Halfedge    >(surface::HalfedgeMesh* mesh)   { return mesh->halfedges();     }
 template<> inline surface::CornerSet         iterateElements<surface::Corner      >(surface::HalfedgeMesh* mesh)   { return mesh->corners();       }
