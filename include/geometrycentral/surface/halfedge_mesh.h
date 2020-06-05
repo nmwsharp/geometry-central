@@ -212,16 +212,43 @@ protected:
   // Note: it should always be true that heFace.size() == nHalfedgesCapacityCount, but any elements after
   // nHalfedgesFillCount will be valid indices (in the std::vector sense), but contain uninitialized data. Similarly,
   // any std::vector<> indices corresponding to deleted elements will hold meaningless values.
-  std::vector<size_t> heNext;    // he.next()
-  std::vector<size_t> heVertex;  // he.vertex()
-  std::vector<size_t> heFace;    // he.face()
-  std::vector<size_t> vHalfedge; // v.halfedge()
-  std::vector<size_t> fHalfedge; // f.halfedge()
+  std::vector<size_t> heNextArr;    // he.next()
+  std::vector<size_t> heVertexArr;  // he.vertex()
+  std::vector<size_t> heFaceArr;    // he.face()
+  std::vector<size_t> vHalfedgeArr; // v.halfedge()
+  std::vector<size_t> fHalfedgeArr; // f.halfedge()
+  // (note: three more of these below for when not using implicit twin)
+
+  // Does this mesh use the implicit-twin convention in its connectivity arrays?
+  //
+  // If true, heSibling, heEdge, and eHalfedge are all empty arrays, and these values are computed implicitly from
+  // arithmetic on the indices. A consequence is that the mesh can only represent edge-manifold, oriented surfaces.
+  //
+  // If false, the above arrays are all populated and used for connectivty. As a consequence, the resulting mesh might
+  // not be manifold/oriented, and extra care is needed for some routines.
+  bool usesImplictTwin() const;
+  bool useImplicitTwinFlag = false;
+
+  // (see note above about implicit twin)
+  std::vector<size_t> heSiblingArr; // he.sibling() and he.twin()
+  std::vector<size_t> heEdgeArr;    // he.edge()
+  std::vector<size_t> eHalfedgeArr; // e.halfedge()
+
+  // Element connectivity
+  size_t heNext(size_t iHe) const;    // he.vertex()
+  size_t heTwin(size_t iHe) const;    // he.twin()
+  size_t heSibling(size_t iHe) const; // he.sibling()
+  size_t heEdge(size_t iHe) const;    // he.edge()
+  size_t heVertex(size_t iHe) const;  // he.vertex()
+  size_t heFace(size_t iHe) const;    // he.face()
+  size_t eHalfedge(size_t iE) const;  // e.halfedge()
+  size_t vHalfedge(size_t iV) const;  // v.halfedge()
+  size_t fHalfedge(size_t iF) const;  // f.halfedge()
 
   // Implicit connectivity relationships
-  static size_t heTwin(size_t iHe);   // he.twin()
-  static size_t heEdge(size_t iHe);   // he.edge()
-  static size_t eHalfedge(size_t iE); // e.halfedge()
+  static size_t heTwinImplicit(size_t iHe);   // he.twin()
+  static size_t heEdgeImplicit(size_t iHe);   // he.edge()
+  static size_t eHalfedgeImplicit(size_t iE); // e.halfedge()
 
   // Other implicit relationships
   bool heIsInterior(size_t iHe) const;
@@ -235,6 +262,7 @@ protected:
   // actual number of valid elements, not the size of the buffer that holds them.
   size_t nHalfedgesCount = 0;
   size_t nInteriorHalfedgesCount = 0;
+  size_t nEdgesCount = 0;
   size_t nVerticesCount = 0;
   size_t nFacesCount = 0;
   size_t nBoundaryLoopsCount = 0;
@@ -244,7 +272,8 @@ protected:
   // Note that this is _not_ defined to be std::vector::capacity(), it's the largest size such that arr[i] is legal (aka
   // arr.size()).
   size_t nVerticesCapacityCount = 0;
-  size_t nHalfedgesCapacityCount = 0; // will always be even
+  size_t nHalfedgesCapacityCount = 0; // will always be even if implicit twin
+  size_t nEdgesCapacityCount = 0;     // will always be even if implicit twin
   size_t nFacesCapacityCount = 0;     // capacity for faces _and_ boundary loops
 
   // These give the number of filled elements in the currently allocated buffer. This will also be the maximal index of
@@ -252,8 +281,8 @@ protected:
   // but nVertexFillCount does not (etc), so it denotes the end of the region in the buffer where elements have been
   // stored.
   size_t nVerticesFillCount = 0;
-  size_t nHalfedgesFillCount = 0; // must always be even
-  size_t nEdgesFillCount() const;
+  size_t nHalfedgesFillCount = 0; // must always be even if implicit twin
+  size_t nEdgesFillCount = 0;
   size_t nFacesFillCount = 0;         // where the real faces stop, and empty/boundary loops begin
   size_t nBoundaryLoopsFillCount = 0; // remember, these fill from the back of the face buffer
 
@@ -263,19 +292,20 @@ protected:
   // Call compress() to re-index and return to usual dense indexing.
   bool isCompressedFlag = true;
 
+  uint64_t modificationTick = 1; // Increment every time the mesh is mutated in any way. Used to track staleness.
+
   // Hide copy and move constructors, we don't wanna mess with that
   HalfedgeMesh(const HalfedgeMesh& other) = delete;
   HalfedgeMesh& operator=(const HalfedgeMesh& other) = delete;
   HalfedgeMesh(HalfedgeMesh&& other) = delete;
   HalfedgeMesh& operator=(HalfedgeMesh&& other) = delete;
 
-  // Implementation note: the getNew() and delete() functions below cannot operate on a single halfedge or edge. We must
-  // simultaneously create or delete the triple of an edge and both adjacent halfedges. This constraint arises because
-  // of the implicit indexing convention.
-
   // Used to resize the halfedge mesh. Expands and shifts vectors as necessary.
   Vertex getNewVertex();
-  Halfedge getNewEdgeTriple(bool onBoundary); // returns e.halfedge() from the newly created edge
+  Halfedge getNewEdgeTriple(bool onBoundary); // Create an edge and two halfedges.
+                                              // Returns e.halfedge() from the newly created edge
+  Halfedge getNewHalfedge(bool isInterior);
+  Edge getNewEdge();
   Face getNewFace();
   BoundaryLoop getNewBoundaryLoop();
   void expandFaceStorage(); // helper used in getNewFace() and getNewBoundaryLoop()
@@ -294,18 +324,30 @@ protected:
   void deleteElement(Face f);
   void deleteElement(BoundaryLoop bl);
 
+  // Construction subroutines
+  void constructHalfedgeMeshManifold(const std::vector<std::vector<size_t>>& polygons);
+  void constructHalfedgeMeshNonmanifold(const std::vector<std::vector<size_t>>& polygons);
+
   // Compression helpers
   void compressHalfedges();
   void compressEdges();
   void compressFaces();
   void compressVertices();
 
-
   // Helpers for mutation methods
   void ensureVertexHasBoundaryHalfedge(Vertex v); // impose invariant that v.halfedge is start of half-disk
   bool ensureEdgeHasInteriorHalfedge(Edge e);     // impose invariant that e.halfedge is interior
   Vertex collapseEdgeAlongBoundary(Edge e);
 
+  // Iterating around the neighbors of a nonmanifold vertex is one of the few operations not efficiently supported by
+  // even this souped-up halfedge mesh. For nonmanifold meshes, these helper arrays allow us to iterate efficiently.
+  // For vertex iV, vertexIterationCacheHeIndex holds the indices of the halfedges outgoing from the vertex, in the
+  // range from vertexIterationCacheVertexStart[iV] to vertexIterationCacheVertexStart[iV+1]
+  void ensureVertexIterationCachePopulated() const;
+  void populateVertexIterationCache() const;
+  uint64_t vertexIterationCacheTick = 0; // used to keep cache fresh
+  std::vector<size_t> vertexIterationCacheHeIndex;
+  std::vector<size_t> vertexIterationCacheVertexStart;
 
   // Elements need direct access in to members to traverse
   friend class Vertex;
@@ -323,6 +365,7 @@ protected:
   friend struct EdgeRangeF;
   friend struct FaceRangeF;
   friend struct BoundaryLoopRangeF;
+  friend struct VertexNeighborIteratorState;
 };
 
 } // namespace surface

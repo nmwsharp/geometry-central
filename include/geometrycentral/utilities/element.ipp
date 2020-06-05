@@ -14,7 +14,7 @@ namespace geometrycentral {
 template<typename T, typename M> 
 Element<T, M>::Element() {}
 template<typename T, typename M> 
-Element<T, M>::Element(ParentMeshT* mesh_, size_t ind_) : mesh(mesh_), ind(ind_) {}
+Element<T, M>::Element(const ParentMeshT* mesh_, size_t ind_) : mesh(mesh_), ind(ind_) {}
 template<typename T, typename M> 
 Element<T, M>::Element(const DynamicElement<T>& e) : mesh(e.getMesh()), ind(e.getIndex()) {}
 
@@ -36,7 +36,7 @@ template <typename T, typename M>
 size_t Element<T, M>::getIndex() const { return ind; }
 
 template <typename T, typename M>
-M* Element<T, M>::getMesh() const { return mesh; }
+const M* Element<T, M>::getMesh() const { return mesh; }
 
 template <typename T, typename M>
 inline ::std::ostream& operator<<(::std::ostream& output, const Element<T, M>& e) {

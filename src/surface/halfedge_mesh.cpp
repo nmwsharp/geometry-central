@@ -54,12 +54,21 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target, 
 
 } // namespace
 
-HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
+HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, bool requireManifold) {
+  if (requireManifold) {
+    constructHalfedgeMeshManifold(polygons);
+  } else {
+    constructHalfedgeMeshNonmanifold(polygons);
+  }
+}
+
+void HalfedgeMesh::constructHalfedgeMeshManifold(const std::vector<std::vector<size_t>>& polygons) {
+  useImplicitTwinFlag = false;
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
 
-  START_TIMING(construction)
+  // START_TIMING(construction)
 
   // Check input list and measure some element counts
   nFacesCount = polygons.size();
@@ -73,8 +82,8 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
   nVerticesCount++; // 0-based means count is max+1
 
   // Pre-allocate face and vertex arrays
-  vHalfedge = std::vector<size_t>(nVerticesCount, INVALID_IND);
-  fHalfedge = std::vector<size_t>(nFacesCount, INVALID_IND);
+  vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
+  fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
 
   // Track halfedges which have already been created
   // TODO replace with compressed list for performance
@@ -114,35 +123,33 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
       size_t twinInd = createdHeLookup(heTwinKey);
       if (twinInd == INVALID_IND) {
         // If we haven't seen the twin yet either, create a new edge
-        // TODO use createHalfedge() or something here?
-        halfedgeInd = nHalfedgesCount;
-        nHalfedgesCount += 2;
+        halfedgeInd = getNewEdgeTriple(false).getIndex();
 
-        // Grow arrays to make space
-        heNext.push_back(INVALID_IND);
-        heNext.push_back(INVALID_IND);
-        heVertex.push_back(indTail);
-        heVertex.push_back(indTip);
-        heFace.push_back(INVALID_IND);
-        heFace.push_back(INVALID_IND);
+        // Fill arrays with nknown values and placeholders
+        heNextArr[halfedgeInd] = INVALID_IND;
+        heNextArr[heTwin(halfedgeInd)] = INVALID_IND;
+        heVertexArr[halfedgeInd] = indTail;
+        heVertexArr[heTwin(halfedgeInd)] = indTip;
+        heFaceArr[halfedgeInd] = INVALID_IND;
+        heFaceArr[heTwin(halfedgeInd)] = INVALID_IND;
       } else {
         // If the twin has already been created, we have an index for the halfedge
         halfedgeInd = heTwin(twinInd);
       }
 
       // Hook up a bunch of pointers
-      heFace[halfedgeInd] = iFace;
-      vHalfedge[indTail] = halfedgeInd;
+      heFaceArr[halfedgeInd] = iFace;
+      vHalfedgeArr[indTail] = halfedgeInd;
       if (iFaceHe == 0) {
-        fHalfedge[iFace] = halfedgeInd;
+        fHalfedgeArr[iFace] = halfedgeInd;
         firstHeInd = halfedgeInd;
       } else {
-        heNext[prevHeInd] = halfedgeInd;
+        heNextArr[prevHeInd] = halfedgeInd;
       }
       prevHeInd = halfedgeInd;
     }
 
-    heNext[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
+    heNextArr[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
   }
 
   // Ensure that each boundary neighborhood is either a disk or a half-disk. Harder to diagnose if we wait until the
@@ -151,8 +158,8 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
   {
     std::vector<char> vertexOnBoundary(nVerticesCount, false);
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
-      if (heNext[iHe] == INVALID_IND) {
-        size_t v = heVertex[iHe];
+      if (heNextArr[iHe] == INVALID_IND) {
+        size_t v = heVertexArr[iHe];
         GC_SAFETY_ASSERT(!vertexOnBoundary[v],
                          "vertex " + std::to_string(v) + " appears in more than one boundary loop");
         vertexOnBoundary[v] = true;
@@ -166,11 +173,11 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
   for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
 
     // If the face pointer is invalid, the halfedge must be along an unresolved boundary loop
-    if (heFace[iHe] != INVALID_IND) continue;
+    if (heFaceArr[iHe] != INVALID_IND) continue;
 
     // Create the new boundary loop
     size_t boundaryLoopInd = nFacesCount + nBoundaryLoopsCount;
-    fHalfedge.push_back(iHe);
+    fHalfedgeArr.push_back(iHe);
     nBoundaryLoopsCount++;
 
     // = Walk around the loop (CW)
@@ -180,29 +187,29 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
     do {
 
       // The boundary loop is the face for these halfedges
-      heFace[currHe] = boundaryLoopInd;
+      heFaceArr[currHe] = boundaryLoopInd;
 
       // currHe.twin() is a boundary interior halfedge, this is a good time to enforce that v.halfedge() is always the
       // boundary interior halfedge for a boundary vertex.
       size_t currHeT = heTwin(currHe);
-      vHalfedge[heVertex[currHeT]] = currHeT;
+      vHalfedgeArr[heVertexArr[currHeT]] = currHeT;
 
       // This isn't an interior halfedge.
       nInteriorHalfedgesCount--;
 
       // Advance to the next halfedge along the boundary
       prevHe = currHe;
-      currHe = heTwin(heNext[heTwin(currHe)]);
+      currHe = heTwin(heNextArr[heTwin(currHe)]);
       size_t loopCountInnter = 0;
-      while (heFace[currHe] != INVALID_IND) {
+      while (heFaceArr[currHe] != INVALID_IND) {
         if (currHe == iHe) break;
-        currHe = heTwin(heNext[currHe]);
+        currHe = heTwin(heNextArr[currHe]);
         loopCountInnter++;
         GC_SAFETY_ASSERT(loopCountInnter < nHalfedgesCount, "boundary infinite loop orbit");
       }
 
       // Set the next pointer around the boundary loop
-      heNext[currHe] = prevHe;
+      heNextArr[currHe] = prevHe;
 
       // Make sure this loop doesn't infinite-loop. Certainly won't happen for proper input, but might happen for bogus
       // input. I don't _think_ it can happen, but there might be some non-manifold input which manfests failure via an
@@ -217,9 +224,11 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
   // Set capacities and other properties
   nVerticesCapacityCount = nVerticesCount;
   nHalfedgesCapacityCount = nHalfedgesCount;
+  nEdgesCapacityCount = nEdgesCount;
   nFacesCapacityCount = nFacesCount + nBoundaryLoopsCount;
   nVerticesFillCount = nVerticesCount;
   nHalfedgesFillCount = nHalfedgesCount;
+  nEdgesFillCount = nEdgesCount;
   nFacesFillCount = nFacesCount;
   nBoundaryLoopsFillCount = nBoundaryLoopsCount;
   isCompressedFlag = true;
@@ -230,20 +239,20 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
     for (size_t iV = 0; iV < nVerticesCount; iV++) {
 
       // For each vertex, orbit around the outgoing halfedges. This _should_ touch every halfedge.
-      size_t currHe = vHalfedge[iV];
+      size_t currHe = vHalfedgeArr[iV];
       size_t firstHe = currHe;
       do {
 
         GC_SAFETY_ASSERT(!halfedgeSeen[currHe], "somehow encountered outgoing halfedge before orbiting v");
         halfedgeSeen[currHe] = true;
 
-        currHe = heNext[heTwin(currHe)];
+        currHe = heNextArr[heTwinImplicit(currHe)];
       } while (currHe != firstHe);
     }
 
     // Verify that we actually did touch every halfedge.
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
-      GC_SAFETY_ASSERT(halfedgeSeen[iHe], "mesh not manifold. Vertex " + std::to_string(heVertex[iHe]) +
+      GC_SAFETY_ASSERT(halfedgeSeen[iHe], "mesh not manifold. Vertex " + std::to_string(heVertexArr[iHe]) +
                                               " has disconnected neighborhoods incident (imagine an hourglass)");
     }
   }
@@ -253,6 +262,166 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons) {
   // Print some nice statistics
   // printStatistics();
   // std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
+}
+
+void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vector<size_t>>& polygons,
+                                                    const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins) {
+
+  useImplicitTwinFlag = false;
+
+  // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
+  // internet, so consider removing unused vertices first when reading from foreign sources.
+
+  // START_TIMING(construction)
+
+  // Check input list and measure some element counts
+  nFacesCount = polygons.size();
+  nVerticesCount = 0;
+  for (const std::vector<size_t>& poly : polygons) {
+    GC_SAFETY_ASSERT(poly.size() >= 3, "faces must have degree >= 3");
+    for (auto i : poly) {
+      nVerticesCount = std::max(nVerticesCount, i);
+    }
+  }
+  nVerticesCount++; // 0-based means count is max+1
+
+  // Pre-allocate face and vertex arrays
+  vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
+  fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
+
+  // === Walk the faces, creating halfedges. For now, don't hook up any twin or edge pointers.
+  for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+    const std::vector<size_t>& poly = polygons[iFace];
+
+    // Walk around this face
+    size_t faceDegree = poly.size();
+    size_t prevHeInd = INVALID_IND;
+    size_t firstHeInd = INVALID_IND;
+    for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+
+      size_t indTail = poly[iFaceHe];
+      size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+      // Get an index for this halfedge
+      std::tuple<size_t, size_t> heKey{indTail, indTip};
+      std::tuple<size_t, size_t> heTwinKey{indTip, indTail};
+
+      // Create a halfedge
+      size_t halfedgeInd = getNewHalfedge(true);
+
+      // Fill arrays with nknown values and placeholders
+      heNextArr[halfedgeInd] = INVALID_IND;
+      heVertexArr[halfedgeInd] = indTail;
+      heFaceArr[halfedgeInd] = iFace;
+
+      // Hook up a bunch of pointers
+      vHalfedgeArr[indTail] = halfedgeInd;
+      if (iFaceHe == 0) {
+        fHalfedgeArr[iFace] = halfedgeInd;
+        firstHeInd = halfedgeInd;
+      } else {
+        heNextArr[prevHeInd] = halfedgeInd;
+      }
+      prevHeInd = halfedgeInd;
+    }
+    heNextArr[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
+  }
+
+  // === Create edges and hook up twins
+  std::vector<size_t> boundaryHalfedges;
+  if (twins.empty()) {
+    // Any halfedges between a pair of vertices are considered to be incident on the same edge
+
+    // If we've already seen this vertex pair at least once, this holds index of the most recent halfedge encountered
+    // incident on that edge.
+    std::unordered_map<std::tuple<size_t, size_t>, size_t> edgeHistory;
+
+    size_t iHe = 0;
+    for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
+      const std::vector<size_t>& poly = polygons[iFace];
+
+      // Walk around this face
+      size_t faceDegree = poly.size();
+      for (size_t iFaceHe = 0; iFaceHe < faceDegree; iFaceHe++) {
+
+        size_t indTail = poly[iFaceHe];
+        size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+        // Get a key for this edge
+        std::tuple<size_t, size_t> eKey{std::min(indTail, indTip), std::max(indTail, indTip)};
+
+        if (edgeHistory.find(eKey) == edgeHistory.end()) {
+          // This is the first time we've ever seen this edge, create a new edge object
+
+          size_t newEdgeInd = getNewEdge().getIndex();
+          heEdgeArr[iHe] = newEdgeInd;
+          heSiblingArr[iHe] = INVALID_IND;
+          eHalfedgeArr[newEdgeInd] = iHe;
+
+          edgeHistory[key] = iHe;
+        } else {
+          // We're already seen this edge, connect to the previous halfedge incident on the edge
+
+          size_t iPrevHe = edgeHistory[eKey];
+
+          heSiblingArr[iHe] = iPrevHe;
+
+          edgeHistory[key] = iHe;
+        }
+
+        iHe++;
+      }
+    }
+
+    // Complete the sibling cycle by follwing backwards each edge until we reach the first sibling-less entry
+    for (auto& entry : edgeHistory) {
+      size_t lastHe = entry.second;
+
+      if (heSiblingArr[lastHe] == INVALID_IND) {
+        // Any edges which never got any sibling entries at all are boundary halfedges
+        boundaryHalfedges.push_back(lastHe);
+        continue;
+      }
+
+      // Get the index of the first halfedge in the sibling cycle to complete the cycle
+      size_t currHe = lastHe;
+      while (heSiblingArr[currHe] != INVALID_IND) {
+        currHe = heSiblingArr[currHe];
+      }
+      heSiblingArr[currHe] = lastHe; // connect the first to the last
+    }
+
+  } else {
+    DisjointSets djSet
+  }
+
+
+  // == Process boundaries
+  // Note: nonmanfiold meshes do not necessarily have coherent boundary loops, so there's not necessarily too much we
+  // can do here.
+
+  // Create exterior halfedges
+  for (size_t bHe : boundaryHalfedges) {
+    size_t tHe = getNewHalfedge().getIndex();
+    heNextArr[tHe] = INVALID_IND;
+    heVertexArr[tHe] = heVertexArr[heNextArr[bHe]];
+    heFaceArr[tHe] = heFaceArr[bHe];
+    heEdgeArr[tHe] = heEdgeArr[bHe];
+  }
+
+  // Some vertices will have nice boundary structures, like a half-disk, or collection of half-disks, where there are
+  // reasonable choices of he.next().
+  //
+  // However, there can be other nonmanifold mesh structures which simply do not admit any good choice of he.next().
+  // (imagine a sundial structure, where we take a manifold vertex and tack on a single triangle).
+  //
+  // As such, our basic strategy is to form maximal chains of reasonable next() references wherever vertices have
+  // incoming and outgoing boundary halfedges that can be matched up. Then, we will close any unclosed chains by
+  // connecting the first to the last entry. Finally, each chain will correspond to a boundary loop.
+
+  // Hook up next() references point to a next exterior halfedge at the same vertex
+  for () {
+  }
 }
 
 HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
@@ -278,8 +447,8 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   nVerticesCount++; // 0-based means count is max+1
 
   // Pre-allocate face and vertex arrays
-  vHalfedge = std::vector<size_t>(nVerticesCount, INVALID_IND);
-  fHalfedge = std::vector<size_t>(nFacesCount, INVALID_IND);
+  vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
+  fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
 
   // NOTE IMPORTANT DIFFERENCE: in the first face-only constructor, these keys are (vInd, vInd) pairs, but here they
   // are (fInd, heInFInd) pairs.
@@ -324,35 +493,33 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
       size_t twinInd = createdHeLookup(heTwinKey);
       if (twinInd == INVALID_IND) {
         // If we haven't seen the twin yet either, create a new edge
-        // TODO use createHalfedge() or something here?
-        halfedgeInd = nHalfedgesCount;
-        nHalfedgesCount += 2;
+        halfedgeInd = getNewEdgeTriple(false).getIndex();
 
-        // Grow arrays to make space
-        heNext.push_back(INVALID_IND);
-        heNext.push_back(INVALID_IND);
-        heVertex.push_back(indTail);
-        heVertex.push_back(indTip);
-        heFace.push_back(INVALID_IND);
-        heFace.push_back(INVALID_IND);
+        // Fill arrays with nknown values and placeholders
+        heNextArr[halfedgeInd] = INVALID_IND;
+        heNextArr[heTwin(halfedgeInd)] = INVALID_IND;
+        heVertexArr[halfedgeInd] = indTail;
+        heVertexArr[heTwin(halfedgeInd)] = indTip;
+        heFaceArr[halfedgeInd] = INVALID_IND;
+        heFaceArr[heTwin(halfedgeInd)] = INVALID_IND;
       } else {
         // If the twin has already been created, we have an index for the halfedge
-        halfedgeInd = heTwin(twinInd);
+        halfedgeInd = heTwinImplicit(twinInd);
       }
 
       // Hook up a bunch of pointers
-      heFace[halfedgeInd] = iFace;
-      vHalfedge[indTail] = halfedgeInd;
+      heFaceArr[halfedgeInd] = iFace;
+      vHalfedgeArr[indTail] = halfedgeInd;
       if (iFaceHe == 0) {
-        fHalfedge[iFace] = halfedgeInd;
+        fHalfedgeArr[iFace] = halfedgeInd;
         firstHeInd = halfedgeInd;
       } else {
-        heNext[prevHeInd] = halfedgeInd;
+        heNextArr[prevHeInd] = halfedgeInd;
       }
       prevHeInd = halfedgeInd;
     }
 
-    heNext[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
+    heNextArr[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
   }
 
 // Ensure that each boundary neighborhood is either a disk or a half-disk. Harder to diagnose if we wait until the
@@ -361,8 +528,8 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   {
     std::vector<char> vertexOnBoundary(nVerticesCount, false);
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
-      if (heNext[iHe] == INVALID_IND) {
-        size_t v = heVertex[iHe];
+      if (heNextArr[iHe] == INVALID_IND) {
+        size_t v = heVertexArr[iHe];
         GC_SAFETY_ASSERT(!vertexOnBoundary[v],
                          "vertex " + std::to_string(v) + " appears in more than one boundary loop");
         vertexOnBoundary[v] = true;
@@ -376,11 +543,11 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
   for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
 
     // If the face pointer is invalid, the halfedge must be along an unresolved boundary loop
-    if (heFace[iHe] != INVALID_IND) continue;
+    if (heFaceArr[iHe] != INVALID_IND) continue;
 
     // Create the new boundary loop
     size_t boundaryLoopInd = nFacesCount + nBoundaryLoopsCount;
-    fHalfedge.push_back(iHe);
+    fHalfedgeArr.push_back(iHe);
     nBoundaryLoopsCount++;
 
     // = Walk around the loop (CW)
@@ -390,29 +557,29 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
     do {
 
       // The boundary loop is the face for these halfedges
-      heFace[currHe] = boundaryLoopInd;
+      heFaceArr[currHe] = boundaryLoopInd;
 
       // currHe.twin() is a boundary interior halfedge, this is a good time to enforce that v.halfedge() is always the
       // boundary interior halfedge for a boundary vertex.
-      size_t currHeT = heTwin(currHe);
-      vHalfedge[heVertex[currHeT]] = currHeT;
+      size_t currHeT = heTwinImplicit(currHe);
+      vHalfedgeArr[heVertexArr[currHeT]] = currHeT;
 
       // This isn't an interior halfedge.
       nInteriorHalfedgesCount--;
 
       // Advance to the next halfedge along the boundary
       prevHe = currHe;
-      currHe = heTwin(heNext[heTwin(currHe)]);
+      currHe = heTwinImplicit(heNextArr[heTwinImplicit(currHe)]);
       size_t loopCountInnter = 0;
-      while (heFace[currHe] != INVALID_IND) {
+      while (heFaceArr[currHe] != INVALID_IND) {
         if (currHe == iHe) break;
-        currHe = heTwin(heNext[currHe]);
+        currHe = heTwinImplicit(heNextArr[currHe]);
         loopCountInnter++;
         GC_SAFETY_ASSERT(loopCountInnter < nHalfedgesCount, "boundary infinite loop orbit");
       }
 
       // Set the next pointer around the boundary loop
-      heNext[currHe] = prevHe;
+      heNextArr[currHe] = prevHe;
 
       // Make sure this loop doesn't infinite-loop. Certainly won't happen for proper input, but might happen for bogus
       // input. I don't _think_ it can happen, but there might be some non-manifold input which manfests failure via an
@@ -441,20 +608,20 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
     for (size_t iV = 0; iV < nVerticesCount; iV++) {
 
       // For each vertex, orbit around the outgoing halfedges. This _should_ touch every halfedge.
-      size_t currHe = vHalfedge[iV];
+      size_t currHe = vHalfedgeArr[iV];
       size_t firstHe = currHe;
       do {
 
         GC_SAFETY_ASSERT(!halfedgeSeen[currHe], "somehow encountered outgoing halfedge before orbiting v");
         halfedgeSeen[currHe] = true;
 
-        currHe = heNext[heTwin(currHe)];
+        currHe = heNextArr[heTwinImplicit(currHe)];
       } while (currHe != firstHe);
     }
 
     // Verify that we actually did touch every halfedge.
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
-      GC_SAFETY_ASSERT(halfedgeSeen[iHe], "mesh not manifold. Vertex " + std::to_string(heVertex[iHe]) +
+      GC_SAFETY_ASSERT(halfedgeSeen[iHe], "mesh not manifold. Vertex " + std::to_string(heVertexArr[iHe]) +
                                               " has disconnected neighborhoods incident (imagine an hourglass)");
     }
   }
@@ -616,26 +783,34 @@ std::unique_ptr<HalfedgeMesh> HalfedgeMesh::copy() const {
   // == Copy _all_ the fields!
 
   // Raw data buffers (underlying std::vectors duplicate storage automatically)
-  newMesh->heNext = heNext;
-  newMesh->heVertex = heVertex;
-  newMesh->heFace = heFace;
-  newMesh->vHalfedge = vHalfedge;
-  newMesh->fHalfedge = fHalfedge;
+  newMesh->heNextArr = heNextArr;
+  newMesh->heVertexArr = heVertexArr;
+  newMesh->heFaceArr = heFaceArr;
+  newMesh->vHalfedgeArr = vHalfedgeArr;
+  newMesh->fHalfedgeArr = fHalfedgeArr;
+  newMesh->heSiblingArr = heSiblingArr;
+  newMesh->heEdgeArr = heEdgeArr;
+  newMesh->eHalfedgeArr = eHalfedgeArr;
 
   // counts and flags
   newMesh->nHalfedgesCount = nHalfedgesCount;
   newMesh->nInteriorHalfedgesCount = nInteriorHalfedgesCount;
+  newMesh->nEdgesCount = nEdgesCount;
   newMesh->nVerticesCount = nVerticesCount;
   newMesh->nFacesCount = nFacesCount;
   newMesh->nBoundaryLoopsCount = nBoundaryLoopsCount;
   newMesh->nVerticesCapacityCount = nVerticesCapacityCount;
   newMesh->nHalfedgesCapacityCount = nHalfedgesCapacityCount;
+  newMesh->nEdgesCapacityCount = nEdgesCapacityCount;
   newMesh->nFacesCapacityCount = nFacesCapacityCount;
   newMesh->nVerticesFillCount = nVerticesFillCount;
   newMesh->nHalfedgesFillCount = nHalfedgesFillCount;
+  newMesh->nEdgesFillCount = nEdgesFillCount;
   newMesh->nFacesFillCount = nFacesFillCount;
   newMesh->nBoundaryLoopsFillCount = nBoundaryLoopsFillCount;
+
   newMesh->isCompressedFlag = isCompressedFlag;
+  newMesh->useImplicitTwinFlag = useImplicitTwinFlag;
 
 
   // Note: _don't_ copy callbacks lists! New mesh has new callbacks
@@ -691,31 +866,32 @@ bool HalfedgeMesh::flip(Edge eFlip) {
   Face fb = hb1.face();
 
   // Update vertex pointers
-  if (va.halfedge() == ha1) vHalfedge[va.getIndex()] = hb2.getIndex();
-  if (vb.halfedge() == hb1) vHalfedge[vb.getIndex()] = ha2.getIndex();
+  if (va.halfedge() == ha1) vHalfedgeArr[va.getIndex()] = hb2.getIndex();
+  if (vb.halfedge() == hb1) vHalfedgeArr[vb.getIndex()] = ha2.getIndex();
   // (vc and vd can't be invalidated by the flip)
 
   // Update edge pointers
   // (e still has the same halfedges)
 
   // Update face pointers
-  fHalfedge[fa.getIndex()] = ha1.getIndex();
-  fHalfedge[fb.getIndex()] = hb1.getIndex();
+  fHalfedgeArr[fa.getIndex()] = ha1.getIndex();
+  fHalfedgeArr[fb.getIndex()] = hb1.getIndex();
 
   // Update halfedge pointers
-  heNext[ha1.getIndex()] = hb3.getIndex();
-  heNext[hb3.getIndex()] = ha2.getIndex();
-  heNext[ha2.getIndex()] = ha1.getIndex();
-  heNext[hb1.getIndex()] = ha3.getIndex();
-  heNext[ha3.getIndex()] = hb2.getIndex();
-  heNext[hb2.getIndex()] = hb1.getIndex();
+  heNextArr[ha1.getIndex()] = hb3.getIndex();
+  heNextArr[hb3.getIndex()] = ha2.getIndex();
+  heNextArr[ha2.getIndex()] = ha1.getIndex();
+  heNextArr[hb1.getIndex()] = ha3.getIndex();
+  heNextArr[ha3.getIndex()] = hb2.getIndex();
+  heNextArr[hb2.getIndex()] = hb1.getIndex();
 
-  heVertex[ha1.getIndex()] = vc.getIndex();
-  heVertex[hb1.getIndex()] = vd.getIndex();
+  heVertexArr[ha1.getIndex()] = vc.getIndex();
+  heVertexArr[hb1.getIndex()] = vd.getIndex();
 
-  heFace[ha3.getIndex()] = fb.getIndex();
-  heFace[hb3.getIndex()] = fa.getIndex();
+  heFaceArr[ha3.getIndex()] = fb.getIndex();
+  heFaceArr[hb3.getIndex()] = fa.getIndex();
 
+  modificationTick++;
   return true;
 }
 
@@ -746,28 +922,29 @@ Halfedge HalfedgeMesh::insertVertexAlongEdge(Edge e) {
   // == Hook up all the pointers
 
   // New vertex
-  vHalfedge[newV.getIndex()] = heACenter.getIndex();
+  vHalfedgeArr[newV.getIndex()] = heACenter.getIndex();
 
   // New halfedge A
-  heNext[heANew.getIndex()] = heACenter.getIndex();
-  heVertex[heANew.getIndex()] = oldVBottom.getIndex();
-  heFace[heANew.getIndex()] = fA.getIndex();
+  heNextArr[heANew.getIndex()] = heACenter.getIndex();
+  heVertexArr[heANew.getIndex()] = oldVBottom.getIndex();
+  heFaceArr[heANew.getIndex()] = fA.getIndex();
 
   // New halfedge B
-  heNext[heBNew.getIndex()] = heBNext.getIndex();
-  heVertex[heBNew.getIndex()] = newV.getIndex();
-  heFace[heBNew.getIndex()] = fB.getIndex();
+  heNextArr[heBNew.getIndex()] = heBNext.getIndex();
+  heVertexArr[heBNew.getIndex()] = newV.getIndex();
+  heFaceArr[heBNew.getIndex()] = fB.getIndex();
 
   // Fix pointers for old halfedges
-  heNext[heBCenter.getIndex()] = heBNew.getIndex();
-  heNext[heAPrev.getIndex()] = heANew.getIndex();
-  heVertex[heACenter.getIndex()] = newV.getIndex();
+  heNextArr[heBCenter.getIndex()] = heBNew.getIndex();
+  heNextArr[heAPrev.getIndex()] = heANew.getIndex();
+  heVertexArr[heACenter.getIndex()] = newV.getIndex();
 
   // Only set this if we broke it, to preseve boundary convention
   if (oldVBottom.halfedge() == heACenter) {
-    vHalfedge[oldVBottom.getIndex()] = heANew.getIndex();
+    vHalfedgeArr[oldVBottom.getIndex()] = heANew.getIndex();
   }
 
+  modificationTick++;
   return heACenter;
 }
 
@@ -793,6 +970,7 @@ Halfedge HalfedgeMesh::splitEdgeTriangular(Edge e) {
     connectVertices(heFirst, heOther);
   }
 
+  modificationTick++;
   return he;
 }
 
@@ -822,28 +1000,29 @@ Halfedge HalfedgeMesh::connectVertices(Halfedge heA, Halfedge heB) {
   // == Hook up all the pointers
 
   // Faces
-  fHalfedge[fA.getIndex()] = heANew.getIndex();
-  fHalfedge[fB.getIndex()] = heBNew.getIndex();
+  fHalfedgeArr[fA.getIndex()] = heANew.getIndex();
+  fHalfedgeArr[fB.getIndex()] = heBNew.getIndex();
 
   // Halfedges
-  heNext[heANew.getIndex()] = heB.getIndex();
-  heVertex[heANew.getIndex()] = vA.getIndex();
-  heFace[heANew.getIndex()] = fA.getIndex();
+  heNextArr[heANew.getIndex()] = heB.getIndex();
+  heVertexArr[heANew.getIndex()] = vA.getIndex();
+  heFaceArr[heANew.getIndex()] = fA.getIndex();
 
-  heNext[heBNew.getIndex()] = heA.getIndex();
-  heVertex[heBNew.getIndex()] = vB.getIndex();
-  heFace[heBNew.getIndex()] = fB.getIndex();
+  heNextArr[heBNew.getIndex()] = heA.getIndex();
+  heVertexArr[heBNew.getIndex()] = vB.getIndex();
+  heFaceArr[heBNew.getIndex()] = fB.getIndex();
 
-  heNext[heAPrev.getIndex()] = heANew.getIndex();
-  heNext[heBPrev.getIndex()] = heBNew.getIndex();
+  heNextArr[heAPrev.getIndex()] = heANew.getIndex();
+  heNextArr[heBPrev.getIndex()] = heBNew.getIndex();
 
   // Set all other new .face pointers to fB
   Halfedge currHe = heA;
   while (currHe != heBNew) {
-    heFace[currHe.getIndex()] = fB.getIndex();
+    heFaceArr[currHe.getIndex()] = fB.getIndex();
     currHe = currHe.next();
   }
 
+  modificationTick++;
   return heANew;
 }
 
@@ -901,24 +1080,25 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     BoundaryLoop blN = getNewBoundaryLoop();
 
     // Hook up references
-    heNext[heT.getIndex()] = heN2.getIndex();
-    heNext[heN2.getIndex()] = heT.getIndex();
-    heNext[heN1.getIndex()] = heTNext.getIndex();
-    heNext[heTPrev.getIndex()] = heN1.getIndex();
+    heNextArr[heT.getIndex()] = heN2.getIndex();
+    heNextArr[heN2.getIndex()] = heT.getIndex();
+    heNextArr[heN1.getIndex()] = heTNext.getIndex();
+    heNextArr[heTPrev.getIndex()] = heN1.getIndex();
 
-    heVertex[heN1.getIndex()] = vB.getIndex();
-    heVertex[heN2.getIndex()] = vA.getIndex();
+    heVertexArr[heN1.getIndex()] = vB.getIndex();
+    heVertexArr[heN2.getIndex()] = vA.getIndex();
 
-    heFace[heT.getIndex()] = blN.getIndex();
-    heFace[heN1.getIndex()] = fB.getIndex();
-    heFace[heN2.getIndex()] = blN.getIndex();
+    heFaceArr[heT.getIndex()] = blN.getIndex();
+    heFaceArr[heN1.getIndex()] = fB.getIndex();
+    heFaceArr[heN2.getIndex()] = blN.getIndex();
 
-    fHalfedge[fB.getIndex()] = heN1.getIndex();
-    fHalfedge[blN.getIndex()] = heT.getIndex();
+    fHalfedgeArr[fB.getIndex()] = heN1.getIndex();
+    fHalfedgeArr[blN.getIndex()] = heT.getIndex();
 
-    vHalfedge[vA.getIndex()] = he.getIndex();
-    vHalfedge[vB.getIndex()] = heN1.getIndex();
+    vHalfedgeArr[vA.getIndex()] = he.getIndex();
+    vHalfedgeArr[vB.getIndex()] = heN1.getIndex();
 
+    modificationTick++;
     return std::tuple<Halfedge, Halfedge>{he, heN1};
   }
 
@@ -939,30 +1119,30 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     Vertex vN = getNewVertex();
 
     // Hook up references
-    heNext[heT.getIndex()] = heBN.getIndex();
-    heNext[heN2.getIndex()] = heT.getIndex();
-    heNext[heN1.getIndex()] = heTNext.getIndex();
-    heNext[heTPrev.getIndex()] = heN1.getIndex();
-    heNext[heB.getIndex()] = heN2.getIndex();
+    heNextArr[heT.getIndex()] = heBN.getIndex();
+    heNextArr[heN2.getIndex()] = heT.getIndex();
+    heNextArr[heN1.getIndex()] = heTNext.getIndex();
+    heNextArr[heTPrev.getIndex()] = heN1.getIndex();
+    heNextArr[heB.getIndex()] = heN2.getIndex();
 
-    heVertex[heN1.getIndex()] = vB.getIndex();
-    heVertex[heN2.getIndex()] = vA.getIndex();
+    heVertexArr[heN1.getIndex()] = vB.getIndex();
+    heVertexArr[heN2.getIndex()] = vA.getIndex();
     Halfedge heCurr = he;
     do { // set new outgoing halfedge from vN
-      heVertex[heCurr.getIndex()] = vN.getIndex();
+      heVertexArr[heCurr.getIndex()] = vN.getIndex();
       heCurr = heCurr.next().next().twin();
     } while (heCurr != heBN);
-    heVertex[heCurr.getIndex()] = vN.getIndex();
+    heVertexArr[heCurr.getIndex()] = vN.getIndex();
 
-    heFace[heT.getIndex()] = bl.asFace().getIndex();
-    // std::cout << heFace[heT.getIndex()] << std::endl;
-    heFace[heN1.getIndex()] = fB.getIndex();
-    heFace[heN2.getIndex()] = bl.asFace().getIndex();
+    heFaceArr[heT.getIndex()] = bl.asFace().getIndex();
+    // std::cout << heFaceArr[heT.getIndex()] << std::endl;
+    heFaceArr[heN1.getIndex()] = fB.getIndex();
+    heFaceArr[heN2.getIndex()] = bl.asFace().getIndex();
 
-    fHalfedge[fB.getIndex()] = heN1.getIndex();
+    fHalfedgeArr[fB.getIndex()] = heN1.getIndex();
 
-    vHalfedge[vB.getIndex()] = heN1.getIndex();
-    vHalfedge[vN.getIndex()] = he.getIndex();
+    vHalfedgeArr[vB.getIndex()] = heN1.getIndex();
+    vHalfedgeArr[vN.getIndex()] = he.getIndex();
 
     ensureEdgeHasInteriorHalfedge(he.edge());
 
@@ -970,6 +1150,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
     if (swapAB) {
       std::swap(std::get<0>(result), std::get<1>(result));
     }
+    modificationTick++;
     return result;
   }
 
@@ -992,6 +1173,7 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
   }
 
   throw std::runtime_error("logically unreachable");
+  modificationTick++;
   return std::tuple<Halfedge, Halfedge>{Halfedge(), Halfedge()};
 }
 
@@ -1017,33 +1199,35 @@ Halfedge HalfedgeMesh::switchHalfedgeSides(Edge e) {
   Vertex vB = heT.vertex();
 
   // Set references
-  heNext[he.getIndex()] = heTN.getIndex();
-  heNext[heTP.getIndex()] = he.getIndex();
-  heNext[heT.getIndex()] = heN.getIndex();
-  heNext[heP.getIndex()] = heT.getIndex();
+  heNextArr[he.getIndex()] = heTN.getIndex();
+  heNextArr[heTP.getIndex()] = he.getIndex();
+  heNextArr[heT.getIndex()] = heN.getIndex();
+  heNextArr[heP.getIndex()] = heT.getIndex();
 
-  heFace[he.getIndex()] = fB.getIndex();
-  heFace[heT.getIndex()] = fA.getIndex();
+  heFaceArr[he.getIndex()] = fB.getIndex();
+  heFaceArr[heT.getIndex()] = fA.getIndex();
 
-  heVertex[he.getIndex()] = vB.getIndex();
-  heVertex[heT.getIndex()] = vA.getIndex();
+  heVertexArr[he.getIndex()] = vB.getIndex();
+  heVertexArr[heT.getIndex()] = vA.getIndex();
 
-  fHalfedge[fB.getIndex()] = he.getIndex();
-  fHalfedge[fA.getIndex()] = heT.getIndex();
+  fHalfedgeArr[fB.getIndex()] = he.getIndex();
+  fHalfedgeArr[fA.getIndex()] = heT.getIndex();
 
   if (fA.isBoundaryLoop() || vB.halfedge() == heT) {
-    vHalfedge[vB.getIndex()] = he.getIndex();
+    vHalfedgeArr[vB.getIndex()] = he.getIndex();
   }
   if (fB.isBoundaryLoop() || vA.halfedge() == he) {
-    vHalfedge[vA.getIndex()] = heT.getIndex();
+    vHalfedgeArr[vA.getIndex()] = heT.getIndex();
   }
 
+  modificationTick++;
   return e.halfedge();
 }
 
 bool HalfedgeMesh::ensureEdgeHasInteriorHalfedge(Edge e) {
   if (!e.halfedge().isInterior()) {
     switchHalfedgeSides(e);
+    modificationTick++;
     return true;
   }
   return false;
@@ -1184,25 +1368,26 @@ Vertex HalfedgeMesh::insertVertex(Face fIn) {
     Halfedge prevLeadingHe = leadingHalfedges[(i + faceDegree - 1) % faceDegree];
 
     // face
-    fHalfedge[f.getIndex()] = boundaryHe.getIndex();
+    fHalfedgeArr[f.getIndex()] = boundaryHe.getIndex();
 
     // leading halfedge
-    heNext[leadingHe.getIndex()] = trailingHe.getIndex();
-    heVertex[leadingHe.getIndex()] = boundaryHe.next().vertex().getIndex();
-    heFace[leadingHe.getIndex()] = f.getIndex();
+    heNextArr[leadingHe.getIndex()] = trailingHe.getIndex();
+    heVertexArr[leadingHe.getIndex()] = boundaryHe.next().vertex().getIndex();
+    heFaceArr[leadingHe.getIndex()] = f.getIndex();
 
     // trailing halfedge
-    heNext[trailingHe.getIndex()] = boundaryHe.getIndex();
-    heVertex[trailingHe.getIndex()] = centerVert.getIndex();
-    heFace[trailingHe.getIndex()] = f.getIndex();
+    heNextArr[trailingHe.getIndex()] = boundaryHe.getIndex();
+    heVertexArr[trailingHe.getIndex()] = centerVert.getIndex();
+    heFaceArr[trailingHe.getIndex()] = f.getIndex();
 
     // boundary halfedge
-    heNext[boundaryHe.getIndex()] = leadingHe.getIndex();
-    heFace[boundaryHe.getIndex()] = f.getIndex();
+    heNextArr[boundaryHe.getIndex()] = leadingHe.getIndex();
+    heFaceArr[boundaryHe.getIndex()] = f.getIndex();
   }
 
-  vHalfedge[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
+  vHalfedgeArr[centerVert.getIndex()] = trailingHalfedges[0].getIndex();
 
+  modificationTick++;
   return centerVert;
 }
 
@@ -1274,27 +1459,27 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
 
   // Neighbors of vB
   // for(Halfedge he : vB.outgoingHalfedges()) {
-  // heVertex[he.getIndex()] = vA.getIndex();
+  // heVertexArr[he.getIndex()] = vA.getIndex();
   //}
 
   // == Around face A
   {
-    heNext[heA1TPrev.getIndex()] = heA2.getIndex();
-    heNext[heA2.getIndex()] = heNext[heA1T.getIndex()];
-    heVertex[heA2.getIndex()] = heVertex[heA1T.getIndex()];
-    heFace[heA2.getIndex()] = heFace[heA1T.getIndex()];
+    heNextArr[heA1TPrev.getIndex()] = heA2.getIndex();
+    heNextArr[heA2.getIndex()] = heNextArr[heA1T.getIndex()];
+    heVertexArr[heA2.getIndex()] = heVertexArr[heA1T.getIndex()];
+    heFaceArr[heA2.getIndex()] = heFaceArr[heA1T.getIndex()];
 
     // Vertex connections
     if (heA1T.vertex().halfedge() == heA1T) {
-      vHalfedge[heA1T.vertex().getIndex()] = heA2.getIndex();
+      vHalfedgeArr[heA1T.vertex().getIndex()] = heA2.getIndex();
     }
     if (vA.halfedge() == heA0) {
-      vHalfedge[vA.getIndex()] = heA2.twin().getIndex();
+      vHalfedgeArr[vA.getIndex()] = heA2.twin().getIndex();
     }
 
     // Face connections
     if (heA1T.face().halfedge() == heA1T) {
-      fHalfedge[heA1T.face().getIndex()] = heA2.getIndex();
+      fHalfedgeArr[heA1T.face().getIndex()] = heA2.getIndex();
     }
   }
 
@@ -1309,20 +1494,20 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
     // The normal case where we're not collapsing a boundary halfedge, similar to what we did at face A
 
     // Handle halfedge connections around heB2
-    heNext[heB2TPrev.getIndex()] = heB1.getIndex();
-    heNext[heB1.getIndex()] = heNext[heB2T.getIndex()];
-    heVertex[heB1.getIndex()] = heVertex[heB2T.getIndex()];
-    heFace[heB1.getIndex()] = heFace[heB2T.getIndex()];
+    heNextArr[heB2TPrev.getIndex()] = heB1.getIndex();
+    heNextArr[heB1.getIndex()] = heNextArr[heB2T.getIndex()];
+    heVertexArr[heB1.getIndex()] = heVertexArr[heB2T.getIndex()];
+    heFaceArr[heB1.getIndex()] = heFaceArr[heB2T.getIndex()];
 
     // Vertex connections
     // Don't need to update this vertex, since heB2T.vertex() is about to be deleted
     // if (heB2T.vertex().halfedge() == heB2T) {
-    // vHalfedge[heB2T.vertex().getIndex()] = heB1.getIndex();
+    // vHalfedgeArr[heB2T.vertex().getIndex()] = heB1.getIndex();
     //}
 
     // Face connections
     if (heB2T.face().halfedge() == heB2T) {
-      fHalfedge[heB2T.face().getIndex()] = heB1.getIndex();
+      fHalfedgeArr[heB2T.face().getIndex()] = heB1.getIndex();
     }
   }
 
@@ -1342,8 +1527,8 @@ Vertex HalfedgeMesh::collapseEdge(Edge e) {
     deleteEdgeTriple(heB2);
   }
 
-  validateConnectivity();
 
+  modificationTick++;
   return vA;
 }
 
@@ -1385,18 +1570,18 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
 
     // Update refs
     for (Halfedge he : f.adjacentHalfedges()) {
-      heFace[he.getIndex()] = bLoop.getIndex();
+      heFaceArr[he.getIndex()] = bLoop.getIndex();
     }
 
     // Next refs
-    heNext[heBPrev.getIndex()] = heTNext.getIndex();
-    heNext[heTPrev.getIndex()] = heBNext.getIndex();
+    heNextArr[heBPrev.getIndex()] = heTNext.getIndex();
+    heNextArr[heTPrev.getIndex()] = heBNext.getIndex();
 
     // Vertex halfedges
-    vHalfedge[heTNext.vertex().getIndex()] = heBPrev.twin().getIndex();
+    vHalfedgeArr[heTNext.vertex().getIndex()] = heBPrev.twin().getIndex();
     ensureVertexHasBoundaryHalfedge(heBPrev.vertex());
 
-    fHalfedge[bLoop.getIndex()] = heTNext.getIndex();
+    fHalfedgeArr[bLoop.getIndex()] = heTNext.getIndex();
 
     Halfedge currHe = heBNext;
     do {
@@ -1407,6 +1592,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
 
     deleteElement(f);
     deleteEdgeTriple(heB);
+    modificationTick++;
     return true;
 
     /*
@@ -1443,6 +1629,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     deleteElement(fRemove);
 
     isCanonicalFlag = false;
+  modificationTick++;
     return true;
     */
 
@@ -1465,7 +1652,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     Vertex* v2 = he2->vertex;
     Face* fRemove = he0->face;
 
-    Halfedge* heNext = he1T->next;
+    Halfedge* heNextArr = he1T->next;
     Halfedge* hePrev = he0T;
     while (hePrev->isReal) hePrev = hePrev->next->twin;
 
@@ -1474,7 +1661,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     v1->halfedge = he0T;
 
     // Nexts
-    hePrev->next = heNext;
+    hePrev->next = heNextArr;
 
     // Boundary loop
     hePrev->face->halfedge = hePrev;
@@ -1492,6 +1679,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     deleteElement(e2);
 
     isCanonicalFlag = false;
+  modificationTick++;
     return true;
     */
 
@@ -1538,6 +1726,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     deleteElement(fBound);
 
     isCanonicalFlag = false;
+  modificationTick++;
     return true;
     */
 
@@ -1571,15 +1760,15 @@ Face HalfedgeMesh::removeVertex(Vertex v) {
   // Hook up next and face refs for the halfedges along the ring
   size_t N = ringHalfedges.size();
   for (size_t i = 0; i < N; i++) {
-    heNext[ringHalfedges[(i + 1) % N].getIndex()] = ringHalfedges[i].getIndex(); // since outgoingHalfedges orbits CW
-    heFace[ringHalfedges[i].getIndex()] = keepFace.getIndex();
+    heNextArr[ringHalfedges[(i + 1) % N].getIndex()] = ringHalfedges[i].getIndex(); // since outgoingHalfedges orbits CW
+    heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
 
     if (toRemove[i].twin().vertex().halfedge().twin() == toRemove[i]) {
-      // only update vHalfedge if needed to avoid disturbing boundary halfedges
-      vHalfedge[toRemove[i].twin().vertex().getIndex()] = ringHalfedges[i].getIndex();
+      // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
+      vHalfedgeArr[toRemove[i].twin().vertex().getIndex()] = ringHalfedges[i].getIndex();
     }
   }
-  fHalfedge[keepFace.getIndex()] = ringHalfedges[0].getIndex();
+  fHalfedgeArr[keepFace.getIndex()] = ringHalfedges[0].getIndex();
 
   // Actually delete all of the elements
   for (Halfedge he : toRemove) {
@@ -1590,7 +1779,7 @@ Face HalfedgeMesh::removeVertex(Vertex v) {
   }
   deleteElement(v);
 
-  validateConnectivity(); // FIXME
+  modificationTick++;
   return keepFace;
 }
 
@@ -1601,8 +1790,9 @@ void HalfedgeMesh::ensureVertexHasBoundaryHalfedge(Vertex v) {
     if (!heT.isInterior()) {
       break;
     }
-    vHalfedge[v.getIndex()] = heT.next().getIndex();
+    vHalfedgeArr[v.getIndex()] = heT.next().getIndex();
   }
+  modificationTick++;
 }
 
 /*
@@ -1676,7 +1866,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     Vertex* v2 = he2->vertex;
     Face* fRemove = he0->face;
 
-    Halfedge* heNext = he1T->next;
+    Halfedge* heNextArr = he1T->next;
     Halfedge* hePrev = he0T;
     while (hePrev->isReal) hePrev = hePrev->next->twin;
 
@@ -1685,7 +1875,7 @@ bool HalfedgeMesh::removeFaceAlongBoundary(Face f) {
     v1->halfedge = he0T;
 
     // Nexts
-    hePrev->next = heNext;
+    hePrev->next = heNextArr;
 
     // Boundary loop
     hePrev->face->halfedge = hePrev;
@@ -1767,16 +1957,50 @@ std::vector<Face> HalfedgeMesh::triangulate(Face f) {
   std::vector<Face> allFaces;
   allFaces.emplace_back(f);
 
-  // TODO currently doing a fan triangulation. should do something better.
+  // currently doing a fan triangulation. chould do something better.
   Halfedge connectHe = f.halfedge();
   for (size_t i = 2; i + 1 < neighHalfedges.size(); i++) {
     connectHe = connectVertices(connectHe, neighHalfedges[i]);
     allFaces.emplace_back(neighHalfedges[i].face());
   }
 
+  modificationTick++;
   return allFaces;
 }
 
+void HalfedgeMesh::populateVertexIterationCache() const {
+  // TODO will have problems with constness here, need mutable
+
+  // First, count the degree of every vertex
+  std::vector<size_t> vDegree(nVerticesFillCount, 0);
+  for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+    if (halfedgeIsDead(iHe)) continue;
+    vDegree[heVertex(iHe)]++;
+  }
+
+  // Build a sum-array of the number of vertices up to that point
+  vertexIterationCacheVertexStart.resize(nVerticesFillCount + 1);
+  size_t heSum = 0;
+  for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
+    vertexIterationCacheVertexStart[iV] = heSum;
+    heSum += vDegree[iV];
+  }
+  // add one extra element, so we can check end bound by indexing+1
+  vertexIterationCacheVertexStart[nVerticesFillCount] = heSum;
+
+  // Build a compressed array of the halfedges at each vertex
+  std::vector<size_t> currVertexCacheEntry = vertexIterationCacheVertexStart;
+  vertexIterationCacheHeIndex.resize(nHalfedgesFillCount);
+  for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+    if (halfedgeIsDead(iHe)) continue;
+    size_t iV = heVertex(iHe);
+    vertexIterationCacheVertexStart size_t entryInd = currVertexCacheEntry[iV];
+    vertexIterationCacheHeIndex[entryInd] = iHe;
+    currVertexCacheEntry[iV]++;
+  }
+
+  vertexIterationCacheTick = modificationTick;
+}
 
 void HalfedgeMesh::validateConnectivity() {
 
@@ -1801,7 +2025,7 @@ void HalfedgeMesh::validateConnectivity() {
     if (iHe >= nHalfedgesFillCount || halfedgeIsDead(iHe)) throw std::logic_error(msg + " - bad halfedge reference");
   };
   auto validateEdge = [&](size_t iE, std::string msg) {
-    if (iE >= nEdgesFillCount() || edgeIsDead(iE)) throw std::logic_error(msg + " - bad edge reference");
+    if (iE >= nEdgesFillCount || edgeIsDead(iE)) throw std::logic_error(msg + " - bad edge reference");
   };
   auto validateFace = [&](size_t iF, std::string msg) {
     if (iF >= nFacesCapacityCount || faceIsDead(iF) ||
@@ -1817,23 +2041,23 @@ void HalfedgeMesh::validateConnectivity() {
   // Note: we intentionally avoid using iterators here, because they can be hard to debug when things are broken.
   for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
     if (halfedgeIsDead(iHe)) continue;
-    validateHalfedge(heTwin(iHe), "he.twin()");
-    validateHalfedge(heNext[iHe], "he.next()");
-    validateVertex(heVertex[iHe], "he.vertex()");
-    validateEdge(heEdge(iHe), "he.edge()");
-    validateFace(heFace[iHe], "he.face()");
+    validateHalfedge(heTwinImplicit(iHe), "he.twin()");
+    validateHalfedge(heNextArr[iHe], "he.next()");
+    validateVertex(heVertexArr[iHe], "he.vertex()");
+    validateEdge(heEdgeImplicit(iHe), "he.edge()");
+    validateFace(heFaceArr[iHe], "he.face()");
   }
   for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
     if (vertexIsDead(iV)) continue;
-    validateHalfedge(vHalfedge[iV], "v.halfedge()");
+    validateHalfedge(vHalfedgeArr[iV], "v.halfedge()");
   }
-  for (size_t iE = 0; iE < nEdgesFillCount(); iE++) {
+  for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
     if (edgeIsDead(iE)) continue;
-    validateHalfedge(eHalfedge(iE), "e.halfedge()");
+    validateHalfedge(eHalfedgeImplicit(iE), "e.halfedge()");
   }
   for (size_t iF = 0; iF < nFacesFillCount; iF++) {
     if (faceIsDead(iF)) continue;
-    validateHalfedge(fHalfedge[iF], "f.halfedge()");
+    validateHalfedge(fHalfedgeArr[iF], "f.halfedge()");
   }
 
   // Check edge and twin sanity
@@ -1970,7 +2194,7 @@ Vertex HalfedgeMesh::getNewVertex() {
     size_t newCapacity = nVerticesCapacityCount * 2;
 
     // Resize internal arrays
-    vHalfedge.resize(newCapacity);
+    vHalfedgeArr.resize(newCapacity);
 
     nVerticesCapacityCount = newCapacity;
 
@@ -1983,7 +2207,82 @@ Vertex HalfedgeMesh::getNewVertex() {
   nVerticesFillCount++;
   nVerticesCount++;
 
+  modificationTick++;
   return Vertex(this, nVerticesFillCount - 1);
+}
+
+Halfedge HalfedgeMesh::getNewHalfedge(bool isInterior) {
+
+  if (usesImplictTwin()) {
+    throw std::logic_error("cannot construct a single new halfedge with implicit twin convention");
+  }
+
+  // The boring case, when no resize is needed
+  if (nHalfedgesFillCount < nHalfedgesCapacityCount) {
+    // No work needed
+  }
+  // The intesting case, where vectors resize
+  else {
+    size_t newHalfedgeCapacity = std::max(nHalfedgesCapacityCount * 2, (size_t)1);
+
+    // Resize internal arrays
+    heNextArr.resize(newHalfedgeCapcity);
+    heVertexArr.resize(newHalfedgeCapcity);
+    heFaceArr.resize(newHalfedgeCapcity);
+    if (!usesImplictTwin()) { // must enter this case, see test above
+      heSiblingArr.resize(newHalfedgeCapcity);
+      heEdgeArr.resize(newHalfedgeCapcity);
+    }
+
+    nHalfedgesCapacityCount = newHalfedgeCapcity;
+
+    // Invoke relevant callback functions
+    for (auto& f : halfedgeExpandCallbackList) {
+      f(newHalfedgeCapcity);
+    }
+  }
+
+  nHalfedgesFillCount++;
+  nHalfedgesCount++;
+  if (isInterior) {
+    nInteriorHalfedgesCount++;
+  }
+
+  modificationTick++;
+  return Halfedge(this, nHalfedgesFillCount - 1);
+}
+
+Edge HalfedgeMesh::getNewEdge(bool isInterior) {
+
+  if (usesImplictTwin()) {
+    throw std::logic_error("cannot construct a single new edge with implicit twin convention");
+  }
+
+  // The boring case, when no resize is needed
+  if (nEdgesFillCount < nEdgesCapacityCount) {
+    // No work needed
+  }
+  // The intesting case, where vectors resize
+  else {
+    size_t newEdgeCapacity = std::max(nEdgesCapacityCount * 2, (size_t)1);
+
+    nEdgesCapacityCount = newEdgeCapacity;
+
+    if (!usesImplictTwin()) { // must enter this case, see test above
+      eHalfedgeArr.resize(newEdgeCapacity);
+    }
+
+    // Invoke relevant callback functions
+    for (auto& f : edgeExpandCallbackList) {
+      f(newEdgeCapacity);
+    }
+  }
+
+  nEdgesFillCount++;
+  nEdgesCount++;
+
+  modificationTick++;
+  return Edge(this, nEdgesFillCount - 1);
 }
 
 Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
@@ -1993,22 +2292,26 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   // or neither
 
   if (nHalfedgesFillCount + 1 < nHalfedgesCapacityCount) {
-    GC_SAFETY_ASSERT(nEdgesFillCount() < nHalfedgesCapacityCount / 2,
-                     "edge capacity is out of sync with halfedge capacity");
+    GC_SAFETY_ASSERT(nEdgesFillCount < nEdgesCapacityCount, "edge capacity is out of sync with halfedge capacity");
 
     // No work needed
   } else {
 
-    size_t initHalfedgeCapacity = nHalfedgesCapacityCount; // keep track before we start modifying for clarify
-    size_t newHalfedgeCapcity = initHalfedgeCapacity * 2;  // double the capacity
-    size_t newEdgeCapcity = newHalfedgeCapcity / 2;        // make it super clear
+    size_t initHalfedgeCapacity = nHalfedgesCapacityCount; // keep track before we start modifying for clarity
+    size_t initEdgeCapacity = nEdgesCapacityCount;
+    size_t newHalfedgeCapcity = std::max(initHalfedgeCapacity * 2, (size_t)2); // double the capacity
+    size_t newEdgeCapacity = std::max(initEdgeCapacity * 2, (size_t)1);
 
     { // expand halfedge list
 
       // Resize internal arrays
-      heNext.resize(newHalfedgeCapcity);
-      heVertex.resize(newHalfedgeCapcity);
-      heFace.resize(newHalfedgeCapcity);
+      heNextArr.resize(newHalfedgeCapcity);
+      heVertexArr.resize(newHalfedgeCapcity);
+      heFaceArr.resize(newHalfedgeCapcity);
+      if (!usesImplictTwin()) {
+        heSiblingArr.resize(newHalfedgeCapcity);
+        heEdgeArr.resize(newHalfedgeCapcity);
+      }
 
       nHalfedgesCapacityCount = newHalfedgeCapcity;
 
@@ -2020,15 +2323,30 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
 
     { // expand edges
 
+      nEdgesCapacityCount = newEdgeCapacity;
+
+      if (!usesImplictTwin()) {
+        eHalfedgeArr.resize(newEdgeCapacity);
+      }
+
       // Invoke relevant callback functions
       for (auto& f : edgeExpandCallbackList) {
-        f(newEdgeCapcity);
+        f(newEdgeCapacity);
       }
     }
   }
 
 
   // == Get one
+
+  // Fill connectivity buffers if needed
+  if (!usesImplictTwin()) {
+    heSiblingArr[nHalfedgesFillCount] = nHalfedgesFillCount + 1;
+    heSiblingArr[nHalfedgesFillCount + 1] = nHalfedgesFillCount;
+    heEdgeArr[nHalfedgesFillCount] = nEdgesFillCount;
+    heEdgeArr[nHalfedgesFillCount + 1] = nEdgesFillCount;
+    eHalfedgeArr[nEdgesFillCount] = nHalfedgesFillCount;
+  }
 
   nHalfedgesFillCount += 2;
   nHalfedgesCount += 2;
@@ -2037,7 +2355,10 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
   } else {
     nInteriorHalfedgesCount += 2;
   }
+  nEdgesFillCount++;
+  nEdgesCount++;
 
+  modificationTick++;
   return Halfedge(this, nHalfedgesFillCount - 2);
 }
 
@@ -2056,6 +2377,7 @@ Face HalfedgeMesh::getNewFace() {
   nFacesCount++;
   nFacesFillCount++;
 
+  modificationTick++;
   return Face(this, nFacesFillCount - 1);
 }
 
@@ -2073,6 +2395,7 @@ BoundaryLoop HalfedgeMesh::getNewBoundaryLoop() {
   nBoundaryLoopsCount++;
   nBoundaryLoopsFillCount++;
 
+  modificationTick++;
   return BoundaryLoop(this, nFacesCapacityCount - nBoundaryLoopsFillCount);
 }
 
@@ -2080,14 +2403,14 @@ void HalfedgeMesh::expandFaceStorage() {
   size_t newCapacity = nFacesCapacityCount * 2;
 
   // Resize internal arrays
-  fHalfedge.resize(newCapacity);
+  fHalfedgeArr.resize(newCapacity);
 
   // Scooch boundary data back
   for (size_t iBack = 0; iBack < nBoundaryLoopsFillCount; iBack++) {
     size_t iOld = nFacesCapacityCount - iBack - 1;
-    size_t iNew = fHalfedge.size() - iBack - 1;
-    fHalfedge[iNew] = fHalfedge[iOld];
-    fHalfedge[iOld] = INVALID_IND; // will help catch bugs
+    size_t iNew = fHalfedgeArr.size() - iBack - 1;
+    fHalfedgeArr[iNew] = fHalfedgeArr[iOld];
+    fHalfedgeArr[iOld] = INVALID_IND; // will help catch bugs
   }
 
   // Scooch back he.face() indices that point to boundary loops
@@ -2095,8 +2418,8 @@ void HalfedgeMesh::expandFaceStorage() {
     if (halfedgeIsDead(iHe)) {
       continue;
     }
-    if (heFace[iHe] >= nFacesFillCount) {
-      heFace[iHe] += (newCapacity - nFacesCapacityCount);
+    if (heFaceArr[iHe] >= nFacesFillCount) {
+      heFaceArr[iHe] += (newCapacity - nFacesCapacityCount);
     }
   }
 
@@ -2106,6 +2429,8 @@ void HalfedgeMesh::expandFaceStorage() {
   for (auto& f : faceExpandCallbackList) {
     f(newCapacity);
   }
+
+  modificationTick++;
 }
 
 
@@ -2116,13 +2441,13 @@ void HalfedgeMesh::deleteEdgeTriple(Halfedge he) {
   size_t iHe = he.getIndex();
   size_t iHeT = he.twin().getIndex();
 
-  heNext[iHe] = INVALID_IND;
-  heVertex[iHe] = INVALID_IND;
-  heFace[iHe] = INVALID_IND;
+  heNextArr[iHe] = INVALID_IND;
+  heVertexArr[iHe] = INVALID_IND;
+  heFaceArr[iHe] = INVALID_IND;
 
-  heNext[iHeT] = INVALID_IND;
-  heVertex[iHeT] = INVALID_IND;
-  heFace[iHeT] = INVALID_IND;
+  heNextArr[iHeT] = INVALID_IND;
+  heVertexArr[iHeT] = INVALID_IND;
+  heFaceArr[iHeT] = INVALID_IND;
 
   nHalfedgesCount -= 2;
   if (isBoundary) {
@@ -2131,33 +2456,37 @@ void HalfedgeMesh::deleteEdgeTriple(Halfedge he) {
     nInteriorHalfedgesCount -= 2;
   }
 
+  modificationTick++;
   isCompressedFlag = false;
 }
 
 void HalfedgeMesh::deleteElement(Vertex v) {
   size_t iV = v.getIndex();
 
-  vHalfedge[iV] = INVALID_IND;
+  vHalfedgeArr[iV] = INVALID_IND;
   nVerticesCount--;
 
+  modificationTick++;
   isCompressedFlag = false;
 }
 
 void HalfedgeMesh::deleteElement(Face f) {
   size_t iF = f.getIndex();
 
-  fHalfedge[iF] = INVALID_IND;
+  fHalfedgeArr[iF] = INVALID_IND;
   nFacesCount--;
 
+  modificationTick++;
   isCompressedFlag = false;
 }
 
 void HalfedgeMesh::deleteElement(BoundaryLoop bl) {
   size_t iF = boundaryLoopIndToFaceInd(bl.getIndex());
 
-  fHalfedge[iF] = INVALID_IND;
+  fHalfedgeArr[iF] = INVALID_IND;
   nBoundaryLoopsCount--;
 
+  modificationTick++;
   isCompressedFlag = false;
 }
 

@@ -68,9 +68,9 @@ class Element {
 public:
   using ParentMeshT = M;
 
-  Element();                              // construct an empty (null) element
-  Element(ParentMeshT* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Element(const DynamicElement<T>& e);    // construct from a dynamic element of matching type
+  Element();                                    // construct an empty (null) element
+  Element(const ParentMeshT* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  Element(const DynamicElement<T>& e);          // construct from a dynamic element of matching type
 
   inline bool operator==(const Element<T, M>& other) const;
   inline bool operator!=(const Element<T, M>& other) const;
@@ -87,12 +87,12 @@ public:
   size_t getIndex() const;
 
   // Get the parent mesh on which the element is defined.
-  ParentMeshT* getMesh() const;
+  const ParentMeshT* getMesh() const;
 
   bool isDead() const;
 
 protected:
-  ParentMeshT* mesh = nullptr;
+  const ParentMeshT* mesh = nullptr;
   size_t ind = INVALID_IND;
 
   // Friends
