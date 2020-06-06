@@ -78,8 +78,7 @@ inline BoundaryLoop HalfedgeMesh::boundaryLoop(size_t index) { return BoundaryLo
 
 inline bool HalfedgeMesh::isCompressed() const { return isCompressedFlag; }
 inline bool HalfedgeMesh::hasBoundary() const { return nBoundaryLoopsCount > 0; }
-inline void HalfedgeMesh::ensureVertexIterationCachePopulated() const
-  { if(vertexIterationCacheTick != modificationTick) populateVertexIterationCache(); }
+inline void HalfedgeMesh::ensureVertexIterationCachePopulated() { if(vertexIterationCacheTick != modificationTick) populateVertexIterationCache(); }
 
 // clang-format on
 

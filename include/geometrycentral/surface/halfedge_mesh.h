@@ -44,7 +44,7 @@ public:
   // Assumes that the vertex listing in polygons is dense; all indices from [0,MAX_IND) must appear in some face.
   // (some functions, like in meshio.h preprocess inputs to strip out unused indices).
   // The output will preserve the ordering of vertices and faces.
-  HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons);
+  HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, bool requireManifold=true);
 
   // Build a halfedge mesh from connectivity information (0-indexed as always)
   // - `polygons` is the usual vertex indices for each face
@@ -326,7 +326,8 @@ protected:
 
   // Construction subroutines
   void constructHalfedgeMeshManifold(const std::vector<std::vector<size_t>>& polygons);
-  void constructHalfedgeMeshNonmanifold(const std::vector<std::vector<size_t>>& polygons);
+  void constructHalfedgeMeshNonmanifold(const std::vector<std::vector<size_t>>& polygons,
+                                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins);
 
   // Compression helpers
   void compressHalfedges();
@@ -341,10 +342,13 @@ protected:
 
   // Iterating around the neighbors of a nonmanifold vertex is one of the few operations not efficiently supported by
   // even this souped-up halfedge mesh. For nonmanifold meshes, these helper arrays allow us to iterate efficiently.
+  // These are automatically populated when v.adjacentVertices() (etc) is called. And thus will always be accurate when used.
+  // The only effect for the user is that intermingling mesh modifications and vertex neighbor iterations might lead to code
+  // unexpectedly degenerating to O(N^2) complexity.
   // For vertex iV, vertexIterationCacheHeIndex holds the indices of the halfedges outgoing from the vertex, in the
   // range from vertexIterationCacheVertexStart[iV] to vertexIterationCacheVertexStart[iV+1]
-  void ensureVertexIterationCachePopulated() const;
-  void populateVertexIterationCache() const;
+  void ensureVertexIterationCachePopulated();
+  void populateVertexIterationCache(bool skipDead = true);
   uint64_t vertexIterationCacheTick = 0; // used to keep cache fresh
   std::vector<size_t> vertexIterationCacheHeIndex;
   std::vector<size_t> vertexIterationCacheVertexStart;

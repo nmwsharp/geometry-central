@@ -227,8 +227,22 @@ TEST_F(HalfedgeMeshSuite, PrevTest) {
     for (Halfedge he : a.mesh->halfedges()) {
       Halfedge next = he.next();
       EXPECT_EQ(next.prevOrbitFace(), he);
-      EXPECT_EQ(next.prevOrbitVertex(), he);
+      EXPECT_EQ(next.prevOrbitVertex(), he); // doesn't necessarily work on nonmanifold
     }
   }
 }
 
+TEST_F(HalfedgeMeshSuite, VertexAdjacentNavigator) {
+  for (MeshAsset& a : allMeshes()) {
+    a.printThyName();
+
+    size_t degreeTot = 0;
+    for (Vertex v : a.mesh->vertices()) {
+      for (Halfedge he : v.outgoingHalfedges()) {
+        degreeTot++;
+      }
+    }
+
+    EXPECT_EQ(degreeTot, a.mesh->nHalfedges());
+  }
+}

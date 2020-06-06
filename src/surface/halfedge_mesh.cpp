@@ -56,14 +56,15 @@ size_t halfedgeLookup(const std::vector<size_t>& compressedList, size_t target, 
 
 HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons, bool requireManifold) {
   if (requireManifold) {
-    constructHalfedgeMeshManifold(polygons);
+    // constructHalfedgeMeshManifold(polygons);
+    constructHalfedgeMeshNonmanifold(polygons, {});
   } else {
-    constructHalfedgeMeshNonmanifold(polygons);
+    constructHalfedgeMeshNonmanifold(polygons, {});
   }
 }
 
 void HalfedgeMesh::constructHalfedgeMeshManifold(const std::vector<std::vector<size_t>>& polygons) {
-  useImplicitTwinFlag = false;
+  useImplicitTwinFlag = true;
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
@@ -288,6 +289,10 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
   // Pre-allocate face and vertex arrays
   vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
   fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
+  nVerticesCapacityCount = nVerticesCount;
+  nVerticesFillCount = nVerticesCount;
+  nFacesCapacityCount = nFacesCount;
+  nFacesFillCount = nFacesCount;
 
   // === Walk the faces, creating halfedges. For now, don't hook up any twin or edge pointers.
   for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
@@ -307,7 +312,7 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
       std::tuple<size_t, size_t> heTwinKey{indTip, indTail};
 
       // Create a halfedge
-      size_t halfedgeInd = getNewHalfedge(true);
+      size_t halfedgeInd = getNewHalfedge(true).getIndex();
 
       // Fill arrays with nknown values and placeholders
       heNextArr[halfedgeInd] = INVALID_IND;
@@ -335,7 +340,6 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
     // If we've already seen this vertex pair at least once, this holds index of the most recent halfedge encountered
     // incident on that edge.
     std::unordered_map<std::tuple<size_t, size_t>, size_t> edgeHistory;
-
     size_t iHe = 0;
     for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
       const std::vector<size_t>& poly = polygons[iFace];
@@ -352,23 +356,17 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
 
         if (edgeHistory.find(eKey) == edgeHistory.end()) {
           // This is the first time we've ever seen this edge, create a new edge object
-
           size_t newEdgeInd = getNewEdge().getIndex();
           heEdgeArr[iHe] = newEdgeInd;
           heSiblingArr[iHe] = INVALID_IND;
           eHalfedgeArr[newEdgeInd] = iHe;
-
-          edgeHistory[key] = iHe;
+          edgeHistory[eKey] = iHe;
         } else {
           // We're already seen this edge, connect to the previous halfedge incident on the edge
-
           size_t iPrevHe = edgeHistory[eKey];
-
           heSiblingArr[iHe] = iPrevHe;
-
-          edgeHistory[key] = iHe;
+          edgeHistory[eKey] = iHe;
         }
-
         iHe++;
       }
     }
@@ -392,7 +390,7 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
     }
 
   } else {
-    DisjointSets djSet
+    // DisjointSets djSet
   }
 
 
@@ -402,11 +400,16 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
 
   // Create exterior halfedges
   for (size_t bHe : boundaryHalfedges) {
-    size_t tHe = getNewHalfedge().getIndex();
+    size_t tHe = getNewHalfedge(false).getIndex();
+    heSiblingArr[bHe] = tHe;
+    heSiblingArr[tHe] = bHe;
     heNextArr[tHe] = INVALID_IND;
     heVertexArr[tHe] = heVertexArr[heNextArr[bHe]];
-    heFaceArr[tHe] = heFaceArr[bHe];
+    heFaceArr[tHe] = INVALID_IND;
     heEdgeArr[tHe] = heEdgeArr[bHe];
+
+    // ensure that vertex.halfedge() always starts a half-disk for boundary vertices
+    vHalfedgeArr[heVertexArr[bHe]] = bHe;
   }
 
   // Some vertices will have nice boundary structures, like a half-disk, or collection of half-disks, where there are
@@ -419,9 +422,94 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
   // incoming and outgoing boundary halfedges that can be matched up. Then, we will close any unclosed chains by
   // connecting the first to the last entry. Finally, each chain will correspond to a boundary loop.
 
+  // We will need to loop around vertice below (on a possibly nonmanifold mesh)
+  populateVertexIterationCache(false);
+
   // Hook up next() references point to a next exterior halfedge at the same vertex
-  for () {
+  std::vector<size_t> incomingExteriorHalfedges;
+  std::vector<size_t> outgoingExteriorHalfedges;
+  for (Vertex v : vertices()) {
+    std::cout << "Testing in out at " << v << std::endl;
+    incomingExteriorHalfedges.clear();
+    outgoingExteriorHalfedges.clear();
+
+    // Manually traverse the halfegdes incident on this vertex
+    size_t rangeStart = vertexIterationCacheVertexStart[v.getIndex()];
+    size_t rangeEnd = vertexIterationCacheVertexStart[v.getIndex() + 1];
+    for (size_t traverseInd = rangeStart; traverseInd < rangeEnd; traverseInd++) {
+      size_t iHe = vertexIterationCacheHeIndex[traverseInd];
+
+      std::cout << "  he out " << iHe << std::endl;
+      if (heFaceArr[iHe] == INVALID_IND) { // test if its exterior
+        std::cout << "    exterior outgoing! " << iHe << std::endl;
+        outgoingExteriorHalfedges.push_back(iHe);
+      }
+      if (heFaceArr[heTwin(iHe)] == INVALID_IND) {
+        std::cout << "    twin interior outgoing! " << heTwin(iHe) << std::endl;
+        incomingExteriorHalfedges.push_back(heTwin(iHe));
+      }
+
+      // Match up as many next()s as we can (some will still be unpaired)
+      while (!outgoingExteriorHalfedges.empty() && !incomingExteriorHalfedges.empty()) {
+        size_t iHeOut = outgoingExteriorHalfedges.back();
+        size_t iHeIn = incomingExteriorHalfedges.back();
+        outgoingExteriorHalfedges.pop_back();
+        incomingExteriorHalfedges.pop_back();
+
+        std::cout << "    at " << v << " matching next of incoming " << iHeIn << " as " << iHeOut << std::endl;
+        heNextArr[iHeIn] = iHeOut;
+      }
+    }
   }
+
+  // Check which halfedges are the next() of some halfedge
+  std::vector<char> hasIncomingNext(nHalfedgesCount, false);
+  for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+    if (heNextArr[iHe] != INVALID_IND) {
+      if (hasIncomingNext[heNextArr[iHe]]) {
+        // TODO FIXME sanity check
+        throw std::runtime_error("Halfedge has multiple incoming next");
+      }
+      hasIncomingNext[heNextArr[iHe]] = true;
+    }
+  }
+
+  // Close chains of next()
+  for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+    if (hasIncomingNext[iHe]) continue;
+    // should only proceed for exterior halfedges
+    // std::cout << "halfedge " << iHe << " has no incoming next" << std::endl;
+
+    size_t firstHe = iHe;
+    size_t currHe = firstHe;
+    while (heNextArr[currHe] != INVALID_IND) {
+      currHe = heNextArr[currHe];
+    }
+
+    // connect last to first
+    std::cout << "connecting heNext[" << currHe << "] = " << firstHe << std::endl;
+    heNextArr[currHe] = firstHe;
+  }
+
+
+  // Create a boundary loop for each cycle of next()
+  for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
+    if (heFaceArr[iHe] != INVALID_IND) continue;
+
+    // Create a new boundary loop
+    size_t iBl = getNewBoundaryLoop().getIndex();
+    fHalfedgeArr[iBl] = iHe;
+    size_t currHe = iHe;
+    do {
+      heFaceArr[currHe] = iBl;
+      currHe = heNextArr[currHe];
+    } while (currHe != iHe);
+  }
+
+
+  isCompressedFlag = true;
+  // TODO compress here?
+  validateConnectivity(); // TODO FIXME
 }
 
 HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
@@ -581,9 +669,9 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
       // Set the next pointer around the boundary loop
       heNextArr[currHe] = prevHe;
 
-      // Make sure this loop doesn't infinite-loop. Certainly won't happen for proper input, but might happen for bogus
-      // input. I don't _think_ it can happen, but there might be some non-manifold input which manfests failure via an
-      // infinte loop here, and such a loop is an inconvenient failure mode.
+      // Make sure this loop doesn't infinite-loop. Certainly won't happen for proper input, but might happen for
+      // bogus input. I don't _think_ it can happen, but there might be some non-manifold input which manfests failure
+      // via an infinte loop here, and such a loop is an inconvenient failure mode.
       loopCount++;
       GC_SAFETY_ASSERT(loopCount < nHalfedgesCount, "boundary infinite loop");
     } while (currHe != iHe);
@@ -615,7 +703,7 @@ HalfedgeMesh::HalfedgeMesh(const std::vector<std::vector<size_t>>& polygons,
         GC_SAFETY_ASSERT(!halfedgeSeen[currHe], "somehow encountered outgoing halfedge before orbiting v");
         halfedgeSeen[currHe] = true;
 
-        currHe = heNextArr[heTwinImplicit(currHe)];
+        currHe = heNextArr[heTwin(currHe)];
       } while (currHe != firstHe);
     }
 
@@ -1180,8 +1268,8 @@ std::tuple<Halfedge, Halfedge> HalfedgeMesh::separateEdge(Edge e) {
 
 Halfedge HalfedgeMesh::switchHalfedgeSides(Edge e) {
 
-  // NOTE: Written to be safe to call even if the invariant that e.halfedge() is interior is violated, so we can use it
-  // to impose that invariant.
+  // NOTE: Written to be safe to call even if the invariant that e.halfedge() is interior is violated, so we can use
+  // it to impose that invariant.
 
   // Gather values
   Halfedge he = e.halfedge();
@@ -1968,13 +2056,15 @@ std::vector<Face> HalfedgeMesh::triangulate(Face f) {
   return allFaces;
 }
 
-void HalfedgeMesh::populateVertexIterationCache() const {
+void HalfedgeMesh::populateVertexIterationCache(bool skipDead) {
   // TODO will have problems with constness here, need mutable
+
+  std::cout << "========= POPULATING VERTEX ITERATION CACHE ==============" << std::endl;
 
   // First, count the degree of every vertex
   std::vector<size_t> vDegree(nVerticesFillCount, 0);
   for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
-    if (halfedgeIsDead(iHe)) continue;
+    if (skipDead && halfedgeIsDead(iHe)) continue;
     vDegree[heVertex(iHe)]++;
   }
 
@@ -1992,9 +2082,9 @@ void HalfedgeMesh::populateVertexIterationCache() const {
   std::vector<size_t> currVertexCacheEntry = vertexIterationCacheVertexStart;
   vertexIterationCacheHeIndex.resize(nHalfedgesFillCount);
   for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
-    if (halfedgeIsDead(iHe)) continue;
+    if (skipDead && halfedgeIsDead(iHe)) continue;
     size_t iV = heVertex(iHe);
-    vertexIterationCacheVertexStart size_t entryInd = currVertexCacheEntry[iV];
+    size_t entryInd = currVertexCacheEntry[iV];
     vertexIterationCacheHeIndex[entryInd] = iHe;
     currVertexCacheEntry[iV]++;
   }
@@ -2041,10 +2131,10 @@ void HalfedgeMesh::validateConnectivity() {
   // Note: we intentionally avoid using iterators here, because they can be hard to debug when things are broken.
   for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
     if (halfedgeIsDead(iHe)) continue;
-    validateHalfedge(heTwinImplicit(iHe), "he.twin()");
+    validateHalfedge(heTwin(iHe), "he.twin()");
     validateHalfedge(heNextArr[iHe], "he.next()");
     validateVertex(heVertexArr[iHe], "he.vertex()");
-    validateEdge(heEdgeImplicit(iHe), "he.edge()");
+    validateEdge(heEdge(iHe), "he.edge()");
     validateFace(heFaceArr[iHe], "he.face()");
   }
   for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
@@ -2053,7 +2143,7 @@ void HalfedgeMesh::validateConnectivity() {
   }
   for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
     if (edgeIsDead(iE)) continue;
-    validateHalfedge(eHalfedgeImplicit(iE), "e.halfedge()");
+    validateHalfedge(eHalfedge(iE), "e.halfedge()");
   }
   for (size_t iF = 0; iF < nFacesFillCount; iF++) {
     if (faceIsDead(iF)) continue;
@@ -2064,8 +2154,9 @@ void HalfedgeMesh::validateConnectivity() {
   for (Halfedge he : halfedges()) {
     if (he != he.twin().twin()) throw std::logic_error("twins not reflective");
     if (he == he.twin()) throw std::logic_error("self-twin");
-    if (he != he.edge().halfedge() && he.twin() != he.edge().halfedge())
-      throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
+  }
+  for (Edge e : edges()) {
+    if (e != e.halfedge().edge()) throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
   }
 
   // Check face & next sanity
@@ -2226,19 +2317,19 @@ Halfedge HalfedgeMesh::getNewHalfedge(bool isInterior) {
     size_t newHalfedgeCapacity = std::max(nHalfedgesCapacityCount * 2, (size_t)1);
 
     // Resize internal arrays
-    heNextArr.resize(newHalfedgeCapcity);
-    heVertexArr.resize(newHalfedgeCapcity);
-    heFaceArr.resize(newHalfedgeCapcity);
+    heNextArr.resize(newHalfedgeCapacity);
+    heVertexArr.resize(newHalfedgeCapacity);
+    heFaceArr.resize(newHalfedgeCapacity);
     if (!usesImplictTwin()) { // must enter this case, see test above
-      heSiblingArr.resize(newHalfedgeCapcity);
-      heEdgeArr.resize(newHalfedgeCapcity);
+      heSiblingArr.resize(newHalfedgeCapacity);
+      heEdgeArr.resize(newHalfedgeCapacity);
     }
 
-    nHalfedgesCapacityCount = newHalfedgeCapcity;
+    nHalfedgesCapacityCount = newHalfedgeCapacity;
 
     // Invoke relevant callback functions
     for (auto& f : halfedgeExpandCallbackList) {
-      f(newHalfedgeCapcity);
+      f(newHalfedgeCapacity);
     }
   }
 
@@ -2252,7 +2343,7 @@ Halfedge HalfedgeMesh::getNewHalfedge(bool isInterior) {
   return Halfedge(this, nHalfedgesFillCount - 1);
 }
 
-Edge HalfedgeMesh::getNewEdge(bool isInterior) {
+Edge HalfedgeMesh::getNewEdge() {
 
   if (usesImplictTwin()) {
     throw std::logic_error("cannot construct a single new edge with implicit twin convention");
@@ -2288,8 +2379,8 @@ Edge HalfedgeMesh::getNewEdge(bool isInterior) {
 Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
 
   // == Get two halfedges and one edge
-  // recall that these capacities should always be in sync, so we resize and expand for either both edges and halfedges,
-  // or neither
+  // recall that these capacities should always be in sync, so we resize and expand for either both edges and
+  // halfedges, or neither
 
   if (nHalfedgesFillCount + 1 < nHalfedgesCapacityCount) {
     GC_SAFETY_ASSERT(nEdgesFillCount < nEdgesCapacityCount, "edge capacity is out of sync with halfedge capacity");

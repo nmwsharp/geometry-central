@@ -69,13 +69,9 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/exact_polyhedral_geodesics.h
   ${INCLUDE_ROOT}/surface/extrinsic_geometry_interface.h
   ${INCLUDE_ROOT}/surface/fast_marching_method.h
-  ${INCLUDE_ROOT}/surface/halfedge_containers.h
-  ${INCLUDE_ROOT}/surface/halfedge_containers.ipp
   ${INCLUDE_ROOT}/surface/halfedge_element_types.h
   ${INCLUDE_ROOT}/surface/halfedge_element_types.ipp
   ${INCLUDE_ROOT}/surface/halfedge_factories.h
-  ${INCLUDE_ROOT}/surface/halfedge_iterators.h
-  ${INCLUDE_ROOT}/surface/halfedge_iterators.ipp
   ${INCLUDE_ROOT}/surface/halfedge_logic_templates.ipp
   ${INCLUDE_ROOT}/surface/halfedge_mesh.h
   ${INCLUDE_ROOT}/surface/halfedge_mesh.ipp
@@ -108,6 +104,8 @@ SET(HEADERS
   ${INCLUDE_ROOT}/utilities/dependent_quantity.h
   ${INCLUDE_ROOT}/utilities/dependent_quantity.ipp
   ${INCLUDE_ROOT}/utilities/disjoint_sets.h
+  ${INCLUDE_ROOT}/utilities/mesh_data.h
+  ${INCLUDE_ROOT}/utilities/mesh_data.ipp
   ${INCLUDE_ROOT}/utilities/quaternion.h
   ${INCLUDE_ROOT}/utilities/timing.h
   ${INCLUDE_ROOT}/utilities/utilities.h
