@@ -344,7 +344,7 @@ protected:
   // even this souped-up halfedge mesh. For nonmanifold meshes, these helper arrays allow us to iterate efficiently.
   // These are automatically populated when v.adjacentVertices() (etc) is called. And thus will always be accurate when used.
   // The only effect for the user is that intermingling mesh modifications and vertex neighbor iterations might lead to code
-  // unexpectedly degenerating to O(N^2) complexity.
+  // unexpectedly degenerate to O(N^2) complexity.
   // For vertex iV, vertexIterationCacheHeIndex holds the indices of the halfedges outgoing from the vertex, in the
   // range from vertexIterationCacheVertexStart[iV] to vertexIterationCacheVertexStart[iV+1]
   void ensureVertexIterationCachePopulated();

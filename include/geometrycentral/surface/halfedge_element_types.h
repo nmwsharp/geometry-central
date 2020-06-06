@@ -29,6 +29,9 @@ struct VertexOutgoingHalfedgeNavigator;
 struct VertexAdjacentFaceNavigator;
 struct VertexAdjacentEdgeNavigator;
 struct VertexAdjacentCornerNavigator;
+struct EdgeAdjacentHalfedgeNavigator;
+struct EdgeAdjacentInteriorHalfedgeNavigator;
+struct EdgeAdjacentFaceNavigator;
 struct FaceAdjacentHalfedgeNavigator;
 struct FaceAdjacentVertexNavigator;
 struct FaceAdjacentEdgeNavigator;
@@ -195,7 +198,12 @@ public:
   // Properties
   bool isBoundary() const;
   bool isManifold() const;
-  //size_t degree() const;
+  size_t degree() const;
+
+  // Iterators
+  NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
+  NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
+  NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
 };
 
 using DynamicEdge = DynamicElement<Edge>;
@@ -386,6 +394,38 @@ struct VertexAdjacentFaceNavigator {
   Rtype getCurrent() const;
 };
 
+// == Edge
+
+
+// Adjacent halfedge
+struct EdgeAdjacentHalfedgeNavigator {
+  void advance();
+  bool isValid() const;
+  typedef Halfedge Etype;
+  Etype currE;
+  typedef Halfedge Rtype;
+  Rtype getCurrent() const;
+};
+
+// Adjacent interior halfedge
+struct EdgeAdjacentInteriorHalfedgeNavigator {
+  void advance();
+  bool isValid() const;
+  typedef Halfedge Etype;
+  Etype currE;
+  typedef Halfedge Rtype;
+  Rtype getCurrent() const;
+};
+
+// Adjacent interior halfedge
+struct EdgeAdjacentFaceNavigator {
+  void advance();
+  bool isValid() const;
+  typedef Halfedge Etype;
+  Etype currE;
+  typedef Face Rtype;
+  Rtype getCurrent() const;
+};
 
 // == Face
 

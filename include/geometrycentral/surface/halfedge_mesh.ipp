@@ -18,7 +18,7 @@ inline size_t HalfedgeMesh::nBoundaryLoops()     const { return nBoundaryLoopsCo
 // Capacities
 inline size_t HalfedgeMesh::nHalfedgesCapacity()        const { return nHalfedgesCapacityCount; }
 inline size_t HalfedgeMesh::nVerticesCapacity()         const { return nVerticesCapacityCount; }
-inline size_t HalfedgeMesh::nEdgesCapacity()            const { return nEdgesCount; }
+inline size_t HalfedgeMesh::nEdgesCapacity()            const { return nEdgesCapacityCount; }
 inline size_t HalfedgeMesh::nFacesCapacity()            const { return nFacesCapacityCount - nBoundaryLoopsFillCount; }
 inline size_t HalfedgeMesh::nBoundaryLoopsCapacity()    const { return nFacesCapacityCount - nFacesFillCount; }
 

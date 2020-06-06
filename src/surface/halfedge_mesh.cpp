@@ -365,6 +365,7 @@ void HalfedgeMesh::constructHalfedgeMeshNonmanifold(const std::vector<std::vecto
           // We're already seen this edge, connect to the previous halfedge incident on the edge
           size_t iPrevHe = edgeHistory[eKey];
           heSiblingArr[iHe] = iPrevHe;
+          heEdgeArr[iHe] = heEdgeArr[iPrevHe];
           edgeHistory[eKey] = iHe;
         }
         iHe++;
@@ -930,6 +931,7 @@ std::vector<std::vector<size_t>> HalfedgeMesh::getFaceVertexList() {
 
 bool HalfedgeMesh::flip(Edge eFlip) {
   if (eFlip.isBoundary()) return false;
+  if (!eFlip.isManifold()) return false;
 
   // Get halfedges of first face
   Halfedge ha1 = eFlip.halfedge();
@@ -2156,7 +2158,9 @@ void HalfedgeMesh::validateConnectivity() {
     if (he == he.twin()) throw std::logic_error("self-twin");
   }
   for (Edge e : edges()) {
-    if (e != e.halfedge().edge()) throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
+    for (Halfedge he : e.adjacentHalfedges()) {
+      if (e != he.edge()) throw std::logic_error("edge.halfedge doesn't match halfedge.edge");
+    }
   }
 
   // Check face & next sanity
@@ -2390,30 +2394,29 @@ Halfedge HalfedgeMesh::getNewEdgeTriple(bool onBoundary) {
 
     size_t initHalfedgeCapacity = nHalfedgesCapacityCount; // keep track before we start modifying for clarity
     size_t initEdgeCapacity = nEdgesCapacityCount;
-    size_t newHalfedgeCapcity = std::max(initHalfedgeCapacity * 2, (size_t)2); // double the capacity
+    size_t newHalfedgeCapacity = std::max(initHalfedgeCapacity * 2, (size_t)2); // double the capacity
     size_t newEdgeCapacity = std::max(initEdgeCapacity * 2, (size_t)1);
 
     { // expand halfedge list
 
       // Resize internal arrays
-      heNextArr.resize(newHalfedgeCapcity);
-      heVertexArr.resize(newHalfedgeCapcity);
-      heFaceArr.resize(newHalfedgeCapcity);
+      heNextArr.resize(newHalfedgeCapacity);
+      heVertexArr.resize(newHalfedgeCapacity);
+      heFaceArr.resize(newHalfedgeCapacity);
       if (!usesImplictTwin()) {
-        heSiblingArr.resize(newHalfedgeCapcity);
-        heEdgeArr.resize(newHalfedgeCapcity);
+        heSiblingArr.resize(newHalfedgeCapacity);
+        heEdgeArr.resize(newHalfedgeCapacity);
       }
 
-      nHalfedgesCapacityCount = newHalfedgeCapcity;
+      nHalfedgesCapacityCount = newHalfedgeCapacity;
 
       // Invoke relevant callback functions
       for (auto& f : halfedgeExpandCallbackList) {
-        f(newHalfedgeCapcity);
+        f(newHalfedgeCapacity);
       }
     }
 
     { // expand edges
-
       nEdgesCapacityCount = newEdgeCapacity;
 
       if (!usesImplictTwin()) {

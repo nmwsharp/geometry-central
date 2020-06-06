@@ -208,16 +208,42 @@ inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
 // Properties
 inline bool Edge::isBoundary() const { return !halfedge().isInterior() || !halfedge().twin().isInterior(); }
 inline bool Edge::isManifold() const { return halfedge().sibling().sibling() == halfedge(); }
-//inline size_t Edge::degree() const { 
-  //for(Halfedge : adjacentHalfedges()) {
-    //return halfedge().sibling().sibling() == halfedge(); 
-  //}
-//}
+inline size_t Edge::degree() const { 
+  size_t k = 0;
+  for(Halfedge he : adjacentInteriorHalfedges()) {
+    k++;
+  }
+  return k;
+}
 
 // Range iterators
 inline bool EdgeRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
   return !mesh.edgeIsDead(ind);
 }
+
+// Navigation iterators
+
+inline NavigationSetBase<EdgeAdjacentHalfedgeNavigator> Edge::adjacentHalfedges() const { 
+  return NavigationSetBase<EdgeAdjacentHalfedgeNavigator>(halfedge()); 
+}
+inline NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> Edge::adjacentInteriorHalfedges() const { 
+  return NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator>(halfedge()); 
+}
+inline NavigationSetBase<EdgeAdjacentFaceNavigator> Edge::adjacentFaces() const { 
+  return NavigationSetBase<EdgeAdjacentFaceNavigator>(halfedge()); 
+}
+
+inline void EdgeAdjacentHalfedgeNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge EdgeAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void EdgeAdjacentInteriorHalfedgeNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentInteriorHalfedgeNavigator::isValid() const { return currE.isInterior(); }
+inline Halfedge EdgeAdjacentInteriorHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void EdgeAdjacentFaceNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
+inline Face EdgeAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
 
 
 // ==========================================================
