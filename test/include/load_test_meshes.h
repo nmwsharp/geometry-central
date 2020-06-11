@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/surface/vertex_position_geometry.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 
 #include "gtest/gtest.h"
 
@@ -12,7 +12,7 @@ struct MeshAsset {
 
   std::string name = "Unnamed_Mesh_Asset";
   std::string sourcePath = "unknown";
-  std::unique_ptr<geometrycentral::surface::HalfedgeMesh> mesh;
+  std::unique_ptr<geometrycentral::surface::ManifoldSurfaceMesh> mesh;
   std::unique_ptr<geometrycentral::surface::VertexPositionGeometry> geometry;
   bool hasBoundary = false;
   bool isTriangular = true;

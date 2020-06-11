@@ -1,7 +1,7 @@
 #include "geometrycentral/surface/meshio.h"
 
 #include "geometrycentral/surface/halfedge_factories.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 
 #include "happly.h"
@@ -30,8 +30,8 @@ void processLoadedMesh(SimplePolygonMesh& mesh, std::string type) {
 
 } // namespace
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename,
-                                                                                            std::string type) {
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename,
+                                                                                                   std::string type) {
   // Load the mesh using the SimplePolygonMesh loaders
   std::string loadType;
   SimplePolygonMesh simpleMesh;
@@ -101,7 +101,7 @@ void WavefrontOBJ::writeHeader(std::ofstream& out, EmbeddedGeometryInterface& ge
 }
 
 void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
   geometry.requireVertexPositions();
 
   for (Vertex v : mesh.vertices()) {
@@ -112,7 +112,7 @@ void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& 
 
 void WavefrontOBJ::writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface& geometry,
                                   CornerData<Vector2>& texcoords) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
 
   for (Corner c : mesh.corners()) {
     Vector2 z = texcoords[c];
@@ -121,7 +121,7 @@ void WavefrontOBJ::writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface&
 }
 
 void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
 
   // Get vertex indices
   VertexData<size_t> indices = mesh.getVertexIndices();
@@ -141,7 +141,7 @@ void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geo
   }
 }
 
-std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(HalfedgeMesh& mesh) {
+std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(SurfaceMesh& mesh) {
   std::array<std::pair<std::vector<size_t>, size_t>, 5> result;
 
   // This works because of the iteration order that we we know these iterators obey. If iteration orders ever change,
@@ -196,13 +196,13 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Half
   return result;
 }
 
-EdgeData<char> polyscopeEdgeOrientations(HalfedgeMesh& mesh) {
+EdgeData<char> polyscopeEdgeOrientations(SurfaceMesh& mesh) {
 
   EdgeData<char> result(mesh);
   VertexData<size_t> vertexIndices = mesh.getVertexIndices();
 
   for (Edge e : mesh.edges()) {
-    result[e] = vertexIndices[e.halfedge().vertex()] < vertexIndices[e.halfedge().twin().vertex()];
+    result[e] = vertexIndices[e.halfedge().vertex()] < vertexIndices[e.halfedge().next().vertex()];
   }
 
   return result;

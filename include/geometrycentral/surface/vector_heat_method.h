@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/numerical/linear_solvers.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/heat_method_distance.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/surface_point.h"
@@ -56,7 +56,8 @@ private:
   // === Members
 
   // Basics
-  HalfedgeMesh& mesh;
+  // TODO FIXME this should probably become a manfiold surface mesh, at least for now
+  SurfaceMesh& mesh;
   IntrinsicGeometryInterface& geom;
 
   // Parameters

@@ -1,5 +1,5 @@
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 
 #include "geometrycentral/surface/base_geometry_interface.h"
@@ -51,7 +51,7 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipTest) {
 TEST_F(HalfedgeMutationSuite, EdgeFlipClosedManyTest) {
 
   auto asset = getAsset("sphere_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
 
   int count = 1000;
   int indInc = static_cast<int>(std::ceil(mesh.nVertices() / static_cast<double>(count)));
@@ -183,7 +183,7 @@ TEST_F(HalfedgeMutationSuite, EdgeSplitTest) {
 TEST_F(HalfedgeMutationSuite, ContainerExpandTest) {
 
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Initial element counts

@@ -17,7 +17,7 @@ namespace surface {
 VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
 
 
-  HalfedgeMesh& mesh = geometry.mesh;
+  SurfaceMesh& mesh = geometry.mesh;
 
   geometry.requireVertexIndices();
   geometry.requireVertexGalerkinMassMatrix();
@@ -45,7 +45,7 @@ VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterf
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {
-  HalfedgeMesh& mesh = geometry.mesh;
+  SurfaceMesh& mesh = geometry.mesh;
 
 
   if (!mesh.hasBoundary()) {
@@ -154,7 +154,7 @@ FaceData<Vector2> computeSmoothestFaceDirectionField_noBoundary(IntrinsicGeometr
                                                                 bool alignCurvature = false) {
 
 
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
   unsigned int N = mesh.nFaces();
 
   GeometryCache<Euclidean>& geometry = geometry->cache;
@@ -273,7 +273,7 @@ FaceData<Vector2> computeSmoothestFaceDirectionField_noBoundary(IntrinsicGeometr
 FaceData<Vector2> computeSmoothestFaceDirectionField_boundary(IntrinsicGeometryInterface& geometry, int nSym = 1,
                                                               bool alignCurvature = false) {
 
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
 
   GeometryCache<Euclidean>& geometry = geometry->cache;
   geometry.requireFaceTransportCoefs();
@@ -476,7 +476,7 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField_noBoundary(Intri
                                                                            int nSym) {
 
 
-  HalfedgeMesh& mesh = geometry.mesh;
+  SurfaceMesh& mesh = geometry.mesh;
   size_t N = mesh.nVertices();
 
   geometry.requireVertexIndices();
@@ -536,7 +536,7 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField_noBoundary(Intri
 
 VertexData<Vector2> computeCurvatureAlignedVertexDirectionField_boundary(IntrinsicGeometryInterface& geometry,
                                                                          int nSym) {
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
   size_t nInterior = mesh.nInteriorVertices();
 
   GeometryCache<Euclidean>& geometry = geometry->cache;
@@ -702,7 +702,7 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometr
 FaceData<int> computeFaceIndex(IntrinsicGeometryInterface& geometry, const VertexData<Vector2>& directionField,
                                int nSym) {
 
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
 
   GeometryCache<Euclidean>& geometry = geometry->cache;
   geometry.requireFaceTransportCoefs();
@@ -744,7 +744,7 @@ FaceData<int> computeFaceIndex(IntrinsicGeometryInterface& geometry, const Verte
 VertexData<int> computeVertexIndex(IntrinsicGeometryInterface& geometry, const FaceData<Vector2>& directionField,
                                    int nSym) {
 
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& geometry = geometry->cache;
   geometry.requireFaceTransportCoefs();
 

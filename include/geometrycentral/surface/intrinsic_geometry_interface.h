@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/surface/base_geometry_interface.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/utilities/vector2.h"
 
 #include <Eigen/SparseCore>
@@ -18,7 +18,7 @@ protected:
   // Constructor is protected, because this class is an interface which is not meant to be instantiated directly.
   // Instantiate it via some realization which encapsulates input data, like EdgeLengthGeometry or
   // VertexPositionGeometry.
-  IntrinsicGeometryInterface(HalfedgeMesh& mesh_);
+  IntrinsicGeometryInterface(SurfaceMesh& mesh_);
 
 public:
   virtual ~IntrinsicGeometryInterface() {}

@@ -18,7 +18,7 @@ template<> inline std::string plyElementName<BoundaryLoop >()            { retur
 // Generic implementations which handle all element types
 
 template <typename E, typename T>
-MeshData<E, T> PlyHalfedgeMeshData::getElementProperty(std::string propertyName) {
+MeshData<E, T> PlySurfaceMeshData::getElementProperty(std::string propertyName) {
 
   std::string eName = plyElementName<E>();
   std::vector<T> rawData = plyData.getElement(eName).getProperty<T>(propertyName);
@@ -38,7 +38,7 @@ MeshData<E, T> PlyHalfedgeMeshData::getElementProperty(std::string propertyName)
 }
 
 template <typename E, typename T>
-void PlyHalfedgeMeshData::addElementProperty(std::string propertyName, const MeshData<E, T>& data) {
+void PlySurfaceMeshData::addElementProperty(std::string propertyName, const MeshData<E, T>& data) {
 
   std::string eName = plyElementName<E>();
 
@@ -62,64 +62,64 @@ void PlyHalfedgeMeshData::addElementProperty(std::string propertyName, const Mes
 // = getters
 
 template <class T>
-VertexData<T> PlyHalfedgeMeshData::getVertexProperty(std::string propertyName) {
+VertexData<T> PlySurfaceMeshData::getVertexProperty(std::string propertyName) {
   return getElementProperty<Vertex, T>(propertyName);
 }
 
 template <class T>
-HalfedgeData<T> PlyHalfedgeMeshData::getHalfedgeProperty(std::string propertyName) {
+HalfedgeData<T> PlySurfaceMeshData::getHalfedgeProperty(std::string propertyName) {
   return getElementProperty<Halfedge, T>(propertyName);
 }
 
 template <class T>
-CornerData<T> PlyHalfedgeMeshData::getCornerProperty(std::string propertyName) {
+CornerData<T> PlySurfaceMeshData::getCornerProperty(std::string propertyName) {
   return getElementProperty<Corner, T>(propertyName);
 }
 
 template <class T>
-EdgeData<T> PlyHalfedgeMeshData::getEdgeProperty(std::string propertyName) {
+EdgeData<T> PlySurfaceMeshData::getEdgeProperty(std::string propertyName) {
   return getElementProperty<Edge, T>(propertyName);
 }
 
 template <class T>
-FaceData<T> PlyHalfedgeMeshData::getFaceProperty(std::string propertyName) {
+FaceData<T> PlySurfaceMeshData::getFaceProperty(std::string propertyName) {
   return getElementProperty<Face, T>(propertyName);
 }
 
 template <class T>
-BoundaryLoopData<T> PlyHalfedgeMeshData::getBoundaryLoopProperty(std::string propertyName) {
+BoundaryLoopData<T> PlySurfaceMeshData::getBoundaryLoopProperty(std::string propertyName) {
   return getElementProperty<BoundaryLoop, T>(propertyName);
 }
 
 // = setters
 
 template <class T>
-void PlyHalfedgeMeshData::addVertexProperty(std::string propertyName, const VertexData<T>& data) {
+void PlySurfaceMeshData::addVertexProperty(std::string propertyName, const VertexData<T>& data) {
   return addElementProperty<Vertex, T>(propertyName, data);
 }
 
 template <class T>
-void PlyHalfedgeMeshData::addHalfedgeProperty(std::string propertyName, const HalfedgeData<T>& data) {
+void PlySurfaceMeshData::addHalfedgeProperty(std::string propertyName, const HalfedgeData<T>& data) {
   return addElementProperty<Halfedge, T>(propertyName, data);
 }
 
 template <class T>
-void PlyHalfedgeMeshData::addCornerProperty(std::string propertyName, const CornerData<T>& data) {
+void PlySurfaceMeshData::addCornerProperty(std::string propertyName, const CornerData<T>& data) {
   return addElementProperty<Corner, T>(propertyName, data);
 }
 
 template <class T>
-void PlyHalfedgeMeshData::addEdgeProperty(std::string propertyName, const EdgeData<T>& data) {
+void PlySurfaceMeshData::addEdgeProperty(std::string propertyName, const EdgeData<T>& data) {
   return addElementProperty<Edge, T>(propertyName, data);
 }
 
 template <class T>
-void PlyHalfedgeMeshData::addFaceProperty(std::string propertyName, const FaceData<T>& data) {
+void PlySurfaceMeshData::addFaceProperty(std::string propertyName, const FaceData<T>& data) {
   return addElementProperty<Face, T>(propertyName, data);
 }
 
 template <class T>
-void PlyHalfedgeMeshData::addBoundaryLoopProperty(std::string propertyName, const BoundaryLoopData<T>& data) {
+void PlySurfaceMeshData::addBoundaryLoopProperty(std::string propertyName, const BoundaryLoopData<T>& data) {
   return addElementProperty<BoundaryLoop, T>(propertyName, data);
 }
 

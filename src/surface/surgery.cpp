@@ -5,11 +5,11 @@
 namespace geometrycentral {
 namespace surface {
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, HalfedgeData<Halfedge>> cutAlongEdges(HalfedgeMesh& origMesh,
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, HalfedgeData<Halfedge>> cutAlongEdges(ManifoldSurfaceMesh& origMesh,
                                                                                 const EdgeData<char>& origCut) {
 
   // Create a copy of the input mesh
-  std::unique_ptr<HalfedgeMesh> mesh = origMesh.copy();
+  std::unique_ptr<ManifoldSurfaceMesh> mesh = origMesh.copy();
 
   // Initialize parent references
   // The built-in dynamic container updates will automatically keep this container in sync as we modify the mesh
@@ -97,7 +97,7 @@ std::tuple<std::unique_ptr<HalfedgeMesh>, HalfedgeData<Halfedge>> cutAlongEdges(
     parentHalfedges[he] = Halfedge();
   }
 
-  return std::tuple<std::unique_ptr<HalfedgeMesh>, HalfedgeData<Halfedge>>{std::move(mesh), parentHalfedges};
+  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, HalfedgeData<Halfedge>>{std::move(mesh), parentHalfedges};
 }
 
 

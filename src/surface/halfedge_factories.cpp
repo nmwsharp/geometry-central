@@ -5,23 +5,23 @@ namespace geometrycentral {
 namespace surface {
 
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions) {
 
   return makeHalfedgeAndGeometry(polygons, {}, vertexPositions);
 }
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
                         const std::vector<Vector3> vertexPositions) {
 
   // Construct
-  std::unique_ptr<HalfedgeMesh> mesh;
+  std::unique_ptr<ManifoldSurfaceMesh> mesh;
   if (twins.empty()) {
-    mesh.reset(new HalfedgeMesh(polygons));
+    mesh.reset(new ManifoldSurfaceMesh(polygons));
   } else {
-    mesh.reset(new HalfedgeMesh(polygons, twins, true));
+    mesh.reset(new ManifoldSurfaceMesh(polygons, twins));
   }
   std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
   for (Vertex v : mesh->vertices()) {

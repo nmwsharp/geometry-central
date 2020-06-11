@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include "happly.h"
@@ -16,7 +16,7 @@ namespace surface {
 // A reader/writer class supporting direct interop between the GeometryCentral mesh types and the .ply file
 // format. Allows storing and retriving of VertexData<> etc containers.
 // No operations are valid if the mesh is modified after the creation of the reader/writer.
-class PlyHalfedgeMeshData {
+class PlySurfaceMeshData {
 
   // TODO implement permutation halfedge mesh storage
 
@@ -27,17 +27,17 @@ class PlyHalfedgeMeshData {
 public:
   // Construct by reading from file, mapping the elements on to an existing mesh.
   // To simultaneously read the mesh encoded by the file, see the static method loadMeshAndData below.
-  PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename);
+  PlySurfaceMeshData(SurfaceMesh& mesh_, std::string filename);
 
   // Construct a data object. Connectivity will be added automatically, geometry and other data fields can be added.
-  PlyHalfedgeMeshData(HalfedgeMesh& mesh_);
+  PlySurfaceMeshData(SurfaceMesh& mesh_);
 
   // Convenience factory method to simultaneously read the mesh from a file and
-  static std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<PlyHalfedgeMeshData>>
+  static std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<PlySurfaceMeshData>>
   loadMeshAndData(std::string filename);
 
   // The mesh on which the properties in this file are presumed to exist
-  HalfedgeMesh& mesh;
+  SurfaceMesh& mesh;
 
   // The underlying reader/writer object
   happly::PLYData plyData;
@@ -129,4 +129,4 @@ private:
 } // namespace geometrycentral
 
 
-#include "geometrycentral/surface/ply_halfedge_mesh_data.ipp"
+#include "geometrycentral/surface/ply_surface_mesh_data.ipp"

@@ -14,7 +14,7 @@ namespace geometrycentral {
 namespace surface {
 
 // === Types and inline methods for the halfedge mesh pointer and datatypes
-class HalfedgeMesh;
+class SurfaceMesh;
 
 class Vertex;
 class Halfedge;
@@ -47,14 +47,14 @@ struct BoundaryLoopAdjacentCornerNavigator;
 // ================        Vertex          ==================
 // ==========================================================
 
-class Vertex : public Element<Vertex, HalfedgeMesh> {
+class Vertex : public Element<Vertex, SurfaceMesh> {
 public:
   // Constructors
   // inheriting constructor would work here, and replace the constructors below, but gcc-5 erroneously rejects the combo
   // with CRTP :( perhaps resurrect here and in other elements below once gcc-5 is sufficiently old
   // using Element<Vertex>::Element;
   Vertex();                                // construct an empty (null) element
-  Vertex(HalfedgeMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Vertex(SurfaceMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
   Vertex(const DynamicElement<Vertex>& e); // construct from a dynamic element of matching type
 
   // Navigators
@@ -64,6 +64,7 @@ public:
 
   // Properties
   bool isBoundary() const;
+  bool isManifold() const; // actually tests "manifold and oriented"
   size_t degree() const;
   size_t faceDegree() const;
 
@@ -82,9 +83,9 @@ using DynamicVertex = DynamicElement<Vertex>;
 
 // All vertices
 struct VertexRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Vertex Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<VertexRangeF> VertexSet;
 
@@ -93,11 +94,11 @@ typedef RangeSetBase<VertexRangeF> VertexSet;
 // ================        Halfedge        ==================
 // ==========================================================
 
-class Halfedge : public Element<Halfedge, HalfedgeMesh> {
+class Halfedge : public Element<Halfedge, SurfaceMesh> {
 public:
   // Constructors
   Halfedge();                                  // construct an empty (null) element
-  Halfedge(HalfedgeMesh* mesh, size_t ind);    // construct pointing to the i'th element of that type on a mesh.
+  Halfedge(SurfaceMesh* mesh, size_t ind);    // construct pointing to the i'th element of that type on a mesh.
   Halfedge(const DynamicElement<Halfedge>& e); // construct from a dynamic element of matching type
 
   // Navigators
@@ -124,25 +125,25 @@ using DynamicHalfedge = DynamicElement<Halfedge>;
 
 // All halfedges
 struct HalfedgeRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Halfedge Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<HalfedgeRangeF> HalfedgeSet;
 
 // Interior halfedges
 struct HalfedgeInteriorRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Halfedge Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<HalfedgeInteriorRangeF> HalfedgeInteriorSet;
 
 // Exterior halfedges
 struct HalfedgeExteriorRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Halfedge Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<HalfedgeExteriorRangeF> HalfedgeExteriorSet;
 
@@ -153,11 +154,11 @@ typedef RangeSetBase<HalfedgeExteriorRangeF> HalfedgeExteriorSet;
 
 // Implmentation note: The `ind` parameter for a corner will be the index of a halfedge, which should always be real.
 
-class Corner : public Element<Corner, HalfedgeMesh> {
+class Corner : public Element<Corner, SurfaceMesh> {
 public:
   // Constructors
   Corner();                                // construct an empty (null) element
-  Corner(HalfedgeMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Corner(SurfaceMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
   Corner(const DynamicElement<Corner>& e); // construct from a dynamic element of matching type
 
   // Navigators
@@ -173,9 +174,9 @@ using DynamicCorner = DynamicElement<Corner>;
 
 // All corners
 struct CornerRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Corner Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<CornerRangeF> CornerSet;
 
@@ -184,11 +185,11 @@ typedef RangeSetBase<CornerRangeF> CornerSet;
 // ================          Edge          ==================
 // ==========================================================
 
-class Edge : public Element<Edge, HalfedgeMesh> {
+class Edge : public Element<Edge, SurfaceMesh> {
 public:
   // Constructors
   Edge();                               // construct an empty (null) element
-  Edge(HalfedgeMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  Edge(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
   Edge(const DynamicElement<Edge>& e);  // construct from a dynamic element of matching type
 
   // Navigators
@@ -212,9 +213,9 @@ using DynamicEdge = DynamicElement<Edge>;
 
 // All edges
 struct EdgeRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Edge Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<EdgeRangeF> EdgeSet;
 
@@ -225,13 +226,13 @@ typedef RangeSetBase<EdgeRangeF> EdgeSet;
 
 // Implmentation note: The `ind` parameter for a face might correspond to a boundary loop. The boundary loops have face
 // IDs which are at the very end of the face buffer, but can still index in to face-valued arrays/functions in
-// HalfedgeMesh (they _cannot_ index in to FaceData<> containers).
+// SurfaceMesh (they _cannot_ index in to FaceData<> containers).
 
-class Face : public Element<Face, HalfedgeMesh> {
+class Face : public Element<Face, SurfaceMesh> {
 public:
   // Constructors
   Face();                               // construct an empty (null) element
-  Face(HalfedgeMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
+  Face(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
   Face(const DynamicElement<Face>& e);  // construct from a dynamic element of matching type
 
   // Navigators
@@ -258,9 +259,9 @@ using DynamicFace = DynamicElement<Face>;
 
 // All faces
 struct FaceRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef Face Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<FaceRangeF> FaceSet;
 
@@ -272,11 +273,11 @@ typedef RangeSetBase<FaceRangeF> FaceSet;
 // Implementation note: the `ind` parameter for a boundary loop is index from the back of the face index space, from [0,
 // nBoundaryLoopFillCount).
 
-class BoundaryLoop : public Element<BoundaryLoop, HalfedgeMesh> {
+class BoundaryLoop : public Element<BoundaryLoop, SurfaceMesh> {
 public:
   // Constructors
   BoundaryLoop();                                      // construct an empty (null) element
-  BoundaryLoop(HalfedgeMesh* mesh, size_t ind);        // construct pointing to the i'th element of that type on a mesh.
+  BoundaryLoop(SurfaceMesh* mesh, size_t ind);        // construct pointing to the i'th element of that type on a mesh.
   BoundaryLoop(const DynamicElement<BoundaryLoop>& e); // construct from a dynamic element of matching type
 
   Halfedge halfedge() const;
@@ -298,9 +299,9 @@ using DynamicBoundaryLoop = DynamicElement<BoundaryLoop>;
 
 // All boundary loops
 struct BoundaryLoopRangeF {
-  static bool elementOkay(const HalfedgeMesh& mesh, size_t ind);
+  static bool elementOkay(const SurfaceMesh& mesh, size_t ind);
   typedef BoundaryLoop Etype;
-  typedef HalfedgeMesh ParentMeshT;
+  typedef SurfaceMesh ParentMeshT;
 };
 typedef RangeSetBase<BoundaryLoopRangeF> BoundaryLoopSet;
 
@@ -315,7 +316,7 @@ typedef RangeSetBase<BoundaryLoopRangeF> BoundaryLoopSet;
 struct VertexNeighborIteratorState {
 
   VertexNeighborIteratorState(Halfedge currHe);
-  VertexNeighborIteratorState(HalfedgeMesh* mesh, Vertex v);
+  VertexNeighborIteratorState(SurfaceMesh* mesh, Vertex v);
 
   bool useArray = false;
 
@@ -323,7 +324,7 @@ struct VertexNeighborIteratorState {
   Halfedge currHe = Halfedge();
 
   // if useArray == true, these are is populated
-  HalfedgeMesh* mesh = nullptr;
+  SurfaceMesh* mesh = nullptr;
   size_t degree = INVALID_IND;
   size_t indStart = INVALID_IND;
   size_t currInd = INVALID_IND;
@@ -520,26 +521,26 @@ struct BoundaryLoopAdjacentEdgeNavigator {
 
 // clang-format off
 
-template<> inline size_t nElements<surface::Vertex       >(surface::HalfedgeMesh* mesh); 
-template<> inline size_t nElements<surface::Face         >(surface::HalfedgeMesh* mesh); 
-template<> inline size_t nElements<surface::Edge         >(surface::HalfedgeMesh* mesh); 
-template<> inline size_t nElements<surface::Halfedge     >(surface::HalfedgeMesh* mesh); 
-template<> inline size_t nElements<surface::Corner       >(surface::HalfedgeMesh* mesh); 
-template<> inline size_t nElements<surface::BoundaryLoop >(surface::HalfedgeMesh* mesh); 
+template<> inline size_t nElements<surface::Vertex       >(surface::SurfaceMesh* mesh); 
+template<> inline size_t nElements<surface::Face         >(surface::SurfaceMesh* mesh); 
+template<> inline size_t nElements<surface::Edge         >(surface::SurfaceMesh* mesh); 
+template<> inline size_t nElements<surface::Halfedge     >(surface::SurfaceMesh* mesh); 
+template<> inline size_t nElements<surface::Corner       >(surface::SurfaceMesh* mesh); 
+template<> inline size_t nElements<surface::BoundaryLoop >(surface::SurfaceMesh* mesh); 
 
-template<> inline size_t elementCapacity<surface::Vertex      >(surface::HalfedgeMesh* mesh);
-template<> inline size_t elementCapacity<surface::Face        >(surface::HalfedgeMesh* mesh);
-template<> inline size_t elementCapacity<surface::Edge        >(surface::HalfedgeMesh* mesh);
-template<> inline size_t elementCapacity<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
-template<> inline size_t elementCapacity<surface::Corner      >(surface::HalfedgeMesh* mesh);
-template<> inline size_t elementCapacity<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+template<> inline size_t elementCapacity<surface::Vertex      >(surface::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<surface::Face        >(surface::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<surface::Edge        >(surface::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<surface::Halfedge    >(surface::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<surface::Corner      >(surface::SurfaceMesh* mesh);
+template<> inline size_t elementCapacity<surface::BoundaryLoop>(surface::SurfaceMesh* mesh);
 
-template<> inline size_t dataIndexOfElement<surface::Vertex          >(surface::HalfedgeMesh* mesh, surface::Vertex e           );
-template<> inline size_t dataIndexOfElement<surface::Face            >(surface::HalfedgeMesh* mesh, surface::Face e             );
-template<> inline size_t dataIndexOfElement<surface::Edge            >(surface::HalfedgeMesh* mesh, surface::Edge e             );
-template<> inline size_t dataIndexOfElement<surface::Halfedge        >(surface::HalfedgeMesh* mesh, surface::Halfedge e         );
-template<> inline size_t dataIndexOfElement<surface::Corner          >(surface::HalfedgeMesh* mesh, surface::Corner e           );
-template<> inline size_t dataIndexOfElement<surface::BoundaryLoop    >(surface::HalfedgeMesh* mesh, surface::BoundaryLoop e     );
+template<> inline size_t dataIndexOfElement<surface::Vertex          >(surface::SurfaceMesh* mesh, surface::Vertex e           );
+template<> inline size_t dataIndexOfElement<surface::Face            >(surface::SurfaceMesh* mesh, surface::Face e             );
+template<> inline size_t dataIndexOfElement<surface::Edge            >(surface::SurfaceMesh* mesh, surface::Edge e             );
+template<> inline size_t dataIndexOfElement<surface::Halfedge        >(surface::SurfaceMesh* mesh, surface::Halfedge e         );
+template<> inline size_t dataIndexOfElement<surface::Corner          >(surface::SurfaceMesh* mesh, surface::Corner e           );
+template<> inline size_t dataIndexOfElement<surface::BoundaryLoop    >(surface::SurfaceMesh* mesh, surface::BoundaryLoop e     );
 
 template<> struct ElementSetType<surface::Vertex        >   { typedef surface::VertexSet       type; };
 template<> struct ElementSetType<surface::Face          >   { typedef surface::FaceSet         type; };
@@ -548,26 +549,26 @@ template<> struct ElementSetType<surface::Halfedge      >   { typedef surface::H
 template<> struct ElementSetType<surface::Corner        >   { typedef surface::CornerSet       type; };
 template<> struct ElementSetType<surface::BoundaryLoop  >   { typedef surface::BoundaryLoopSet type; };
 
-template<> inline surface::VertexSet         iterateElements<surface::Vertex      >(surface::HalfedgeMesh* mesh);
-template<> inline surface::HalfedgeSet       iterateElements<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
-template<> inline surface::CornerSet         iterateElements<surface::Corner      >(surface::HalfedgeMesh* mesh);
-template<> inline surface::EdgeSet           iterateElements<surface::Edge        >(surface::HalfedgeMesh* mesh);
-template<> inline surface::FaceSet           iterateElements<surface::Face        >(surface::HalfedgeMesh* mesh);
-template<> inline surface::BoundaryLoopSet   iterateElements<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+template<> inline surface::VertexSet         iterateElements<surface::Vertex      >(surface::SurfaceMesh* mesh);
+template<> inline surface::HalfedgeSet       iterateElements<surface::Halfedge    >(surface::SurfaceMesh* mesh);
+template<> inline surface::CornerSet         iterateElements<surface::Corner      >(surface::SurfaceMesh* mesh);
+template<> inline surface::EdgeSet           iterateElements<surface::Edge        >(surface::SurfaceMesh* mesh);
+template<> inline surface::FaceSet           iterateElements<surface::Face        >(surface::SurfaceMesh* mesh);
+template<> inline surface::BoundaryLoopSet   iterateElements<surface::BoundaryLoop>(surface::SurfaceMesh* mesh);
 
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Vertex      >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Halfedge    >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Corner      >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Edge        >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Face        >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::BoundaryLoop>(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Vertex      >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Halfedge    >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Corner      >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Edge        >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::Face        >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(size_t)>>& getExpandCallbackList<surface::BoundaryLoop>(surface::SurfaceMesh* mesh);
 
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Vertex       >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Halfedge     >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Corner       >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Edge         >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Face         >(surface::HalfedgeMesh* mesh);
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::BoundaryLoop >(surface::HalfedgeMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Vertex       >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Halfedge     >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Corner       >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Edge         >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Face         >(surface::SurfaceMesh* mesh);
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::BoundaryLoop >(surface::SurfaceMesh* mesh);
 
 template<> inline std::string typeShortName<surface::Vertex       >();
 template<> inline std::string typeShortName<surface::Halfedge     >();

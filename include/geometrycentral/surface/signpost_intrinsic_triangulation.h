@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
@@ -20,20 +20,20 @@ class SignpostIntrinsicTriangulation : public IntrinsicGeometryInterface {
 public:
   // Construct an intrinsic triangulation which sits atop this input mesh. Initially, the input triangulation will
   // just be a copy of the input mesh.
-  SignpostIntrinsicTriangulation(IntrinsicGeometryInterface& inputGeom);
+  SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom);
 
   // ======================================================
   // ======== Core Members
   // ======================================================
 
   // The underlying surface on which the intrinsic triangulation has been constructed
-  HalfedgeMesh& inputMesh;
+  ManifoldSurfaceMesh& inputMesh;
   IntrinsicGeometryInterface& inputGeom;
 
   // The connectivity of the intrinsic triangulation
   // note that somewhat confusingly, there is a .mesh reference which points to this same mesh,
   // inherited from the geometry interface
-  std::unique_ptr<HalfedgeMesh> intrinsicMesh;
+  std::unique_ptr<ManifoldSurfaceMesh> intrinsicMesh;
 
   // The geometry of the intrinsic triangulation
   EdgeData<double> intrinsicEdgeLengths;            // length of each edge

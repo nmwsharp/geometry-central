@@ -10,17 +10,17 @@ namespace geometrycentral {
 namespace surface {
 
 
-SurfacePoint findCenter(IntrinsicGeometryInterface& geom, const std::vector<Vertex>& vertexPts, int p) {
+SurfacePoint findCenter(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, const std::vector<Vertex>& vertexPts, int p) {
   VertexData<double> dist(geom.mesh, 0.);
   for (Vertex v : vertexPts) {
     dist[v] += 1.;
   }
 
   // Forward to the general version
-  return findCenter(geom, dist, p);
+  return findCenter(mesh, geom, dist, p);
 }
 
-SurfacePoint findCenter(IntrinsicGeometryInterface& geom, VectorHeatMethodSolver& solver,
+SurfacePoint findCenter(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, VectorHeatMethodSolver& solver,
                         const std::vector<Vertex>& vertexPts, int p) {
   VertexData<double> dist(geom.mesh, 0.);
   for (Vertex v : vertexPts) {
@@ -28,26 +28,23 @@ SurfacePoint findCenter(IntrinsicGeometryInterface& geom, VectorHeatMethodSolver
   }
 
   // Forward to the general version
-  return findCenter(geom, solver, dist, p);
+  return findCenter(mesh, geom, solver, dist, p);
 }
 
-SurfacePoint findCenter(IntrinsicGeometryInterface& geom, const VertexData<double>& distribution, int p) {
+SurfacePoint findCenter(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, const VertexData<double>& distribution, int p) {
   VectorHeatMethodSolver solver(geom);
 
   // Forward to the general version
-  return findCenter(geom, solver, distribution, p);
+  return findCenter(mesh, geom, solver, distribution, p);
 }
 
 
-SurfacePoint findCenter(IntrinsicGeometryInterface& geom, VectorHeatMethodSolver& solver,
+SurfacePoint findCenter(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, VectorHeatMethodSolver& solver,
                         const VertexData<double>& distribution, int p) {
 
   if (p != 1 && p != 2) {
     throw std::logic_error("only p=1 or p=2 is supported");
   }
-
-
-  HalfedgeMesh& mesh = geom.mesh;
 
   geom.requireFaceAreas();
   geom.requireHalfedgeVectorsInVertex();

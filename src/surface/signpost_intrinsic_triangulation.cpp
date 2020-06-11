@@ -14,13 +14,15 @@ namespace geometrycentral {
 namespace surface {
 
 
-SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(IntrinsicGeometryInterface& inputGeom_)
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_)
     // Note: this initializer list does something slightly wacky: it creates the new mesh on the heap, then loses track
     // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
     // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
     // probably a sign of bad design.
-    : IntrinsicGeometryInterface(*inputGeom_.mesh.copy().release()), inputMesh(inputGeom_.mesh), inputGeom(inputGeom_),
-      intrinsicMesh(&mesh) {
+    : 
+      IntrinsicGeometryInterface(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
+      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) 
+  {
 
   // Make sure the input mesh is triangular
   if (!mesh.isTriangular()) {
@@ -191,7 +193,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
 
   // Combinatorial flip
-  bool flipped = mesh.flip(e);
+  bool flipped = intrinsicMesh->flip(e);
 
   // Should always be possible, something unusual is going on if we end up here
   if (!flipped) {
@@ -204,7 +206,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   // If we're going to create a non-finite edge length, abort the flip
   // (only happens if you're in a bad numerical place)
   if (!std::isfinite(newLength)) {
-    mesh.flip(e);
+    intrinsicMesh->flip(e);
     return false;
   }
 
@@ -243,7 +245,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
 
 
   // Combinatorial flip
-  bool flipped = mesh.flip(e);
+  bool flipped = intrinsicMesh->flip(e);
 
   // Might not have been flippable for connectivity reasons
   if (!flipped) {
@@ -256,7 +258,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
   // If we're going to create a non-finite edge length, abort the flip
   // (only happens if you're in a bad numerical place)
   if (!std::isfinite(newLength)) {
-    mesh.flip(e);
+    intrinsicMesh->flip(e);
     return false;
   }
 
@@ -332,7 +334,7 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   // === (2) Insert vertex
 
   // Put a new vertex inside of the proper intrinsic face
-  Halfedge newHeFront = mesh.splitEdgeTriangular(insertionEdge);
+  Halfedge newHeFront = intrinsicMesh->splitEdgeTriangular(insertionEdge);
   edgeIsOriginal[insertionEdge] = false;
   Vertex newV = newHeFront.vertex();
 
@@ -387,7 +389,7 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
   // === (2) Insert vertex
 
   // Put a new vertex inside of the proper intrinsic face
-  Vertex newV = mesh.insertVertex(insertionFace);
+  Vertex newV = intrinsicMesh->insertVertex(insertionFace);
 
   // = Update data arrays for the new vertex
   intrinsicVertexAngleSums[newV] = 2. * M_PI;
@@ -499,7 +501,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   if (v.degree() != 3) return Face();
 
   // Remove the vertex
-  Face newF = mesh.removeVertex(v);
+  Face newF = intrinsicMesh->removeVertex(v);
   updateFaceBasis(newF);
   return newF;
 }

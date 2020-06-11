@@ -19,7 +19,7 @@ std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex 
   }
 
   // Gather values
-  HalfedgeMesh& mesh = geom.mesh;
+  SurfaceMesh& mesh = geom.mesh;
   geom.requireEdgeLengths();
 
   // Search state: incoming halfedges to each vertex, once discovered
@@ -90,7 +90,7 @@ std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex 
 EdgeData<char> minimalSpanningTree(Geometry<Euclidean>* geometry) {
 
   // Preliminaries
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& gc = geometry->cache;
   gc.requireEdgeLengths();
   VertexData<size_t> vInd = mesh->getVertexIndices();
@@ -140,7 +140,7 @@ EdgeData<char> minimalSpanningTree(Geometry<Euclidean>* geometry) {
 EdgeData<char> minimalSpanningTree(EdgeLengthGeometry* geometry) {
 
   // Preliminaries
-  HalfedgeMesh* mesh = geometry->mesh;
+  SurfaceMesh* mesh = geometry->mesh;
   geometry->requireEdgeLengths();
   VertexData<size_t> vInd = mesh->getVertexIndices();
 
@@ -189,7 +189,7 @@ EdgeData<char> minimalSpanningTree(EdgeLengthGeometry* geometry) {
 EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry, const std::vector<Vertex>& requiredVertices) {
 
   // Preliminaries
-  HalfedgeMesh* mesh = geometry->getMesh();
+  SurfaceMesh* mesh = geometry->getMesh();
   GeometryCache<Euclidean>& gc = geometry->cache;
   gc.requireEdgeLengths();
   VertexData<size_t> vInd = mesh->getVertexIndices();

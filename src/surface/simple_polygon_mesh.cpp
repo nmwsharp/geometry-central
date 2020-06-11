@@ -1,7 +1,5 @@
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 
-#include "geometrycentral/surface/halfedge_mesh.h"
-
 #include "happly.h"
 
 #include <map>

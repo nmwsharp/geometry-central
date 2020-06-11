@@ -4,7 +4,7 @@
 
 #include "geometrycentral/utilities/vector2.h"
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 
@@ -62,7 +62,7 @@ private:
   // === Members
 
   // Basics
-  HalfedgeMesh& mesh;
+  SurfaceMesh& mesh;
   IntrinsicGeometryInterface& geom;
 
   // Parameters

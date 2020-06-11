@@ -12,7 +12,7 @@ namespace geometrycentral {
 namespace surface {
 
 // clang-format off
-IntrinsicGeometryInterface::IntrinsicGeometryInterface(HalfedgeMesh& mesh_) : 
+IntrinsicGeometryInterface::IntrinsicGeometryInterface(SurfaceMesh& mesh_) : 
   BaseGeometryInterface(mesh_), 
 
   edgeLengthsQ              (&edgeLengths,                  std::bind(&IntrinsicGeometryInterface::computeEdgeLengths, this),               quantities),
@@ -230,6 +230,7 @@ void IntrinsicGeometryInterface::unrequireHalfedgeCotanWeights() { halfedgeCotan
 
 // Edge cotan weights
 void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
+  // TODO FIXME nonmanifold
   edgeLengthsQ.ensureHave();
   faceAreasQ.ensureHave();
 

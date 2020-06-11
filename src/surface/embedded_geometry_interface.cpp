@@ -9,7 +9,7 @@ namespace geometrycentral {
 namespace surface {
 
 // clang-format off
-EmbeddedGeometryInterface::EmbeddedGeometryInterface(HalfedgeMesh& mesh_) : 
+EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) : 
   ExtrinsicGeometryInterface(mesh_),
 
   vertexPositionsQ      (&vertexPositions,      std::bind(&EmbeddedGeometryInterface::computeVertexPositions, this),        quantities),

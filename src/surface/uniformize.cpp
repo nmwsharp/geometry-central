@@ -9,8 +9,7 @@
 namespace geometrycentral {
 namespace surface {
 
-EdgeData<double> uniformizeDisk(IntrinsicGeometryInterface& geometry, bool withEdgeFlips) {
-  HalfedgeMesh& mesh = geometry.mesh;
+EdgeData<double> uniformizeDisk(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geometry, bool withEdgeFlips) {
 
   // Check that it's a (punctured) disk
   /*

@@ -1,5 +1,5 @@
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 
 #include "geometrycentral/surface/base_geometry_interface.h"
@@ -57,7 +57,7 @@ TEST_F(HalfedgeGeometrySuite, GeometryPointers) {
 
 TEST_F(HalfedgeGeometrySuite, RefreshMutationTest) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Initial element counts
@@ -134,7 +134,7 @@ TEST_F(HalfedgeGeometrySuite, RefreshMutationTest) {
 
 TEST_F(HalfedgeGeometrySuite, Purge) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   // Make sure the size is zero when empty
@@ -157,7 +157,7 @@ TEST_F(HalfedgeGeometrySuite, Purge) {
 // The DEC operators use a special array to ensure they all get deleted, make sure it works
 TEST_F(HalfedgeGeometrySuite, PurgeTestDEC) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   // Make sure the size is zero when empty
@@ -180,7 +180,7 @@ TEST_F(HalfedgeGeometrySuite, PurgeTestDEC) {
 // Copying
 TEST_F(HalfedgeGeometrySuite, CopyTest) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
 
   VertexPositionGeometry& geometry = *asset.geometry;
   
@@ -215,7 +215,7 @@ TEST_F(HalfedgeGeometrySuite, CopyTest) {
 
 TEST_F(HalfedgeGeometrySuite, VertexIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexIndices();
@@ -227,7 +227,7 @@ TEST_F(HalfedgeGeometrySuite, VertexIndices) {
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireHalfedgeIndices();
@@ -239,7 +239,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeIndices) {
 
 TEST_F(HalfedgeGeometrySuite, CornerIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireCornerIndices();
@@ -251,7 +251,7 @@ TEST_F(HalfedgeGeometrySuite, CornerIndices) {
 
 TEST_F(HalfedgeGeometrySuite, EdgeIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireEdgeIndices();
@@ -263,7 +263,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeIndices) {
 
 TEST_F(HalfedgeGeometrySuite, FaceIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireFaceIndices();
@@ -275,7 +275,7 @@ TEST_F(HalfedgeGeometrySuite, FaceIndices) {
 
 TEST_F(HalfedgeGeometrySuite, BoundaryLoopIndices) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   BaseGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireBoundaryLoopIndices();
@@ -289,7 +289,7 @@ TEST_F(HalfedgeGeometrySuite, BoundaryLoopIndices) {
 
 TEST_F(HalfedgeGeometrySuite, EdgeLengths) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireEdgeLengths();
@@ -303,7 +303,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeLengths) {
 // Test immediate edge length computation from position
 TEST_F(HalfedgeGeometrySuite, EdgeLengthImmediate_Position) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -323,7 +323,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeLengthImmediate_Position) {
 // Ensure overrides for computing edge length give the same result
 TEST_F(HalfedgeGeometrySuite, EdgeLengthOverrides) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -340,7 +340,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeLengthOverrides) {
 
 TEST_F(HalfedgeGeometrySuite, FaceAreas) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireFaceAreas();
@@ -353,7 +353,7 @@ TEST_F(HalfedgeGeometrySuite, FaceAreas) {
 // Ensure overrides for computing face area give the same result
 TEST_F(HalfedgeGeometrySuite, FaceAreaOverrides) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -377,7 +377,7 @@ TEST_F(HalfedgeGeometrySuite, FaceAreaOverrides) {
 // Test the immediate face area computation from the length geometry
 TEST_F(HalfedgeGeometrySuite, FaceAreasImmediate_Length) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -399,7 +399,7 @@ TEST_F(HalfedgeGeometrySuite, FaceAreasImmediate_Length) {
 // Test the immediate face area computation from the position geometry
 TEST_F(HalfedgeGeometrySuite, FaceAreasImmediate_Position) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -418,7 +418,7 @@ TEST_F(HalfedgeGeometrySuite, FaceAreasImmediate_Position) {
 
 TEST_F(HalfedgeGeometrySuite, VertexDualAreas) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexDualAreas();
@@ -431,7 +431,7 @@ TEST_F(HalfedgeGeometrySuite, VertexDualAreas) {
 
 TEST_F(HalfedgeGeometrySuite, CornerAngles) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireCornerAngles();
@@ -444,7 +444,7 @@ TEST_F(HalfedgeGeometrySuite, CornerAngles) {
 // Test immediate corner angles from length geometry
 TEST_F(HalfedgeGeometrySuite, CornerAnglesImmediate_Length) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -465,7 +465,7 @@ TEST_F(HalfedgeGeometrySuite, CornerAnglesImmediate_Length) {
 // Test immediate corner angles from position geometry
 TEST_F(HalfedgeGeometrySuite, CornerAnglesImmediate_Position) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -485,7 +485,7 @@ TEST_F(HalfedgeGeometrySuite, CornerAnglesImmediate_Position) {
 // Ensure overrides for computing corner angles give the same result
 TEST_F(HalfedgeGeometrySuite, CornerAngleOverrides) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -509,7 +509,7 @@ TEST_F(HalfedgeGeometrySuite, CornerAngleOverrides) {
 
 TEST_F(HalfedgeGeometrySuite, VertexAngleSums) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexAngleSums();
@@ -522,7 +522,7 @@ TEST_F(HalfedgeGeometrySuite, VertexAngleSums) {
 
 TEST_F(HalfedgeGeometrySuite, CornerScaledAngles) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireCornerScaledAngles();
@@ -535,7 +535,7 @@ TEST_F(HalfedgeGeometrySuite, CornerScaledAngles) {
 
 TEST_F(HalfedgeGeometrySuite, VertexGaussianCurvatures) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexGaussianCurvatures();
@@ -548,7 +548,7 @@ TEST_F(HalfedgeGeometrySuite, VertexGaussianCurvatures) {
 
 TEST_F(HalfedgeGeometrySuite, FaceGaussianCurvatures) {
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireFaceGaussianCurvatures();
@@ -559,7 +559,7 @@ TEST_F(HalfedgeGeometrySuite, FaceGaussianCurvatures) {
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeights) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireHalfedgeCotanWeights();
@@ -571,7 +571,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeights) {
 // Test immediate halfedge cotan computation from length
 TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightsImmediate_Length) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -592,7 +592,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightsImmediate_Length) {
 // Test immediate halfedge cotan computation from position
 TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightsImmediate_Position) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -612,7 +612,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightsImmediate_Position) {
 // Ensure overrides for computing halfedge cotan weights give the same result
 TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightOverrides) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -636,7 +636,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeCotanWeightOverrides) {
 
 TEST_F(HalfedgeGeometrySuite, EdgeCotanWeights) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireEdgeCotanWeights();
@@ -648,7 +648,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeCotanWeights) {
 // Test immediate cotan computation from length
 TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightsImmediate_Length) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -669,7 +669,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightsImmediate_Length) {
 // Test immediate cotan computation from position
 TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightsImmediate_Position) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -689,7 +689,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightsImmediate_Position) {
 // Ensure overrides for computing edge cotan weights give the same result
 TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightOverrides) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Construct edge length geometry
@@ -713,7 +713,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightOverrides) {
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInFace) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireHalfedgeVectorsInFace();
@@ -728,7 +728,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInFace) {
 
 TEST_F(HalfedgeGeometrySuite, TransportVectorsAcrossHalfedge) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireTransportVectorsAcrossHalfedge();
@@ -743,7 +743,7 @@ TEST_F(HalfedgeGeometrySuite, TransportVectorsAcrossHalfedge) {
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInVertex) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireHalfedgeVectorsInVertex();
@@ -754,7 +754,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInVertex) {
 
 TEST_F(HalfedgeGeometrySuite, TransportVectorsAlongHalfedge) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireTransportVectorsAlongHalfedge();
@@ -766,7 +766,7 @@ TEST_F(HalfedgeGeometrySuite, TransportVectorsAlongHalfedge) {
 
 TEST_F(HalfedgeGeometrySuite, CotanLaplacian) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireCotanLaplacian();
@@ -780,7 +780,7 @@ TEST_F(HalfedgeGeometrySuite, CotanLaplacian) {
 
 TEST_F(HalfedgeGeometrySuite, VertexLumpedMassMatrix) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexLumpedMassMatrix();
@@ -792,7 +792,7 @@ TEST_F(HalfedgeGeometrySuite, VertexLumpedMassMatrix) {
 
 TEST_F(HalfedgeGeometrySuite, VertexGalerkinMassMatrix) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexGalerkinMassMatrix();
@@ -804,7 +804,7 @@ TEST_F(HalfedgeGeometrySuite, VertexGalerkinMassMatrix) {
 
 TEST_F(HalfedgeGeometrySuite, VertexConnectionLaplacian) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexConnectionLaplacian();
@@ -817,7 +817,7 @@ TEST_F(HalfedgeGeometrySuite, VertexConnectionLaplacian) {
 TEST_F(HalfedgeGeometrySuite, DECOperators) {
 
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireDECOperators();
@@ -842,7 +842,7 @@ TEST_F(HalfedgeGeometrySuite, DECOperators) {
 
 TEST_F(HalfedgeGeometrySuite, EdgeDihedralAngles) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireEdgeDihedralAngles();
@@ -853,7 +853,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeDihedralAngles) {
 
 TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirections) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexPrincipalCurvatureDirections();
@@ -864,7 +864,7 @@ TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirections) {
 
 TEST_F(HalfedgeGeometrySuite, FaceNormal) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   EmbeddedGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireFaceNormals();
@@ -877,7 +877,7 @@ TEST_F(HalfedgeGeometrySuite, FaceNormal) {
 // Test immediate face normal computation from position
 TEST_F(HalfedgeGeometrySuite, FaceNormalImmediate_Position) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   IntrinsicGeometryInterface& origGeometry = *asset.geometry;
 
   // Construct position geometry
@@ -896,7 +896,7 @@ TEST_F(HalfedgeGeometrySuite, FaceNormalImmediate_Position) {
 
 TEST_F(HalfedgeGeometrySuite, VertexNormal) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   EmbeddedGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexNormals();
@@ -908,7 +908,7 @@ TEST_F(HalfedgeGeometrySuite, VertexNormal) {
 
 TEST_F(HalfedgeGeometrySuite, FaceTangentBasis) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   EmbeddedGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireFaceTangentBasis();
@@ -920,7 +920,7 @@ TEST_F(HalfedgeGeometrySuite, FaceTangentBasis) {
 
 TEST_F(HalfedgeGeometrySuite, VertexTangentBasis) {
   auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   EmbeddedGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireVertexTangentBasis();
@@ -944,7 +944,7 @@ TEST_F(HalfedgeGeometrySuite, VertexGaussianCurvaturesSum) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireVertexGaussianCurvatures();
@@ -966,7 +966,7 @@ TEST_F(HalfedgeGeometrySuite, FaceGaussianCurvaturesSum) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireFaceGaussianCurvatures();
@@ -987,7 +987,7 @@ TEST_F(HalfedgeGeometrySuite, SurfaceAreaEquivalence) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
 
     double tol = 1e-6;
@@ -1036,7 +1036,7 @@ TEST_F(HalfedgeGeometrySuite, CotanLaplacianEquivalence) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireDECOperators();
@@ -1055,7 +1055,7 @@ TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirectionsUmbilic) {
 
   { // flat mesh (with boundary)
     auto asset = getAsset("lego.ply");
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireVertexPrincipalCurvatureDirections();
@@ -1066,7 +1066,7 @@ TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirectionsUmbilic) {
 
   { // sphere mesh
     auto asset = getAsset("sphere_small.ply");
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireVertexPrincipalCurvatureDirections();
@@ -1082,7 +1082,7 @@ TEST_F(HalfedgeGeometrySuite, FaceTangentOrthonormal) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     EmbeddedGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireFaceNormals();
@@ -1119,7 +1119,7 @@ TEST_F(HalfedgeGeometrySuite, VertexTangentOrthonormal) {
     if (!asset.isTriangular) continue;
 
     asset.printThyName();
-    HalfedgeMesh& mesh = *asset.mesh;
+    ManifoldSurfaceMesh& mesh = *asset.mesh;
     EmbeddedGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireVertexNormals();
@@ -1153,7 +1153,7 @@ TEST_F(HalfedgeGeometrySuite, VertexTangentOrthonormal) {
 // Ensure that a convex shape has all-positive diheral angles
 TEST_F(HalfedgeGeometrySuite, ConvexDiheralAngles) {
   auto asset = getAsset("tet.obj");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
   geometry.requireEdgeDihedralAngles();
@@ -1170,7 +1170,7 @@ TEST_F(HalfedgeGeometrySuite, ConvexDiheralAngles) {
 TEST_F(HalfedgeGeometrySuite, SurfacePointVertexInSomeFaceTest) {
 
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& geom = *asset.geometry;
 
   double EPS = 1e-4;
@@ -1194,7 +1194,7 @@ TEST_F(HalfedgeGeometrySuite, SurfacePointVertexInSomeFaceTest) {
 TEST_F(HalfedgeGeometrySuite, SurfacePointEdgeInSomeFaceTest) {
 
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& geom = *asset.geometry;
 
   double EPS = 1e-4;
@@ -1222,7 +1222,7 @@ TEST_F(HalfedgeGeometrySuite, SurfacePointEdgeInSomeFaceTest) {
 TEST_F(HalfedgeGeometrySuite, SurfacePointFaceInSomeFaceTest) {
 
   auto asset = getAsset("bob_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  ManifoldSurfaceMesh& mesh = *asset.mesh;
   VertexPositionGeometry& geom = *asset.geometry;
 
   double EPS = 1e-4;

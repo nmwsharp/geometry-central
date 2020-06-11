@@ -1,5 +1,5 @@
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 
 #include "load_test_meshes.h"
@@ -201,7 +201,7 @@ TEST_F(HalfedgeMeshSuite, ConnectedComponentsTest) {
 
 // Make sure that nothing explodes if we delete the mesh before the container
 TEST_F(HalfedgeMeshSuite, ContainerMeshDestructTest) {
-  std::unique_ptr<HalfedgeMesh> mesh = getAsset("spot.ply").mesh;
+  std::unique_ptr<ManifoldSurfaceMesh> mesh = getAsset("spot.ply").mesh;
 
   {
     VertexData<double> testD(*mesh);

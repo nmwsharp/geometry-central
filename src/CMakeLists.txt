@@ -8,11 +8,12 @@ endif()
 # List of .cpp files to be compiled
 SET(SRCS
 
-  surface/halfedge_mesh.cpp
+  surface/surface_mesh.cpp
+  surface/manifold_surface_mesh.cpp
   surface/halfedge_factories.cpp
   surface/meshio.cpp
   surface/simple_polygon_mesh.cpp
-  surface/ply_halfedge_mesh_data.cpp
+  surface/ply_surface_mesh_data.cpp
 
   surface/base_geometry_interface.cpp
   surface/intrinsic_geometry_interface.cpp
@@ -74,21 +75,23 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/halfedge_factories.h
   ${INCLUDE_ROOT}/surface/halfedge_logic_templates.ipp
   ${INCLUDE_ROOT}/surface/halfedge_mesh.h
-  ${INCLUDE_ROOT}/surface/halfedge_mesh.ipp
   ${INCLUDE_ROOT}/surface/heat_method_distance.h
   ${INCLUDE_ROOT}/surface/intrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/manifold_surface_mesh.h
   ${INCLUDE_ROOT}/surface/meshio.h
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
   ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
-  ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.h
-  ${INCLUDE_ROOT}/surface/ply_halfedge_mesh_data.ipp
+  ${INCLUDE_ROOT}/surface/ply_surface_mesh_data.h
+  ${INCLUDE_ROOT}/surface/ply_surface_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
   ${INCLUDE_ROOT}/surface/simple_polygon_mesh.h
   ${INCLUDE_ROOT}/surface/surface_centers.h
+  ${INCLUDE_ROOT}/surface/surface_mesh.h
+  ${INCLUDE_ROOT}/surface/surface_mesh.ipp
   ${INCLUDE_ROOT}/surface/surface_point.h
   ${INCLUDE_ROOT}/surface/surface_point.ipp
   ${INCLUDE_ROOT}/surface/surgery.h

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 
 namespace geometrycentral {
 namespace surface {

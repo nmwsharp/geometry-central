@@ -1,4 +1,4 @@
-#include "geometrycentral/surface/ply_halfedge_mesh_data.h"
+#include "geometrycentral/surface/ply_surface_mesh_data.h"
 
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/polygon_soup_mesh.h"
@@ -16,30 +16,30 @@ namespace geometrycentral {
 namespace surface {
 
 
-PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_, std::string filename_)
+PlySurfaceMeshData::PlySurfaceMeshData(SurfaceMesh& mesh_, std::string filename_)
     : mesh(mesh_), plyData(filename_) {}
 
-PlyHalfedgeMeshData::PlyHalfedgeMeshData(HalfedgeMesh& mesh_)
+PlySurfaceMeshData::PlySurfaceMeshData(SurfaceMesh& mesh_)
     : mesh(mesh_), plyData() {
   // Write connectiviy as indices
   std::vector<std::vector<size_t>> faceIndices = mesh.getFaceVertexList();
   plyData.addFaceIndices(faceIndices);
 }
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<PlyHalfedgeMeshData>>
-PlyHalfedgeMeshData::loadMeshAndData(std::string filename) {
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<PlySurfaceMeshData>>
+PlySurfaceMeshData::loadMeshAndData(std::string filename) {
 
   // First, just load the connectivity
   SimplePolygonMesh simpleMesh(filename, "ply");
-  std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(simpleMesh.polygons));
+  std::unique_ptr<SurfaceMesh> mesh(new SurfaceMesh(simpleMesh.polygons));
 
   // Now, open file on that mesh
-  std::unique_ptr<PlyHalfedgeMeshData> data(new PlyHalfedgeMeshData(*mesh, filename));
+  std::unique_ptr<PlySurfaceMeshData> data(new PlySurfaceMeshData(*mesh, filename));
 
   return std::make_tuple(std::move(mesh), std::move(data));
 }
 
-void PlyHalfedgeMeshData::addGeometry(EmbeddedGeometryInterface& geometry) {
+void PlySurfaceMeshData::addGeometry(EmbeddedGeometryInterface& geometry) {
 
   geometry.requireVertexPositions();
 
@@ -61,7 +61,7 @@ void PlyHalfedgeMeshData::addGeometry(EmbeddedGeometryInterface& geometry) {
 }
 
 
-std::unique_ptr<VertexPositionGeometry> PlyHalfedgeMeshData::getGeometry() {
+std::unique_ptr<VertexPositionGeometry> PlySurfaceMeshData::getGeometry() {
 
   // Get x/y/z coordinates
   VertexData<double> x = getVertexProperty<double>("x");
@@ -79,7 +79,7 @@ std::unique_ptr<VertexPositionGeometry> PlyHalfedgeMeshData::getGeometry() {
 }
 
 
-VertexData<Vector3> PlyHalfedgeMeshData::getVertexColors() {
+VertexData<Vector3> PlySurfaceMeshData::getVertexColors() {
 
   VertexData<Vector3> color(mesh);
 
@@ -114,7 +114,7 @@ VertexData<Vector3> PlyHalfedgeMeshData::getVertexColors() {
   }
 }
 
-void PlyHalfedgeMeshData::write(std::string filename) { plyData.write(filename, outputFormat); }
+void PlySurfaceMeshData::write(std::string filename) { plyData.write(filename, outputFormat); }
 
 } // namespace surface
 } // namespace geometrycentral

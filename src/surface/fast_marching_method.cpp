@@ -57,9 +57,14 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
 
   typedef std::pair<double, Vertex> Entry;
 
-  HalfedgeMesh& mesh = geometry.mesh;
+  SurfaceMesh& mesh = geometry.mesh;
   geometry.requireEdgeLengths();
   geometry.requireCornerAngles();
+  
+  // TODO this could handle nonmanifold geometry with a few small tweaks
+  if(!mesh.isManifold()) {
+    throw std::runtime_error("handling of nonmanifold mesh not yet implemented");
+  }
 
   // Initialize
   VertexData<double> distances(mesh, std::numeric_limits<double>::infinity());

@@ -2,6 +2,7 @@
 
 // The MeshIO class provides a variety of methods for mesh input/output.
 
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include <fstream>
@@ -12,7 +13,7 @@ namespace surface {
 
 // Loads a halfedge mesh and its geometry from file.
 // Specify a type like "ply" or "obj", if no type is specified, attempts to infer from extension.
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 loadMesh(std::string filename, std::string type = "");
 
 class WavefrontOBJ {
@@ -35,10 +36,10 @@ protected:
 // === Integrations with other libraries and formats
 
 // Generate the permutations which map geometry-central's indexing order to the Polyscope indexing order
-std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(HalfedgeMesh& mesh);
+std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(SurfaceMesh& mesh);
 
-// Generate an booleans to communicate the canonical orientations of edges for 1form-valued data
-EdgeData<char> polyscopeEdgeOrientations(HalfedgeMesh& mesh);
+// Generate booleans to communicate the canonical orientations of edges for 1form-valued data
+EdgeData<char> polyscopeEdgeOrientations(SurfaceMesh& mesh);
 
 
 } // namespace surface

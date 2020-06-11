@@ -14,9 +14,7 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& origGeom) {
-  HalfedgeMesh& origMesh = origGeom.mesh;
-
+VertexData<Vector2> parameterizeDisk(ManifoldSurfaceMesh& origMesh, IntrinsicGeometryInterface& origGeom) {
   // Check that it's a (punctured) disk
 
   /*
@@ -30,13 +28,13 @@ VertexData<Vector2> parameterizeDisk(IntrinsicGeometryInterface& origGeom) {
 
   // Get uniformized edge lengths
   // Copy the mesh, since we will flip its edges
-  std::unique_ptr<HalfedgeMesh> meshPtr = origMesh.copy();
-  HalfedgeMesh& mesh = *meshPtr;
+  std::unique_ptr<ManifoldSurfaceMesh> meshPtr = origMesh.copy();
+  ManifoldSurfaceMesh& mesh = *meshPtr;
   origGeom.requireEdgeLengths();
   EdgeData<double> copyLens = origGeom.edgeLengths.reinterpretTo(mesh);
   EdgeLengthGeometry geometry(mesh, copyLens);
   origGeom.unrequireEdgeLengths();
-  EdgeData<double> uLens = uniformizeDisk(geometry, true);
+  EdgeData<double> uLens = uniformizeDisk(mesh, geometry, true);
 
   // Layout
   VertexData<Vector2> coords(mesh);
