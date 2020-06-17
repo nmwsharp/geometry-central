@@ -476,13 +476,13 @@ void SimplePolygonMesh::stripUnusedVertices() {
 
   // Re-index
   std::vector<size_t> newInd(nV, INVALID_IND);
-  std::vector<Vector3> newVertexCoordinates(nV);
+  std::vector<Vector3> newVertexCoordinates;
   size_t nNewV = 0;
   for (size_t iOldV = 0; iOldV < nV; iOldV++) {
     if (!vertexUsed[iOldV]) continue;
     size_t iNewV = nNewV++;
     newInd[iOldV] = iNewV;
-    newVertexCoordinates[iNewV] = vertexCoordinates[iOldV];
+    newVertexCoordinates.push_back(vertexCoordinates[iOldV]);
   }
   vertexCoordinates = newVertexCoordinates;
 

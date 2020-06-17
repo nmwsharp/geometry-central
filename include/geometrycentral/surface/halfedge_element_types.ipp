@@ -110,6 +110,8 @@ inline bool VertexNeighborIteratorState::operator==(const VertexNeighborIterator
   }
 }
 
+// TODO FIXME Several of these won't work right on a non-oriented mesh...
+
 inline void VertexAdjacentVertexNavigator::advance() { currE.advance(); }
 inline bool VertexAdjacentVertexNavigator::isValid() const { return true; }
 inline Vertex VertexAdjacentVertexNavigator::getCurrent() const { return currE.getCurrHalfedge().twin().vertex(); }
