@@ -45,8 +45,15 @@ nav:
     - 'Building' : 'build/building.md'
     - 'Dependencies' : 'build/dependencies.md'
     - 'Tests' : 'build/tests.md'
-  #- Tutorials: 
-    #- 'Load a mesh' : 'tutorials/load_mesh.md'
+  - Tutorials: 
+    - 'Load & navigate a mesh' : 'tutorials/load_mesh.md'
+    - 'Mesh containers' : 'tutorials/mesh_containers.md'
+    - 'Nonmanifold meshes' : 'tutorials/nonmanifold_meshes.md'
+    - 'Geometry hierarchy' : 'tutorials/geometry_hierarchy.md'
+    - 'Mesh mutations' : 'tutorials/mesh_mutations.md'
+    - 'Linear algebra' : 'tutorials/linear_algebra.md'
+    - 'Direction fields' : 'tutorials/direction_fields.md'
+    - 'Intrinsic triangulations' : 'tutorials/intrinsic_triangulations.md'
   - Surface:
     - Halfedge Mesh: 
       - 'Basics' : 'surface/halfedge_mesh/basics.md'

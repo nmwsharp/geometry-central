@@ -9,10 +9,6 @@ Features include:
 - A suite of **powerful algorithms**, including computing distances on surface, generating direction fields, and manipulating intrinsic Delaunay triangulations.
 - A coherent set of sparse **linear algebra tools**, based on Eigen and augmented to automatically utilize better solvers if available on your system.
 
-!!! warning "Under construction"
-
-    As of July 30, 2019, geometry-central and its documentation are still under active development. You are welcome and encouraged to start using the library, but some components are still being built and modified.
-
 
 **Sample:**
 

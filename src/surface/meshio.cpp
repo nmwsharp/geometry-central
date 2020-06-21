@@ -28,22 +28,121 @@ void processLoadedMesh(SimplePolygonMesh& mesh, std::string type) {
   }
 }
 
+
+std::vector<Vector3> geometryToStdVector(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry) {
+  geometry.requireVertexPositions();
+  std::vector<Vector3> verts(mesh.nVertices());
+  size_t i = 0;
+  for (Vertex v : mesh.vertices()) {
+    verts[i] = geometry.vertexPositions[v];
+    i++;
+  }
+  geometry.unrequireVertexPositions();
+  return verts;
+}
+
+
+std::vector<std::vector<Vector2>> paramToStdVector(SurfaceMesh& mesh, CornerData<Vector2>& param) {
+  std::vector<std::vector<Vector2>> uv(mesh.nFaces());
+  size_t i = 0;
+  for (Face f : mesh.faces()) {
+    for (Corner c : f.adjacentCorners()) {
+      uv[i].push_back(param[c]);
+    }
+    i++;
+  }
+  return uv;
+}
+
 } // namespace
 
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename,
                                                                                                    std::string type) {
-  // Load the mesh using the SimplePolygonMesh loaders
+  return readManifoldSurfaceMesh(filename, type);
+}
+
+
+// Load a general surface mesh, which might or might not be manifold
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::string filename,
+                                                                                                  std::string type) {
   std::string loadType;
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(filename, type, loadType);
-
   processLoadedMesh(simpleMesh, loadType);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+}
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::istream& in,
+                                                                                                  std::string type) {
+  std::string loadType = type;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(in, type);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+}
 
+// Load a manifold surface mesh; an exception will by thrown if the mesh is not manifold.
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+readManifoldSurfaceMesh(std::string filename, std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+}
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+readManifoldSurfaceMesh(std::istream& in, std::string type) {
+  std::string loadType = type;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(in, type);
+  processLoadedMesh(simpleMesh, loadType);
   return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
 
 // ======= Output =======
+
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::string filename, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry));
+  simpleMesh.writeMesh(filename, type);
+}
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords,
+                      std::string filename, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry),
+                               paramToStdVector(mesh, texCoords));
+  simpleMesh.writeMesh(filename, type);
+}
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::ostream& out, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry));
+  simpleMesh.writeMesh(out, type);
+}
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords,
+                      std::ostream& out, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry),
+                               paramToStdVector(mesh, texCoords));
+  simpleMesh.writeMesh(out, type);
+}
+
+
+CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& vals) {
+  CornerData<Vector2> out(mesh);
+  for (Corner c : mesh.corners()) {
+    Vertex v = c.vertex();
+    out[c] = Vector2{vals[v], 0.};
+  }
+  return out;
+}
+CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& valsX, VertexData<double>& valsY) {
+  CornerData<Vector2> out(mesh);
+  for (Corner c : mesh.corners()) {
+    Vertex v = c.vertex();
+    out[c] = Vector2{valsX[v], valsY[v]};
+  }
+  return out;
+}
+
 
 bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry) {
   std::ofstream out;

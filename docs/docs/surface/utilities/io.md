@@ -1,21 +1,29 @@
+`#include "geometrycentral/surface/meshio.h"`
+
+
 ## Reading meshes
 
-Construct a halfedge mesh from a file on disk.
-
-`#include "geometrycentral/surface/meshio.h"`
+Construct a surface mesh from a file on disk, or more generally any `std::istream`.
 
 Example usage:
 ```cpp
 #include "geometrycentral/surface/meshio.h"
 using namespace geometrycentral::surface;
 
-std::unique_ptr<HalfedgeMesh> mesh;
+// Load a surface mesh which is required to be manifold
+std::unique_ptr<ManifoldSurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
-std::tie(mesh, geometry) = loadMesh("spot.obj"); 
+std::tie(mesh, geometry) = readManifoldSurfaceMesh("spot.obj"); 
+
+
+// Load a more general surface mesh, which might be nonmanifold
+std::unique_ptr<SurfaceMesh> mesh2;
+std::unique_ptr<VertexPositionGeometry> geometry2;
+std::tie(mesh2, geometry2) = readSurfaceMesh("spot_messy.obj"); 
 ```
 
 
-??? note "Why unique pointers?"
+??? note "Why use `std::unique_ptr<>`?"
 
     The mesh loader, like many functions in geometry-central, returns constructed objects via a `unique_ptr`. Unique pointers are an important tool for memory management in modern C++; if you haven't used them before, we suggest you give them a try!
 
@@ -32,13 +40,13 @@ std::tie(mesh, geometry) = loadMesh("spot.obj");
     For instance, we might write a function which takes a mesh as an argument like
 
     ```cpp
-    void processMesh(HalfedgeMesh& inputMesh) { /* do stuff */}
+    void processMesh(SurfaceMesh& inputMesh) { /* do stuff */}
     ```
    
     and call it by dereferencing the unique pointer to pass a reference
 
     ```cpp
-    std::unique_ptr<HalfedgeMesh> mesh;
+    std::unique_ptr<SurfaceMesh> mesh;
     std::unique_ptr<VertexPositionGeometry> geometry;
     std::tie(mesh, geometry) = loadMesh("spot.obj"); 
     
@@ -52,32 +60,129 @@ std::tie(mesh, geometry) = loadMesh("spot.obj");
     If you really don't want to use unique pointers, you can simply release the unique pointer to an ordinary pointer:
 
     ```cpp
-    std::unique_ptr<HalfedgeMesh> mesh /* populated as above */;
-    HalfedgeMesh* meshPtr = mesh.release();
+    std::unique_ptr<SurfaceMesh> mesh /* populated as above */;
+    SurfaceMesh* meshPtr = mesh.release();
     ```
     
     The `meshPtr` now points the mesh object, and you are responsible for eventually deleting this pointer. After calling `release()`, the unique pointer points to nothing and will no longer deallocate the object.
 
 
-??? func "`#!cpp std::tuple<std::unique_ptr<HalfedgeMesh>,std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename, std::string type="")`"
+??? func "`#!cpp std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::string filename, std::string type = "")`"
 
-    Load a mesh from file. Returns both a `HalfedgeMesh` representing the connectivity, and a `Geometry` representing the geometry. See example below to concisely unpack.
+    Load a general, not-necessarily-manifold mesh from file. Returns both a `SurfaceMesh` representing the connectivity, and a `Geometry` representing the geometry. See the example above to concisely unpack.
 
     If the file includes vertices which do not appear in any face, they will be stripped from the vertex listing and ignored.
 
-    The `type` parameter determines the type of file to load. For example, `type="ply"` will attempt to read the target file as a .ply file. If no type is given, the type will be inferred from the file name. 
+    The `type` parameter determines the type of file to load. For example, `type="ply"` will attempt to read the target file as a .ply file. If no type is given, the type will be inferred from the file extension. 
 
-    Currently the following types are supported:
+    See the matrix below for all supported file types.
+
+??? func "`#!cpp std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::istream& in, std::string type)`"
+
+    Same as above, but reads from a general `istream` object rather than a filename. 
     
-    - `obj`
-    - `ply` (using [hapPLY](https://github.com/nmwsharp/happly))
+    When reading from a stream, the type _must_ be specified and cannot be automatically inferred.
 
+
+??? func "`#!cpp std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readManifoldSurfaceMesh(std::string filename, std::string type = "")`"
+    
+    Load a manifold mesh from file. Returns both a `ManifoldSurfaceMesh` representing the connectivity, and a `Geometry` representing the geometry. See the example above to concisely unpack. If the mesh to be loaded is not manifold, an exception will be thrown.
+
+    If the file includes vertices which do not appear in any face, they will be stripped from the vertex listing and ignored.
+
+    The `type` parameter determines the type of file to load. For example, `type="ply"` will attempt to read the target file as a .ply file. If no type is given, the type will be inferred from the file extension. 
+
+    See the matrix below for all supported file types.
+
+
+??? func "`#!cpp std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readManifoldSurfaceMesh(std::istream& in, std::string type)`"
+
+    Same as above, but reads from a general `istream` object rather than a filename. 
+
+    When reading from a stream, the type _must_ be specified and cannot be automatically inferred.
 
 
 
 ## Writing meshes
 
-TODO
+Write a mesh to file, or more generally any `std::ostream`. 
+
+Example usage:
+```cpp
+#include "geometrycentral/surface/meshio.h"
+using namespace geometrycentral::surface;
+
+// Write a surface mesh
+// Recall that ManifoldSurfaceMesh is a subclass of SurfaceMesh, so
+// it can be used just the same
+std::unique_ptr<SurfaceMesh> mesh;
+std::unique_ptr<VertexPositionGeometry> geometry;
+writeSurfaceMesh(*mesh, *geometry, "my_mesh.obj"); 
+```
+
+
+??? func "`#!cpp void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::string filename, std::string type = "")`"
+    
+    Write a mesh to file. 
+    
+    The `type` parameter determines the type of file to write. For example, `type="obj"` will write the target file as a .obj file. If no type is given, the type will be inferred from the file extension. 
+
+    See the matrix below for all supported file types.
+
+
+??? func "`#!cpp void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords, std::string filename, std::string type = "") `"
+
+    Write a mesh to file as above, except corner per-corner coordinates are also written, if supported by the file format.
+
+??? func "`#!cpp void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::ostream& out, std::string type) `"
+
+
+    Write a mesh to file as above, to a general `std::ostream` rather than directly to a named file.
+    
+    When writing to a stream, the type _must_ be specified and cannot be automatically inferred.
+    
+
+??? func "`#!cpp void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords, std::ostream& out, std::string type) `"
+
+    Write a mesh to file as above, to a general `std::ostream` and with the specified texture coordinates, if the file format supports it.
+
+    When writing to a stream, the type _must_ be specified and cannot be automatically inferred.
+
+
+### Packing scalar data
+
+A handy trick for transferring data between programs (e.g., to create visualizations) is to pack scalar data in to texture coordinates when writing a mesh to file. To make this easier, the helper `packToParam()` stores data as corner coordinates which can be passed to the writers.
+
+```cpp
+#include "geometrycentral/surface/meshio.h"
+using namespace geometrycentral::surface;
+
+std::unique_ptr<SurfaceMesh> mesh; // some mesh
+std::unique_ptr<VertexPositionGeometry> geometry; // some geometry
+VertexData<double> vals; // some values at vertices
+
+writeSurfaceMesh(*mesh, *geometry, packToParam(*mesh, vals), "my_mesh.obj"); 
+```
+
+
+??? func "`#!cpp CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& vals)`"
+
+    Create a `CornerData` with the value from `vals` stored in the first coordinate at each corner. The second coordinate will hold `0`s.
+
+??? func "`#!cpp CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& valsX, VertexData<double>& valsY)`"
+    
+    Create a `CornerData` with the value from `valsX` stored in the first coordinate at each corner, and `valsY` stored in the second coordinate.
+
+
+## Supported file types
+
+| key | reading | writing | tex coords | notes                                                |
+|-----|:-------:|:-------:|:----------:|------------------------------------------------------|
+| `obj` |    ✅    |    ✅    |      ✅     |                                                      |
+| `ply` |    ✅    |         |            |                                                      |
+| `off` |    ✅    |         |            |                                                      |
+| `stl` |    ✅    |         |            | Exactly coincident vertices are automatically merged |
+
 
 ## Serializing containers 
 

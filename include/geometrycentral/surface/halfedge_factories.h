@@ -27,5 +27,18 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
                         const std::vector<Vector3> vertexPositions);
 
+
+// Same a above, but constructs a nonmanifold surface mesh
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeNonmanifoldHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                                   const std::vector<Vector3> vertexPositions);
+
+
+// Like above, but with known twin connectivity
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeNonmanifoldHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                                   const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                                   const std::vector<Vector3> vertexPositions);
+
 } // namespace surface
 } // namespace geometrycentral
