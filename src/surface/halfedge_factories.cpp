@@ -34,15 +34,15 @@ makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
 
 
 std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-makeNonmanifoldHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+makeGeneralHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                                    const std::vector<Vector3> vertexPositions) {
 
-  return makeNonmanifoldHalfedgeAndGeometry(polygons, {}, vertexPositions);
+  return makeGeneralHalfedgeAndGeometry(polygons, {}, vertexPositions);
 }
 
 
 std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-makeNonmanifoldHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+makeGeneralHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                                    const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
                                    const std::vector<Vector3> vertexPositions) {
 

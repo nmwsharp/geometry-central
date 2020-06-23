@@ -96,6 +96,7 @@ void MeshAssetSuite::SetUpTestSuite() {
   allMeshAssets.emplace_back("platonic_shelf.obj", false);
 
   // Load nonmanifold models
+  allMeshAssets.emplace_back("triple_vierbein.obj", false);
 }
 
 
