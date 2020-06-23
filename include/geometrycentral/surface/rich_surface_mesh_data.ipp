@@ -18,18 +18,18 @@ template<> inline std::string plyElementName<BoundaryLoop >()            { retur
 // Generic implementations which handle all element types
 
 template <typename E, typename T>
-MeshData<E, T> PlySurfaceMeshData::getElementProperty(std::string propertyName) {
+MeshData<E, T> RichSurfaceMeshData::getElementProperty(std::string propertyName) {
 
   std::string eName = plyElementName<E>();
   std::vector<T> rawData = plyData.getElement(eName).getProperty<T>(propertyName);
 
-  if (rawData.size() != nElements<E>(&mesh)) {
+  if (rawData.size() != nElements<E>(mesh)) {
     throw std::runtime_error("Property " + propertyName + " does not have size equal to number of " + eName);
   }
 
-  MeshData<E, T> result(mesh);
+  MeshData<E, T> result(*mesh);
   size_t i = 0;
-  for (E e : iterateElements<E>(&mesh)) {
+  for (E e : iterateElements<E>(mesh)) {
     result[e] = rawData[i];
     i++;
   }
@@ -38,18 +38,18 @@ MeshData<E, T> PlySurfaceMeshData::getElementProperty(std::string propertyName) 
 }
 
 template <typename E, typename T>
-void PlySurfaceMeshData::addElementProperty(std::string propertyName, const MeshData<E, T>& data) {
+void RichSurfaceMeshData::addElementProperty(std::string propertyName, const MeshData<E, T>& data) {
 
   std::string eName = plyElementName<E>();
 
   // Make sure the element exists
   if (!plyData.hasElement(eName)) {
-    plyData.addElement(eName, nElements<E>(&mesh));
+    plyData.addElement(eName, nElements<E>(mesh));
   }
 
   std::vector<T> vec;
-  vec.reserve(nElements<E>(&mesh));
-  for (E e : iterateElements<E>(&mesh)) {
+  vec.reserve(nElements<E>(mesh));
+  for (E e : iterateElements<E>(mesh)) {
     vec.push_back(data[e]);
   }
 
@@ -62,64 +62,64 @@ void PlySurfaceMeshData::addElementProperty(std::string propertyName, const Mesh
 // = getters
 
 template <class T>
-VertexData<T> PlySurfaceMeshData::getVertexProperty(std::string propertyName) {
+VertexData<T> RichSurfaceMeshData::getVertexProperty(std::string propertyName) {
   return getElementProperty<Vertex, T>(propertyName);
 }
 
 template <class T>
-HalfedgeData<T> PlySurfaceMeshData::getHalfedgeProperty(std::string propertyName) {
+HalfedgeData<T> RichSurfaceMeshData::getHalfedgeProperty(std::string propertyName) {
   return getElementProperty<Halfedge, T>(propertyName);
 }
 
 template <class T>
-CornerData<T> PlySurfaceMeshData::getCornerProperty(std::string propertyName) {
+CornerData<T> RichSurfaceMeshData::getCornerProperty(std::string propertyName) {
   return getElementProperty<Corner, T>(propertyName);
 }
 
 template <class T>
-EdgeData<T> PlySurfaceMeshData::getEdgeProperty(std::string propertyName) {
+EdgeData<T> RichSurfaceMeshData::getEdgeProperty(std::string propertyName) {
   return getElementProperty<Edge, T>(propertyName);
 }
 
 template <class T>
-FaceData<T> PlySurfaceMeshData::getFaceProperty(std::string propertyName) {
+FaceData<T> RichSurfaceMeshData::getFaceProperty(std::string propertyName) {
   return getElementProperty<Face, T>(propertyName);
 }
 
 template <class T>
-BoundaryLoopData<T> PlySurfaceMeshData::getBoundaryLoopProperty(std::string propertyName) {
+BoundaryLoopData<T> RichSurfaceMeshData::getBoundaryLoopProperty(std::string propertyName) {
   return getElementProperty<BoundaryLoop, T>(propertyName);
 }
 
 // = setters
 
 template <class T>
-void PlySurfaceMeshData::addVertexProperty(std::string propertyName, const VertexData<T>& data) {
+void RichSurfaceMeshData::addVertexProperty(std::string propertyName, const VertexData<T>& data) {
   return addElementProperty<Vertex, T>(propertyName, data);
 }
 
 template <class T>
-void PlySurfaceMeshData::addHalfedgeProperty(std::string propertyName, const HalfedgeData<T>& data) {
+void RichSurfaceMeshData::addHalfedgeProperty(std::string propertyName, const HalfedgeData<T>& data) {
   return addElementProperty<Halfedge, T>(propertyName, data);
 }
 
 template <class T>
-void PlySurfaceMeshData::addCornerProperty(std::string propertyName, const CornerData<T>& data) {
+void RichSurfaceMeshData::addCornerProperty(std::string propertyName, const CornerData<T>& data) {
   return addElementProperty<Corner, T>(propertyName, data);
 }
 
 template <class T>
-void PlySurfaceMeshData::addEdgeProperty(std::string propertyName, const EdgeData<T>& data) {
+void RichSurfaceMeshData::addEdgeProperty(std::string propertyName, const EdgeData<T>& data) {
   return addElementProperty<Edge, T>(propertyName, data);
 }
 
 template <class T>
-void PlySurfaceMeshData::addFaceProperty(std::string propertyName, const FaceData<T>& data) {
+void RichSurfaceMeshData::addFaceProperty(std::string propertyName, const FaceData<T>& data) {
   return addElementProperty<Face, T>(propertyName, data);
 }
 
 template <class T>
-void PlySurfaceMeshData::addBoundaryLoopProperty(std::string propertyName, const BoundaryLoopData<T>& data) {
+void RichSurfaceMeshData::addBoundaryLoopProperty(std::string propertyName, const BoundaryLoopData<T>& data) {
   return addElementProperty<BoundaryLoop, T>(propertyName, data);
 }
 

@@ -426,6 +426,77 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
   // std::cout << "Construction took " << pretty_time(FINISH_TIMING(construction)) << std::endl;
 }
 
+ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<size_t>& heNextArr_, const std::vector<size_t>& heVertexArr_,
+                                         const std::vector<size_t>& heFaceArr_,
+                                         const std::vector<size_t>& vHalfedgeArr_,
+                                         const std::vector<size_t>& fHalfedgeArr_, size_t nBoundaryLoopsFillCount_)
+    : SurfaceMesh(true) {
+
+  heNextArr = heNextArr_;
+  heVertexArr = heVertexArr_;
+  heFaceArr = heFaceArr_;
+  vHalfedgeArr = vHalfedgeArr_;
+  fHalfedgeArr = fHalfedgeArr_;
+
+  // == Set all counts
+  nHalfedgesCount = heNextArr.size();
+  nEdgesCount = nHalfedgesCount / 2;
+  nVerticesCount = vHalfedgeArr.size();
+  nFacesCount = fHalfedgeArr.size() - nBoundaryLoopsFillCount_;
+  nBoundaryLoopsCount = nBoundaryLoopsFillCount_;
+  nVerticesCapacityCount = nVerticesCount;
+  nHalfedgesCapacityCount = nHalfedgesCount;
+  nEdgesCapacityCount = nHalfedgesCapacityCount / 2;
+  nFacesCapacityCount = fHalfedgeArr.size();
+  nVerticesFillCount = nVerticesCount;
+  nHalfedgesFillCount = nHalfedgesCount;
+  nEdgesFillCount = nEdgesCount;
+  nFacesFillCount = nFacesCount;
+  nBoundaryLoopsFillCount = nBoundaryLoopsFillCount_;
+
+  // Check if its compressed and decrement counts
+  isCompressedFlag = true;
+  for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
+    if (vertexIsDead(iV)) {
+      nVerticesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+    if (halfedgeIsDead(iHe)) {
+      nHalfedgesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
+    if (edgeIsDead(iE)) {
+      nEdgesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iF = 0; iF < nFacesFillCount; iF++) {
+    if (faceIsDead(iF)) {
+      nFacesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iBl = nFacesFillCount; iBl < nFacesCapacityCount; iBl++) {
+    if (faceIsDead(iBl)) {
+      nBoundaryLoopsCount--;
+      isCompressedFlag = false;
+    }
+  }
+
+  // Count interior halfedges
+  nInteriorHalfedgesCount = 0;
+  for (Halfedge he : interiorHalfedges()) {
+    nInteriorHalfedgesCount++;
+  }
+
+
+  // TODO FIXME
+  validateConnectivity();
+}
 
 ManifoldSurfaceMesh::~ManifoldSurfaceMesh() {}
 

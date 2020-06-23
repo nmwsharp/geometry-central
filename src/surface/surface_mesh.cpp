@@ -59,7 +59,6 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons) : Sur
 
 SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
                          const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins)
-
     : useImplicitTwinFlag(false) {
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
@@ -306,6 +305,76 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
 }
 
 
+SurfaceMesh::SurfaceMesh(const std::vector<size_t>& heNextArr_, const std::vector<size_t>& heVertexArr_,
+                         const std::vector<size_t>& heFaceArr_, const std::vector<size_t>& vHalfedgeArr_,
+                         const std::vector<size_t>& fHalfedgeArr_, const std::vector<size_t>& heSiblingArr_,
+                         const std::vector<size_t>& heEdgeArr_, const std::vector<size_t>& eHalfedgeArr_,
+                         size_t nBoundaryLoopsFillCount_)
+    : heNextArr(heNextArr_), heVertexArr(heVertexArr_), heFaceArr(heFaceArr_), vHalfedgeArr(vHalfedgeArr_),
+      fHalfedgeArr(fHalfedgeArr_), useImplicitTwinFlag(false), heSiblingArr(heSiblingArr_), heEdgeArr(heEdgeArr_),
+      eHalfedgeArr(eHalfedgeArr_) {
+
+  // == Set all counts
+  nHalfedgesCount = heNextArr.size();
+  nEdgesCount = eHalfedgeArr.size();
+  nVerticesCount = vHalfedgeArr.size();
+  nFacesCount = fHalfedgeArr.size() - nBoundaryLoopsFillCount_;
+  nBoundaryLoopsCount = nBoundaryLoopsFillCount_;
+  nVerticesCapacityCount = nVerticesCount;
+  nHalfedgesCapacityCount = nHalfedgesCount;
+  nEdgesCapacityCount = nEdgesCount;
+  nFacesCapacityCount = fHalfedgeArr.size();
+  nVerticesFillCount = nVerticesCount;
+  nHalfedgesFillCount = nHalfedgesCount;
+  nEdgesFillCount = nEdgesCount;
+  nFacesFillCount = nFacesCount;
+  nBoundaryLoopsFillCount = nBoundaryLoopsFillCount_;
+
+  // Check if its compressed and decrement counts
+  isCompressedFlag = true;
+  for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
+    if (vertexIsDead(iV)) {
+      nVerticesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
+    if (halfedgeIsDead(iHe)) {
+      nHalfedgesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
+    if (edgeIsDead(iE)) {
+      nEdgesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iF = 0; iF < nFacesFillCount; iF++) {
+    if (faceIsDead(iF)) {
+      nFacesCount--;
+      isCompressedFlag = false;
+    }
+  }
+  for (size_t iBl = nFacesFillCount; iBl < nFacesCapacityCount; iBl++) {
+    if (faceIsDead(iBl)) {
+      nBoundaryLoopsCount--;
+      isCompressedFlag = false;
+    }
+  }
+
+  // Count interior halfedges
+  nInteriorHalfedgesCount = 0;
+  for (Halfedge he : interiorHalfedges()) {
+    nInteriorHalfedgesCount++;
+  }
+
+
+  // TODO FIXME
+  validateConnectivity();
+}
+
+
 SurfaceMesh::~SurfaceMesh() {
   for (auto& f : meshDeleteCallbackList) {
     f();
@@ -447,9 +516,7 @@ BoundaryLoopData<size_t> SurfaceMesh::getBoundaryLoopIndices() {
 }
 
 
-std::unique_ptr<SurfaceMesh> SurfaceMesh::copy() const {
-  return copyToSurfaceMesh();
-}
+std::unique_ptr<SurfaceMesh> SurfaceMesh::copy() const { return copyToSurfaceMesh(); }
 
 std::unique_ptr<SurfaceMesh> SurfaceMesh::copyToSurfaceMesh() const {
   SurfaceMesh* newMesh = new SurfaceMesh(false);

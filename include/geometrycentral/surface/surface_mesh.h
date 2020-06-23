@@ -13,7 +13,8 @@
 namespace geometrycentral {
 namespace surface {
 
-// Give containers nice names
+// Typedefs and forward declarations
+
 template <typename T>
 using VertexData = MeshData<Vertex, T>;
 template <typename T>
@@ -27,6 +28,8 @@ using CornerData = MeshData<Corner, T>;
 template <typename T>
 using BoundaryLoopData = MeshData<BoundaryLoop, T>;
 
+class RichSurfaceMeshData;
+
 
 // ==========================================================
 // ===================    Surface Mesh   ====================
@@ -35,8 +38,6 @@ using BoundaryLoopData = MeshData<BoundaryLoop, T>;
 class SurfaceMesh {
 
 public:
-  SurfaceMesh(bool useImplicitTwin = false);
-
   // Build a halfedge mesh from polygons, with a list of 0-indexed vertices incident on each face, in CCW order.
   // Assumes that the vertex listing in polygons is dense; all indices from [0,MAX_IND) must appear in some face.
   // (some functions, like in meshio.h preprocess inputs to strip out unused indices).
@@ -156,6 +157,16 @@ public:
 
 
 protected:
+  // Constructor used by subclasses
+  SurfaceMesh(bool useImplicitTwin = false);
+
+  // Construct directly from internal arrays
+  SurfaceMesh(const std::vector<size_t>& heNextArr, const std::vector<size_t>& heVertexArr,
+              const std::vector<size_t>& heFaceArr, const std::vector<size_t>& vHalfedgeArr,
+              const std::vector<size_t>& fHalfedgeArr, const std::vector<size_t>& heSiblingArr,
+              const std::vector<size_t>& heEdgeArr, const std::vector<size_t>& eHalfedgeArr,
+              size_t nBoundaryLoopFillCount);
+
   // = Core arrays which hold the connectivity
   // Note: it should always be true that heFace.size() == nHalfedgesCapacityCount, but any elements after
   // nHalfedgesFillCount will be valid indices (in the std::vector sense), but contain uninitialized data. Similarly,
@@ -312,6 +323,8 @@ protected:
   friend struct FaceRangeF;
   friend struct BoundaryLoopRangeF;
   friend struct VertexNeighborIteratorState;
+
+  friend class RichSurfaceMeshData;
 };
 
 } // namespace surface

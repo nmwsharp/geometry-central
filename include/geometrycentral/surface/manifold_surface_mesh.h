@@ -86,12 +86,19 @@ public:
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;
 
 protected:
+  // Construct directly from internal arrays
+  ManifoldSurfaceMesh(const std::vector<size_t>& heNextArr, const std::vector<size_t>& heVertexArr,
+                      const std::vector<size_t>& heFaceArr, const std::vector<size_t>& vHalfedgeArr,
+                      const std::vector<size_t>& fHalfedgeArr, size_t nBoundaryLoopFillCount);
+
   // Helpers
   bool ensureEdgeHasInteriorHalfedge(Edge e);     // impose invariant that e.halfedge is interior
   void ensureVertexHasBoundaryHalfedge(Vertex v); // impose invariant that v.halfedge is start of half-disk
   Vertex collapseEdgeAlongBoundary(Edge e);
 
   virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const override;
+
+  friend class RichSurfaceMeshData;
 };
 
 } // namespace surface

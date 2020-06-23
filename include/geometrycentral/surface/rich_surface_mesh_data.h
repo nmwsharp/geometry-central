@@ -1,7 +1,9 @@
 #pragma once
 
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
+#include "geometrycentral/surface/edge_length_geometry.h"
 
 #include "happly.h"
 
@@ -16,34 +18,35 @@ namespace surface {
 // A reader/writer class supporting direct interop between the GeometryCentral mesh types and the .ply file
 // format. Allows storing and retriving of VertexData<> etc containers.
 // No operations are valid if the mesh is modified after the creation of the reader/writer.
-class PlySurfaceMeshData {
-
-  // TODO implement permutation halfedge mesh storage
-
-  // TODO support intrinsic geometry
+class RichSurfaceMeshData {
 
   // TODO give helpers to store Vector2 and Vector3 types easily, rather than having to store each component manually.
 
 public:
   // Construct by reading from file, mapping the elements on to an existing mesh.
-  // To simultaneously read the mesh encoded by the file, see the static method loadMeshAndData below.
-  PlySurfaceMeshData(SurfaceMesh& mesh_, std::string filename);
+  // To simultaneously read the mesh encoded by the file, see the static method readMeshAndData below.
+  RichSurfaceMeshData(SurfaceMesh& mesh_, std::string filename);
+  RichSurfaceMeshData(SurfaceMesh& mesh_, std::istream& in);
 
   // Construct a data object. Connectivity will be added automatically, geometry and other data fields can be added.
-  PlySurfaceMeshData(SurfaceMesh& mesh_);
+  RichSurfaceMeshData(SurfaceMesh& mesh_);
 
-  // Convenience factory method to simultaneously read the mesh from a file and
-  static std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<PlySurfaceMeshData>>
-  loadMeshAndData(std::string filename);
-
-  // The mesh on which the properties in this file are presumed to exist
-  SurfaceMesh& mesh;
+  // Convenience factory method to simultaneously read the mesh from a file and load the ply object
+  static std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<RichSurfaceMeshData>>
+  readMeshAndData(std::string filename);
+  static std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<RichSurfaceMeshData>>
+  readMeshAndData(std::istream& in);
+  static std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<RichSurfaceMeshData>>
+  readManifoldMeshAndData(std::string filename);
+  static std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<RichSurfaceMeshData>>
+  readManifoldMeshAndData(std::istream& in);
 
   // The underlying reader/writer object
   happly::PLYData plyData;
 
   // Write this object out to file
   void write(std::string filename);
+  void write(std::ostream& out);
 
   // Options
   happly::DataFormat outputFormat = happly::DataFormat::Binary;
@@ -77,8 +80,11 @@ public:
 
   // = Convenience getters
 
-  // Creates vertex posititions from a geometry object with the file
+  // Creates a geometry object from vertex positions in the file
   std::unique_ptr<VertexPositionGeometry> getGeometry();
+  
+  // Creates a geometry object from edge lengths in the file
+  std::unique_ptr<EdgeLengthGeometry> getIntrinsicGeometry();
 
   // Looks for vertex colors, either as a uchar or a float
   VertexData<Vector3> getVertexColors();
@@ -111,11 +117,25 @@ public:
 
   // = Convenience setters
 
+  // Add the connectivity of the wrapped mesh to the file
+  void addMeshConnectivity();
+
   // Registers vertex posititions from a geometry object with the file
   void addGeometry(EmbeddedGeometryInterface& geometry);
+  
+  // Registers edge lengths from a geometry object with the file
+  void addIntrinsicGeometry(IntrinsicGeometryInterface& geometry);
 
 
 private:
+  // Create the mesh while constructing
+  RichSurfaceMeshData(std::string filename);
+  RichSurfaceMeshData(std::istream& in);
+  void loadMeshFromFile();
+
+  // The mesh on which the properties in this file are presumed to exist
+  SurfaceMesh* mesh = nullptr;
+
   // Set the names to use for various element types
   std::string vertexName = "vertex";
   std::string faceName = "face";
@@ -129,4 +149,4 @@ private:
 } // namespace geometrycentral
 
 
-#include "geometrycentral/surface/ply_surface_mesh_data.ipp"
+#include "geometrycentral/surface/rich_surface_mesh_data.ipp"
