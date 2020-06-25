@@ -143,9 +143,9 @@ void RichSurfaceMeshData::addMeshConnectivity() {
   plyData.addElement("gc_internal_face", mesh->nFacesFillCount);
   plyData.addElement("gc_internal_bl", mesh->nBoundaryLoopsFillCount);
 
-  auto& elemEdge = plyData.getElement("gc_internal_halfedge");
-  auto& elemHalfedge = plyData.getElement("gc_internal_halfedge");
   auto& elemVertex = plyData.getElement("gc_internal_vertex");
+  auto& elemHalfedge = plyData.getElement("gc_internal_halfedge");
+  auto& elemEdge = plyData.getElement("gc_internal_edge");
   auto& elemFace = plyData.getElement("gc_internal_face");
   auto& elemBl= plyData.getElement("gc_internal_bl");
 
@@ -153,7 +153,7 @@ void RichSurfaceMeshData::addMeshConnectivity() {
   elemHalfedge.addProperty<uint32_t>("gc_internal_heNextArr", toSmallerVec(mesh->heNextArr.begin(), mesh->heNextArr.begin() + mesh->nHalfedgesFillCount));
   elemHalfedge.addProperty<uint32_t>("gc_internal_heFaceArr", toSmallerVec(mesh->heFaceArr.begin(), mesh->heFaceArr.begin() + mesh->nHalfedgesFillCount));
   elemHalfedge.addProperty<uint32_t>("gc_internal_heVertexArr", toSmallerVec(mesh->heVertexArr.begin(), mesh->heVertexArr.begin() + mesh->nHalfedgesFillCount));
-  if(!mesh->usesImplictTwin()) {
+  if(!mesh->usesImplicitTwin()) {
     elemHalfedge.addProperty<uint32_t>("gc_internal_heSiblingArr", toSmallerVec(mesh->heSiblingArr.begin(), mesh->heSiblingArr.begin() + mesh->nHalfedgesFillCount));
     elemHalfedge.addProperty<uint32_t>("gc_internal_heEdgeArr", toSmallerVec(mesh->heEdgeArr.begin(), mesh->heEdgeArr.begin() + mesh->nHalfedgesFillCount));
   }
@@ -162,7 +162,7 @@ void RichSurfaceMeshData::addMeshConnectivity() {
   elemVertex.addProperty<uint32_t>("gc_internal_vHalfedgeArr", toSmallerVec(mesh->vHalfedgeArr.begin(), mesh->vHalfedgeArr.begin() + mesh->nVerticesFillCount));
  
   // Edge properties
-  if(!mesh->usesImplictTwin()) {
+  if(!mesh->usesImplicitTwin()) {
     elemEdge.addProperty<uint32_t>("gc_internal_eHalfedgeArr", toSmallerVec(mesh->eHalfedgeArr.begin(), mesh->eHalfedgeArr.begin() + mesh->nEdgesFillCount));
   }
 
@@ -170,7 +170,7 @@ void RichSurfaceMeshData::addMeshConnectivity() {
   elemFace.addProperty<uint32_t>("gc_internal_fHalfedgeArr", toSmallerVec(mesh->fHalfedgeArr.begin(), mesh->fHalfedgeArr.begin() + mesh->nFacesFillCount));
   
   // Boundary loop properties
-  elemBl.addProperty<uint32_t>("gc_internal_blHalfedgeArr", toSmallerVec(mesh->fHalfedgeArr.end() -mesh->nBoundaryLoopsFillCount, mesh->fHalfedgeArr.end()));
+  elemBl.addProperty<uint32_t>("gc_internal_blHalfedgeArr", toSmallerVec(mesh->fHalfedgeArr.end() - mesh->nBoundaryLoopsFillCount, mesh->fHalfedgeArr.end()));
 
   
   /*

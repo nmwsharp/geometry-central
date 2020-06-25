@@ -54,7 +54,7 @@ public:
   // with CRTP :( perhaps resurrect here and in other elements below once gcc-5 is sufficiently old
   // using Element<Vertex>::Element;
   Vertex();                                // construct an empty (null) element
-  Vertex(SurfaceMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Vertex(SurfaceMesh* mesh, size_t ind);   // construct pointing to the i'th element of that type on a mesh.
   Vertex(const DynamicElement<Vertex>& e); // construct from a dynamic element of matching type
 
   // Navigators
@@ -98,22 +98,26 @@ class Halfedge : public Element<Halfedge, SurfaceMesh> {
 public:
   // Constructors
   Halfedge();                                  // construct an empty (null) element
-  Halfedge(SurfaceMesh* mesh, size_t ind);    // construct pointing to the i'th element of that type on a mesh.
+  Halfedge(SurfaceMesh* mesh, size_t ind);     // construct pointing to the i'th element of that type on a mesh.
   Halfedge(const DynamicElement<Halfedge>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge twin() const;
   Halfedge sibling() const;
+  Halfedge nextOutgoingNeighbor() const; // next halfedge which has the same tail vertex as this, form a cycle
+  Halfedge nextIncomingNeighbor() const; // next halfedge which has the same tip vertex as this, form a cycle
   Halfedge next() const;
   Corner corner() const;
   Vertex vertex() const;
+  Vertex vertexTail() const;
+  Vertex vertexTip() const;
   Edge edge() const;
   Face face() const;
   bool isDead() const;
 
   // Super-navigators
   Halfedge prevOrbitFace() const;
-  Halfedge prevOrbitVertex() const;
+  Halfedge prevOrbitVertex() const; // only meaningful if manifold
 
   // Properties
   bool isInterior() const;
@@ -152,13 +156,13 @@ typedef RangeSetBase<HalfedgeExteriorRangeF> HalfedgeExteriorSet;
 // ================        Corner          ==================
 // ==========================================================
 
-// Implmentation note: The `ind` parameter for a corner will be the index of a halfedge, which should always be real.
+// Implmentation note: The `ind` parameter for a corner will be the index of a halfedge, which should always be interior.
 
 class Corner : public Element<Corner, SurfaceMesh> {
 public:
   // Constructors
   Corner();                                // construct an empty (null) element
-  Corner(SurfaceMesh* mesh, size_t ind);  // construct pointing to the i'th element of that type on a mesh.
+  Corner(SurfaceMesh* mesh, size_t ind);   // construct pointing to the i'th element of that type on a mesh.
   Corner(const DynamicElement<Corner>& e); // construct from a dynamic element of matching type
 
   // Navigators
@@ -188,9 +192,9 @@ typedef RangeSetBase<CornerRangeF> CornerSet;
 class Edge : public Element<Edge, SurfaceMesh> {
 public:
   // Constructors
-  Edge();                               // construct an empty (null) element
+  Edge();                              // construct an empty (null) element
   Edge(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Edge(const DynamicElement<Edge>& e);  // construct from a dynamic element of matching type
+  Edge(const DynamicElement<Edge>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -202,6 +206,7 @@ public:
   size_t degree() const;
 
   // Iterators
+  // TODO FIXME broken for nonmanifold, I think?
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
@@ -231,9 +236,9 @@ typedef RangeSetBase<EdgeRangeF> EdgeSet;
 class Face : public Element<Face, SurfaceMesh> {
 public:
   // Constructors
-  Face();                               // construct an empty (null) element
+  Face();                              // construct an empty (null) element
   Face(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Face(const DynamicElement<Face>& e);  // construct from a dynamic element of matching type
+  Face(const DynamicElement<Face>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -246,6 +251,7 @@ public:
   size_t degree() const;
 
   // Iterators
+  // TODO FIXME broken for nonmanifold?
   NavigationSetBase<FaceAdjacentVertexNavigator> adjacentVertices() const;
   NavigationSetBase<FaceAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<FaceAdjacentCornerNavigator> adjacentCorners() const;
@@ -277,7 +283,7 @@ class BoundaryLoop : public Element<BoundaryLoop, SurfaceMesh> {
 public:
   // Constructors
   BoundaryLoop();                                      // construct an empty (null) element
-  BoundaryLoop(SurfaceMesh* mesh, size_t ind);        // construct pointing to the i'th element of that type on a mesh.
+  BoundaryLoop(SurfaceMesh* mesh, size_t ind);         // construct pointing to the i'th element of that type on a mesh.
   BoundaryLoop(const DynamicElement<BoundaryLoop>& e); // construct from a dynamic element of matching type
 
   Halfedge halfedge() const;
@@ -313,24 +319,20 @@ typedef RangeSetBase<BoundaryLoopRangeF> BoundaryLoopSet;
 // == Vertex
 
 // Helper class to store some special extra state for the vertex iterators
+// For implicit-twin meshes, it just does the usual twin.next() and currHe is always an outgoing halfedge. For general
+// meshes, it iterates first through the outgoing, then the incoming halfedges (always stored in currHe).
 struct VertexNeighborIteratorState {
+  VertexNeighborIteratorState(Halfedge currHeOutgoing, bool useImplicitTwin);
 
-  VertexNeighborIteratorState(Halfedge currHe);
-  VertexNeighborIteratorState(SurfaceMesh* mesh, Vertex v);
-
-  bool useArray = false;
-
-  // if useArray == false, this is populated
+  const bool useImplicitTwin;
   Halfedge currHe = Halfedge();
 
-  // if useArray == true, these are is populated
-  SurfaceMesh* mesh = nullptr;
-  size_t degree = INVALID_IND;
-  size_t indStart = INVALID_IND;
-  size_t currInd = INVALID_IND;
+  // if useImplicitTwin == false, this is populated
+  bool processingIncoming = false;
+  Halfedge firstHe = Halfedge();
 
-  Halfedge getCurrHalfedge() const;
   void advance();
+  bool isHalfedgeCanonical() const; // this currently pointint at the one canonical halfedge along an edge
   bool operator==(const VertexNeighborIteratorState& rhs) const;
 };
 
@@ -348,7 +350,7 @@ struct VertexAdjacentVertexNavigator {
 struct VertexIncomingHalfedgeNavigator {
   void advance();
   bool isValid() const;
-  typedef VertexNeighborIteratorState Etype;
+  typedef Halfedge Etype;
   Etype currE;
   typedef Halfedge Rtype;
   Rtype getCurrent() const;
@@ -358,7 +360,7 @@ struct VertexIncomingHalfedgeNavigator {
 struct VertexOutgoingHalfedgeNavigator {
   void advance();
   bool isValid() const;
-  typedef VertexNeighborIteratorState Etype;
+  typedef Halfedge Etype;
   Etype currE;
   typedef Halfedge Rtype;
   Rtype getCurrent() const;
@@ -368,7 +370,7 @@ struct VertexOutgoingHalfedgeNavigator {
 struct VertexAdjacentCornerNavigator {
   void advance();
   bool isValid() const;
-  typedef VertexNeighborIteratorState Etype;
+  typedef Halfedge Etype;
   Etype currE;
   typedef Corner Rtype;
   Rtype getCurrent() const;
@@ -389,7 +391,7 @@ struct VertexAdjacentEdgeNavigator {
 struct VertexAdjacentFaceNavigator {
   void advance();
   bool isValid() const;
-  typedef VertexNeighborIteratorState Etype;
+  typedef Halfedge Etype;
   Etype currE;
   typedef Face Rtype;
   Rtype getCurrent() const;

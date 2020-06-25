@@ -147,6 +147,16 @@ std::vector<MeshAsset> MeshAssetSuite::boundaryMeshes(bool includeNoGeom) {
   return result;
 }
 
+std::vector<MeshAsset> MeshAssetSuite::polygonalComplexMeshes(bool includeNoGeom) {
+  std::vector<MeshAsset> result;
+  for (MeshAsset& a : allMeshAssets) {
+    if (a.isPolygonalComplex) {
+      if (includeNoGeom || a.geometry) result.push_back(a.copy());
+    }
+  }
+  return result;
+}
+
 std::vector<MeshAsset> MeshAssetSuite::triangularMeshes(bool includeNoGeom, bool includeNonmanifold) {
   std::vector<MeshAsset> result;
   for (MeshAsset& a : allMeshAssets) {

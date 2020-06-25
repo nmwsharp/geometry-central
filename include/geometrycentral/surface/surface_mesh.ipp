@@ -23,20 +23,26 @@ inline size_t SurfaceMesh::nFacesCapacity()            const { return nFacesCapa
 inline size_t SurfaceMesh::nBoundaryLoopsCapacity()    const { return nFacesCapacityCount - nFacesFillCount; }
 
 // Connectivity
-inline size_t SurfaceMesh::heNext(size_t iHe)      const { return heNextArr[iHe]; }
-inline size_t SurfaceMesh::heTwin(size_t iHe)      const { if(usesImplictTwin()) return heTwinImplicit(iHe); 
-                                                            //throw std::runtime_error("called he.twin() on not-necessarily-manifold mesh. Try he.sibling() instead"); 
-                                                            return heSiblingArr[iHe]; }
-inline size_t SurfaceMesh::heSibling(size_t iHe)   const { return usesImplictTwin() ? heTwinImplicit(iHe) : heSiblingArr[iHe]; }
-inline size_t SurfaceMesh::heEdge(size_t iHe)      const { return usesImplictTwin() ? heEdgeImplicit(iHe) : heEdgeArr[iHe]; }
-inline size_t SurfaceMesh::heVertex(size_t iHe)    const { return heVertexArr[iHe]; }
-inline size_t SurfaceMesh::heFace(size_t iHe)      const { return heFaceArr[iHe]; }
-inline size_t SurfaceMesh::eHalfedge(size_t iE)    const { return usesImplictTwin() ? eHalfedgeImplicit(iE) : eHalfedgeArr[iE]; }
-inline size_t SurfaceMesh::vHalfedge(size_t iV)    const { return vHalfedgeArr[iV]; }
-inline size_t SurfaceMesh::fHalfedge(size_t iF)    const { return fHalfedgeArr[iF]; }
+inline size_t SurfaceMesh::heNext(size_t iHe)               const { return heNextArr[iHe]; }
+inline size_t SurfaceMesh::heTwin(size_t iHe)               const { if(usesImplicitTwin()) return heTwinImplicit(iHe); 
+                                                                     //throw std::runtime_error("called he.twin() on not-necessarily-manifold mesh. Try he.sibling() instead"); 
+                                                                     return heSiblingArr[iHe]; }
+inline size_t SurfaceMesh::heSibling(size_t iHe)            const { return usesImplicitTwin() ? heTwinImplicit(iHe) : heSiblingArr[iHe]; }
+inline size_t SurfaceMesh::heNextIncomingNeighbor(size_t iHe)  const { 
+  return usesImplicitTwin() ? heTwinImplicit(heNextArr[iHe]) : heVertInNext[iHe]; 
+}
+inline size_t SurfaceMesh::heNextOutgoingNeighbor(size_t iHe) const { 
+  return usesImplicitTwin() ? heNextArr[heTwinImplicit(iHe)] : heVertOutNext[iHe]; 
+}
+inline size_t SurfaceMesh::heEdge(size_t iHe)               const { return usesImplicitTwin() ? heEdgeImplicit(iHe) : heEdgeArr[iHe]; }
+inline size_t SurfaceMesh::heVertex(size_t iHe)             const { return heVertexArr[iHe]; }
+inline size_t SurfaceMesh::heFace(size_t iHe)               const { return heFaceArr[iHe]; }
+inline size_t SurfaceMesh::eHalfedge(size_t iE)             const { return usesImplicitTwin() ? eHalfedgeImplicit(iE) : eHalfedgeArr[iE]; }
+inline size_t SurfaceMesh::vHalfedge(size_t iV)             const { return vHalfedgeArr[iV]; }
+inline size_t SurfaceMesh::fHalfedge(size_t iF)             const { return fHalfedgeArr[iF]; }
 
 // Implicit relationships
-inline bool SurfaceMesh::usesImplictTwin() const           { return useImplicitTwinFlag; }
+inline bool SurfaceMesh::usesImplicitTwin() const           { return useImplicitTwinFlag; }
 inline size_t SurfaceMesh::heTwinImplicit(size_t iHe)      { return iHe ^ 1; }     // static
 inline size_t SurfaceMesh::heEdgeImplicit(size_t iHe)      { return iHe / 2; }     // static
 inline size_t SurfaceMesh::eHalfedgeImplicit(size_t iE)    { return 2 * iE; }      // static
@@ -50,7 +56,7 @@ inline size_t SurfaceMesh::boundaryLoopIndToFaceInd(size_t iB) const { return nF
 // Detect dead elements
 inline bool SurfaceMesh::vertexIsDead(size_t iV)      const { return vHalfedgeArr[iV] == INVALID_IND; }
 inline bool SurfaceMesh::halfedgeIsDead(size_t iHe)   const { return heNextArr[iHe] == INVALID_IND; }
-inline bool SurfaceMesh::edgeIsDead(size_t iE)        const { return usesImplictTwin() ? heNextArr[eHalfedgeImplicit(iE)] == INVALID_IND : eHalfedgeArr[iE] == INVALID_IND; }
+inline bool SurfaceMesh::edgeIsDead(size_t iE)        const { return usesImplicitTwin() ? heNextArr[eHalfedgeImplicit(iE)] == INVALID_IND : eHalfedgeArr[iE] == INVALID_IND; }
 inline bool SurfaceMesh::faceIsDead(size_t iF)        const { return fHalfedgeArr[iF] == INVALID_IND;}
 
 // Methods for iterating over mesh elements w/ range-based for loops ===========
@@ -77,8 +83,6 @@ inline BoundaryLoop SurfaceMesh::boundaryLoop(size_t index) { return BoundaryLoo
 // Misc utility methods =====================================
 
 inline bool SurfaceMesh::isCompressed() const { return isCompressedFlag; }
-inline bool SurfaceMesh::hasBoundary() const { return nBoundaryLoopsCount > 0; }
-inline void SurfaceMesh::ensureVertexIterationCachePopulated() { if(vertexIterationCacheTick != modificationTick) populateVertexIterationCache(); }
 
 // clang-format on
 

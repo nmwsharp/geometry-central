@@ -265,6 +265,93 @@ TEST_F(HalfedgeMeshSuite, VertexAdjacentNavigator) {
   }
 }
 
+
+TEST_F(HalfedgeMeshSuite, VertexCornerNavigatorInterior) {
+  for (MeshAsset& a : allMeshes()) {
+    a.printThyName();
+
+    for (Vertex v : a.mesh->vertices()) {
+      for (Corner c : v.adjacentCorners()) {
+        EXPECT_FALSE(c.face().isBoundaryLoop());
+      }
+    }
+  }
+}
+
+
+TEST_F(HalfedgeMeshSuite, VertexEdgeNavigator) {
+  for (MeshAsset& a : polygonalComplexMeshes()) {
+    a.printThyName();
+
+    EdgeData<size_t> edgeCount(*a.mesh, 0);
+
+    for (Vertex v : a.mesh->vertices()) {
+
+      // make sure each edge is returned just once
+      std::unordered_set<Edge> seen;
+
+      for (Edge e : v.adjacentEdges()) {
+        EXPECT_TRUE(seen.find(e) == seen.end());
+        seen.insert(e);
+        edgeCount[e]++;
+      }
+    }
+
+    for (Edge e : a.mesh->edges()) {
+      EXPECT_EQ(edgeCount[e], 2);
+    }
+  }
+}
+
+TEST_F(HalfedgeMeshSuite, VertexFaceNavigator) {
+  for (MeshAsset& a : polygonalComplexMeshes()) {
+    a.printThyName();
+
+    FaceData<size_t> faceCount(*a.mesh, 0);
+
+    for (Vertex v : a.mesh->vertices()) {
+
+      // make sure each face is returned just once
+      std::unordered_set<Face> seen;
+
+      for (Face f : v.adjacentFaces()) {
+        EXPECT_TRUE(seen.find(f) == seen.end());
+        seen.insert(f);
+        faceCount[f]++;
+      }
+    }
+
+    for (Face f: a.mesh->faces()) {
+      EXPECT_EQ(faceCount[f], f.degree());
+    }
+  }
+}
+
+TEST_F(HalfedgeMeshSuite, VertexFaceNavigator) {
+  for (MeshAsset& a : polygonalComplexMeshes()) {
+    a.printThyName();
+
+    FaceData<size_t> faceCount(*a.mesh, 0);
+
+    for (Vertex v : a.mesh->vertices()) {
+
+      // make sure each face is returned just once
+      std::unordered_set<Face> seen;
+
+      for (Face f : v.adjacentFaces()) {
+        EXPECT_TRUE(seen.find(f) == seen.end());
+        seen.insert(f);
+        faceCount[f]++;
+      }
+    }
+
+    for (Face f: a.mesh->faces()) {
+      EXPECT_EQ(faceCount[f], f.degree());
+    }
+  }
+}
+
+
 // ============================================================
 // =============== Rich mesh
 // ============================================================
@@ -330,10 +417,10 @@ TEST_F(HalfedgeMeshSuite, RichMeshDataSaveLoadMeshGeneral) {
 
     SurfaceMesh& mesh = *asset.mesh;
     VertexPositionGeometry& geom = *asset.geometry;
-    
+
     HalfedgeData<double> halfedgeValues(mesh);
     fillRandom(halfedgeValues);
-    
+
     // Write the data to file
     RichSurfaceMeshData richData(mesh);
     richData.addMeshConnectivity();
@@ -368,10 +455,10 @@ TEST_F(HalfedgeMeshSuite, RichMeshDataSaveLoadMeshManifold) {
 
     SurfaceMesh& mesh = *asset.mesh;
     VertexPositionGeometry& geom = *asset.geometry;
-    
+
     HalfedgeData<double> halfedgeValues(mesh);
     fillRandom(halfedgeValues);
-    
+
     // Write the data to file
     RichSurfaceMeshData richData(mesh);
     richData.addMeshConnectivity();

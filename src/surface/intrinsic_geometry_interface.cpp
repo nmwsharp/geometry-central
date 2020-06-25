@@ -438,7 +438,7 @@ void IntrinsicGeometryInterface::computeCotanLaplacian() {
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
     Vertex vTail = he.vertex();
-    Vertex vHead = he.twin().vertex();
+    Vertex vHead = he.next().vertex();
 
     size_t iVHead = vertexIndices[vHead];
     size_t iVTail = vertexIndices[vTail];
@@ -602,7 +602,7 @@ void IntrinsicGeometryInterface::computeDECOperators() {
       size_t iEdge = edgeIndices[e];
       Halfedge he = e.halfedge();
       Vertex vTail = he.vertex();
-      Vertex vHead = he.twin().vertex();
+      Vertex vHead = he.next().vertex();
 
       size_t iVHead = vertexIndices[vHead];
       tripletList.emplace_back(iEdge, iVHead, 1.0);

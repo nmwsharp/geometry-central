@@ -1654,6 +1654,7 @@ std::vector<Face> ManifoldSurfaceMesh::triangulate(Face f) {
   return allFaces;
 }
 
+bool ManifoldSurfaceMesh::hasBoundary() { return nBoundaryLoopsCount > 0; }
 
 std::unique_ptr<ManifoldSurfaceMesh> ManifoldSurfaceMesh::copy() const {
   ManifoldSurfaceMesh* newMesh = new ManifoldSurfaceMesh();

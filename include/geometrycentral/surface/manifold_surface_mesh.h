@@ -81,9 +81,10 @@ public:
   // Triangulate in a face, returns all subfaces
   std::vector<Face> triangulate(Face face);
 
-
   // == Utility functions
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;
+
+  bool hasBoundary() override;
 
 protected:
   // Construct directly from internal arrays

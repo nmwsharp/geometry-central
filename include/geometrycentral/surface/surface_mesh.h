@@ -104,7 +104,7 @@ public:
   BoundaryLoopData<size_t> getBoundaryLoopIndices();
 
   // == Utility functions
-  bool hasBoundary() const;      // does the mesh have boundary? (aka not closed)
+  virtual bool hasBoundary();    // does the mesh have boundary? (aka not closed)
   bool isTriangular();           // returns true if and only if all faces are triangles [O(n)]
   size_t nConnectedComponents(); // compute number of connected components [O(n)]
   virtual bool isManifold();
@@ -149,7 +149,6 @@ public:
   size_t nFacesCapacity() const;
   size_t nBoundaryLoopsCapacity() const;
 
-
   // == Debugging, etc
 
   // Performs a sanity checks on halfedge structure; throws on fail
@@ -171,7 +170,7 @@ protected:
   // Note: it should always be true that heFace.size() == nHalfedgesCapacityCount, but any elements after
   // nHalfedgesFillCount will be valid indices (in the std::vector sense), but contain uninitialized data. Similarly,
   // any std::vector<> indices corresponding to deleted elements will hold meaningless values.
-  std::vector<size_t> heNextArr;    // he.next()
+  std::vector<size_t> heNextArr;    // he.next(), forms a circular singly-linked list in each face
   std::vector<size_t> heVertexArr;  // he.vertex()
   std::vector<size_t> heFaceArr;    // he.face()
   std::vector<size_t> vHalfedgeArr; // v.halfedge()
@@ -180,29 +179,39 @@ protected:
 
   // Does this mesh use the implicit-twin convention in its connectivity arrays?
   //
-  // If true, heSibling, heEdge, and eHalfedge are all empty arrays, and these values are computed implicitly from
-  // arithmetic on the indices. A consequence is that the mesh can only represent edge-manifold, oriented surfaces.
+  // If true, heSibling, heEdge, eHalfedge, and heVert_ are all empty arrays, and these values are computed implicitly
+  // from arithmetic on the indices. A consequence is that the mesh can only represent edge-manifold, oriented surfaces.
   //
   // If false, the above arrays are all populated and used for connectivty. As a consequence, the resulting mesh might
   // not be manifold/oriented, and extra care is needed for some routines.
-  bool usesImplictTwin() const;
+  bool usesImplicitTwin() const;
   const bool useImplicitTwinFlag;
 
   // (see note above about implicit twin)
-  std::vector<size_t> heSiblingArr; // he.sibling() and he.twin()
+  std::vector<size_t> heSiblingArr; // he.sibling() and he.twin(), forms a circular singly-linked list around each edge
   std::vector<size_t> heEdgeArr;    // he.edge()
   std::vector<size_t> eHalfedgeArr; // e.halfedge()
 
+  // these encode connectivity, but are redundant given teh other arrays above, so they don't need to be serialized
+  // (etc)
+  std::vector<size_t> heVertInNext;
+  std::vector<size_t> heVertInPrev;
+  std::vector<size_t> heVertOutNext;
+  std::vector<size_t> heVertOutPrev;
+
+
   // Element connectivity
-  size_t heNext(size_t iHe) const;    // he.vertex()
-  size_t heTwin(size_t iHe) const;    // he.twin()
-  size_t heSibling(size_t iHe) const; // he.sibling()
-  size_t heEdge(size_t iHe) const;    // he.edge()
-  size_t heVertex(size_t iHe) const;  // he.vertex()
-  size_t heFace(size_t iHe) const;    // he.face()
-  size_t eHalfedge(size_t iE) const;  // e.halfedge()
-  size_t vHalfedge(size_t iV) const;  // v.halfedge()
-  size_t fHalfedge(size_t iF) const;  // f.halfedge()
+  size_t heNext(size_t iHe) const;                 // he.vertex()
+  size_t heTwin(size_t iHe) const;                 // he.twin()
+  size_t heSibling(size_t iHe) const;              // he.sibling()
+  size_t heNextIncomingNeighbor(size_t iHe) const; // he.nextIncomingNeighbor()
+  size_t heNextOutgoingNeighbor(size_t iHe) const; // he.nextOutgoingNeighbor()
+  size_t heEdge(size_t iHe) const;                 // he.edge()
+  size_t heVertex(size_t iHe) const;               // he.vertex()
+  size_t heFace(size_t iHe) const;                 // he.face()
+  size_t eHalfedge(size_t iE) const;               // e.halfedge()
+  size_t vHalfedge(size_t iV) const;               // v.halfedge()
+  size_t fHalfedge(size_t iF) const;               // f.halfedge()
 
   // Implicit connectivity relationships
   static size_t heTwinImplicit(size_t iHe);   // he.twin()
@@ -290,21 +299,17 @@ protected:
   void compressVertices();
 
   // Helpers for mutation methods and similar things
+  void initializeHalfedgeNeighbors();
   void copyInternalFields(SurfaceMesh& target) const;
   virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;
 
-  // Iterating around the neighbors of a nonmanifold vertex is one of the few operations not efficiently supported by
-  // even this souped-up halfedge mesh. For nonmanifold meshes, these helper arrays allow us to iterate efficiently.
-  // These are automatically populated when v.adjacentVertices() (etc) is called. And thus will always be accurate when
-  // used. The only effect for the user is that intermingling mesh modifications and vertex neighbor iterations might
-  // lead to code unexpectedly degenerate to O(N^2) complexity. For vertex iV, vertexIterationCacheHeIndex holds the
-  // indices of the halfedges outgoing from the vertex, in the range from vertexIterationCacheVertexStart[iV] to
+  // Build a flat array for iterating around a vertex, before the mesh structure is complete.
+  // For vertex iV, vertexIterationCacheHeIndex holds the
+  // indices of the halfedges outgoing/incoming to the vertex, in the range from vertexIterationCacheVertexStart[iV] to
   // vertexIterationCacheVertexStart[iV+1]
-  void ensureVertexIterationCachePopulated();
-  void populateVertexIterationCache(bool skipDead = true);
-  uint64_t vertexIterationCacheTick = 0; // used to keep cache fresh
-  std::vector<size_t> vertexIterationCacheHeIndex;
-  std::vector<size_t> vertexIterationCacheVertexStart;
+  void generateVertexIterationCache(std::vector<size_t>& vertexIterationCacheHeIndex,
+                                    std::vector<size_t>& vertexIterationCacheVertexStart, bool incoming,
+                                    bool skipDead = true);
 
   // Elements need direct access in to members to traverse
   friend class Vertex;

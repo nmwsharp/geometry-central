@@ -29,7 +29,7 @@ void EmbeddedGeometryInterface::computeEdgeLengths() {
 
   edgeLengths = EdgeData<double>(mesh);
   for (Edge e : mesh.edges()) {
-    edgeLengths[e] = norm(vertexPositions[e.halfedge().vertex()] - vertexPositions[e.halfedge().twin().vertex()]);
+    edgeLengths[e] = norm(vertexPositions[e.halfedge().vertex()] - vertexPositions[e.halfedge().next().vertex()]);
   }
 }
 
@@ -130,7 +130,7 @@ void EmbeddedGeometryInterface::computeFaceTangentBasis() {
     bool isTriangular = f.isTriangle();
     for (Halfedge heF : f.adjacentHalfedges()) {
 
-      Vector3 eVec = vertexPositions[heF.twin().vertex()] - vertexPositions[heF.vertex()];
+      Vector3 eVec = vertexPositions[heF.next().vertex()] - vertexPositions[heF.vertex()];
       eVec = eVec.removeComponent(N);
 
       // TODO can surely do this with less trig
@@ -167,7 +167,7 @@ void EmbeddedGeometryInterface::computeVertexTangentBasis() {
     Vector3 N = vertexNormals[v];
     for (Halfedge he : v.outgoingHalfedges()) {
 
-      Vector3 eVec = vertexPositions[he.twin().vertex()] - vertexPositions[he.vertex()];
+      Vector3 eVec = vertexPositions[he.next().vertex()] - vertexPositions[he.vertex()];
       eVec = eVec.removeComponent(N);
 
       // TODO can surely do this with less trig
@@ -204,7 +204,7 @@ void EmbeddedGeometryInterface::computeFaceAreas() {
     he = he.next();
     Vector3 pC = vertexPositions[he.vertex()];
 
-    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
     double area = 0.5 * norm(cross(pB - pA, pC - pA));
     faceAreas[f] = area;
@@ -227,7 +227,7 @@ void EmbeddedGeometryInterface::computeCornerAngles() {
     he = he.next();
     Vector3 pC = vertexPositions[he.vertex()];
 
-    GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces must be triangular");
 
     double q = dot(unit(pB - pA), unit(pC - pA));
     q = clamp(q, -1.0, 1.0);
@@ -256,7 +256,7 @@ void EmbeddedGeometryInterface::computeHalfedgeCotanWeights() {
       Vector3 pC = vertexPositions[he.vertex()];
       he = he.next();
       Vector3 pA = vertexPositions[he.vertex()];
-      GC_SAFETY_ASSERT(he.next() == heI, "faces mush be triangular");
+      GC_SAFETY_ASSERT(he.next() == heI, "faces must be triangular");
 
       Vector3 vecR = pB - pA;
       Vector3 vecL = pC - pA;
@@ -276,6 +276,7 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
 
   edgeCotanWeights = EdgeData<double>(mesh);
 
+  // FIXME NONMANIFOLD
   for (Edge e : mesh.edges()) {
 
     // WARNING: Logic duplicated between cached and immediate version
@@ -288,7 +289,7 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
       Vector3 pC = vertexPositions[he.vertex()];
       he = he.next();
       Vector3 pA = vertexPositions[he.vertex()];
-      GC_SAFETY_ASSERT(he.next() == e.halfedge(), "faces mush be triangular");
+      GC_SAFETY_ASSERT(he.next() == e.halfedge(), "faces must be triangular");
 
       Vector3 vecR = pB - pA;
       Vector3 vecL = pC - pA;
