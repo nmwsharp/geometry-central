@@ -6,7 +6,8 @@
 #include "geometrycentral/utilities/utilities.h"
 
 #include <cstddef>
-#include <functional>
+#include <typeindex> 
+#include <unordered_set>
 #include <iostream>
 #include <list>
 
@@ -64,7 +65,8 @@ public:
 
   // Properties
   bool isBoundary() const;
-  bool isManifold() const; // actually tests "manifold and oriented"
+  bool isManifold() const; 
+  bool isManifoldAndOriented() const; // actually tests "manifold and oriented"
   size_t degree() const;
   size_t faceDegree() const;
 
@@ -156,7 +158,8 @@ typedef RangeSetBase<HalfedgeExteriorRangeF> HalfedgeExteriorSet;
 // ================        Corner          ==================
 // ==========================================================
 
-// Implmentation note: The `ind` parameter for a corner will be the index of a halfedge, which should always be interior.
+// Implmentation note: The `ind` parameter for a corner will be the index of a halfedge, which should always be
+// interior.
 
 class Corner : public Element<Corner, SurfaceMesh> {
 public:
@@ -206,7 +209,6 @@ public:
   size_t degree() const;
 
   // Iterators
-  // TODO FIXME broken for nonmanifold, I think?
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
@@ -332,7 +334,7 @@ struct VertexNeighborIteratorState {
   Halfedge firstHe = Halfedge();
 
   void advance();
-  bool isHalfedgeCanonical() const; // this currently pointint at the one canonical halfedge along an edge
+  bool isHalfedgeCanonical() const; // this currently pointing at the one canonical halfedge along an edge
   bool operator==(const VertexNeighborIteratorState& rhs) const;
 };
 
@@ -476,7 +478,8 @@ struct FaceAdjacentEdgeNavigator {
 struct FaceAdjacentFaceNavigator {
   void advance();
   bool isValid() const;
-  typedef Halfedge Etype;
+  typedef std::pair<Halfedge, Halfedge>
+      Etype; // first is current halfedge of this face, second halfedge adjacent to face to return
   Etype currE;
   typedef Face Rtype;
   Rtype getCurrent() const;
@@ -582,3 +585,4 @@ template<> inline std::string typeShortName<surface::BoundaryLoop >();
 // clang-format on
 
 } // namespace geometrycentral
+

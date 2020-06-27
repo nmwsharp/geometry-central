@@ -21,7 +21,7 @@ class SimplePolygonSuite : public MeshAssetSuite {};
 // ============================================================
 
 TEST_F(SimplePolygonSuite, BasicTest) {
-  for (MeshAsset& a : closedMeshes()) {
+  for (MeshAsset& a : allMeshes()) {
     a.printThyName();
 
     SimplePolygonMesh simpleMesh(a.sourcePath);

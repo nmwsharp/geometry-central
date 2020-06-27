@@ -29,10 +29,10 @@ inline size_t SurfaceMesh::heTwin(size_t iHe)               const { if(usesImpli
                                                                      return heSiblingArr[iHe]; }
 inline size_t SurfaceMesh::heSibling(size_t iHe)            const { return usesImplicitTwin() ? heTwinImplicit(iHe) : heSiblingArr[iHe]; }
 inline size_t SurfaceMesh::heNextIncomingNeighbor(size_t iHe)  const { 
-  return usesImplicitTwin() ? heTwinImplicit(heNextArr[iHe]) : heVertInNext[iHe]; 
+  return usesImplicitTwin() ? heTwinImplicit(heNextArr[iHe]) : heVertInNextArr[iHe]; 
 }
 inline size_t SurfaceMesh::heNextOutgoingNeighbor(size_t iHe) const { 
-  return usesImplicitTwin() ? heNextArr[heTwinImplicit(iHe)] : heVertOutNext[iHe]; 
+  return usesImplicitTwin() ? heNextArr[heTwinImplicit(iHe)] : heVertOutNextArr[iHe]; 
 }
 inline size_t SurfaceMesh::heEdge(size_t iHe)               const { return usesImplicitTwin() ? heEdgeImplicit(iHe) : heEdgeArr[iHe]; }
 inline size_t SurfaceMesh::heVertex(size_t iHe)             const { return heVertexArr[iHe]; }

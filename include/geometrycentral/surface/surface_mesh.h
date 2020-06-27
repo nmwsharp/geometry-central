@@ -194,10 +194,10 @@ protected:
 
   // these encode connectivity, but are redundant given teh other arrays above, so they don't need to be serialized
   // (etc)
-  std::vector<size_t> heVertInNext;
-  std::vector<size_t> heVertInPrev;
-  std::vector<size_t> heVertOutNext;
-  std::vector<size_t> heVertOutPrev;
+  std::vector<size_t> heVertInNextArr;
+  std::vector<size_t> heVertInPrevArr;
+  std::vector<size_t> heVertOutNextArr;
+  std::vector<size_t> heVertOutPrevArr;
 
 
   // Element connectivity
@@ -288,6 +288,7 @@ protected:
   // Note that these routines merely mark the element as dead. The caller should hook up connectivity to exclude these
   // elements before invoking.
   void deleteEdgeTriple(Halfedge he);
+  //void deleteElement(Halfedge he);
   void deleteElement(Vertex v);
   void deleteElement(Face f);
   void deleteElement(BoundaryLoop bl);

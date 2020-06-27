@@ -183,14 +183,13 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
 
   } else {
     // DisjointSets djSet
-    throw std::runtime_error("implement");
+    throw std::runtime_error("not implemented");
   }
 
   initializeHalfedgeNeighbors();
 
   isCompressedFlag = true;
   // TODO compress here?
-  validateConnectivity(); // TODO FIXME
 }
 
 
@@ -259,9 +258,6 @@ SurfaceMesh::SurfaceMesh(const std::vector<size_t>& heNextArr_, const std::vecto
   }
 
   initializeHalfedgeNeighbors();
-
-  // TODO FIXME
-  validateConnectivity();
 }
 
 
@@ -274,7 +270,7 @@ SurfaceMesh::~SurfaceMesh() {
 void SurfaceMesh::initializeHalfedgeNeighbors() {
 
   // NOTE it might be nice to maintain an invariant that around manifold vertices, halfedges appear in manifold order
-  // jbut currently  they're in arbitrary order)
+  // (but currently they're in arbitrary order)
 
   // We will need to loop around vertex below (on a possibly nonmanifold mesh)
   std::vector<size_t> vertexIterationCacheHeIndexIn;
@@ -284,10 +280,10 @@ void SurfaceMesh::initializeHalfedgeNeighbors() {
   std::vector<size_t> vertexIterationCacheVertexStartOut;
   generateVertexIterationCache(vertexIterationCacheHeIndexOut, vertexIterationCacheVertexStartOut, false, true);
 
-  heVertInNext.resize(nHalfedgesCapacityCount);
-  heVertInPrev.resize(nHalfedgesCapacityCount);
-  heVertOutNext.resize(nHalfedgesCapacityCount);
-  heVertOutPrev.resize(nHalfedgesCapacityCount);
+  heVertInNextArr.resize(nHalfedgesCapacityCount);
+  heVertInPrevArr.resize(nHalfedgesCapacityCount);
+  heVertOutNextArr.resize(nHalfedgesCapacityCount);
+  heVertOutPrevArr.resize(nHalfedgesCapacityCount);
 
   for (Vertex v : vertices()) {
 
@@ -299,8 +295,8 @@ void SurfaceMesh::initializeHalfedgeNeighbors() {
         size_t iHeB =
             vertexIterationCacheHeIndexIn[(((traverseInd - rangeStart) + 1) % (rangeEnd - rangeStart)) + rangeStart];
 
-        heVertInNext[iHeA] = iHeB;
-        heVertInPrev[iHeB] = iHeA;
+        heVertInNextArr[iHeA] = iHeB;
+        heVertInPrevArr[iHeB] = iHeA;
       }
     }
 
@@ -315,8 +311,8 @@ void SurfaceMesh::initializeHalfedgeNeighbors() {
         if (heVertexArr[iHeA] != v.getIndex()) throw std::runtime_error("out A problem");
         if (heVertexArr[iHeB] != v.getIndex()) throw std::runtime_error("out B problem");
 
-        heVertOutNext[iHeA] = iHeB;
-        heVertOutPrev[iHeB] = iHeA;
+        heVertOutNextArr[iHeA] = iHeB;
+        heVertOutPrevArr[iHeB] = iHeA;
       }
     }
   }
@@ -487,10 +483,10 @@ void SurfaceMesh::copyInternalFields(SurfaceMesh& target) const {
   target.heSiblingArr = heSiblingArr;
   target.heEdgeArr = heEdgeArr;
   target.eHalfedgeArr = eHalfedgeArr;
-  target.heVertInNext = heVertInNext;
-  target.heVertInPrev = heVertInPrev;
-  target.heVertOutNext = heVertOutNext;
-  target.heVertOutPrev = heVertOutPrev;
+  target.heVertInNextArr = heVertInNextArr;
+  target.heVertInPrevArr = heVertInPrevArr;
+  target.heVertOutNextArr = heVertOutNextArr;
+  target.heVertOutPrevArr = heVertOutPrevArr;
 
   // counts and flags
   target.nHalfedgesCount = nHalfedgesCount;
@@ -534,8 +530,6 @@ std::vector<std::vector<size_t>> SurfaceMesh::getFaceVertexList() {
 void SurfaceMesh::generateVertexIterationCache(std::vector<size_t>& vertexIterationCacheHeIndex,
                                                std::vector<size_t>& vertexIterationCacheVertexStart, bool incoming,
                                                bool skipDead) {
-
-  std::cout << "========= POPULATING VERTEX ITERATION CACHE ==============" << std::endl;
 
   // First, count the degree of every vertex
   std::vector<size_t> vDegree(nVerticesFillCount, 0);
@@ -612,10 +606,10 @@ void SurfaceMesh::validateConnectivity() {
     validateEdge(heEdge(iHe), "he.edge()");
     validateFace(heFaceArr[iHe], "he.face()");
     if (!usesImplicitTwin()) {
-      validateHalfedge(heVertInNext[iHe], "heVertInNext");
-      validateHalfedge(heVertInPrev[iHe], "heVertInPrev");
-      validateHalfedge(heVertOutNext[iHe], "heVertOutNext");
-      validateHalfedge(heVertOutPrev[iHe], "heVertOutPrev");
+      validateHalfedge(heVertInNextArr[iHe], "heVertInNextArr");
+      validateHalfedge(heVertInPrevArr[iHe], "heVertInPrevArr");
+      validateHalfedge(heVertOutNextArr[iHe], "heVertOutNextArr");
+      validateHalfedge(heVertOutPrevArr[iHe], "heVertOutPrevArr");
     }
   }
   for (size_t iV = 0; iV < nVerticesFillCount; iV++) {
@@ -653,14 +647,14 @@ void SurfaceMesh::validateConnectivity() {
       size_t iHe = he.getIndex();
       Vertex thisTail = he.vertex();
       Vertex thisTip = he.next().vertex();
-      if (Halfedge(this, heVertOutNext[iHe]).vertex() != thisTail)
-        throw std::logic_error("heVertOutNext is not outgoing from same vert");
-      if (Halfedge(this, heVertOutPrev[iHe]).vertex() != thisTail)
-        throw std::logic_error("heVertOutPrev is not outgoing from same vert");
-      if (Halfedge(this, heVertInNext[iHe]).next().vertex() != thisTip)
-        throw std::logic_error("heVertInNext is not incoming from same vert");
-      if (Halfedge(this, heVertInPrev[iHe]).next().vertex() != thisTip)
-        throw std::logic_error("heVertInPrev is not incoming from same vert");
+      if (Halfedge(this, heVertOutNextArr[iHe]).vertex() != thisTail)
+        throw std::logic_error("heVertOutNextArr is not outgoing from same vert");
+      if (Halfedge(this, heVertOutPrevArr[iHe]).vertex() != thisTail)
+        throw std::logic_error("heVertOutPrevArr is not outgoing from same vert");
+      if (Halfedge(this, heVertInNextArr[iHe]).next().vertex() != thisTip)
+        throw std::logic_error("heVertInNextArr is not incoming from same vert");
+      if (Halfedge(this, heVertInPrevArr[iHe]).next().vertex() != thisTip)
+        throw std::logic_error("heVertInPrevArr is not incoming from same vert");
     }
   }
 
@@ -790,30 +784,32 @@ void SurfaceMesh::validateConnectivity() {
   }
 
   // Make sure that vertex iterators do what you would expect
-  if(!usesImplicitTwin()) {
+  if (!usesImplicitTwin()) {
 
     std::vector<size_t> vertexInCount(nVerticesCapacityCount, 0);
     std::vector<size_t> vertexOutCount(nVerticesCapacityCount, 0);
-    for(Halfedge he : halfedges()) {
+    for (Halfedge he : halfedges()) {
       vertexOutCount[he.vertex().getIndex()]++;
       vertexInCount[he.next().vertex().getIndex()]++;
     }
 
-    for(Vertex v : vertices()) {
+    for (Vertex v : vertices()) {
       size_t nOut = 0;
-      for(Halfedge he : v.outgoingHalfedges()) {
-        nOut++;   
+      for (Halfedge he : v.outgoingHalfedges()) {
+        nOut++;
       }
-      if(nOut != vertexOutCount[v.getIndex()]) throw std::logic_error("not enough halfedges in vertex outgoing loop, must be disconnected component in heVertOutNext/Prev");
-      
-      size_t nIn= 0;
-      for(Halfedge he : v.incomingHalfedges()) {
-        nIn++;   
+      if (nOut != vertexOutCount[v.getIndex()])
+        throw std::logic_error(
+            "not enough halfedges in vertex outgoing loop, must be disconnected component in heVertOutNextArr/Prev");
+
+      size_t nIn = 0;
+      for (Halfedge he : v.incomingHalfedges()) {
+        nIn++;
       }
-      if(nIn != vertexInCount[v.getIndex()]) throw std::logic_error("not enough halfedges in vertex incoming loop, must be disconnected component in heVertInNext/Prev");
+      if (nIn != vertexInCount[v.getIndex()])
+        throw std::logic_error(
+            "not enough halfedges in vertex incoming loop, must be disconnected component in heVertInNextArr/Prev");
     }
-
-
   }
 
   // Check manifoldness, if the mesh should be manifold
@@ -877,10 +873,10 @@ Halfedge SurfaceMesh::getNewHalfedge(bool isInterior) {
     if (!usesImplicitTwin()) { // must enter this case, see test above
       heSiblingArr.resize(newHalfedgeCapacity);
       heEdgeArr.resize(newHalfedgeCapacity);
-      heVertInNext.resize(newHalfedgeCapacity);
-      heVertInPrev.resize(newHalfedgeCapacity);
-      heVertOutNext.resize(newHalfedgeCapacity);
-      heVertOutPrev.resize(newHalfedgeCapacity);
+      heVertInNextArr.resize(newHalfedgeCapacity);
+      heVertInPrevArr.resize(newHalfedgeCapacity);
+      heVertOutNextArr.resize(newHalfedgeCapacity);
+      heVertOutPrevArr.resize(newHalfedgeCapacity);
     }
 
     nHalfedgesCapacityCount = newHalfedgeCapacity;
@@ -1088,14 +1084,24 @@ void SurfaceMesh::deleteEdgeTriple(Halfedge he) {
   bool isBoundary = he.twin().isInterior();
   size_t iHe = he.getIndex();
   size_t iHeT = he.twin().getIndex();
+  size_t iE = he.edge().getIndex();
 
-  heNextArr[iHe] = INVALID_IND;
-  heVertexArr[iHe] = INVALID_IND;
-  heFaceArr[iHe] = INVALID_IND;
+  for (size_t i : {iHe, iHeT}) {
+    heNextArr[i] = INVALID_IND;
+    heVertexArr[i] = INVALID_IND;
+    heFaceArr[i] = INVALID_IND;
 
-  heNextArr[iHeT] = INVALID_IND;
-  heVertexArr[iHeT] = INVALID_IND;
-  heFaceArr[iHeT] = INVALID_IND;
+    if (!usesImplicitTwin()) {
+      heVertInNextArr[i] = INVALID_IND;
+      heVertInPrevArr[i] = INVALID_IND;
+      heVertOutNextArr[i] = INVALID_IND;
+      heVertOutPrevArr[i] = INVALID_IND;
+    }
+  }
+
+  if (!usesImplicitTwin()) {
+    eHalfedgeArr[iE] = INVALID_IND;
+  }
 
   nHalfedgesCount -= 2;
   if (isBoundary) {
@@ -1107,6 +1113,7 @@ void SurfaceMesh::deleteEdgeTriple(Halfedge he) {
   modificationTick++;
   isCompressedFlag = false;
 }
+
 
 void SurfaceMesh::deleteElement(Vertex v) {
   size_t iV = v.getIndex();

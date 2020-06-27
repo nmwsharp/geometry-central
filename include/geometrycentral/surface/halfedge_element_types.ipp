@@ -2,6 +2,18 @@
 
 // Implementations for halfedge_mesh_types.ipp
 
+// Make the element types hashable (this _should_ be doable for just the parent class, but I couldn't sort out how)
+namespace std {
+// clang-format off
+template <> struct hash<geometrycentral::surface::Vertex>         { std::size_t operator()(const geometrycentral::surface::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Halfedge>       { std::size_t operator()(const geometrycentral::surface::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Corner>         { std::size_t operator()(const geometrycentral::surface::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Edge>           { std::size_t operator()(const geometrycentral::surface::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Face>           { std::size_t operator()(const geometrycentral::surface::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::BoundaryLoop>   { std::size_t operator()(const geometrycentral::surface::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
+// clang-format on
+} // namespace std
+
 namespace geometrycentral {
 namespace surface {
 
@@ -24,7 +36,7 @@ inline bool Vertex::isDead() const          { return mesh->vertexIsDead(ind); }
 
 // Properties
 inline bool Vertex::isBoundary() const { return !halfedge().twin().isInterior(); }
-inline bool Vertex::isManifold() const { 
+inline bool Vertex::isManifoldAndOriented() const { 
   // TODO this routine is actually pretty nontrivial, it probably deserves some more thought
   // strategy: bootstrap off of the adjacency iterator, which already has functionality for nonmanifold vertices
   if(mesh->usesImplicitTwin()) return true;
@@ -41,9 +53,39 @@ inline bool Vertex::isManifold() const {
 
   return kManif == d;
 }
+inline bool Vertex::isManifold() const { 
+  if(mesh->usesImplicitTwin()) return true;
+ 
+  // test if all incoming edges are manifold
+  for(Edge e : adjacentEdges()) {
+    if(!e.isManifold()) return false;
+  }
+  
+  // test if there is a single edge-connected component
+  std::vector<Face> toProc{halfedge().face()};
+  std::unordered_set<Face> seen;
+  while(!toProc.empty()) {
+    Face f = toProc.back();
+    toProc.pop_back();
+    if(seen.find(f) != seen.end()) continue;
+    seen.insert(f);
+    for(Halfedge he : f.adjacentHalfedges()) {
+      if(he.vertex()  == *this || he.next().vertex() ==*this) {
+        for(Face fn : he.edge().adjacentFaces()) {
+          if(seen.find(fn) == seen.end()) toProc.push_back(fn);
+        }
+      }
+    }
+  }
+  for (Face f : adjacentFaces()) { 
+    if(seen.find(f) == seen.end()) return false;
+  }
+
+  return true;
+}
 inline size_t Vertex::degree() const {
   size_t k = 0;
-  for (Halfedge h : outgoingHalfedges()) { k++; }
+  for (Edge e: adjacentEdges()) { k++; }
   return k;
 }
 inline size_t Vertex::faceDegree() const {
@@ -330,7 +372,7 @@ inline NavigationSetBase<FaceAdjacentVertexNavigator> Face::adjacentVertices() c
   return NavigationSetBase<FaceAdjacentVertexNavigator>(halfedge()); 
 }
 inline NavigationSetBase<FaceAdjacentFaceNavigator> Face::adjacentFaces() const { 
-  return NavigationSetBase<FaceAdjacentFaceNavigator>(halfedge()); 
+  return NavigationSetBase<FaceAdjacentFaceNavigator>(std::make_pair(halfedge(), halfedge())); 
 }
 inline NavigationSetBase<FaceAdjacentEdgeNavigator> Face::adjacentEdges() const { 
   return NavigationSetBase<FaceAdjacentEdgeNavigator>(halfedge()); 
@@ -363,9 +405,15 @@ inline void FaceAdjacentEdgeNavigator::advance() { currE = currE.next(); }
 inline bool FaceAdjacentEdgeNavigator::isValid() const { return true; }
 inline Edge FaceAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
 
-inline void FaceAdjacentFaceNavigator::advance() { currE = currE.next(); }
-inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.twin().isInterior(); }
-inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.twin().face(); }
+inline void FaceAdjacentFaceNavigator::advance() { 
+  currE.second = currE.second.sibling();
+  if(currE.first == currE.second) {
+    currE.first = currE.first.next(); 
+    currE.second = currE.first;
+  }
+}
+inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.first != currE.second && currE.second.isInterior(); }
+inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.second.face(); }
 
 
 // ==========================================================
@@ -423,18 +471,3 @@ inline Edge BoundaryLoopAdjacentEdgeNavigator::getCurrent() const { return currE
 } // namespace surface
 } // namespace geometrycentral
 
-namespace std {
-
-// For lookup reasons I don't entirely understand, need to list these out explicitly, template on base does not resolve
-
-// clang-format off
-template <> struct hash<geometrycentral::surface::Vertex>         { std::size_t operator()(const geometrycentral::surface::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Halfedge>       { std::size_t operator()(const geometrycentral::surface::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Corner>         { std::size_t operator()(const geometrycentral::surface::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Edge>           { std::size_t operator()(const geometrycentral::surface::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Face>           { std::size_t operator()(const geometrycentral::surface::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::BoundaryLoop>   { std::size_t operator()(const geometrycentral::surface::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
-
-// clang-format on
-
-} // namespace std

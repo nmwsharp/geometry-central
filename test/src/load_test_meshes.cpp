@@ -96,7 +96,10 @@ void MeshAssetSuite::SetUpTestSuite() {
   allMeshAssets.emplace_back("platonic_shelf.obj", false);
 
   // Load nonmanifold models
+  allMeshAssets.emplace_back("fan3.obj", false);
+  allMeshAssets.emplace_back("hourglass_ico.obj", false);
   allMeshAssets.emplace_back("triple_vierbein.obj", false);
+  allMeshAssets.emplace_back("moebius.obj", false);
 }
 
 

@@ -327,26 +327,32 @@ TEST_F(HalfedgeMeshSuite, VertexFaceNavigator) {
   }
 }
 
-TEST_F(HalfedgeMeshSuite, VertexFaceNavigator) {
+TEST_F(HalfedgeMeshSuite, FaceFaceNavigator) {
   for (MeshAsset& a : polygonalComplexMeshes()) {
     a.printThyName();
 
     FaceData<size_t> faceCount(*a.mesh, 0);
 
-    for (Vertex v : a.mesh->vertices()) {
+    for (Face f : a.mesh->faces()) {
 
       // make sure each face is returned just once
       std::unordered_set<Face> seen;
 
-      for (Face f : v.adjacentFaces()) {
-        EXPECT_TRUE(seen.find(f) == seen.end());
-        seen.insert(f);
-        faceCount[f]++;
+      for (Face fn : f.adjacentFaces()) {
+        EXPECT_TRUE(seen.find(fn) == seen.end());
+        seen.insert(fn);
+        faceCount[fn]++;
       }
     }
 
     for (Face f: a.mesh->faces()) {
-      EXPECT_EQ(faceCount[f], f.degree());
+
+      size_t expectedCount = 0;
+      for(Edge e : f.adjacentEdges()) {
+        expectedCount += e.degree()-1;
+      }
+
+      EXPECT_EQ(faceCount[f], expectedCount);
     }
   }
 }
