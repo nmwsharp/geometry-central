@@ -2,14 +2,14 @@
 
 Of particular interest, `Vector2` is also used to encode 2D rotations, by supporting multiplication as a complex number. See the [rotations section](#rotations-and-complex-multiplication).
 
-`#!cpp #include "geometrycentral/vector2.h"`
+`#!cpp #include "geometrycentral/utilities/vector2.h"`
 
 ### Construction 
 
 `Vector2` is a POD type, so you should use brace-initialization sytax:
 
 ```cpp
-#include "geometrycentral/vector2.h
+#include "geometrycentral/utilitiesvector2.h
 using namespace geometrycentral;
 
 Vector2 myVec{3.8, 2.9}; //create

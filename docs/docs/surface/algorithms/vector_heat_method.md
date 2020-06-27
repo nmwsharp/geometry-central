@@ -35,7 +35,7 @@ VertexPositionGeometry geometry;
 HalfedgeMesh mesh;
 
 // construct a solver
-VectorHeatSolver vhmSolver(geometry);
+VectorHeatMethodSolver vhmSolver(geometry);
 
 // some interesting source values
 std::vector<std::tuple<Vertex, double>> points;

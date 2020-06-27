@@ -148,12 +148,12 @@ The corresponding vectors are indexed according to the indices of the underlying
     Example usage:
     ```cpp
     HalfedgeMesh meshA = /* something */;
-    HalfedgeMesh meshB = meshA.copy();
+    std::unique_ptr<HalfedgeMesh> meshB = meshA.copy();
 
     FaceData<Vector3> myDataOnA(meshA);
     /* fill myDataOnA with interesting values */
 
-    FaceData<Vector3> myDataOnB = myDataOnA.reinterpretTo(meshB);
+    FaceData<Vector3> myDataOnB = myDataOnA.reinterpretTo(*meshB);
     ```
 
 

@@ -15,26 +15,26 @@ Use these routines to iterate over all of the elements in the mesh.
     ```
 
 ??? func "`#!cpp HalfedgeMesh::halfedges()`"
-    Iterate over all of the halfedges in a mesh (both real and imaginary, if the mesh has boundary).
+    Iterate over all of the halfedges in a mesh (both interior and exterior, if the mesh has boundary).
     ```cpp
     for(Halfedge he : mesh.halfedges()) {
       // do science here
     }
     ```
 
-??? func "`#!cpp HalfedgeMesh::realHalfedges()`"
-    Iterate over the real halfedges in a mesh.
+??? func "`#!cpp HalfedgeMesh::interiorHalfedges()`"
+    Iterate over the interior halfedges in a mesh.
     ```cpp
-    for(Halfedge he : mesh.realHalfedges()) {
+    for(Halfedge he : mesh.interiorHalfedges()) {
       // do science here
     }
     ```
     Note that on a boundary edge between vertices `i <--> j`, this set will only include a halfedge from `i --> j`, but not from `j --> i` (or vice versa).
 
-??? func "`#!cpp HalfedgeMesh::imaginaryHalfedges()`"
-    Iterate over the imaginary halfedges in a mesh.
+??? func "`#!cpp HalfedgeMesh::exteriorHalfedges()`"
+    Iterate over the exterior halfedges in a mesh.
     ```cpp
-    for(Halfedge he : mesh.imaginaryHalfedges()) {
+    for(Halfedge he : mesh.exteriorHalfedges()) {
       // do science here
     }
     ```
