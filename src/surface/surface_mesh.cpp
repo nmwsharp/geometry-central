@@ -1193,7 +1193,7 @@ void SurfaceMesh::compressHalfedges() {
 
   // Build the compressing shift
   std::vector<size_t> newIndMap;                                   // maps new ind -> old ind
-  std::vector<size_t> oldIndMap(nHalfedgesFillCount, INVALID_IND); // maps new old -> new ind
+  std::vector<size_t> oldIndMap(nHalfedgesFillCount, INVALID_IND); // maps old ind -> new ind
   for (size_t i = 0; i < nHalfedgesFillCount; i++) {
     if (!halfedgeIsDead(i)) {
       oldIndMap[i] = newIndMap.size();
@@ -1240,128 +1240,100 @@ void SurfaceMesh::compressHalfedges() {
 
 
 void SurfaceMesh::compressEdges() {
-/*
-
   // Build the compressing shift
-  std::vector<size_t> newIndMap; // maps new ind -> old ind
-  std::vector<size_t> oldIndMap; // maps new old -> new ind
-  oldIndMap.resize(rawEdges.size());
-  for (size_t i = 0; i < rawEdges.size(); i++) {
-    if (!rawEdges[i].isDead()) {
+  std::vector<size_t> newIndMap;                               // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nEdgesFillCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nEdgesFillCount; i++) {
+    if (!edgeIsDead(i)) {
       oldIndMap[i] = newIndMap.size();
       newIndMap.push_back(i);
     }
   }
 
 
-  Edge* oldStart = &rawEdges.front();
-  std::vector<size_t> offsets(rawHalfedges.size());
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead()) {
-      offsets[iHe] = rawHalfedges[iHe].edge - oldStart;
-    }
+  // Permute & resize all per-edge arrays
+  if (!usesImplicitTwin()) {
+    eHalfedgeArr = applyPermutation(eHalfedgeArr, newIndMap);
   }
 
-  // Apply the permutation
-  rawEdges = applyPermutation(rawEdges, newIndMap);
 
-  Edge* newStart = &rawEdges.front();
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead()) {
-      rawHalfedges[iHe].edge = newStart + oldIndMap[offsets[iHe]];
-    }
+  // Update indices in all edge-valued arrays
+  if (!usesImplicitTwin()) {
+    updateValues(heEdgeArr, oldIndMap);
   }
+
+  // Update counts
+  nEdgesFillCount = nEdgesCount;
+  nEdgesCapacityCount = nEdgesCount;
 
   // Invoke callbacks
   for (auto& f : edgePermuteCallbackList) {
     f(newIndMap);
   }
-  */
 }
 
 void SurfaceMesh::compressFaces() {
-/*
-
   // Build the compressing shift
-  std::vector<size_t> newIndMap; // maps new ind -> old ind
-  std::vector<size_t> oldIndMap; // maps new old -> new ind
-  oldIndMap.resize(rawFaces.size());
-  for (size_t i = 0; i < rawFaces.size(); i++) {
-    if (!rawFaces[i].isDead()) {
-      oldIndMap[i] = newIndMap.size();
-      newIndMap.push_back(i);
+  std::vector<size_t> newIndMap;                                   // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nFacesCapacityCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nFacesCapacityCount; i++) {
+    if (i < nFacesFillCount || i >= nFacesCount - nBoundaryLoopsFillCount) { // skip gap between faces and BLs
+      if (!faceIsDead(i)) {
+        oldIndMap[i] = newIndMap.size();
+        newIndMap.push_back(i);
+      }
     }
   }
 
-  Face* oldStart = &rawFaces.front();
-  std::vector<size_t> offsets(rawHalfedges.size());
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead()) {
-      offsets[iHe] = rawHalfedges[iHe].face - oldStart;
-    }
-  }
 
-  // Apply the permutation
-  rawFaces = applyPermutation(rawFaces, newIndMap);
+  // Permute & resize all per-face arrays
+  fHalfedgeArr = applyPermutation(fHalfedgeArr, newIndMap);
 
-  Face* newStart = &rawFaces.front();
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead() && rawHalfedges[iHe].isReal) {
-      rawHalfedges[iHe].face = newStart + oldIndMap[offsets[iHe]];
-    }
-  }
+  // Update indices in all face-valued arrays
+  updateValues(heFaceArr, oldIndMap);
+
+  // Update counts
+  nFacesFillCount = nFacesCount;
+  nFacesCapacityCount = nFacesCount + nBoundaryLoopsCount;
+  nBoundaryLoopsFillCount = nBoundaryLoopsCount;
 
   // Invoke callbacks
-  // validateConnectivity();
   for (auto& f : facePermuteCallbackList) {
     f(newIndMap);
   }
-  */
 }
 
 
 void SurfaceMesh::compressVertices() {
-  /*
-
   // Build the compressing shift
-  std::vector<size_t> newIndMap; // maps new ind -> old ind
-  std::vector<size_t> oldIndMap; // maps old ind -> new ind
-  oldIndMap.resize(rawVertices.size());
-  for (size_t i = 0; i < rawVertices.size(); i++) {
-    if (!rawVertices[i].isDead()) {
+  std::vector<size_t> newIndMap;                                  // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nVerticesFillCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nVerticesFillCount; i++) {
+    if (!vertexIsDead(i)) {
       oldIndMap[i] = newIndMap.size();
       newIndMap.push_back(i);
     }
   }
 
-  Vertex* oldStart = &rawVertices.front();
-  std::vector<size_t> offsets(rawHalfedges.size());
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead()) {
-      offsets[iHe] = rawHalfedges[iHe].vertex - oldStart;
-    }
-  }
 
-  // Apply the permutation
-  rawVertices = applyPermutation(rawVertices, newIndMap);
+  // Permute & resize all per-vertex arrays
+  vHalfedgeArr = applyPermutation(vHalfedgeArr, newIndMap);
 
-  Vertex* newStart = &rawVertices.front();
-  for (size_t iHe = 0; iHe < rawHalfedges.size(); iHe++) {
-    if (!rawHalfedges[iHe].isDead()) {
-      rawHalfedges[iHe].vertex = newStart + oldIndMap[offsets[iHe]];
-    }
-  }
+  // Update indices in all vertex-valued arrays
+  updateValues(heVertexArr, oldIndMap);
+
+  // Update counts
+  nVerticesFillCount = nVerticesCount;
+  nVerticesCapacityCount = nVerticesCount;
 
   // Invoke callbacks
   for (auto& f : vertexPermuteCallbackList) {
     f(newIndMap);
   }
-  */
 }
 
 
 void SurfaceMesh::compress() {
-
   if (isCompressed()) {
     return;
   }
@@ -1372,8 +1344,6 @@ void SurfaceMesh::compress() {
   compressVertices();
   isCompressedFlag = true;
 }
-
-
 
 
 } // namespace surface
