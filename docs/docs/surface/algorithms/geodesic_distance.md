@@ -56,7 +56,7 @@ std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 
 // Create the Heat Method solver
-HeatMethodDistanceSolver heatSolver(geometry);
+HeatMethodDistanceSolver heatSolver(*geometry);
 
 // Some vertices as source set
 std::vector<Vertex> sourceVerts = /* some interesting vertices */

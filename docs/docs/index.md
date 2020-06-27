@@ -26,7 +26,7 @@ std::tie(mesh, geometry) = loadMesh("spot.obj");
 VertexData<double> vertArea(*mesh, 0.);
 geometry->requireFaceAreas();
 for(Vertex v : mesh->vertices()) {
-  for(Face f : v.adjacentVertices()) {
+  for(Face f : v.adjacentFaces()) {
     vertArea[v] += geometry->faceAreas[f] / f.degree();
   }
 }
