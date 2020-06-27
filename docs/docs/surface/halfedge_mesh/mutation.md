@@ -8,6 +8,8 @@ Note that aggressive use of these routines may reduce a mesh from a _simplicial 
 
 ## In-place modifications
 
+These routines modify a mesh, but do not require inserting or deleting elements.
+
 ??? func "`#!cpp bool HalfedgeMesh::flip(Edge e)`"
 
     Flip an edge by rotating counter-clockwise. 
@@ -25,10 +27,6 @@ Note that aggressive use of these routines may reduce a mesh from a _simplicial 
 These routines modify a mesh by inserting new elements. Element references remain valid, and [containers](containers.md) will automatically resize themselves to accommodate the new elements. 
 
 Note that some operations my re-use existing elements to create their output. For instance, `splitEdge()` turns a single edge in to two; the input edge will be re-used as one of the two output edges, and data along that edge will be unchanged in any containers.
-
-??? warning "Boundary loop invalidation"
-
-    There is one tiny exceptional invalidation behavior related to insertion. `Face` handles which actually point to boundary loops are invalidated after any operation which adds faces to the mesh. This is a consequence of the way we index boundary loops separate from faces, even though they are essentially faces in practice (see [Boundaries](boundaries.md) and [Internals](internals.md)) for details.
 
 ---
 
@@ -116,23 +114,49 @@ There are two consequences to being non-compressed:
   - Storage space is wasted by deleted elements
 
 
-**All meshes are compressed after construction, and only become non-compressed if the user performs a deletion operation.**  The `makeCompressed()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
+**All meshes are compressed after construction, and only become non-compressed if the user performs a deletion operation.**  The `compress()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
 
-The `makeCompressed()` function invalidates pointers, and incurs an update of existing containers. As such, it is recommended to be called sporadically, after a sequence of operations is completed.
+The `compress()` function invalidates pointers, and incurs an update of existing containers. As such, it is recommended to be called sporadically, after a sequence of operations is completed.
 
 ??? func "`#!cpp bool HalfedgeMesh::isCompressed()`"
 
     Returns true if the mesh is compressed.
 
-??? func "`#!cpp void HalfedgeMesh::makeCompressed()`"
+??? func "`#!cpp void HalfedgeMesh::compress()`"
 
-    Re-index the elements of the mesh to yield a dense enumeration. Invalidates all Vertex (etc) objects.
+    Re-index the elements of the mesh to yield a dense enumeration. Invalidates all `Vertex`, `Edge` (etc) objects.
 
     Does nothing if the mesh is already compressed.
 
-### Dynamic pointer types
 
-A few of the operations listed below invalidate outstanding element references (like `Halfedge`) by re-indexing the elements of the mesh. [Containers](containers.md) automatically update after re-indexing, and often code can be structured such that no element references need to be maintained across an invalidation.
+!!! note "Preserving notable elements"
 
-However, if it is necessary to keep a reference to an element through a re-indexing, the `DynamicHalfedge` can be used. These types behave like a `Halfedge`, with the exception that they automatically update to remain valid when a mesh is re-indexed. These types should only be used when necessary, because they are expensive to maintain.
+    In some rare situations, you might want to manuallly keep track of a significant mesh elements (vertices, faces, etc) through a call to `compress()` (which invalidates all element references).
+
+    One way to do this is to leverage the `MeshData<>` containers, which automatically stay valid through updates:
+    
+
+    ```cpp
+    SurfaceMesh& mesh; // our mesh
+    Vertex vA, vB; // two special vertices we want to keep track of
+
+    // Label the special vertices
+    VertexData<int> specialVerts(mesh, 0);
+    specialVerts[vA] = 1;
+    specialVerts[vB] = 2;
+
+    // Compress the mesh
+    // (invalidating the Vertex objects)
+    mesh.compress();   
+    // specialVerts is automatically maintained through the compression
+
+    // Find the interesting vertices by label
+    for(Vertex v : mesh.vertices()) {
+      if(specialVerts[v] == 1) vA = v;
+      if(specialVerts[v] == 2) vB = v;
+    }
+    ```
+
+    This is an intentionally simplistic example, but generally speaking the `MeshData<>` arrays can be used to track mesh elements and other data through a `compress()`.
+
 

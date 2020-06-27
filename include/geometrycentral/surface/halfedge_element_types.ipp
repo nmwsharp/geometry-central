@@ -27,7 +27,7 @@ namespace surface {
 // (see note in header, these should be inherited but aren't due to compiler issues)
 inline Vertex::Vertex() {}
 inline Vertex::Vertex(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Vertex::halfedge() const    { return Halfedge(mesh, mesh->vHalfedge(ind)); }
@@ -205,7 +205,7 @@ inline Face VertexAdjacentFaceNavigator::getCurrent() const { return currE.face(
 // Constructors
 inline Halfedge::Halfedge() {}
 inline Halfedge::Halfedge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Halfedge::twin() const              { return Halfedge(mesh, mesh->heSibling(ind)); }
@@ -261,7 +261,7 @@ inline bool HalfedgeExteriorRangeF::elementOkay(const SurfaceMesh& mesh, size_t 
 // Constructors
 inline Corner::Corner() {}
 inline Corner::Corner(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Corner::halfedge() const { return Halfedge(mesh, ind); }
@@ -281,7 +281,7 @@ inline bool CornerRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
 // Constructors
 inline Edge::Edge() {}
 inline Edge::Edge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigator
 inline Halfedge Edge::halfedge() const { return Halfedge(mesh, mesh->eHalfedge(ind)); }
@@ -341,7 +341,7 @@ inline Face EdgeAdjacentFaceNavigator::getCurrent() const { return currE.face();
 // Constructors
 inline Face::Face() {}
 inline Face::Face(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Face::Face(const DynamicElement<Face>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline Face::Face(const DynamicElement<Face>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Face::halfedge() const { return Halfedge(mesh, mesh->fHalfedge(ind)); }
@@ -423,7 +423,7 @@ inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.second.
 // Constructors
 inline BoundaryLoop::BoundaryLoop() {}
 inline BoundaryLoop::BoundaryLoop(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Element(e.getMesh(), e.getIndex()) {}
+//inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 
 inline Halfedge BoundaryLoop::halfedge() const { return asFace().halfedge(); }

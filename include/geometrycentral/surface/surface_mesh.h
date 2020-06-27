@@ -121,16 +121,15 @@ public:
 
   // Expansion callbacks
   // Argument is the new size of the element list. Elements up to this index may now be used (but _might_ not be
-  // immediately).
+  // in use immediately).
   std::list<std::function<void(size_t)>> vertexExpandCallbackList;
   std::list<std::function<void(size_t)>> faceExpandCallbackList;
   std::list<std::function<void(size_t)>> edgeExpandCallbackList;
   std::list<std::function<void(size_t)>> halfedgeExpandCallbackList;
 
   // Compression callbacks
-  // Argument is a permutation to a apply, such that d_new[p[i]] = d_old[i]. The size of the list is the new capacity
-  // for the buffer (as in ___ExpandCallbackList), which may or may not be the same size as the current capacity. Any
-  // elements with p[i] == INVALID_IND are unused in the new index space.
+  // Argument is a permutation to a apply, such that d_new[i] = d_old[p[i]]. THe length of the permutation is hte size
+  // of the new index space. Any elements with p[i] == INVALID_IND are unused in the new index space.
   std::list<std::function<void(const std::vector<size_t>&)>> vertexPermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> facePermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> edgePermuteCallbackList;
@@ -195,7 +194,7 @@ protected:
   std::vector<size_t> heEdgeArr;    // he.edge()
   std::vector<size_t> eHalfedgeArr; // e.halfedge()
 
-  // these encode connectivity, but are redundant given teh other arrays above, so they don't need to be serialized
+  // these encode connectivity, but are redundant given the other arrays above, so they don't need to be serialized
   // (etc)
   std::vector<size_t> heVertInNextArr;
   std::vector<size_t> heVertInPrevArr;
@@ -290,8 +289,9 @@ protected:
   // Deletes leave tombstones, which can be cleaned up with compress().
   // Note that these routines merely mark the element as dead. The caller should hook up connectivity to exclude these
   // elements before invoking.
-  void deleteEdgeTriple(Halfedge he);
-  // void deleteElement(Halfedge he);
+  void deleteEdgeBundle(Edge e);   // delete edge and halfedges
+  void deleteElement(Halfedge he); // can't use for implicit twin
+  void deleteElement(Edge e);      // can't use for implicit twin
   void deleteElement(Vertex v);
   void deleteElement(Face f);
   void deleteElement(BoundaryLoop bl);
@@ -302,10 +302,14 @@ protected:
   void compressFaces();
   void compressVertices();
 
-  // Helpers for mutation methods and similar things
+  // = =Helpers for mutation methods and similar things
+  
   void initializeHalfedgeNeighbors();
   void copyInternalFields(SurfaceMesh& target) const;
   virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;
+
+  // replace values of i in arr with oldToNew[i] (skipping INVALID_IND)
+  void updateValues(std::vector<size_t>& arr, const std::vector<size_t>& oldToNew);
 
   // Build a flat array for iterating around a vertex, before the mesh structure is complete.
   // For vertex iV, vertexIterationCacheHeIndex holds the

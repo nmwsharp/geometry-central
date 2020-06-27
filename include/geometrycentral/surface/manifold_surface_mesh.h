@@ -66,7 +66,7 @@ public:
   Vertex collapseEdge(Edge e);
 
   // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
-  // boundary. Return Face() if impossible.
+  // boundary. Return Face() if impossible (generally because doing so would make a manifold mesh nonmanifold).
   Face removeVertex(Vertex v);
 
   // Make the edge a mirror image of itself, switching the side the two halfedges are on.
@@ -79,7 +79,7 @@ public:
   bool removeFaceAlongBoundary(Face f);
 
   // Triangulate in a face, returns all subfaces
-  std::vector<Face> triangulate(Face face);
+  std::vector<Face> triangulate(Face f);
 
   // == Utility functions
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;

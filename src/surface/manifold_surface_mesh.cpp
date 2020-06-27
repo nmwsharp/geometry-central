@@ -1204,13 +1204,13 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
 
   // === Delete the actual elements
 
-  deleteEdgeTriple(heA0);
-  deleteEdgeTriple(heA1);
+  deleteEdgeBundle(heA0.edge());
+  deleteEdgeBundle(heA1.edge());
   deleteElement(vB);
   deleteElement(fA);
   if (onBoundary) {
     deleteElement(fB);
-    deleteEdgeTriple(heB2);
+    deleteEdgeBundle(heB2.edge());
   }
 
 
@@ -1277,7 +1277,7 @@ bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
     } while (currHe != heTNext);
 
     deleteElement(f);
-    deleteEdgeTriple(heB);
+    deleteEdgeBundle(heB.edge());
     modificationTick++;
     return true;
 
@@ -1461,7 +1461,7 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
     if (he.face() != keepFace) {
       deleteElement(he.face());
     }
-    deleteEdgeTriple(he);
+    deleteEdgeBundle(he.edge());
   }
   deleteElement(v);
 

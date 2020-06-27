@@ -56,7 +56,7 @@ public:
   // using Element<Vertex>::Element;
   Vertex();                                // construct an empty (null) element
   Vertex(SurfaceMesh* mesh, size_t ind);   // construct pointing to the i'th element of that type on a mesh.
-  Vertex(const DynamicElement<Vertex>& e); // construct from a dynamic element of matching type
+  //Vertex(const DynamicElement<Vertex>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -79,7 +79,7 @@ public:
   NavigationSetBase<VertexAdjacentFaceNavigator> adjacentFaces() const;
 };
 
-using DynamicVertex = DynamicElement<Vertex>;
+//using DynamicVertex = DynamicElement<Vertex>;
 
 // == Range iterators
 
@@ -101,7 +101,7 @@ public:
   // Constructors
   Halfedge();                                  // construct an empty (null) element
   Halfedge(SurfaceMesh* mesh, size_t ind);     // construct pointing to the i'th element of that type on a mesh.
-  Halfedge(const DynamicElement<Halfedge>& e); // construct from a dynamic element of matching type
+  //Halfedge(const DynamicElement<Halfedge>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge twin() const;
@@ -125,7 +125,7 @@ public:
   bool isInterior() const;
 };
 
-using DynamicHalfedge = DynamicElement<Halfedge>;
+//using DynamicHalfedge = DynamicElement<Halfedge>;
 
 // == Range iterators
 
@@ -166,7 +166,7 @@ public:
   // Constructors
   Corner();                                // construct an empty (null) element
   Corner(SurfaceMesh* mesh, size_t ind);   // construct pointing to the i'th element of that type on a mesh.
-  Corner(const DynamicElement<Corner>& e); // construct from a dynamic element of matching type
+  //Corner(const DynamicElement<Corner>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -175,7 +175,7 @@ public:
   bool isDead() const;
 };
 
-using DynamicCorner = DynamicElement<Corner>;
+//using DynamicCorner = DynamicElement<Corner>;
 
 // == Range iterators
 
@@ -197,7 +197,7 @@ public:
   // Constructors
   Edge();                              // construct an empty (null) element
   Edge(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Edge(const DynamicElement<Edge>& e); // construct from a dynamic element of matching type
+  //Edge(const DynamicElement<Edge>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -214,7 +214,7 @@ public:
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
 };
 
-using DynamicEdge = DynamicElement<Edge>;
+//using DynamicEdge = DynamicElement<Edge>;
 
 // == Range iterators
 
@@ -240,7 +240,7 @@ public:
   // Constructors
   Face();                              // construct an empty (null) element
   Face(SurfaceMesh* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Face(const DynamicElement<Face>& e); // construct from a dynamic element of matching type
+  //Face(const DynamicElement<Face>& e); // construct from a dynamic element of matching type
 
   // Navigators
   Halfedge halfedge() const;
@@ -253,7 +253,6 @@ public:
   size_t degree() const;
 
   // Iterators
-  // TODO FIXME broken for nonmanifold?
   NavigationSetBase<FaceAdjacentVertexNavigator> adjacentVertices() const;
   NavigationSetBase<FaceAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<FaceAdjacentCornerNavigator> adjacentCorners() const;
@@ -261,7 +260,7 @@ public:
   NavigationSetBase<FaceAdjacentFaceNavigator> adjacentFaces() const;
 };
 
-using DynamicFace = DynamicElement<Face>;
+//using DynamicFace = DynamicElement<Face>;
 
 // == Range iterators
 
@@ -286,7 +285,7 @@ public:
   // Constructors
   BoundaryLoop();                                      // construct an empty (null) element
   BoundaryLoop(SurfaceMesh* mesh, size_t ind);         // construct pointing to the i'th element of that type on a mesh.
-  BoundaryLoop(const DynamicElement<BoundaryLoop>& e); // construct from a dynamic element of matching type
+  //BoundaryLoop(const DynamicElement<BoundaryLoop>& e); // construct from a dynamic element of matching type
 
   Halfedge halfedge() const;
   Face asFace() const;
@@ -301,7 +300,7 @@ public:
   NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator> adjacentEdges() const;
 };
 
-using DynamicBoundaryLoop = DynamicElement<BoundaryLoop>;
+//using DynamicBoundaryLoop = DynamicElement<BoundaryLoop>;
 
 // == Range iterators
 

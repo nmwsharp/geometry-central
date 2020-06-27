@@ -52,8 +52,8 @@ template <typename T, typename M>
 std::ostream& operator<<(std::ostream& o, const Element<T, M>& x);
 
 // Forward-declare dynamic equivalent so we can declare a conversion constructor
-template <typename S>
-class DynamicElement;
+//template <typename S>
+//class DynamicElement;
 
 // == Base type for shared logic between elements.
 //
@@ -70,7 +70,7 @@ public:
 
   Element();                                    // construct an empty (null) element
   Element(ParentMeshT* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  Element(const DynamicElement<T>& e);          // construct from a dynamic element of matching type
+  //Element(const DynamicElement<T>& e);          // construct from a dynamic element of matching type
 
   inline bool operator==(const Element<T, M>& other) const;
   inline bool operator!=(const Element<T, M>& other) const;
@@ -103,6 +103,7 @@ protected:
 template <typename T, typename M>
 std::ostream& operator<<(std::ostream& output, const Element<T, M>& e);
 
+/*
 // The equivalent dynamic pointers. These should be rarely used, but are guaranteed to be preserved through _all_ mesh
 // operations, including compress().
 template <typename S>
@@ -133,6 +134,7 @@ private:
   void registerWithMesh();
   void deregisterWithMesh();
 };
+*/
 
 
 } // namespace geometrycentral

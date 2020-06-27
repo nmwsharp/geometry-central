@@ -15,8 +15,8 @@ template<typename T, typename M>
 Element<T, M>::Element() {}
 template<typename T, typename M> 
 Element<T, M>::Element(ParentMeshT* mesh_, size_t ind_) : mesh(mesh_), ind(ind_) {}
-template<typename T, typename M> 
-Element<T, M>::Element(const DynamicElement<T>& e) : mesh(e.getMesh()), ind(e.getIndex()) {}
+//template<typename T, typename M> 
+//Element<T, M>::Element(const DynamicElement<T>& e) : mesh(e.getMesh()), ind(e.getIndex()) {}
 
 // Comparators
 template<typename T, typename M> 
@@ -45,6 +45,7 @@ inline ::std::ostream& operator<<(::std::ostream& output, const Element<T, M>& e
 }
 
 // Dynamic element
+/*
 template<typename S> 
 DynamicElement<S>::DynamicElement() {}
 
@@ -96,7 +97,7 @@ void DynamicElement<S>::registerWithMesh() {
   
   // Callback function on permutation
   std::function<void(const std::vector<size_t>&)> permuteFunc = [this](const std::vector<size_t>& perm) {
-    // TODO FIXME not implemented. See note in mesh compression callbacks.
+      throw std::runtime_error("not implemented");
   };
 
   // Callback function on mesh delete
@@ -115,6 +116,7 @@ void DynamicElement<S>::deregisterWithMesh() {
   getPermuteCallbackList<S>(this->mesh).erase(permuteCallbackIt);
   this->mesh->meshDeleteCallbackList.erase(deleteCallbackIt);
 }
+*/
 
 // clang-format on
 
