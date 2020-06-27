@@ -154,6 +154,10 @@ public:
   // Performs a sanity checks on halfedge structure; throws on fail
   void validateConnectivity();
 
+  // Does this mesh use the implicit-twin convention in its connectivity arrays?
+  // This is essentially an implementation detail, and external users _probably_ shouldn't touch it, but it can be
+  // useful to know when manipulating the data structure.
+  bool usesImplicitTwin() const;
 
 protected:
   // Constructor used by subclasses
@@ -184,7 +188,6 @@ protected:
   //
   // If false, the above arrays are all populated and used for connectivty. As a consequence, the resulting mesh might
   // not be manifold/oriented, and extra care is needed for some routines.
-  bool usesImplicitTwin() const;
   const bool useImplicitTwinFlag;
 
   // (see note above about implicit twin)
@@ -288,7 +291,7 @@ protected:
   // Note that these routines merely mark the element as dead. The caller should hook up connectivity to exclude these
   // elements before invoking.
   void deleteEdgeTriple(Halfedge he);
-  //void deleteElement(Halfedge he);
+  // void deleteElement(Halfedge he);
   void deleteElement(Vertex v);
   void deleteElement(Face f);
   void deleteElement(BoundaryLoop bl);

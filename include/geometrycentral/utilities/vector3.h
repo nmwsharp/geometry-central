@@ -47,7 +47,7 @@ struct Vector3 {
   // Other functions
   Vector3 rotateAround(Vector3 axis, double theta) const;
   Vector3 removeComponent(const Vector3& unitDir) const; // removes component in direction D
-  std::tuple<Vector3, Vector3> buildTangentBasis() const; // build a basis orthogonal to D (need not be unit already)
+  std::array<Vector3, 2> buildTangentBasis() const;      // build a basis orthogonal to D (need not be unit already)
   Vector3 normalize() const;
 
   double norm() const;

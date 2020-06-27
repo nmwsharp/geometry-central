@@ -230,7 +230,6 @@ void IntrinsicGeometryInterface::unrequireHalfedgeCotanWeights() { halfedgeCotan
 
 // Edge cotan weights
 void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
-  // TODO FIXME nonmanifold
   edgeLengthsQ.ensureHave();
   faceAreasQ.ensureHave();
 
@@ -239,33 +238,19 @@ void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
   for (Edge e : mesh.edges()) {
     // WARNING: Logic duplicated between cached and immediate version
     double cotSum = 0.;
-
-    { // First halfedge-- always real
-      Halfedge he = e.halfedge();
+    for (Halfedge he : e.adjacentInteriorHalfedges()) {
+      Halfedge heFirst = he;
       double l_ij = edgeLengths[he.edge()];
       he = he.next();
       double l_jk = edgeLengths[he.edge()];
       he = he.next();
       double l_ki = edgeLengths[he.edge()];
       he = he.next();
-      GC_SAFETY_ASSERT(he == e.halfedge(), "faces mush be triangular");
+      GC_SAFETY_ASSERT(he == heFirst, "faces mush be triangular");
       double area = faceAreas[he.face()];
       double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
       cotSum += cotValue / 2;
     }
-
-    if (e.halfedge().twin().isInterior()) { // Second halfedge
-      Halfedge he = e.halfedge().twin();
-      double l_ij = edgeLengths[he.edge()];
-      he = he.next();
-      double l_jk = edgeLengths[he.edge()];
-      he = he.next();
-      double l_ki = edgeLengths[he.edge()];
-      double area = faceAreas[he.face()];
-      double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
-      cotSum += cotValue / 2;
-    }
-
     edgeCotanWeights[e] = cotSum;
   }
 }
@@ -303,6 +288,11 @@ void IntrinsicGeometryInterface::unrequireMeshLengthScale() { meshLengthScaleQ.u
 
 // Halfedge vectors in face
 void IntrinsicGeometryInterface::computeHalfedgeVectorsInFace() {
+  if (!mesh.usesImplicitTwin()) {
+    // TODO this could be removed
+    throw std::runtime_error("ERROR: Tangent spaces not implemented for general SurfaceMesh, use ManifoldSurfaceMesh");
+  }
+
   edgeLengthsQ.ensureHave();
   faceAreasQ.ensureHave();
 
@@ -379,6 +369,11 @@ void IntrinsicGeometryInterface::unrequireTransportVectorsAcrossHalfedge() {
 
 // Halfedge vectors in vertex
 void IntrinsicGeometryInterface::computeHalfedgeVectorsInVertex() {
+
+  if (!mesh.usesImplicitTwin()) {
+    throw std::runtime_error("ERROR: Tangent spaces not implemented for general SurfaceMesh, use ManifoldSurfaceMesh");
+  }
+
   edgeLengthsQ.ensureHave();
   cornerScaledAnglesQ.ensureHave();
 
@@ -524,7 +519,7 @@ void IntrinsicGeometryInterface::computeVertexConnectionLaplacian() {
   for (Halfedge he : mesh.halfedges()) {
 
     size_t iTail = vertexIndices[he.vertex()];
-    size_t iTip = vertexIndices[he.twin().vertex()];
+    size_t iTip = vertexIndices[he.next().vertex()];
 
     double weight = edgeCotanWeights[he.edge()];
     Vector2 rot = transportVectorsAlongHalfedge[he.twin()];

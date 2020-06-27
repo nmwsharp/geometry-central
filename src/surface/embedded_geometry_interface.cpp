@@ -42,10 +42,14 @@ void EmbeddedGeometryInterface::computeEdgeDihedralAngles() {
   for (Edge e : mesh.edges()) {
     if (e.isBoundary()) continue;
 
+    if (!e.isManifold()) {
+      continue;
+    }
+
     Vector3 N1 = faceNormals[e.halfedge().face()];
-    Vector3 N2 = faceNormals[e.halfedge().twin().face()];
+    Vector3 N2 = faceNormals[e.halfedge().sibling().face()];
     Vector3 pTail = vertexPositions[e.halfedge().vertex()];
-    Vector3 pTip = vertexPositions[e.halfedge().twin().vertex()];
+    Vector3 pTip = vertexPositions[e.halfedge().next().vertex()];
     Vector3 edgeDir = unit(pTip - pTail);
 
     edgeDihedralAngles[e] = atan2(dot(edgeDir, cross(N1, N2)), dot(N1, N2));
@@ -118,11 +122,22 @@ void EmbeddedGeometryInterface::unrequireVertexNormals() { vertexNormalsQ.unrequ
 void EmbeddedGeometryInterface::computeFaceTangentBasis() {
   vertexPositionsQ.ensureHave();
   faceNormalsQ.ensureHave();
-  halfedgeVectorsInFaceQ.ensureHave();
 
   faceTangentBasis = FaceData<std::array<Vector3, 2>>(mesh);
 
+  if (!mesh.usesImplicitTwin()) {
+    // For a nonmanifold mesh, just compute any extrinsic basis
+    for (Face f : mesh.faces()) {
+      Vector3 normal = faceNormals[f];
+      faceTangentBasis[f] = normal.buildTangentBasis();
+    }
+    return;
+  }
+
+  halfedgeVectorsInFaceQ.ensureHave();
+
   for (Face f : mesh.faces()) {
+    // TODO this implementation seems a bit silly...
 
     // For general polygons, take the average of each edge vector projected to tangent plane
     Vector3 basisXSum = Vector3::zero();
@@ -133,7 +148,6 @@ void EmbeddedGeometryInterface::computeFaceTangentBasis() {
       Vector3 eVec = vertexPositions[heF.next().vertex()] - vertexPositions[heF.vertex()];
       eVec = eVec.removeComponent(N);
 
-      // TODO can surely do this with less trig
       double angle = halfedgeVectorsInFace[heF].arg();
       Vector3 eVecX = eVec.rotateAround(N, -angle);
 
@@ -156,9 +170,19 @@ void EmbeddedGeometryInterface::unrequireFaceTangentBasis() { faceTangentBasisQ.
 void EmbeddedGeometryInterface::computeVertexTangentBasis() {
   vertexPositionsQ.ensureHave();
   vertexNormalsQ.ensureHave();
-  halfedgeVectorsInVertexQ.ensureHave();
 
   vertexTangentBasis = VertexData<std::array<Vector3, 2>>(mesh);
+
+  if (!mesh.usesImplicitTwin()) {
+    // For a nonmanifold mesh, just compute any extrinsic basis
+    for (Vertex v : mesh.vertices()) {
+      Vector3 normal = vertexNormals[v];
+      vertexTangentBasis[v] = normal.buildTangentBasis();
+    }
+    return;
+  }
+
+  halfedgeVectorsInVertexQ.ensureHave();
 
   for (Vertex v : mesh.vertices()) {
 
@@ -244,28 +268,23 @@ void EmbeddedGeometryInterface::computeHalfedgeCotanWeights() {
 
   halfedgeCotanWeights = HalfedgeData<double>(mesh);
 
-  for (Halfedge heI : mesh.halfedges()) {
-
+  for (Halfedge heI : mesh.interiorHalfedges()) {
     // WARNING: Logic duplicated between cached and immediate version
-    double cotSum = 0.;
 
-    if (heI.isInterior()) {
-      Halfedge he = heI;
-      Vector3 pB = vertexPositions[he.vertex()];
-      he = he.next();
-      Vector3 pC = vertexPositions[he.vertex()];
-      he = he.next();
-      Vector3 pA = vertexPositions[he.vertex()];
-      GC_SAFETY_ASSERT(he.next() == heI, "faces must be triangular");
+    Halfedge he = heI;
+    Vector3 pB = vertexPositions[he.vertex()];
+    he = he.next();
+    Vector3 pC = vertexPositions[he.vertex()];
+    he = he.next();
+    Vector3 pA = vertexPositions[he.vertex()];
+    GC_SAFETY_ASSERT(he.next() == heI, "faces must be triangular");
 
-      Vector3 vecR = pB - pA;
-      Vector3 vecL = pC - pA;
+    Vector3 vecR = pB - pA;
+    Vector3 vecL = pC - pA;
 
-      double cotValue = dot(vecR, vecL) / norm(cross(vecR, vecL));
-      cotSum += cotValue / 2;
-    }
+    double cotValue = dot(vecR, vecL) / norm(cross(vecR, vecL));
 
-    halfedgeCotanWeights[heI] = cotSum;
+    halfedgeCotanWeights[heI] = cotValue / 2;
   }
 }
 
@@ -276,35 +295,18 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
 
   edgeCotanWeights = EdgeData<double>(mesh);
 
-  // FIXME NONMANIFOLD
   for (Edge e : mesh.edges()) {
-
-    // WARNING: Logic duplicated between cached and immediate version
     double cotSum = 0.;
 
-    { // First halfedge-- always real
-      Halfedge he = e.halfedge();
+    for (Halfedge he : e.adjacentInteriorHalfedges()) {
+      // WARNING: Logic duplicated between cached and immediate version
+      Halfedge heFirst = he;
       Vector3 pB = vertexPositions[he.vertex()];
       he = he.next();
       Vector3 pC = vertexPositions[he.vertex()];
       he = he.next();
       Vector3 pA = vertexPositions[he.vertex()];
-      GC_SAFETY_ASSERT(he.next() == e.halfedge(), "faces must be triangular");
-
-      Vector3 vecR = pB - pA;
-      Vector3 vecL = pC - pA;
-
-      double cotValue = dot(vecR, vecL) / norm(cross(vecR, vecL));
-      cotSum += cotValue / 2;
-    }
-
-    if (e.halfedge().twin().isInterior()) { // Second halfedge
-      Halfedge he = e.halfedge().twin();
-      Vector3 pB = vertexPositions[he.vertex()];
-      he = he.next();
-      Vector3 pC = vertexPositions[he.vertex()];
-      he = he.next();
-      Vector3 pA = vertexPositions[he.vertex()];
+      GC_SAFETY_ASSERT(he.next() == heFirst, "faces must be triangular");
 
       Vector3 vecR = pB - pA;
       Vector3 vecL = pC - pA;

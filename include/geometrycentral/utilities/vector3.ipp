@@ -136,7 +136,7 @@ inline Vector3 Vector3::normalize() const {
 
 inline Vector3 Vector3::removeComponent(const Vector3& unitDir) const { return *this - unitDir * dot(unitDir, *this); }
 
-inline std::tuple<Vector3, Vector3> Vector3::buildTangentBasis() const {
+inline std::array<Vector3, 2> Vector3::buildTangentBasis() const {
   Vector3 unitDir = normalize();
   Vector3 testVec{1., 0., 0.};
   if (std::fabs(dot(testVec, unitDir)) > 0.9) {
@@ -146,7 +146,7 @@ inline std::tuple<Vector3, Vector3> Vector3::buildTangentBasis() const {
   Vector3 basisX = cross(testVec, unitDir).normalize();
   Vector3 basisY = cross(unitDir, basisX).normalize();
 
-  return std::tuple<Vector3, Vector3>{basisX, basisY};
+  return std::array<Vector3, 2>{basisX, basisY};
 };
 
 inline std::ostream& operator<<(std::ostream& output, const Vector3& v) {

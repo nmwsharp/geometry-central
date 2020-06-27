@@ -775,7 +775,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeCotanWeightOverrides) {
 }
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInFace) {
-  for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+  for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
@@ -792,7 +792,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInFace) {
 }
 
 TEST_F(HalfedgeGeometrySuite, TransportVectorsAcrossHalfedge) {
-  for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+  for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
@@ -809,7 +809,7 @@ TEST_F(HalfedgeGeometrySuite, TransportVectorsAcrossHalfedge) {
 }
 
 TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInVertex) {
-  for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+  for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
@@ -822,7 +822,7 @@ TEST_F(HalfedgeGeometrySuite, HalfedgeVectorsInVertex) {
 }
 
 TEST_F(HalfedgeGeometrySuite, TransportVectorsAlongHalfedge) {
-  for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+  for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
     IntrinsicGeometryInterface& geometry = *asset.geometry;
@@ -845,7 +845,7 @@ TEST_F(HalfedgeGeometrySuite, CotanLaplacian) {
 
     EXPECT_EQ(geometry.cotanLaplacian.rows(), (long int)mesh.nVertices());
     EXPECT_EQ(geometry.cotanLaplacian.cols(), (long int)mesh.nVertices());
-    EXPECT_EQ(geometry.cotanLaplacian.nonZeros(), (long int)(mesh.nVertices() + 2*mesh.nEdges()));
+    EXPECT_EQ(geometry.cotanLaplacian.nonZeros(), (long int)(mesh.nVertices() + 2 * mesh.nEdges()));
 
     EXPECT_NEAR(geometry.cotanLaplacian.sum(), 0., 1e-6);
   }
@@ -875,12 +875,12 @@ TEST_F(HalfedgeGeometrySuite, VertexGalerkinMassMatrix) {
 
     EXPECT_EQ(geometry.vertexGalerkinMassMatrix.rows(), (long int)mesh.nVertices());
     EXPECT_EQ(geometry.vertexGalerkinMassMatrix.cols(), (long int)mesh.nVertices());
-    EXPECT_EQ(geometry.vertexGalerkinMassMatrix.nonZeros(), (long int)(mesh.nVertices() + 2*mesh.nEdges()));
+    EXPECT_EQ(geometry.vertexGalerkinMassMatrix.nonZeros(), (long int)(mesh.nVertices() + 2 * mesh.nEdges()));
   }
 }
 
 TEST_F(HalfedgeGeometrySuite, VertexConnectionLaplacian) {
-  //for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) { // TODO nonmanifold not supported
+  // for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) { // TODO nonmanifold not supported
   for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
@@ -935,7 +935,7 @@ TEST_F(HalfedgeGeometrySuite, EdgeDihedralAngles) {
 }
 
 TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirections) {
-  for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+  for (auto& asset : {getAsset("lego.ply", true)}) {
     asset.printThyName();
     SurfaceMesh& mesh = *asset.mesh;
     ExtrinsicGeometryInterface& geometry = *asset.geometry;
@@ -1004,9 +1004,12 @@ TEST_F(HalfedgeGeometrySuite, FaceTangentBasis) {
     EmbeddedGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireFaceTangentBasis();
+    geometry.requireFaceNormals();
     for (Face f : mesh.faces()) {
       EXPECT_NEAR(norm(geometry.faceTangentBasis[f][0]), 1., 1e-6);
       EXPECT_NEAR(norm(geometry.faceTangentBasis[f][1]), 1., 1e-6);
+      EXPECT_NEAR(dot(geometry.faceTangentBasis[f][0], geometry.faceTangentBasis[f][1]), 0., 1e-6);
+      EXPECT_NEAR(dot(geometry.faceTangentBasis[f][0], geometry.faceNormals[f]), 0., 1e-6);
     }
   }
 }
@@ -1018,9 +1021,12 @@ TEST_F(HalfedgeGeometrySuite, VertexTangentBasis) {
     EmbeddedGeometryInterface& geometry = *asset.geometry;
 
     geometry.requireVertexTangentBasis();
+    geometry.requireVertexNormals();
     for (Vertex v : mesh.vertices()) {
       EXPECT_NEAR(norm(geometry.vertexTangentBasis[v][0]), 1., 1e-6);
       EXPECT_NEAR(norm(geometry.vertexTangentBasis[v][1]), 1., 1e-6);
+      EXPECT_NEAR(dot(geometry.vertexTangentBasis[v][0], geometry.vertexTangentBasis[v][1]), 0., 1e-6);
+      EXPECT_NEAR(dot(geometry.vertexTangentBasis[v][0], geometry.vertexNormals[v]), 0., 1e-6);
     }
   }
 }
@@ -1148,7 +1154,7 @@ TEST_F(HalfedgeGeometrySuite, CotanLaplacianEquivalence) {
 TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirectionsUmbilic) {
 
   { // flat mesh (with boundary)
-    for (auto& asset : {getAsset("lego.ply", false), getAsset("lego.ply", true)}) {
+    for (auto& asset : {getAsset("lego.ply", true)}) {
       SurfaceMesh& mesh = *asset.mesh;
       ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
@@ -1160,7 +1166,7 @@ TEST_F(HalfedgeGeometrySuite, VertexPrincipalCurvatureDirectionsUmbilic) {
   }
 
   { // sphere mesh
-    for (auto& asset : {getAsset("sphere_small.ply", false), getAsset("sphere_small.ply", true)}) {
+    for (auto& asset : {getAsset("sphere_small.ply", true)}) {
       SurfaceMesh& mesh = *asset.mesh;
       ExtrinsicGeometryInterface& geometry = *asset.geometry;
 
