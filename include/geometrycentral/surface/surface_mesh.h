@@ -117,6 +117,13 @@ public:
   bool isCompressed() const;
   void compress();
 
+  // == Mutation routines
+
+  // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip manifold,
+  // interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new elements, or
+  // cause the mesh to become decompressed.
+  bool flip(Edge e);
+
   // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
 
   // Expansion callbacks
@@ -166,8 +173,8 @@ protected:
   SurfaceMesh(const std::vector<size_t>& heNextArr, const std::vector<size_t>& heVertexArr,
               const std::vector<size_t>& heFaceArr, const std::vector<size_t>& vHalfedgeArr,
               const std::vector<size_t>& fHalfedgeArr, const std::vector<size_t>& heSiblingArr,
-              const std::vector<size_t>& heEdgeArr, const std::vector<size_t>& eHalfedgeArr,
-              size_t nBoundaryLoopFillCount);
+              const std::vector<size_t>& heEdgeArr, const std::vector<char>& heOrientArr,
+              const std::vector<size_t>& eHalfedgeArr, size_t nBoundaryLoopFillCount);
 
   // = Core arrays which hold the connectivity
   // Note: it should always be true that heFace.size() == nHalfedgesCapacityCount, but any elements after
@@ -192,6 +199,7 @@ protected:
   // (see note above about implicit twin)
   std::vector<size_t> heSiblingArr; // he.sibling() and he.twin(), forms a circular singly-linked list around each edge
   std::vector<size_t> heEdgeArr;    // he.edge()
+  std::vector<char> heOrientArr;    // true if the halfedge has the same orientation as its edge
   std::vector<size_t> eHalfedgeArr; // e.halfedge()
 
   // these encode connectivity, but are redundant given the other arrays above, so they don't need to be serialized
@@ -211,6 +219,7 @@ protected:
   size_t heEdge(size_t iHe) const;                 // he.edge()
   size_t heVertex(size_t iHe) const;               // he.vertex()
   size_t heFace(size_t iHe) const;                 // he.face()
+  bool heOrientation(size_t iHe) const;            // he.face()
   size_t eHalfedge(size_t iE) const;               // e.halfedge()
   size_t vHalfedge(size_t iV) const;               // v.halfedge()
   size_t fHalfedge(size_t iF) const;               // f.halfedge()
@@ -303,7 +312,7 @@ protected:
   void compressVertices();
 
   // = =Helpers for mutation methods and similar things
-  
+
   void initializeHalfedgeNeighbors();
   void copyInternalFields(SurfaceMesh& target) const;
   virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;

@@ -110,11 +110,11 @@ Internally, the halfedge mesh is represented by dense arrays of indices which ar
 
 There are two consequences to being non-compressed:
 
-  - Some operations cannot be implemented efficiently/correctly (e.g., random access of the i'th vertex)
-  - Storage space is wasted by deleted elements
+  - Some operations cannot be implemented efficiently/correctly (e.g., random access of the i'th vertex), as noted in the documentation. Calling such function will generally throw an error in Debug mode, but may fail silently in Release.
+  - Storage space is wasted by deleted elements.
 
 
-**All meshes are compressed after construction, and only become non-compressed if the user performs a deletion operation.**  The `compress()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
+All meshes are compressed after construction, and only become non-compressed if the user performs a deletion operation. The `compress()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
 
 The `compress()` function invalidates pointers, and incurs an update of existing containers. As such, it is recommended to be called sporadically, after a sequence of operations is completed.
 
@@ -124,14 +124,14 @@ The `compress()` function invalidates pointers, and incurs an update of existing
 
 ??? func "`#!cpp void HalfedgeMesh::compress()`"
 
-    Re-index the elements of the mesh to yield a dense enumeration. Invalidates all `Vertex`, `Edge` (etc) objects.
+    Re-index the elements of the mesh to yield a dense enumeration. Invalidates all `Vertex`, `Edge` (etc) objects. All `VertexData<>`, `FaceData<>`, etc containers are automatically resized and re-indexed.
 
     Does nothing if the mesh is already compressed.
 
 
 !!! note "Preserving notable elements"
 
-    In some rare situations, you might want to manuallly keep track of a significant mesh elements (vertices, faces, etc) through a call to `compress()` (which invalidates all element references).
+    In some rare situations, you might want to manually keep track of a significant mesh elements (vertices, faces, etc) through a call to `compress()` (which invalidates all element references).
 
     One way to do this is to leverage the `MeshData<>` containers, which automatically stay valid through updates:
     

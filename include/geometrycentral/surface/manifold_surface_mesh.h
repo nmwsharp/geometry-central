@@ -33,11 +33,6 @@ public:
   // the index space may have gaps in it). This can be remedied by calling compress(), which _does_ invalidate
   // non-dynamic element handles (but still keeps MeshData<> containers valid).
 
-  // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip manifold,
-  // interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new elements, or
-  // cause the mesh to become decompressed.
-  bool flip(Edge e);
-
   // Adds a vertex along an edge, increasing degree of faces. Returns ptr along the edge, with he.vertex() as new
   // vertex and he.edge().halfedge() == he. Preserves canonical direction of edge.halfedge() for both halves of new
   // edge. The original edge is repurposed as one of the two new edges (same for original halfedges).

@@ -525,61 +525,6 @@ bool ManifoldSurfaceMesh::isManifold() {
 // ==========================================================
 
 
-bool ManifoldSurfaceMesh::flip(Edge eFlip) {
-  if (eFlip.isBoundary()) return false;
-  if (!eFlip.isManifold()) return false;
-
-  // Get halfedges of first face
-  Halfedge ha1 = eFlip.halfedge();
-  Halfedge ha2 = ha1.next();
-  Halfedge ha3 = ha2.next();
-  if (ha3.next() != ha1) return false; // not a triangle
-
-  // Get halfedges of second face
-  Halfedge hb1 = ha1.twin();
-  Halfedge hb2 = hb1.next();
-  Halfedge hb3 = hb2.next();
-  if (hb3.next() != hb1) return false; // not a triangle
-
-  if (ha2 == hb1 || hb2 == ha1) return false; // incident on degree 1 vertex
-
-  // Get vertices and faces
-  Vertex va = ha1.vertex();
-  Vertex vb = hb1.vertex();
-  Vertex vc = ha3.vertex();
-  Vertex vd = hb3.vertex();
-  Face fa = ha1.face();
-  Face fb = hb1.face();
-
-  // Update vertex pointers
-  if (va.halfedge() == ha1) vHalfedgeArr[va.getIndex()] = hb2.getIndex();
-  if (vb.halfedge() == hb1) vHalfedgeArr[vb.getIndex()] = ha2.getIndex();
-  // (vc and vd can't be invalidated by the flip)
-
-  // Update edge pointers
-  // (e still has the same halfedges)
-
-  // Update face pointers
-  fHalfedgeArr[fa.getIndex()] = ha1.getIndex();
-  fHalfedgeArr[fb.getIndex()] = hb1.getIndex();
-
-  // Update halfedge pointers
-  heNextArr[ha1.getIndex()] = hb3.getIndex();
-  heNextArr[hb3.getIndex()] = ha2.getIndex();
-  heNextArr[ha2.getIndex()] = ha1.getIndex();
-  heNextArr[hb1.getIndex()] = ha3.getIndex();
-  heNextArr[ha3.getIndex()] = hb2.getIndex();
-  heNextArr[hb2.getIndex()] = hb1.getIndex();
-
-  heVertexArr[ha1.getIndex()] = vc.getIndex();
-  heVertexArr[hb1.getIndex()] = vd.getIndex();
-
-  heFaceArr[ha3.getIndex()] = fb.getIndex();
-  heFaceArr[hb3.getIndex()] = fa.getIndex();
-
-  modificationTick++;
-  return true;
-}
 
 
 Halfedge ManifoldSurfaceMesh::insertVertexAlongEdge(Edge e) {

@@ -59,11 +59,13 @@ void RichSurfaceMeshData::loadMeshFromFile() {
 
   std::vector<size_t> heSiblingArr; 
   std::vector<size_t> heEdgeArr;   
+  std::vector<char> heOrientArr;   
   std::vector<size_t> eHalfedgeArr;
   bool useImplicitTwin = !plyData.getElement("gc_internal_halfedge").hasProperty("gc_internal_heSiblingArr");
   if(!useImplicitTwin) {
     heSiblingArr    = fromSmallerVec(plyData.getElement("gc_internal_halfedge").getProperty<uint32_t>("gc_internal_heSiblingArr"));
     heEdgeArr       = fromSmallerVec(plyData.getElement("gc_internal_halfedge").getProperty<uint32_t>("gc_internal_heEdgeArr"));
+    heOrientArr     = plyData.getElement("gc_internal_halfedge").getProperty<char>("gc_internal_heOrientArr");
     eHalfedgeArr    = fromSmallerVec(plyData.getElement("gc_internal_edge").getProperty<uint32_t>("gc_internal_eHalfedgeArr"));
   }
 
@@ -74,7 +76,7 @@ void RichSurfaceMeshData::loadMeshFromFile() {
     mesh = new ManifoldSurfaceMesh(heNextArr, heVertexArr, heFaceArr, vHalfedgeArr, fHalfedgeArr, fHalfedgeArrB.size());
   } else {
     mesh = new SurfaceMesh(heNextArr, heVertexArr, heFaceArr, vHalfedgeArr, fHalfedgeArr, heSiblingArr, heEdgeArr,
-                           eHalfedgeArr, fHalfedgeArrB.size());
+                           heOrientArr, eHalfedgeArr, fHalfedgeArrB.size());
   }
 }
 
@@ -156,6 +158,7 @@ void RichSurfaceMeshData::addMeshConnectivity() {
   if(!mesh->usesImplicitTwin()) {
     elemHalfedge.addProperty<uint32_t>("gc_internal_heSiblingArr", toSmallerVec(mesh->heSiblingArr.begin(), mesh->heSiblingArr.begin() + mesh->nHalfedgesFillCount));
     elemHalfedge.addProperty<uint32_t>("gc_internal_heEdgeArr", toSmallerVec(mesh->heEdgeArr.begin(), mesh->heEdgeArr.begin() + mesh->nHalfedgesFillCount));
+    elemHalfedge.addProperty<char>("gc_internal_heOrientArr", std::vector<char>(mesh->heOrientArr.begin(), mesh->heOrientArr.begin() + mesh->nHalfedgesFillCount));
   }
 
   // Vertex properties

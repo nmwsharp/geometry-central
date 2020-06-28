@@ -124,7 +124,6 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
   }
 
   // === Create edges and hook up twins
-  std::vector<size_t> boundaryHalfedges;
   if (twins.empty()) {
     // Any halfedges between a pair of vertices are considered to be incident on the same edge
 
@@ -150,13 +149,18 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
           size_t newEdgeInd = getNewEdge().getIndex();
           heEdgeArr[iHe] = newEdgeInd;
           heSiblingArr[iHe] = INVALID_IND;
+          heOrientArr[iHe] = true;
           eHalfedgeArr[newEdgeInd] = iHe;
           edgeHistory[eKey] = iHe;
         } else {
           // We're already seen this edge, connect to the previous halfedge incident on the edge
           size_t iPrevHe = edgeHistory[eKey];
           heSiblingArr[iHe] = iPrevHe;
-          heEdgeArr[iHe] = heEdgeArr[iPrevHe];
+          size_t iE = heEdgeArr[iPrevHe];
+          heEdgeArr[iHe] = iE;
+          // best we can to is set orientation to match endpoints (need a richer representation to input orientation if
+          // endpoints are not unique)
+          heOrientArr[iHe] = (heVertexArr[iHe] == heVertexArr[eHalfedgeArr[iE]]);
           edgeHistory[eKey] = iHe;
         }
         iHe++;
@@ -196,11 +200,11 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
 SurfaceMesh::SurfaceMesh(const std::vector<size_t>& heNextArr_, const std::vector<size_t>& heVertexArr_,
                          const std::vector<size_t>& heFaceArr_, const std::vector<size_t>& vHalfedgeArr_,
                          const std::vector<size_t>& fHalfedgeArr_, const std::vector<size_t>& heSiblingArr_,
-                         const std::vector<size_t>& heEdgeArr_, const std::vector<size_t>& eHalfedgeArr_,
-                         size_t nBoundaryLoopsFillCount_)
+                         const std::vector<size_t>& heEdgeArr_, const std::vector<char>& heOrientArr_,
+                         const std::vector<size_t>& eHalfedgeArr_, size_t nBoundaryLoopsFillCount_)
     : heNextArr(heNextArr_), heVertexArr(heVertexArr_), heFaceArr(heFaceArr_), vHalfedgeArr(vHalfedgeArr_),
       fHalfedgeArr(fHalfedgeArr_), useImplicitTwinFlag(false), heSiblingArr(heSiblingArr_), heEdgeArr(heEdgeArr_),
-      eHalfedgeArr(eHalfedgeArr_) {
+      heOrientArr(heOrientArr_), eHalfedgeArr(eHalfedgeArr_) {
 
   // == Set all counts
   nHalfedgesCount = heNextArr.size();
@@ -482,6 +486,7 @@ void SurfaceMesh::copyInternalFields(SurfaceMesh& target) const {
   target.fHalfedgeArr = fHalfedgeArr;
   target.heSiblingArr = heSiblingArr;
   target.heEdgeArr = heEdgeArr;
+  target.heOrientArr = heOrientArr;
   target.eHalfedgeArr = eHalfedgeArr;
   target.heVertInNextArr = heVertInNextArr;
   target.heVertInPrevArr = heVertInPrevArr;
@@ -559,6 +564,63 @@ void SurfaceMesh::generateVertexIterationCache(std::vector<size_t>& vertexIterat
     vertexIterationCacheHeIndex[entryInd] = iHe;
     currVertexCacheEntry[iV]++;
   }
+}
+
+
+bool SurfaceMesh::flip(Edge eFlip) {
+  if (eFlip.isBoundary()) return false;
+
+  // Get halfedges of first face
+  Halfedge ha1 = eFlip.halfedge();
+  Halfedge ha2 = ha1.next();
+  Halfedge ha3 = ha2.next();
+  if (ha3.next() != ha1) return false; // not a triangle
+
+  // Get halfedges of second face
+  Halfedge hb1 = ha1.sibling();
+  Halfedge hb2 = hb1.next();
+  Halfedge hb3 = hb2.next();
+  if (hb3.next() != hb1) return false; // not a triangle
+
+  if (hb1.sibling() != ha1) return false;     // not manifold
+  if (ha2 == hb1 || hb2 == ha1) return false; // incident on degree 1 vertex
+
+  // Get vertices and faces
+  Vertex va = ha1.vertex();
+  Vertex vb = hb1.vertex();
+  Vertex vc = ha3.vertex();
+  Vertex vd = hb3.vertex();
+  Face fa = ha1.face();
+  Face fb = hb1.face();
+
+  // Update vertex pointers
+  if (va.halfedge() == ha1) vHalfedgeArr[va.getIndex()] = hb2.getIndex();
+  if (vb.halfedge() == hb1) vHalfedgeArr[vb.getIndex()] = ha2.getIndex();
+  // (vc and vd can't be invalidated by the flip)
+
+  // Update edge pointers
+  // (e still has the same halfedges)
+
+  // Update face pointers
+  fHalfedgeArr[fa.getIndex()] = ha1.getIndex();
+  fHalfedgeArr[fb.getIndex()] = hb1.getIndex();
+
+  // Update halfedge pointers
+  heNextArr[ha1.getIndex()] = hb3.getIndex();
+  heNextArr[hb3.getIndex()] = ha2.getIndex();
+  heNextArr[ha2.getIndex()] = ha1.getIndex();
+  heNextArr[hb1.getIndex()] = ha3.getIndex();
+  heNextArr[ha3.getIndex()] = hb2.getIndex();
+  heNextArr[hb2.getIndex()] = hb1.getIndex();
+
+  heVertexArr[ha1.getIndex()] = vc.getIndex();
+  heVertexArr[hb1.getIndex()] = vd.getIndex();
+
+  heFaceArr[ha3.getIndex()] = fb.getIndex();
+  heFaceArr[hb3.getIndex()] = fa.getIndex();
+
+  modificationTick++;
+  return true;
 }
 
 void SurfaceMesh::validateConnectivity() {
@@ -783,6 +845,21 @@ void SurfaceMesh::validateConnectivity() {
     }
   }
 
+  // Check orientation
+  if (!usesImplicitTwin()) {
+    for (Halfedge he : halfedges()) {
+      Halfedge heCan = he.edge().halfedge();
+
+      if (he.orientation() == heCan.orientation()) {
+        if (he.tipVertex() != heCan.tipVertex() || he.tailVertex() != heCan.tailVertex())
+          throw std::logic_error("orientation is inconsistent with endpoints");
+      } else {
+        if (he.tipVertex() != heCan.tailVertex() || he.tailVertex() != heCan.tipVertex())
+          throw std::logic_error("orientation is inconsistent with endpoints");
+      }
+    }
+  }
+
   // Make sure that vertex iterators do what you would expect
   if (!usesImplicitTwin()) {
 
@@ -821,7 +898,7 @@ void SurfaceMesh::validateConnectivity() {
                              "nonmanifold vertex with disconnected neighborhoods.");
     }
   }
-}
+} // namespace surface
 
 
 Vertex SurfaceMesh::getNewVertex() {
@@ -873,6 +950,7 @@ Halfedge SurfaceMesh::getNewHalfedge(bool isInterior) {
     if (!usesImplicitTwin()) { // must enter this case, see test above
       heSiblingArr.resize(newHalfedgeCapacity);
       heEdgeArr.resize(newHalfedgeCapacity);
+      heOrientArr.resize(newHalfedgeCapacity);
       heVertInNextArr.resize(newHalfedgeCapacity);
       heVertInPrevArr.resize(newHalfedgeCapacity);
       heVertOutNextArr.resize(newHalfedgeCapacity);
@@ -956,6 +1034,7 @@ Halfedge SurfaceMesh::getNewEdgeTriple(bool onBoundary) {
       if (!usesImplicitTwin()) {
         heSiblingArr.resize(newHalfedgeCapacity);
         heEdgeArr.resize(newHalfedgeCapacity);
+        heOrientArr.resize(newHalfedgeCapacity);
       }
 
       nHalfedgesCapacityCount = newHalfedgeCapacity;
@@ -989,6 +1068,8 @@ Halfedge SurfaceMesh::getNewEdgeTriple(bool onBoundary) {
     heSiblingArr[nHalfedgesFillCount + 1] = nHalfedgesFillCount;
     heEdgeArr[nHalfedgesFillCount] = nEdgesFillCount;
     heEdgeArr[nHalfedgesFillCount + 1] = nEdgesFillCount;
+    heOrientArr[nHalfedgesFillCount] = true;
+    heOrientArr[nHalfedgesFillCount + 1] = false;
     eHalfedgeArr[nEdgesFillCount] = nHalfedgesFillCount;
   }
 
@@ -1126,6 +1207,7 @@ void SurfaceMesh::deleteElement(Halfedge he) {
   heFaceArr[i] = INVALID_IND;
   heSiblingArr[i] = INVALID_IND;
   heEdgeArr[i] = INVALID_IND;
+  heOrientArr[i] = false;
   heVertInNextArr[i] = INVALID_IND;
   heVertInPrevArr[i] = INVALID_IND;
   heVertOutNextArr[i] = INVALID_IND;
@@ -1208,6 +1290,7 @@ void SurfaceMesh::compressHalfedges() {
   heSiblingArr = applyPermutation(heSiblingArr, newIndMap);
   if (!usesImplicitTwin()) {
     heEdgeArr = applyPermutation(heEdgeArr, newIndMap);
+    heOrientArr = applyPermutation(heOrientArr, newIndMap);
     heVertInNextArr = applyPermutation(heVertInNextArr, newIndMap);
     heVertInPrevArr = applyPermutation(heVertInPrevArr, newIndMap);
     heVertOutNextArr = applyPermutation(heVertOutNextArr, newIndMap);

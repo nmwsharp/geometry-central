@@ -37,6 +37,7 @@ inline size_t SurfaceMesh::heNextOutgoingNeighbor(size_t iHe) const {
 inline size_t SurfaceMesh::heEdge(size_t iHe)               const { return usesImplicitTwin() ? heEdgeImplicit(iHe) : heEdgeArr[iHe]; }
 inline size_t SurfaceMesh::heVertex(size_t iHe)             const { return heVertexArr[iHe]; }
 inline size_t SurfaceMesh::heFace(size_t iHe)               const { return heFaceArr[iHe]; }
+inline bool SurfaceMesh::heOrientation(size_t iHe)          const { return usesImplicitTwin() ? (iHe % 2) == 0 : heOrientArr[iHe]; }
 inline size_t SurfaceMesh::eHalfedge(size_t iE)             const { return usesImplicitTwin() ? eHalfedgeImplicit(iE) : eHalfedgeArr[iE]; }
 inline size_t SurfaceMesh::vHalfedge(size_t iV)             const { return vHalfedgeArr[iV]; }
 inline size_t SurfaceMesh::fHalfedge(size_t iF)             const { return fHalfedgeArr[iF]; }

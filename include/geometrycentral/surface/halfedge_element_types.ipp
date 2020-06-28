@@ -208,16 +208,18 @@ inline Halfedge::Halfedge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_)
 //inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
-inline Halfedge Halfedge::twin() const              { return Halfedge(mesh, mesh->heSibling(ind)); }
-inline Halfedge Halfedge::sibling() const           { return Halfedge(mesh, mesh->heSibling(ind)); }
-inline Halfedge Halfedge::next() const              { return Halfedge(mesh, mesh->heNext(ind)); }
-inline Vertex Halfedge::vertex() const              { return Vertex(mesh, mesh->heVertex(ind)); }
-inline Halfedge Halfedge::nextOutgoingNeighbor() const   { return Halfedge(mesh, mesh->heNextOutgoingNeighbor(ind)); }
-inline Halfedge Halfedge::nextIncomingNeighbor() const   { return Halfedge(mesh, mesh->heNextIncomingNeighbor(ind)); }
-inline Edge Halfedge::edge() const                  { return Edge(mesh, mesh->heEdge(ind)); }
-inline Face Halfedge::face() const                  { return Face(mesh, mesh->heFace(ind)); }
-inline Corner Halfedge::corner() const              { return Corner(mesh, ind); }
-inline bool Halfedge::isDead() const                { return mesh->halfedgeIsDead(ind); }
+inline Halfedge Halfedge::twin() const                  { return Halfedge(mesh, mesh->heSibling(ind)); }
+inline Halfedge Halfedge::sibling() const               { return Halfedge(mesh, mesh->heSibling(ind)); }
+inline Halfedge Halfedge::next() const                  { return Halfedge(mesh, mesh->heNext(ind)); }
+inline Vertex Halfedge::vertex() const                  { return Vertex(mesh, mesh->heVertex(ind)); }
+inline Vertex Halfedge::tipVertex() const               { return next().vertex(); }
+inline Vertex Halfedge::tailVertex() const              { return vertex(); }
+inline Halfedge Halfedge::nextOutgoingNeighbor() const  { return Halfedge(mesh, mesh->heNextOutgoingNeighbor(ind)); }
+inline Halfedge Halfedge::nextIncomingNeighbor() const  { return Halfedge(mesh, mesh->heNextIncomingNeighbor(ind)); }
+inline Edge Halfedge::edge() const                      { return Edge(mesh, mesh->heEdge(ind)); }
+inline Face Halfedge::face() const                      { return Face(mesh, mesh->heFace(ind)); }
+inline Corner Halfedge::corner() const                  { return Corner(mesh, ind); }
+inline bool Halfedge::isDead() const                    { return mesh->halfedgeIsDead(ind); }
 
 
 // Super-navigators
@@ -242,6 +244,7 @@ inline Halfedge Halfedge::prevOrbitVertex() const  {
 
 // Properties
 inline bool Halfedge::isInterior() const { return  mesh->heIsInterior(ind); }
+inline bool Halfedge::orientation() const { return  mesh->heOrientation(ind); }
 
 // Range iterators
 inline bool HalfedgeRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
