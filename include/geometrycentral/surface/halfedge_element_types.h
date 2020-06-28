@@ -105,7 +105,7 @@ public:
 
   // Navigators
   Halfedge twin() const;
-  Halfedge sibling() const;  
+  Halfedge sibling() const;
   Halfedge nextOutgoingNeighbor() const; // next halfedge which has the same tail vertex as this, form a cycle
   Halfedge nextIncomingNeighbor() const; // next halfedge which has the same tip vertex as this, form a cycle
   Halfedge next() const;
@@ -123,7 +123,9 @@ public:
 
   // Properties
   bool isInterior() const;
-  bool orientation() const; // true if the halfedge has the same orientation as its edge
+  bool orientation() const; // True if the halfedge has the same orientation as its edge
+                            // Remember that halfedge orientation means "points in direction". If two faces have the
+                            // same orientation, their halfedges along a shared edge will have opposite orientations.
 };
 
 // using DynamicHalfedge = DynamicElement<Halfedge>;

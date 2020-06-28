@@ -28,7 +28,7 @@ class HalfedgeMutationSuite : public MeshAssetSuite {};
 // Flip a few edges on a bunch of meshes
 TEST_F(HalfedgeMutationSuite, EdgeFlipTest) {
 
-  for (MeshAsset& a : manifoldSurfaceMeshes()) {
+  for (MeshAsset& a : allMeshes()) {
     a.printThyName();
 
     int count = 10;
@@ -38,11 +38,11 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipTest) {
     for (int i = 0; i < count; i++) {
 
       // Flip an edge
-      Edge eFlip = a.manifoldMesh->edge(flipInd);
-      a.manifoldMesh->flip(eFlip);
-      a.manifoldMesh->validateConnectivity();
+      Edge eFlip = a.mesh->edge(flipInd);
+      a.mesh->flip(eFlip);
+      a.mesh->validateConnectivity();
 
-      flipInd = (flipInd + indInc) % a.manifoldMesh->nVertices();
+      flipInd = (flipInd + indInc) % a.mesh->nVertices();
     }
   }
 }
@@ -50,21 +50,49 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipTest) {
 // Flip a lot of edges on one mesh without boundary
 TEST_F(HalfedgeMutationSuite, EdgeFlipClosedManyTest) {
 
-  auto asset = getAsset("sphere_small.ply", true);
-  ManifoldSurfaceMesh& mesh = *asset.manifoldMesh;
+  for (const MeshAsset& asset : {getAsset("sphere_small.ply", true)}) {
+    SurfaceMesh& mesh = *asset.mesh;
 
-  int count = 1000;
-  int indInc = static_cast<int>(std::ceil(mesh.nVertices() / static_cast<double>(count)));
+    int count = 1000;
+    int indInc = static_cast<int>(std::ceil(mesh.nVertices() / static_cast<double>(count)));
 
-  int flipInd = 0;
-  for (int i = 0; i < count; i++) {
+    int flipInd = 0;
+    for (int i = 0; i < count; i++) {
 
-    // Flip an edge
-    Edge eFlip = mesh.edge(flipInd);
-    mesh.flip(eFlip);
-    mesh.validateConnectivity();
+      // Flip an edge
+      Edge eFlip = mesh.edge(flipInd);
+      bool didFlip = mesh.flip(eFlip);
+      mesh.validateConnectivity();
 
-    flipInd = (flipInd + 1) % mesh.nVertices();
+      flipInd = (flipInd + 1) % mesh.nVertices();
+    }
+  }
+}
+
+// Flip a lot of edges and orientations on one mesh
+TEST_F(HalfedgeMutationSuite, EdgeFlipInvertOrientClosedManyTest) {
+
+  for (const MeshAsset& asset : {getAsset("sphere_small.ply", false)}) {
+    SurfaceMesh& mesh = *asset.mesh;
+
+    int count = 1000;
+    int flipInd = 0;
+    int invertInd = mesh.nEdges() / 2;
+    for (int i = 0; i < count; i++) {
+
+      // Invert a faces
+      Face fInvert = mesh.face(invertInd);
+      mesh.invertOrientation(fInvert);
+      mesh.validateConnectivity();
+
+      // Flip an edge
+      Edge eFlip = mesh.edge(flipInd);
+      bool didFlip = mesh.flip(eFlip);
+      mesh.validateConnectivity();
+
+      flipInd = (flipInd + 1) % mesh.nEdges();
+      invertInd = (invertInd + 1) % mesh.nFaces();
+    }
   }
 }
 
@@ -175,6 +203,29 @@ TEST_F(HalfedgeMutationSuite, EdgeSplitTest) {
     }
   }
 }
+
+
+// Invert face orientation on a bunch of meshes
+TEST_F(HalfedgeMutationSuite, InvertOrientationTest) {
+
+  for (MeshAsset& a : allMeshes()) {
+    if (a.isManifoldSurfaceMesh) continue;
+    a.printThyName();
+
+    int count = 10;
+    int ind = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Invert
+      Face f = a.mesh->face(ind);
+      a.mesh->invertOrientation(f);
+      a.mesh->validateConnectivity();
+
+      ind = (ind + 1) % a.mesh->nFaces();
+    }
+  }
+}
+
 
 // =====================================================
 // ========= Container tests

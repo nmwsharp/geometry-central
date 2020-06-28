@@ -119,10 +119,15 @@ public:
 
   // == Mutation routines
 
-  // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip manifold,
-  // interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new elements, or
-  // cause the mesh to become decompressed.
+  // Flips the orientation of the face. (Only valid to call on a general surface mesh which can represent
+  // un-oriented meshes)
+  void invertOrientation(Face f);
+
+  // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip
+  // manifold, interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new
+  // elements, or cause the mesh to become decompressed.
   bool flip(Edge e);
+
 
   // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
 
@@ -202,12 +207,16 @@ protected:
   std::vector<char> heOrientArr;    // true if the halfedge has the same orientation as its edge
   std::vector<size_t> eHalfedgeArr; // e.halfedge()
 
-  // these encode connectivity, but are redundant given the other arrays above, so they don't need to be serialized
-  // (etc)
+  // These form a doubly-linked list of the halfedges around each vertex, providing the richer data needed to iterate
+  // around vertices in a nonmanifold mesh. These encode connectivity, but are redundant given the other arrays above,
+  // so they don't need to be serialized (etc). Note the removeFromVertexLists() and addToVertexLists() below to
+  // simplify maintaining these internally.
   std::vector<size_t> heVertInNextArr;
   std::vector<size_t> heVertInPrevArr;
+  std::vector<size_t> vHeInStartArr;
   std::vector<size_t> heVertOutNextArr;
   std::vector<size_t> heVertOutPrevArr;
+  std::vector<size_t> vHeOutStartArr;
 
 
   // Element connectivity
@@ -327,6 +336,9 @@ protected:
   void generateVertexIterationCache(std::vector<size_t>& vertexIterationCacheHeIndex,
                                     std::vector<size_t>& vertexIterationCacheVertexStart, bool incoming,
                                     bool skipDead = true);
+
+  void removeFromVertexLists(Halfedge he);
+  void addToVertexLists(Halfedge he);
 
   // Elements need direct access in to members to traverse
   friend class Vertex;
