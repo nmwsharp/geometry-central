@@ -25,6 +25,7 @@ public:
   int eulerCharacteristic() const; // compute the Euler characteristic [O(1)]
   int genus() const;               // compute the genus [O(1)]
   virtual bool isManifold() override;
+  virtual bool isEdgeManifold() override;
 
 
   // === Methods that mutate the mesh.

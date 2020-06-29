@@ -108,6 +108,7 @@ public:
   bool isTriangular();           // returns true if and only if all faces are triangles [O(n)]
   size_t nConnectedComponents(); // compute number of connected components [O(n)]
   virtual bool isManifold();
+  virtual bool isEdgeManifold();
   void printStatistics() const; // print info about element counts to std::cout
 
   std::vector<std::vector<size_t>> getFaceVertexList();
@@ -123,10 +124,27 @@ public:
   // un-oriented meshes)
   void invertOrientation(Face f);
 
+  // Create a duplicate copy of a face, incident on the same vertices and edges. This operation almost always makes a
+  // mesh nonmanifold, and thus is only permitted on general surfaces meshes.
+  Face duplicateFace(Face f);
+
   // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip
   // manifold, interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new
   // elements, or cause the mesh to become decompressed.
   bool flip(Edge e);
+
+  // Given two distinct halfedges both incident along some edge `e`, peel them them off of `e`, forming a new edge
+  // `e_new` for just those two halfedges. Any other halfedges incident on `e` will be unchanged. If these are the only
+  // two halfedges incident on `e`, then `e_new = e` and the mesh is unchanged. Return `e_new`. This operation only has
+  // an affect on a nonmanifold mesh, and thus is only permitted on general surfaces meshes.
+  Edge separateToNewEdge(Halfedge heA, Halfedge heB);
+  
+  // Split all edges until the mesh is edge-manifold (split policy is arbitrary)
+  // (Only makes sense on a general SurfaceMesh)
+  void separateNonmanifoldEdges();
+
+  // (Only makes sense on a general SurfaceMesh)
+  void separateNonmanifoldVertices();
 
 
   // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
@@ -339,6 +357,7 @@ protected:
 
   void removeFromVertexLists(Halfedge he);
   void addToVertexLists(Halfedge he);
+  void removeFromSiblingList(Halfedge he);
 
   // Elements need direct access in to members to traverse
   friend class Vertex;

@@ -519,6 +519,12 @@ bool ManifoldSurfaceMesh::isManifold() {
   return true;
 }
 
+bool ManifoldSurfaceMesh::isEdgeManifold() {
+  // it is an ERROR for for a manifold surface mesh to ever be nonmanifold, so don't even bother checking
+  // if necessary, one can call validateConnectivity() to check manifoldness manually
+  return true;
+}
+
 
 // ==========================================================
 // ================        Mutation        ==================

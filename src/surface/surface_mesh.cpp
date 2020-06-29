@@ -375,6 +375,13 @@ bool SurfaceMesh::isManifold() {
   return true;
 }
 
+bool SurfaceMesh::isEdgeManifold() {
+  for (Edge e : edges()) {
+    if (!e.isManifold()) return false;
+  }
+  return true;
+}
+
 size_t SurfaceMesh::nConnectedComponents() {
   VertexData<size_t> vertInd = getVertexIndices();
   DisjointSets dj(nVertices());
@@ -642,6 +649,15 @@ void SurfaceMesh::addToVertexLists(Halfedge he) {
   }
 }
 
+void SurfaceMesh::removeFromSiblingList(Halfedge he) {
+  Halfedge heNext = he.sibling();
+  Halfedge hePrev = heNext;
+  while (hePrev.sibling() != he) {
+    hePrev = hePrev.sibling();
+  }
+
+  heSiblingArr[hePrev.getIndex()] = heNext.getIndex();
+}
 
 void SurfaceMesh::invertOrientation(Face f) {
   if (usesImplicitTwin())
@@ -673,6 +689,47 @@ void SurfaceMesh::invertOrientation(Face f) {
   heNextArr[firstHe.getIndex()] = prevHe.getIndex();
 
   for (Halfedge he : f.adjacentHalfedges()) addToVertexLists(he);
+}
+
+Face SurfaceMesh::duplicateFace(Face f) {
+  if (usesImplicitTwin())
+    throw std::runtime_error("Cannot duplicate a face on a manfiold mesh. Try a general SurfaceMesh.");
+
+
+  Face newFace = getNewFace();
+  bool first = true;
+  Halfedge prevNewHe, firstNewHe;
+  for (Halfedge oldHe : f.adjacentHalfedges()) {
+    Halfedge newHe = getNewHalfedge(false);
+
+    if (first) {
+      fHalfedgeArr[newFace.getIndex()] = newHe.getIndex();
+      firstNewHe = newHe;
+      first = false;
+    } else {
+      heNextArr[prevNewHe.getIndex()] = newHe.getIndex();
+    }
+
+    // update the halfedge data
+    heVertexArr[newHe.getIndex()] = oldHe.vertex().getIndex();
+    heEdgeArr[newHe.getIndex()] = oldHe.edge().getIndex();
+    heOrientArr[newHe.getIndex()] = heOrientArr[oldHe.getIndex()];
+    heFaceArr[newHe.getIndex()] = newFace.getIndex();
+
+    // insert in to the sibling list
+    size_t sibP = oldHe.getIndex();
+    size_t sibN = heSiblingArr[sibP];
+    heSiblingArr[sibP] = newHe.getIndex();
+    heSiblingArr[newHe.getIndex()] = sibN;
+    prevNewHe = newHe;
+  }
+  heNextArr[prevNewHe.getIndex()] = firstNewHe.getIndex();
+
+  for (Halfedge he : newFace.adjacentHalfedges()) {
+    addToVertexLists(he);
+  }
+
+  return newFace;
 }
 
 bool SurfaceMesh::flip(Edge eFlip) {
@@ -748,6 +805,52 @@ bool SurfaceMesh::flip(Edge eFlip) {
   modificationTick++;
   return true;
 }
+
+Edge SurfaceMesh::separateToNewEdge(Halfedge heA, Halfedge heB) {
+  if (usesImplicitTwin())
+    throw std::runtime_error(
+        "Cannot separate edge from manifold mesh; all are already manifold. Try general SurfaceMesh.");
+
+  if (heA.edge() != heB.edge()) throw std::runtime_error("halfedges must be incident on same edge");
+  if (heA == heB) throw std::runtime_error("halfedges must be distinct");
+
+  // If theres <= 2 halfedges incident on the edge, we don't have any work to do.
+  Edge e = heA.edge();
+  if (e.degree() <= 2) return e;
+
+  Edge newE = getNewEdge();
+
+  // find some other halfedge incident on the old edge, make it e.halfedge()
+  for (Halfedge he : e.adjacentHalfedges()) {
+    if (he != heA && he != heB) {
+      eHalfedgeArr[e.getIndex()] = he.getIndex();
+      break;
+    }
+  }
+
+  removeFromSiblingList(heA);
+  removeFromSiblingList(heB);
+
+  eHalfedgeArr[newE.getIndex()] = heA.getIndex();
+  heEdgeArr[heA.getIndex()] = newE.getIndex();
+  heEdgeArr[heB.getIndex()] = newE.getIndex();
+  heSiblingArr[heA.getIndex()] = heB.getIndex();
+  heSiblingArr[heB.getIndex()] = heA.getIndex();
+
+
+  return newE;
+}
+
+void SurfaceMesh::separateNonmanifoldEdges() {
+  for(Edge e : edges()) {
+    while(!e.isManifold()) {
+      Halfedge heA = e.halfedge();
+      Halfedge heB = heA.sibling();
+      separateToNewEdge(heA, heB);
+    }
+  }
+}
+
 
 void SurfaceMesh::validateConnectivity() {
 
