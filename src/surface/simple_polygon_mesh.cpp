@@ -2,6 +2,7 @@
 
 #include "happly.h"
 
+#include <algorithm>
 #include <map>
 #include <set>
 #include <sstream>
