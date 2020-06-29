@@ -77,6 +77,7 @@ nav:
       - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
       - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
       - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
+      - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
   - Numerical: 
     - 'Matrix Types' : 'numerical/matrix_types.md'
     - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'

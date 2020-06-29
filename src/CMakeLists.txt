@@ -36,6 +36,7 @@ SET(SRCS
   surface/surgery.cpp
   surface/simple_idt.cpp
   surface/exact_polyhedral_geodesics.cpp
+  surface/intrinsic_mollification.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
 
@@ -77,6 +78,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/halfedge_mesh.h
   ${INCLUDE_ROOT}/surface/heat_method_distance.h
   ${INCLUDE_ROOT}/surface/intrinsic_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/intrinsic_mollification.h
   ${INCLUDE_ROOT}/surface/manifold_surface_mesh.h
   ${INCLUDE_ROOT}/surface/meshio.h
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
