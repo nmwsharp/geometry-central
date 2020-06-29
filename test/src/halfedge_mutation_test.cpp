@@ -62,10 +62,12 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipClosedManyTest) {
       // Flip an edge
       Edge eFlip = mesh.edge(flipInd);
       bool didFlip = mesh.flip(eFlip);
-      mesh.validateConnectivity();
+      // mesh.validateConnectivity();
 
       flipInd = (flipInd + 1) % mesh.nVertices();
     }
+
+    mesh.validateConnectivity();
   }
 }
 
@@ -83,16 +85,18 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipInvertOrientClosedManyTest) {
       // Invert a faces
       Face fInvert = mesh.face(invertInd);
       mesh.invertOrientation(fInvert);
-      mesh.validateConnectivity();
+      // mesh.validateConnectivity();
 
       // Flip an edge
       Edge eFlip = mesh.edge(flipInd);
       bool didFlip = mesh.flip(eFlip);
-      mesh.validateConnectivity();
+      // mesh.validateConnectivity();
 
       flipInd = (flipInd + 1) % mesh.nEdges();
       invertInd = (invertInd + 1) % mesh.nFaces();
     }
+
+    mesh.validateConnectivity();
   }
 }
 
