@@ -37,12 +37,24 @@ size_t Element<T, M>::getIndex() const { return ind; }
 
 template <typename T, typename M>
 M* Element<T, M>::getMesh() const { return mesh; }
+}
 
+namespace std {
 template <typename T, typename M>
-inline ::std::ostream& operator<<(::std::ostream& output, const Element<T, M>& e) {
-  output << typeShortName<T>() << "_" << e.ind;
+inline ostream& operator<<(ostream& output, const geometrycentral::Element<T, M>& e) {
+  output << geometrycentral::typeShortName<T>() << "_" << e.ind;
   return output;
 }
+
+template <typename T, typename M>
+inline std::string to_string(const geometrycentral::Element<T, M>& e) {
+  ostringstream output;
+  output << e;
+  return output.str();
+}
+}
+
+namespace geometrycentral {
 
 // Dynamic element
 /*

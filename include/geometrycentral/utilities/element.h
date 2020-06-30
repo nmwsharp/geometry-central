@@ -48,12 +48,21 @@ class NavigationSetBase;
 // (see https://isocpp.org/wiki/faq/templates#template-friends)
 template <typename T, typename M>
 class Element;
+} // namespace geometrycentral
+
+
+namespace std {
 template <typename T, typename M>
-std::ostream& operator<<(std::ostream& o, const Element<T, M>& x);
+std::ostream& operator<<(std::ostream& o, const geometrycentral::Element<T, M>& x);
+template <typename T, typename M>
+std::string to_string(const geometrycentral::Element<T, M>& e);
+} // namespace std
+
+namespace geometrycentral {
 
 // Forward-declare dynamic equivalent so we can declare a conversion constructor
-//template <typename S>
-//class DynamicElement;
+// template <typename S>
+// class DynamicElement;
 
 // == Base type for shared logic between elements.
 //
@@ -68,9 +77,9 @@ class Element {
 public:
   using ParentMeshT = M;
 
-  Element();                                    // construct an empty (null) element
+  Element();                              // construct an empty (null) element
   Element(ParentMeshT* mesh, size_t ind); // construct pointing to the i'th element of that type on a mesh.
-  //Element(const DynamicElement<T>& e);          // construct from a dynamic element of matching type
+  // Element(const DynamicElement<T>& e);          // construct from a dynamic element of matching type
 
   inline bool operator==(const Element<T, M>& other) const;
   inline bool operator!=(const Element<T, M>& other) const;
@@ -96,12 +105,22 @@ protected:
   size_t ind = INVALID_IND;
 
   // Friends
-  friend std::ostream& operator<<<>(std::ostream& output, const Element<T, M>& e);
+  friend std::ostream& std::operator<<<>(std::ostream& output, const Element<T, M>& e);
   friend struct std::hash<Element<T, M>>;
+  friend std::string std::to_string<>(const Element<T, M>& e);
 };
 
+} // namespace geometrycentral
+
+namespace std {
 template <typename T, typename M>
-std::ostream& operator<<(std::ostream& output, const Element<T, M>& e);
+std::ostream& operator<<(std::ostream& output, const geometrycentral::Element<T, M>& e);
+template <typename T, typename M>
+std::string to_string(const geometrycentral::Element<T, M>& e);
+} // namespace std
+
+
+namespace geometrycentral {
 
 /*
 // The equivalent dynamic pointers. These should be rarely used, but are guaranteed to be preserved through _all_ mesh

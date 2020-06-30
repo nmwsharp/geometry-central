@@ -48,6 +48,10 @@ struct SurfacePoint {
   // output is a copy of this point.
   inline SurfacePoint inSomeFace() const;
 
+  // Returns the surface point as a face point in face f (see comment in inSomeFace()). If the the SurfacePoint is not
+  // on or adjacent to the requested face, throws an error.
+  inline SurfacePoint inFace(Face f) const;
+
   // Return the nearest vertex to this surface point
   inline Vertex nearestVertex() const;
 
@@ -72,6 +76,9 @@ bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB);
 
 // Check if they are on the same vertex/edge/face
 bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB);
+
+// Return some face which both points are on or adjacent to. Returns Face() if non exists.
+Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB);
 
 
 // Printing
