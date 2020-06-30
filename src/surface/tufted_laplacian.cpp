@@ -33,6 +33,12 @@ buildTuftedLaplacian(SurfaceMesh& mesh, EmbeddedGeometryInterface& geom, double 
   tuftedIntrinsicGeom.requireCotanLaplacian();
   tuftedIntrinsicGeom.requireVertexLumpedMassMatrix();
 
+  // TODO sanity check
+  tuftedIntrinsicGeom.requireEdgeCotanWeights();
+  for (Edge e : tuftedMesh->edges()) {
+    if (tuftedIntrinsicGeom.edgeCotanWeights[e] < -1e-4) throw std::runtime_error("negative cotan weights! :( mollify more!");
+  }
+
   return std::make_tuple(tuftedIntrinsicGeom.cotanLaplacian, tuftedIntrinsicGeom.vertexLumpedMassMatrix);
 }
 
@@ -103,7 +109,7 @@ void buildIntrinsicTuftedCover(SurfaceMesh& mesh, EdgeData<double>& edgeLengths,
 
     // Sequentially connect the faces
     Halfedge currHe = edgeFaces.front();
-    if (!currHe.orientation()) currHe = otherSheet[currHe];
+    if (currHe.orientation()) currHe = otherSheet[currHe];
     for (size_t i = 0; i < edgeFaces.size(); i++) {
       Halfedge nextHe = edgeFaces[(i + 1) % edgeFaces.size()];
       if (currHe.orientation() == nextHe.orientation()) nextHe = otherSheet[nextHe];

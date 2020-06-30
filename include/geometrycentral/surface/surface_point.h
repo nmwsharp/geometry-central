@@ -78,7 +78,7 @@ bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB);
 bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB);
 
 // Return some face which both points are on or adjacent to. Returns Face() if non exists.
-Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB);
+inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB);
 
 
 // Printing

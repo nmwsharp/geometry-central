@@ -518,15 +518,8 @@ std::unique_ptr<ManifoldSurfaceMesh> SurfaceMesh::toManifoldMesh() {
       i++;
     }
   }
-
+  
   // Build twin array
-  for (Face f : faces()) {
-    size_t i = 0;
-    for (Halfedge he : f.adjacentHalfedges()) {
-      iHeInFace[he] = i;
-      i++;
-    }
-  }
   std::vector<std::vector<std::tuple<size_t, size_t>>> twins(nFaces());
   for (Face f : faces()) {
     size_t iF = faceInd[f];
@@ -921,8 +914,10 @@ void SurfaceMesh::separateNonmanifoldEdges() {
 VertexData<Vertex> SurfaceMesh::separateNonmanifoldVertices() {
 
   // Find edge-connected sets of corners
-  DisjointSets djSet(nCorners());
+  size_t indMax = nHalfedgesFillCount;
+  DisjointSets djSet(indMax);
   for (Edge e : edges()) {
+    if (e.isBoundary()) continue;
     if (!e.isManifold()) {
       throw std::runtime_error("mesh must be edge-manifold for separateNonmanifoldVertices()");
     }
@@ -940,7 +935,7 @@ VertexData<Vertex> SurfaceMesh::separateNonmanifoldVertices() {
 
   // Make sure there is a distinct vertex entry for each component
   VertexData<Vertex> parents(*this);
-  std::vector<Vertex> vertexEntries(nCorners(), Vertex());
+  std::vector<Vertex> vertexEntries(indMax, Vertex());
   VertexData<bool> baseVertexUsed(*this, false);
   for (Corner c : corners()) {
     size_t iComp = djSet.find(c.getIndex());

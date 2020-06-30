@@ -254,7 +254,7 @@ inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
 inline bool SurfacePoint::operator!=(const SurfacePoint& other) const { return !(*this == other); }
 
 
-Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
+inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
 
   switch (pA.type) {
 
