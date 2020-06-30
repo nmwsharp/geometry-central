@@ -26,6 +26,7 @@ public:
   int genus() const;               // compute the genus [O(1)]
   virtual bool isManifold() override;
   virtual bool isEdgeManifold() override;
+  virtual bool isOriented() override;
 
 
   // === Methods that mutate the mesh.
@@ -76,6 +77,13 @@ public:
 
   // Triangulate in a face, returns all subfaces
   std::vector<Face> triangulate(Face f);
+
+  // Overrides for no-op methods
+  void separateNonmanifoldEdges() override;
+  void separateNonmanifoldVertices() override;
+  void greedilyOrientFaces() override;
+
+
 
   // == Utility functions
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;

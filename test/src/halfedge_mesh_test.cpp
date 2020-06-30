@@ -321,7 +321,7 @@ TEST_F(HalfedgeMeshSuite, VertexFaceNavigator) {
       }
     }
 
-    for (Face f: a.mesh->faces()) {
+    for (Face f : a.mesh->faces()) {
       EXPECT_EQ(faceCount[f], f.degree());
     }
   }
@@ -345,11 +345,11 @@ TEST_F(HalfedgeMeshSuite, FaceFaceNavigator) {
       }
     }
 
-    for (Face f: a.mesh->faces()) {
+    for (Face f : a.mesh->faces()) {
 
       size_t expectedCount = 0;
-      for(Edge e : f.adjacentEdges()) {
-        expectedCount += e.degree()-1;
+      for (Edge e : f.adjacentEdges()) {
+        expectedCount += e.degree() - 1;
       }
 
       EXPECT_EQ(faceCount[f], expectedCount);
@@ -357,6 +357,44 @@ TEST_F(HalfedgeMeshSuite, FaceFaceNavigator) {
   }
 }
 
+// ============================================================
+// =============== Utilities
+// ============================================================
+
+TEST_F(HalfedgeMeshSuite, IsManifoldOrientedTest) {
+
+  {
+    auto asset = getAsset("lego.ply", false);
+    SurfaceMesh& mesh = *asset.mesh;
+    EXPECT_TRUE(mesh.isEdgeManifold());
+    EXPECT_TRUE(mesh.isManifold());
+    EXPECT_TRUE(mesh.isOriented());
+  }
+
+  {
+    auto asset = getAsset("hourglass_ico.obj", false);
+    SurfaceMesh& mesh = *asset.mesh;
+    EXPECT_TRUE(mesh.isEdgeManifold());
+    EXPECT_FALSE(mesh.isManifold());
+    EXPECT_TRUE(mesh.isOriented());
+  }
+
+  {
+    auto asset = getAsset("triple_vierbein.obj", false);
+    SurfaceMesh& mesh = *asset.mesh;
+    EXPECT_FALSE(mesh.isEdgeManifold());
+    EXPECT_FALSE(mesh.isManifold());
+    EXPECT_FALSE(mesh.isOriented());
+  }
+
+  {
+    auto asset = getAsset("moebius.obj", false);
+    SurfaceMesh& mesh = *asset.mesh;
+    EXPECT_TRUE(mesh.isEdgeManifold());
+    EXPECT_TRUE(mesh.isManifold());
+    EXPECT_FALSE(mesh.isOriented());
+  }
+}
 
 // ============================================================
 // =============== Rich mesh

@@ -1,5 +1,6 @@
 #include "geometrycentral/surface/surface_mesh.h"
 
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/utilities/combining_hash_functions.h"
 #include "geometrycentral/utilities/disjoint_sets.h"
 #include "geometrycentral/utilities/timing.h"
@@ -382,6 +383,14 @@ bool SurfaceMesh::isEdgeManifold() {
   return true;
 }
 
+bool SurfaceMesh::isOriented() {
+  for (Edge e : edges()) {
+    if (!e.isManifold()) return false;
+    if (!e.isOriented()) return false;
+  }
+  return true;
+}
+
 size_t SurfaceMesh::nConnectedComponents() {
   VertexData<size_t> vertInd = getVertexIndices();
   DisjointSets dj(nVertices());
@@ -488,6 +497,57 @@ std::unique_ptr<SurfaceMesh> SurfaceMesh::copyToSurfaceMesh() const {
   SurfaceMesh* newMesh = new SurfaceMesh(false);
   copyInternalFields(*newMesh);
   return std::unique_ptr<SurfaceMesh>(newMesh);
+}
+
+
+std::unique_ptr<ManifoldSurfaceMesh> SurfaceMesh::toManifoldMesh() {
+  if (!isManifold()) throw std::runtime_error("must be manifold to create manifold surface mesh");
+  if (!isOriented()) throw std::runtime_error("must be oriented to create manifold surface mesh");
+
+  // Construct buffers for connectivity and build a new manifold mesh
+  // NOTE: probably could do this much more efficiently by leveraging the internal representation
+
+  std::vector<std::vector<size_t>> polygons = getFaceVertexList();
+
+  HalfedgeData<size_t> iHeInFace(*this, 0);
+  FaceData<size_t> faceInd = getFaceIndices();
+  for (Face f : faces()) {
+    size_t i = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      iHeInFace[he] = i;
+      i++;
+    }
+  }
+
+  // Build twin array
+  for (Face f : faces()) {
+    size_t i = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      iHeInFace[he] = i;
+      i++;
+    }
+  }
+  std::vector<std::vector<std::tuple<size_t, size_t>>> twins(nFaces());
+  for (Face f : faces()) {
+    size_t iF = faceInd[f];
+    std::vector<std::tuple<size_t, size_t>>& thisTwin = twins[iF];
+    thisTwin.resize(polygons[iF].size());
+
+    size_t i = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      if (he.edge().isBoundary()) {
+        thisTwin[i] = {INVALID_IND, INVALID_IND};
+      } else {
+        Halfedge heT = he.sibling();
+        size_t oF = faceInd[heT.face()];
+        size_t heTInd = iHeInFace[heT];
+        thisTwin[i] = {oF, heTInd};
+      }
+      i++;
+    }
+  }
+
+  return std::unique_ptr<ManifoldSurfaceMesh>(new ManifoldSurfaceMesh(polygons, twins));
 }
 
 void SurfaceMesh::copyInternalFields(SurfaceMesh& target) const {
@@ -689,6 +749,7 @@ void SurfaceMesh::invertOrientation(Face f) {
   heNextArr[firstHe.getIndex()] = prevHe.getIndex();
 
   for (Halfedge he : f.adjacentHalfedges()) addToVertexLists(he);
+  modificationTick++;
 }
 
 Face SurfaceMesh::duplicateFace(Face f) {
@@ -729,6 +790,7 @@ Face SurfaceMesh::duplicateFace(Face f) {
     addToVertexLists(he);
   }
 
+  modificationTick++;
   return newFace;
 }
 
@@ -838,19 +900,106 @@ Edge SurfaceMesh::separateToNewEdge(Halfedge heA, Halfedge heB) {
   heSiblingArr[heB.getIndex()] = heA.getIndex();
 
 
+  modificationTick++;
   return newE;
 }
 
 void SurfaceMesh::separateNonmanifoldEdges() {
-  for(Edge e : edges()) {
-    while(!e.isManifold()) {
+
+  for (Edge e : edges()) {
+    while (!e.isManifold()) {
       Halfedge heA = e.halfedge();
       Halfedge heB = heA.sibling();
       separateToNewEdge(heA, heB);
     }
   }
+
+  modificationTick++;
 }
 
+
+void SurfaceMesh::separateNonmanifoldVertices() {
+
+  // Find edge-connected sets of corners
+  DisjointSets djSet(nCorners());
+  for (Edge e : edges()) {
+    if (!e.isManifold()) {
+      throw std::runtime_error("mesh must be edge-manifold for separateNonmanifoldVertices()");
+    }
+    Halfedge heA = e.halfedge();
+    Halfedge heB = heA.sibling();
+
+    if (heA.orientation() == heB.orientation()) {
+      djSet.merge(heA.corner().getIndex(), heB.corner().getIndex());
+      djSet.merge(heA.next().corner().getIndex(), heB.next().corner().getIndex());
+    } else {
+      djSet.merge(heA.next().corner().getIndex(), heB.corner().getIndex());
+      djSet.merge(heA.corner().getIndex(), heB.next().corner().getIndex());
+    }
+  }
+
+  // Make sure there is a distinct vertex entry for each component
+  std::vector<Vertex> vertexEntries(nCorners(), Vertex());
+  VertexData<bool> baseVertexUsed(*this, false);
+  for (Corner c : corners()) {
+    size_t iComp = djSet.find(c.getIndex());
+    Vertex origV = c.vertex();
+
+    // create vertex if needed
+    if (vertexEntries[iComp] == Vertex()) {
+      if (baseVertexUsed[origV]) {
+        Vertex newV = getNewVertex();
+        vertexEntries[iComp] = newV;
+      } else {
+        vertexEntries[iComp] = origV;
+        baseVertexUsed[origV] = true;
+      }
+    }
+
+    // hook up
+    Vertex targetV = vertexEntries[iComp];
+    Halfedge he = c.halfedge();
+    heVertexArr[he.getIndex()] = targetV.getIndex();
+    vHalfedgeArr[targetV.getIndex()] = he.getIndex();
+  }
+
+  // just rebuild these from scratch, rather than trying to maintain
+  initializeHalfedgeNeighbors();
+
+  modificationTick++;
+}
+
+void SurfaceMesh::greedilyOrientFaces() {
+  // TODO this is only lightly tested. Write some better tests.
+  std::vector<Face> toProcess;
+  FaceData<double> processed(*this, false);
+  for (Face f : faces()) {
+    if (processed[f]) continue;
+
+    // start a new search
+    toProcess.push_back(f);
+    processed[f] = true;
+
+    // cover the whole component
+    while (!toProcess.empty()) {
+      Face curr = toProcess.back();
+      toProcess.pop_back();
+
+      for (Halfedge he : curr.adjacentHalfedges()) {
+        if (he.edge().isBoundary() || !he.edge().isManifold()) continue;
+        Face fO = he.sibling().face();
+        if (processed[fO]) continue;
+
+        if (!he.edge().isOriented()) {
+          invertOrientation(fO);
+        }
+
+        toProcess.push_back(fO);
+        processed[fO] = true;
+      }
+    }
+  }
+}
 
 void SurfaceMesh::validateConnectivity() {
 

@@ -17,7 +17,7 @@ struct MeshAsset {
   std::unique_ptr<geometrycentral::surface::VertexPositionGeometry> geometry;
   bool hasBoundary = false;
   bool isTriangular = true;
-  bool isManifoldSurfaceMesh = true;
+  bool isSubclassManifoldSurfaceMesh = true;
   bool isPolygonalComplex = true;
 
   MeshAsset copy() const;

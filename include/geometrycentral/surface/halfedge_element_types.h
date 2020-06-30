@@ -209,6 +209,7 @@ public:
   // Properties
   bool isBoundary() const;
   bool isManifold() const;
+  bool isOriented() const;
   size_t degree() const;
 
   // Iterators

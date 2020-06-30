@@ -1041,7 +1041,7 @@ TEST_F(HalfedgeGeometrySuite, VertexTangentBasis) {
 // Check that the vertex curvatures return the value expected by Gauss-Bonnet
 TEST_F(HalfedgeGeometrySuite, VertexGaussianCurvaturesSum) {
   for (auto& asset : closedMeshes()) {
-    if (!asset.isTriangular || !asset.isManifoldSurfaceMesh) continue;
+    if (!asset.isTriangular || !asset.isSubclassManifoldSurfaceMesh) continue;
 
     asset.printThyName();
     ManifoldSurfaceMesh& mesh = *asset.manifoldMesh;
@@ -1063,7 +1063,7 @@ TEST_F(HalfedgeGeometrySuite, VertexGaussianCurvaturesSum) {
 // Check that the face curvatures return the value expected by Gauss-Bonnet
 TEST_F(HalfedgeGeometrySuite, FaceGaussianCurvaturesSum) {
   for (auto& asset : closedMeshes()) {
-    if (!asset.isTriangular || !asset.isManifoldSurfaceMesh) continue;
+    if (!asset.isTriangular || !asset.isSubclassManifoldSurfaceMesh) continue;
 
     asset.printThyName();
     ManifoldSurfaceMesh& mesh = *asset.manifoldMesh;

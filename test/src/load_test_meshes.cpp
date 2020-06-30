@@ -34,10 +34,10 @@ MeshAsset::MeshAsset(std::string localPath, bool loadManifold) {
     std::tie(manifMesh, geometry) = readManifoldSurfaceMesh(fullPath);
     manifoldMesh = manifMesh.release();
     mesh.reset(manifoldMesh);
-    isManifoldSurfaceMesh = true;
+    isSubclassManifoldSurfaceMesh = true;
   } else {
     std::tie(mesh, geometry) = readSurfaceMesh(fullPath);
-    isManifoldSurfaceMesh = false;
+    isSubclassManifoldSurfaceMesh = false;
   }
 
   hasBoundary = mesh->hasBoundary();
@@ -55,8 +55,8 @@ MeshAsset MeshAsset::copy() const {
     newM.geometry = geometry->reinterpretTo(*newM.mesh);
   }
 
-  newM.isManifoldSurfaceMesh = isManifoldSurfaceMesh;
-  if (isManifoldSurfaceMesh) {
+  newM.isSubclassManifoldSurfaceMesh = isSubclassManifoldSurfaceMesh;
+  if (isSubclassManifoldSurfaceMesh) {
     newM.manifoldMesh = dynamic_cast<ManifoldSurfaceMesh*>(newM.mesh.get());
   }
 
@@ -67,7 +67,7 @@ MeshAsset MeshAsset::copy() const {
   return newM;
 }
 
-void MeshAsset::printThyName() const { cout << "  testing on mesh (" << (isManifoldSurfaceMesh ? "manifold" : "general") <<  "): " << name << endl; }
+void MeshAsset::printThyName() const { cout << "  testing on mesh (" << (isSubclassManifoldSurfaceMesh ? "manifold" : "general") <<  "): " << name << endl; }
 
 // Static storage for mesh assets
 std::vector<MeshAsset> MeshAssetSuite::allMeshAssets;
@@ -105,7 +105,7 @@ void MeshAssetSuite::SetUpTestSuite() {
 
 MeshAsset MeshAssetSuite::getAsset(std::string name, bool loadManifold) {
   for (MeshAsset& a : allMeshAssets) {
-    if (a.name == name && a.isManifoldSurfaceMesh == loadManifold) {
+    if (a.name == name && a.isSubclassManifoldSurfaceMesh == loadManifold) {
       return a.copy();
     }
   }
@@ -123,7 +123,7 @@ std::vector<MeshAsset> MeshAssetSuite::allMeshes(bool includeNoGeom) {
 std::vector<MeshAsset> MeshAssetSuite::manifoldSurfaceMeshes(bool includeNoGeom) {
   std::vector<MeshAsset> result;
   for (MeshAsset& a : allMeshAssets) {
-    if (a.isManifoldSurfaceMesh) {
+    if (a.isSubclassManifoldSurfaceMesh) {
       if (includeNoGeom || a.geometry) result.push_back(a.copy());
     }
   }
@@ -165,7 +165,7 @@ std::vector<MeshAsset> MeshAssetSuite::triangularMeshes(bool includeNoGeom, bool
   for (MeshAsset& a : allMeshAssets) {
     if (a.isTriangular) {
       if (!includeNoGeom && !a.geometry) continue;
-      if (!includeNonmanifold && !a.isManifoldSurfaceMesh) continue;
+      if (!includeNonmanifold && !a.isSubclassManifoldSurfaceMesh) continue;
       result.push_back(a.copy());
     }
   }

@@ -246,7 +246,8 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
 }
 
 ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
-                                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins) {
+                                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins)
+    : SurfaceMesh(true) {
 
   // Assumes that the input index set is dense. This sometimes isn't true of (eg) obj files floating around the
   // internet, so consider removing unused vertices first when reading from foreign sources.
@@ -513,24 +514,17 @@ int ManifoldSurfaceMesh::genus() const {
   return (2 - boundaryLoops - chi) / 2;
 }
 
-bool ManifoldSurfaceMesh::isManifold() {
-  // it is an ERROR for for a manifold surface mesh to ever be nonmanifold, so don't even bother checking
-  // if necessary, one can call validateConnectivity() to check manifoldness manually
-  return true;
-}
 
-bool ManifoldSurfaceMesh::isEdgeManifold() {
-  // it is an ERROR for for a manifold surface mesh to ever be nonmanifold, so don't even bother checking
-  // if necessary, one can call validateConnectivity() to check manifoldness manually
-  return true;
-}
+// it is an ERROR for for a manifold surface mesh to ever be nonmanifold/unoriented, so don't even bother checking
+// if necessary, one can call validateConnectivity() to check manifoldness manually
+bool ManifoldSurfaceMesh::isManifold() { return true; }
+bool ManifoldSurfaceMesh::isEdgeManifold() { return true; }
+bool ManifoldSurfaceMesh::isOriented() { return true; }
 
 
 // ==========================================================
 // ================        Mutation        ==================
 // ==========================================================
-
-
 
 
 Halfedge ManifoldSurfaceMesh::insertVertexAlongEdge(Edge e) {
@@ -1604,6 +1598,12 @@ std::vector<Face> ManifoldSurfaceMesh::triangulate(Face f) {
   modificationTick++;
   return allFaces;
 }
+
+
+// All are automatically true on a manifold mesh
+void ManifoldSurfaceMesh::separateNonmanifoldEdges() {}
+void ManifoldSurfaceMesh::separateNonmanifoldVertices() {}
+void ManifoldSurfaceMesh::greedilyOrientFaces() {}
 
 bool ManifoldSurfaceMesh::hasBoundary() { return nBoundaryLoopsCount > 0; }
 

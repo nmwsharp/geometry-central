@@ -28,6 +28,7 @@ using CornerData = MeshData<Corner, T>;
 template <typename T>
 using BoundaryLoopData = MeshData<BoundaryLoop, T>;
 
+class ManifoldSurfaceMesh;
 class RichSurfaceMeshData;
 
 
@@ -109,10 +110,12 @@ public:
   size_t nConnectedComponents(); // compute number of connected components [O(n)]
   virtual bool isManifold();
   virtual bool isEdgeManifold();
+  virtual bool isOriented();
   void printStatistics() const; // print info about element counts to std::cout
 
   std::vector<std::vector<size_t>> getFaceVertexList();
   std::unique_ptr<SurfaceMesh> copy() const;
+  std::unique_ptr<ManifoldSurfaceMesh> toManifoldMesh();
 
   // Compress the mesh
   bool isCompressed() const;
@@ -138,14 +141,18 @@ public:
   // two halfedges incident on `e`, then `e_new = e` and the mesh is unchanged. Return `e_new`. This operation only has
   // an affect on a nonmanifold mesh, and thus is only permitted on general surfaces meshes.
   Edge separateToNewEdge(Halfedge heA, Halfedge heB);
-  
+
   // Split all edges until the mesh is edge-manifold (split policy is arbitrary)
   // (Only makes sense on a general SurfaceMesh)
-  void separateNonmanifoldEdges();
+  virtual void separateNonmanifoldEdges();
 
+  // For each edge-connected component of faces around a vertex, create a distinct vertex. Mesh must be EDGE MANIFOLD
+  // before calling. (Only makes sense on a general SurfaceMesh)
+  virtual void separateNonmanifoldVertices();
+  
+  // Invert the orientation of faces to form maximal sets of same-oriented faces.
   // (Only makes sense on a general SurfaceMesh)
-  void separateNonmanifoldVertices();
-
+  virtual void greedilyOrientFaces();
 
   // == Callbacks that will be invoked on mutation to keep containers/iterators/etc valid.
 

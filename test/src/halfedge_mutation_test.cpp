@@ -161,7 +161,7 @@ TEST_F(HalfedgeMutationSuite, EdgeSplitTest) {
 TEST_F(HalfedgeMutationSuite, InvertOrientationTest) {
 
   for (MeshAsset& a : allMeshes()) {
-    if (a.isManifoldSurfaceMesh) continue;
+    if (a.isSubclassManifoldSurfaceMesh) continue;
     a.printThyName();
 
     int count = 10;
@@ -195,9 +195,10 @@ TEST_F(HalfedgeMutationSuite, DuplicateFaceTest) {
 
       ind = (ind + 1) % a.mesh->nFaces();
     }
-
   }
 }
+
+// == A few higher level tests which do many operations
 
 TEST_F(HalfedgeMutationSuite, SeparateEdgesTest) {
 
@@ -210,7 +211,72 @@ TEST_F(HalfedgeMutationSuite, SeparateEdgesTest) {
   }
 }
 
-// == A few higher level tests which do many operations
+TEST_F(HalfedgeMutationSuite, SeparateEdgesAndVerticesTest) {
+
+  for (const MeshAsset& a : {getAsset("triple_vierbein.obj", false)}) {
+    a.printThyName();
+    a.mesh->separateNonmanifoldEdges();
+    a.mesh->separateNonmanifoldVertices();
+    a.mesh->validateConnectivity();
+
+    EXPECT_TRUE(a.mesh->isManifold());
+  }
+}
+
+
+TEST_F(HalfedgeMutationSuite, GreedyOrientTest) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", false)}) {
+    a.printThyName();
+
+    // Do a bunch of random inversion
+    int count = 100;
+    int ind = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Invert
+      Face f = a.mesh->face(ind);
+      a.mesh->invertOrientation(f);
+
+      ind = (ind + 13) % a.mesh->nFaces();
+    }
+
+
+    a.mesh->greedilyOrientFaces();
+    a.mesh->validateConnectivity();
+
+    EXPECT_TRUE(a.mesh->isOriented());
+  }
+}
+
+TEST_F(HalfedgeMutationSuite, ToManifoldTest) {
+
+  for (const MeshAsset& a : {
+           getAsset("bob_small.ply", false),
+           getAsset("hourglass_ico.obj", false),
+           getAsset("lego.ply", false),
+       }) {
+    a.printThyName();
+
+    a.mesh->separateNonmanifoldEdges();
+    EXPECT_TRUE(a.mesh->isEdgeManifold());
+
+    a.mesh->separateNonmanifoldVertices();
+    EXPECT_TRUE(a.mesh->isManifold());
+
+    a.mesh->greedilyOrientFaces();
+    EXPECT_TRUE(a.mesh->isOriented());
+
+    a.mesh->validateConnectivity();
+
+    std::unique_ptr<ManifoldSurfaceMesh> manifMesh = a.mesh->toManifoldMesh();
+    manifMesh->validateConnectivity();
+
+    EXPECT_EQ(a.mesh->nVertices(), manifMesh->nVertices());
+    EXPECT_EQ(a.mesh->nFaces(), manifMesh->nFaces());
+    EXPECT_EQ(a.mesh->nEdges(), manifMesh->nEdges());
+  }
+}
 
 
 // Flip a lot of edges on one mesh without boundary

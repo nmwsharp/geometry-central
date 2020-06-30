@@ -299,6 +299,12 @@ inline bool Edge::isBoundary() const {
   }
 } 
 inline bool Edge::isManifold() const { return halfedge().sibling().sibling() == halfedge() || halfedge().sibling() == halfedge(); }
+inline bool Edge::isOriented() const { 
+  Halfedge he = halfedge();
+  if(he == he.sibling()) return true; // boundary
+  if(he.sibling().sibling() != he) return false; // not manifold
+  return he.orientation() != he.sibling().orientation();
+}
 inline size_t Edge::degree() const { 
   size_t k = 0;
   for(Halfedge he : adjacentInteriorHalfedges()) {
