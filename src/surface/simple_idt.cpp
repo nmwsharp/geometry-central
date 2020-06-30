@@ -8,7 +8,7 @@ namespace geometrycentral {
 namespace surface {
 
 
-size_t flipToDelaunay(ManifoldSurfaceMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType, double delaunayEPS) {
+size_t flipToDelaunay(SurfaceMesh& mesh, EdgeData<double>& edgeLengths, FlipType flipType, double delaunayEPS) {
 
   // TODO all of these helpers are duplicated from signpost_intrinsic_triangulation
 
@@ -20,6 +20,11 @@ size_t flipToDelaunay(ManifoldSurfaceMesh& mesh, EdgeData<double>& edgeLengths, 
     Halfedge iHeB0 = iHe.twin();
     Halfedge iHeB1 = iHeB0.next();
     Halfedge iHeB2 = iHeB1.next();
+
+    // Handle non-oriented edges
+    if (iHeA0.orientation() == iHeB0.orientation()) {
+      std::swap(iHeB1, iHeB2);
+    }
 
     // Gather length values
     double l01 = edgeLengths[iHeA1.edge()];

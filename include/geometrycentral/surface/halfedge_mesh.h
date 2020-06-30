@@ -2,6 +2,7 @@
 
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 
+// TODO guard this
 #pragma error
 
 namespace geometrycentral {

@@ -10,7 +10,7 @@ VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_)
     : EmbeddedGeometryInterface(mesh_), inputVertexPositions(mesh_, Vector3{0., 0., 0})
 {}
 
-VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_, VertexData<Vector3>& inputVertexPositions_)
+VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_, const VertexData<Vector3>& inputVertexPositions_)
     : EmbeddedGeometryInterface(mesh_), inputVertexPositions(inputVertexPositions_) {}
 
 

@@ -80,13 +80,13 @@ public:
 
   // Overrides for no-op methods
   void separateNonmanifoldEdges() override;
-  void separateNonmanifoldVertices() override;
+  VertexData<Vertex> separateNonmanifoldVertices() override;
   void greedilyOrientFaces() override;
-
 
 
   // == Utility functions
   std::unique_ptr<ManifoldSurfaceMesh> copy() const;
+  virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const override;
 
   bool hasBoundary() override;
 
@@ -101,7 +101,6 @@ protected:
   void ensureVertexHasBoundaryHalfedge(Vertex v); // impose invariant that v.halfedge is start of half-disk
   Vertex collapseEdgeAlongBoundary(Edge e);
 
-  virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const override;
 
   friend class RichSurfaceMeshData;
 };

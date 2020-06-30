@@ -1602,7 +1602,11 @@ std::vector<Face> ManifoldSurfaceMesh::triangulate(Face f) {
 
 // All are automatically true on a manifold mesh
 void ManifoldSurfaceMesh::separateNonmanifoldEdges() {}
-void ManifoldSurfaceMesh::separateNonmanifoldVertices() {}
+VertexData<Vertex> ManifoldSurfaceMesh::separateNonmanifoldVertices() {
+  VertexData<Vertex> parents(*this);
+  for (Vertex v : vertices()) parents[v] = v;
+  return parents;
+}
 void ManifoldSurfaceMesh::greedilyOrientFaces() {}
 
 bool ManifoldSurfaceMesh::hasBoundary() { return nBoundaryLoopsCount > 0; }

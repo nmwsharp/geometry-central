@@ -16,7 +16,7 @@ public:
   VertexPositionGeometry(SurfaceMesh& mesh_);
 
   // Construct from positions
-  VertexPositionGeometry(SurfaceMesh& mesh_, VertexData<Vector3>& inputVertexPositions);
+  VertexPositionGeometry(SurfaceMesh& mesh_, const VertexData<Vector3>& inputVertexPositions);
 
   // Boring destructor
   virtual ~VertexPositionGeometry() {}

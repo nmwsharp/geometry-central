@@ -115,6 +115,7 @@ public:
 
   std::vector<std::vector<size_t>> getFaceVertexList();
   std::unique_ptr<SurfaceMesh> copy() const;
+  virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;
   std::unique_ptr<ManifoldSurfaceMesh> toManifoldMesh();
 
   // Compress the mesh
@@ -148,7 +149,8 @@ public:
 
   // For each edge-connected component of faces around a vertex, create a distinct vertex. Mesh must be EDGE MANIFOLD
   // before calling. (Only makes sense on a general SurfaceMesh)
-  virtual void separateNonmanifoldVertices();
+  // Returns the "parent" of each vertex before splitting.
+  virtual VertexData<Vertex> separateNonmanifoldVertices();
   
   // Invert the orientation of faces to form maximal sets of same-oriented faces.
   // (Only makes sense on a general SurfaceMesh)
@@ -349,7 +351,6 @@ protected:
 
   void initializeHalfedgeNeighbors();
   void copyInternalFields(SurfaceMesh& target) const;
-  virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;
 
   // replace values of i in arr with oldToNew[i] (skipping INVALID_IND)
   void updateValues(std::vector<size_t>& arr, const std::vector<size_t>& oldToNew);

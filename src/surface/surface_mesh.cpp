@@ -918,7 +918,7 @@ void SurfaceMesh::separateNonmanifoldEdges() {
 }
 
 
-void SurfaceMesh::separateNonmanifoldVertices() {
+VertexData<Vertex> SurfaceMesh::separateNonmanifoldVertices() {
 
   // Find edge-connected sets of corners
   DisjointSets djSet(nCorners());
@@ -939,6 +939,7 @@ void SurfaceMesh::separateNonmanifoldVertices() {
   }
 
   // Make sure there is a distinct vertex entry for each component
+  VertexData<Vertex> parents(*this);
   std::vector<Vertex> vertexEntries(nCorners(), Vertex());
   VertexData<bool> baseVertexUsed(*this, false);
   for (Corner c : corners()) {
@@ -950,7 +951,9 @@ void SurfaceMesh::separateNonmanifoldVertices() {
       if (baseVertexUsed[origV]) {
         Vertex newV = getNewVertex();
         vertexEntries[iComp] = newV;
+        parents[newV] = origV;
       } else {
+        parents[origV] = origV;
         vertexEntries[iComp] = origV;
         baseVertexUsed[origV] = true;
       }
@@ -967,6 +970,7 @@ void SurfaceMesh::separateNonmanifoldVertices() {
   initializeHalfedgeNeighbors();
 
   modificationTick++;
+  return parents;
 }
 
 void SurfaceMesh::greedilyOrientFaces() {
