@@ -52,6 +52,7 @@ SET(SRCS
   utilities/utilities.cpp
   utilities/quaternion.cpp
   utilities/disjoint_sets.cpp
+  utilities/knn.cpp
 )
 
 SET(INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../include/geometrycentral/")
@@ -110,6 +111,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/utilities/dependent_quantity.h
   ${INCLUDE_ROOT}/utilities/dependent_quantity.ipp
   ${INCLUDE_ROOT}/utilities/disjoint_sets.h
+  ${INCLUDE_ROOT}/utilities/knn.h
   ${INCLUDE_ROOT}/utilities/mesh_data.h
   ${INCLUDE_ROOT}/utilities/mesh_data.ipp
   ${INCLUDE_ROOT}/utilities/quaternion.h
