@@ -33,12 +33,6 @@ buildTuftedLaplacian(SurfaceMesh& mesh, EmbeddedGeometryInterface& geom, double 
   tuftedIntrinsicGeom.requireCotanLaplacian();
   tuftedIntrinsicGeom.requireVertexLumpedMassMatrix();
 
-  // TODO sanity check
-  tuftedIntrinsicGeom.requireEdgeCotanWeights();
-  for (Edge e : tuftedMesh->edges()) {
-    if (tuftedIntrinsicGeom.edgeCotanWeights[e] < -1e-4) throw std::runtime_error("negative cotan weights! :( mollify more!");
-  }
-
   return std::make_tuple(tuftedIntrinsicGeom.cotanLaplacian, tuftedIntrinsicGeom.vertexLumpedMassMatrix);
 }
 
@@ -120,12 +114,10 @@ void buildIntrinsicTuftedCover(SurfaceMesh& mesh, EdgeData<double>& edgeLengths,
     }
   }
 
-
   // sanity checks
-  // TODO remove before publishing
-  if (mesh.hasBoundary()) throw std::runtime_error("has boundary");
-  if (!mesh.isEdgeManifold()) throw std::runtime_error("not edge manifold");
-  if (!mesh.isOriented()) throw std::runtime_error("not oriented");
+  // if (mesh.hasBoundary()) throw std::runtime_error("has boundary");
+  // if (!mesh.isEdgeManifold()) throw std::runtime_error("not edge manifold");
+  // if (!mesh.isOriented()) throw std::runtime_error("not oriented");
 }
 
 } // namespace surface
