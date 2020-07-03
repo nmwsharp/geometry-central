@@ -14,7 +14,7 @@ myFaceVector[f] = Vector3{1., 2., 3.};
 and so on.
 
 
-A key feature of the `MeshData<>` containers is that they **automatically adapt to mutation of the underlying mesh**. All existing `MeshData<>` containers will remain valid during any sequence of mesh element insertions and deletions, adaptively and efficiently resizing themselves as needed. These containers can also be [automatically written to file](io.md#serializing-containers).
+A key feature of the `MeshData<>` containers is that they **automatically adapt to mutation of the underlying mesh**. All existing `MeshData<>` containers will remain valid during any sequence of mesh element insertions and deletions, adaptively and efficiently resizing themselves as needed. These containers can also be [automatically written to file](/surface/utilities/io/#rich-surface-mesh-data).
 
 
 ## Mesh data types

@@ -47,13 +47,14 @@ nav:
     - 'Tests' : 'build/tests.md'
   - Tutorials: 
     - 'Load & navigate a mesh' : 'tutorials/load_mesh.md'
-    - 'Mesh containers' : 'tutorials/mesh_containers.md'
-    - 'Nonmanifold meshes' : 'tutorials/nonmanifold_meshes.md'
-    - 'Geometry hierarchy' : 'tutorials/geometry_hierarchy.md'
-    - 'Mesh mutations' : 'tutorials/mesh_mutations.md'
-    - 'Linear algebra' : 'tutorials/linear_algebra.md'
+    #- 'Mesh containers' : 'tutorials/mesh_containers.md'
+    - 'Basic Mutation' : 'tutorials/basic_mutation.md'
+    #- 'Nonmanifold meshes' : 'tutorials/nonmanifold_meshes.md'
+    #- 'Geometry hierarchy' : 'tutorials/geometry_hierarchy.md'
+    #- 'Mesh mutations' : 'tutorials/mesh_mutations.md'
+    #- 'Linear algebra' : 'tutorials/linear_algebra.md'
     - 'Direction fields' : 'tutorials/direction_fields.md'
-    - 'Intrinsic triangulations' : 'tutorials/intrinsic_triangulations.md'
+    #- 'Intrinsic triangulations' : 'tutorials/intrinsic_triangulations.md'
   - Surface:
     - Surface Mesh: 
       - 'Basics' : 'surface/surface_mesh/basics.md'

@@ -36,5 +36,5 @@ Fortunately, working in a software library which already supports the nuances of
 
 ## Software support
 
-The halfedge mesh class in geometry central is explicitly designed to ensure support for $\Delta$-complexes, rather than just simplicial complexes. Mostly, this is a natural consequence of the halfedge mesh formulation, but special care is needed for a few operations like [mutations](mutation.md) and [serialization](io.md). Wherever relevant, the API will note its special properties with respect to $\Delta$-complexes. 
+The halfedge mesh class in geometry central is explicitly designed to ensure support for $\Delta$-complexes, rather than just simplicial complexes. Mostly, this is a natural consequence of the halfedge mesh formulation, but special care is needed for a few operations like [mutations](mutation.md) and [automatically written to file](/surface/utilities/io/#rich-surface-mesh-data). Wherever relevant, the API will note its special properties with respect to $\Delta$-complexes. 
 
