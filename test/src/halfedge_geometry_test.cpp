@@ -6,6 +6,7 @@
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/surface/extrinsic_geometry_interface.h"
+#include "geometrycentral/surface/geometry.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/rich_surface_mesh_data.h"
 #include "geometrycentral/surface/surface_point.h"
