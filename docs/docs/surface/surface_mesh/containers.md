@@ -33,10 +33,10 @@ Most functionality is identical between all of these classes, so the sections be
 ## Construction
 
 
-??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(HalfedgeMesh& mesh)`"
+??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(SurfaceMesh& mesh)`"
     Construct a new container over a mesh. Elements will be default-initialized with `T()`.
 
-??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(HalfedgeMesh& mesh, T initVal)`"
+??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(SurfaceMesh& mesh, T initVal)`"
     Construct a new container over a mesh. 
     
     Elements will be initialized with `initVal`, and any newly-created mesh elements will have their default values set to `initVal`.
@@ -86,7 +86,7 @@ Additionally, see the vector-based initializers in [vector interoperability](con
 
 ??? func "`#!cpp size_t MeshData<E,T>::size()`"
 
-    The size of the container (equal to the number of elements of type `E`, e.g. `HalfedgeMesh::nVertices()`).
+    The size of the container (equal to the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`).
 
 
 ## Vector interoperability
@@ -98,12 +98,12 @@ The corresponding vectors are indexed according to the indices of the underlying
 
 **Construct from a vector:**
 
-??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(HalfedgeMesh& mesh Eigen::Matrix<T, Eigen::Dynamic, 1> vec)`"
+??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(SurfaceMesh& mesh Eigen::Matrix<T, Eigen::Dynamic, 1> vec)`"
 
     Construct a new container over a mesh, with the contents of `vec`.
   
 
-??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(HalfedgeMesh& mesh Eigen::Matrix<T, Eigen::Dynamic, 1> vec, MeshData<E, size_t>& indexer)`"
+??? func "`#!cpp MeshData<E,T>::MeshData<E,T>(SurfaceMesh& mesh Eigen::Matrix<T, Eigen::Dynamic, 1> vec, MeshData<E, size_t>& indexer)`"
 
     Construct a new container over a mesh, with the contents of `vec`, indexed according to `indexer`.
 
@@ -153,7 +153,7 @@ All containers track a default value for their elements, which can optionally be
 
 `MeshData<>` containers are defined with respect to a particular mesh object. Sometimes one may need to transfer data defined on one mesh to another, for instance after making a copy of a mesh, or when reading data from file.
 
-??? func "`#!cpp MeshData<E,T> MeshData<E,T>::reinterpretTo(HalfedgeMesh& target)`"
+??? func "`#!cpp MeshData<E,T> MeshData<E,T>::reinterpretTo(SurfaceMesh& target)`"
 
     Map data defined on one halfedge mesh to another. The meshes must have the same number of elements, and data will be naively transferred between elements with the same index.
 
@@ -161,8 +161,8 @@ All containers track a default value for their elements, which can optionally be
 
     Example usage:
     ```cpp
-    HalfedgeMesh meshA = /* something */;
-    HalfedgeMesh meshB = meshA.copy();
+    SurfaceMesh meshA = /* something */;
+    SurfaceMesh meshB = meshA.copy();
 
     FaceData<Vector3> myDataOnA(meshA);
     /* fill myDataOnA with interesting values */

@@ -1,8 +1,6 @@
 ## Introduction
 
-This section covers the elements types for our halfedge mesh, as well as the traversal and utility functions that they offer.
-
-`#!cpp #include "geometrycentral/surface/halfedge_mesh.h"`
+This section covers the elements types for our surface mesh, as well as the traversal and utility functions that they offer.
 
 !!! note
 

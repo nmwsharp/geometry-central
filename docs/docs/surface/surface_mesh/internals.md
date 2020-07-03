@@ -21,10 +21,10 @@ This idea of a permutation is essentially the representation used for our halfed
 
 ## Basic structures
 
-Our halfedge mesh is index-based. Each {halfedge,edge,vertex,face} is identified by a 0-based index. The `HalfedgeMesh` class then holds the following explicit arrays encoding the connectivity between these indexed elements (the remaining relationships are implicitly defined).
+Our halfedge mesh is index-based. Each {halfedge,edge,vertex,face} is identified by a 0-based index. The `SurfaceMesh` class then holds the following explicit arrays encoding the connectivity between these indexed elements (the remaining relationships are implicitly defined).
 
 ```
-class HalfedgeMesh {
+class SurfaceMesh {
   ...
   private:
     std::vector<size_t> heNext;     // for he.next()
@@ -41,7 +41,7 @@ The `Halfedge`, `Vertex`, etc. classes serve as typed wrappers referring to a me
 class Halfedge {
   ...
   size_t ind;
-  HalfedgeMesh* mesh;
+  SurfaceMesh* mesh;
   Halfedge next() { return Halfedge{mesh->heNext[ind], mesh}; }   // explicit
   Halfedge twin() { return Halfedge{ind ^ 1, mesh}; }             // implicit
   ...
@@ -49,7 +49,7 @@ class Halfedge {
 ```
 
 !!! info "Why not pointers?"
-    One potential drawback to the index-based design is that each element must store its index as well as a pointer to the underlying mesh data structure. For instance, the smallest possible data layout of `Halfedge` would look something like ` struct Halfedge { size_t ind; HalfedgeMesh* mesh; };`, because the `ind` is useless unless we know what arrays to index in to (e.g., to implement `next()`).
+    One potential drawback to the index-based design is that each element must store its index as well as a pointer to the underlying mesh data structure. For instance, the smallest possible data layout of `Halfedge` would look something like ` struct Halfedge { size_t ind; SurfaceMesh* mesh; };`, because the `ind` is useless unless we know what arrays to index in to (e.g., to implement `next()`).
 
     This extra storage could be avoided by replacing `size_t ind` with a pointer directly to memory encoding data about the halfedge. This design would reduce the `sizeof(Halfedge)` from 16 bytes to 8, as well as potentially avoiding some offset index instructions. So why don't we do that instead?
 
@@ -70,7 +70,7 @@ In addition to the basic properties of the `twin()` and `next()` maps, the halfe
 
 The `validateConnectivity()` function is extremely useful for checking invariants while developing the data structure.
 
-??? func "`#!cpp void HalfedgeMesh::validateConnectivity()`"
+??? func "`#!cpp void SurfaceMesh::validateConnectivity()`"
 
     Perform _a lot_ of sanity checks about the halfedge mesh. Throws if any fail.
 
@@ -80,7 +80,7 @@ To enable (amortized) $\mathcal{O}(1)$ mutation, the buffers containing mesh dat
 
 A similar issue arises with deletion. When a mesh element is deleted, it would be too expensive to shift the indices of all subsequent elements. Instead, we simply mark the element as deleted, leaving a hole in our index space. Deleted halfedges and their edges are implicitly encoded by `heNext[he] == INVALID_IND`, while deleted edges and vertices are encoded by `vHalfedge[v] == INVALID_IND` and `fHalfedge[f] == INVALID_IND`.
 
-Thus at any point in time, some indices may be invalid elements, left from previous deletions, and other array entries might correspond to extra elements allocated during the last resizing, waiting to be used. In all iterators and counts, explicit logic ensures that invalid elements are skipped. Traversal functions do not need any such logic, as it should be impossible to traverse from a valid element to an invalid element. The `HalfedgeMesh::compress()` function is provided to re-index all mesh elements, and ensure a dense packing with no deleted elements.
+Thus at any point in time, some indices may be invalid elements, left from previous deletions, and other array entries might correspond to extra elements allocated during the last resizing, waiting to be used. In all iterators and counts, explicit logic ensures that invalid elements are skipped. Traversal functions do not need any such logic, as it should be impossible to traverse from a valid element to an invalid element. The `SurfaceMesh::compress()` function is provided to re-index all mesh elements, and ensure a dense packing with no deleted elements.
 
 The following diagram lays out what this index space might look like.
 

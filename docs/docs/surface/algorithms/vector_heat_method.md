@@ -32,7 +32,7 @@ Example:
 ```cpp
 // your mesh and geometry
 VertexPositionGeometry geometry;
-HalfedgeMesh mesh;
+SurfaceMesh mesh;
 
 // construct a solver
 VectorHeatSolver vhmSolver(geometry);

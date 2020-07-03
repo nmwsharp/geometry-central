@@ -4,11 +4,11 @@
 
 !!! note "This is not the mesh you're looking for"
 
-    `HalfedgeMesh` is the [main mesh class in geometry-central](../../halfedge_mesh/basics/). It supports a wide range of traversals, geometry, and other operations, and is used in all higher-level algorithms. 
+    `SurfaceMesh` is the [main mesh class in geometry-central](../../surface_mesh/basics/). It supports a wide range of traversals, geometry, and other operations, and is used in all higher-level algorithms. 
 
     This class, `SimplePolygonMesh`, is a small utility used mainly for input/output and occasionally as an implementation detail for other algorithms.
 
-    If you are implementing any nontrivial algorithm, you should almost certainly be using `HalfedgeMesh` instead.
+    If you are implementing any nontrivial algorithm, you should almost certainly be using `SurfaceMesh` instead.
 
 !!! warning "PolygonSoupMesh deprecation"
 
@@ -58,7 +58,7 @@ Currently the following mesh types are supported for reading:
 
 Currently, UV coordinates are only read from file for the `obj` format.
 
-For writing, only `obj` is supported. Note that `PlyHalfedgeMeshData` [provides additional ply writing routines](../io/) for halfedge meshes, including storing buffers of data.
+For writing, only `obj` is supported. Note that `RichSurfaceMeshData` [provides additional ply writing routines](../io/) for surface meshes, including storing buffers of data.
 
 The desired file type can be passed as the `type` to any of the routines below as an unpunctuated lower-case string, like `#!cpp readMeshFromFile(myFilename, "stl")`. 
 
