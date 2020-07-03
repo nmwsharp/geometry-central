@@ -78,6 +78,10 @@ public:
   // (note: logical size, like nVertices(), not actual size of vector buffer)
   size_t size() const;
 
+  // Raw access to the underlying buffer
+  Eigen::Matrix<T, Eigen::Dynamic, 1>& raw();
+
+
   // Fill with some value
   void fill(T val);
 

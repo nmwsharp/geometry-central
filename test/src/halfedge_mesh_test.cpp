@@ -234,6 +234,30 @@ TEST_F(HalfedgeMeshSuite, ContainerMeshDestructTest) {
   ASSERT_EQ(2 + 2, 4); // debugging is easier if failure isn't last
 }
 
+
+TEST_F(HalfedgeMeshSuite, ContainerAccessTest) {
+  std::unique_ptr<SurfaceMesh> mesh = getAsset("spot.ply", false).mesh;
+
+  {
+    VertexData<double> testDA(*mesh);
+    VertexData<double> testDB(*mesh);
+    for (Vertex v : mesh->vertices()) {
+      testDA[v] = 3.0;
+      testDB[v] = 2.0;
+    }
+
+    testDA.raw() += testDB.raw();
+    
+    for (Vertex v : mesh->vertices()) {
+      ASSERT_EQ(testDA[v], 5.);
+    }
+
+  } // scope block triggers testD delete
+
+}
+
+
+
 // ============================================================
 // =============== Navigators
 // ============================================================

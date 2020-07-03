@@ -66,7 +66,7 @@ public:
   // Properties
   bool isBoundary() const;
   bool isManifold() const;
-  bool isManifoldAndOriented() const; // actually tests "manifold and oriented"
+  bool isManifoldAndOriented() const; 
   size_t degree() const;
   size_t faceDegree() const;
 

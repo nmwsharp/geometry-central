@@ -89,7 +89,7 @@ void MeshData<E, T>::registerWithMesh() {
   std::function<void(size_t)> expandFunc = [&](size_t newSize) {
     size_t oldSize = data.size();
     Eigen::Matrix<T, Eigen::Dynamic, 1> newData(newSize);
-    for (size_t i = 0; i < oldSize; i++) { 
+    for (size_t i = 0; i < oldSize; i++) {
       newData[i] = data[i];
     }
     for (size_t i = oldSize; i < newSize; i++) {
@@ -234,6 +234,10 @@ inline size_t MeshData<E, T>::size() const {
   return nElements<E>(mesh);
 }
 
+template <typename E, typename T>
+Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E, T>::raw() {
+  return data;
+}
 
 template <typename E, typename T>
 inline MeshData<E, T> MeshData<E, T>::reinterpretTo(ParentMeshT& targetMesh) const {
