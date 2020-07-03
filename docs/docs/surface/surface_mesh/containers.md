@@ -173,30 +173,10 @@ All containers track a default value for their elements, which can optionally be
 
 ## Advanced features
 
-### Underlying storage
+Under the hood, all `MeshData<>` types use a `Eigen::Matrix<T>` to store their values. However, the size and indexing indexing are carefully managed in conjunction with the underlying mesh. This vector will only be a dense listing if the mesh is [compressed](mutation.md#compressed-mode).
 
-Under the hood, all `MeshData<>` types use a `std::vector<T>` to store their values. This has at least two significant consquences:
+??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E,T>::raw()`"
 
-- For the scalar type `bool`, these containers are essentially broken, [because `std::vector<bool>` is a weird, broken special case](https://stackoverflow.com/questions/17794569/why-is-vectorbool-not-a-stl-container). Using `char` instead is usually a fine substitute: you can construct `VertexData<char> flags` and set `flags[vert] = true` as you would expect.
-
-- A special allocator is needed for aligned objects, in particular fixed-size Eigen types (see [gotchas](/numerical/matrix_types#gotchas)). These `MeshData<>` containers all internally use the aligned allocator `std::vector<T, Eigen::aligned_allocator<T>>`, so **they can safely store fixed-sized Eigen types**.
-
-### Oriented edge data 
-
-<!--TODO reword...-->
-Scalar values on edges often carry meaning with respect to some oriented direction along the edge--- common examples include differences between values at vertices, the integral of a vector field along an edge, or more generally any 1-form in discrete differential geometry. In such settings, a scalar value is concisely stored along edges, but its sign should flip when accessed "along" the opposite direction.
-
-`EdgeData<T>` containers offer a pair of special additional accessors for oriented data, which handle the sign flips automatically. Note that they cannot be instantiated unless the scalar type `T` supports a unary `-` operator.
-
-??? func "`#!cpp T EdgeData<T>::getOriented(Halfedge he)`"
-
-    Access edge-valued data with sign determined by canonical halfedge orientation.
-
-    Returns `edgeData[he.edge()]` if `he == he.edge().halfedge()`, or `-edgeData[he.edge()]` otherwise.
+    Access the raw underlying Eigen vector of storage.
 
 
-??? func "`#!cpp void EdgeData<T>::setOriented(Halfedge he, T val)`"
-    
-    Access edge-valued data with sign determined by canonical halfedge orientation.
-
-    Sets `edgeData[he.edge()] = val` if `he == he.edge().halfedge()`, or `edgeData[he.edge()] = -val` otherwise.

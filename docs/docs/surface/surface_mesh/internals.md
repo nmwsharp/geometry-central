@@ -86,7 +86,13 @@ The following diagram lays out what this index space might look like.
 
 ![halfedge index diagram](../../media/halfedge_index_diagram.svg)
 
+### General Surface Meshes
+
+To represent more general surfaces meshes which might be nonmanifold or oriented, we augment our representation with a few extra arrays of data. In particular, we depart from implicit indexing schemes, and explicitly store halfedge siblings and edges, as well as each edge's halfedge. We also store an orientation bit for each halfedge along its edge, and and in implicit linked list of halfedges incident on each vertex. The last of which is particularly unsatisfying, but otherwise iterating around vertices is quite difficult.
+
 ### Exterior boundary elements
+
+(`ManifoldSurfaceMesh` only)
 
 One complexity in our implementation is the existence of exterior boundary elements. Recall that boundaries of our mesh are represented by filling each hole with a single, many-sided boundary loop; the halfedges incident on this face are "exterior". This definition is convenient because it saves us from constantly special-casing elements on the boundary, but introduces some complexity because the user probably doesn't want to think about these boundary loops as faces most of the time.
 

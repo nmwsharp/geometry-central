@@ -1,16 +1,20 @@
 These routines allow modification of the mesh connectivity and insertion/deletion of elements.
 
-Geometry-central is designed from the ground up to have good support for mesh mutation. The underlying `HalfedgMesh` data structure is index-based, with lazy expansion and deletion, so all operations run in (amortized) constant time with respect to the number of mesh elements, and usually do not incur any memory allocations. [Containers](containers.md) automatically update after mesh operations.
+Geometry-central is designed from the ground up to have good support for mesh mutation. The underlying `SurfaceMesh` data structure is index-based, with lazy expansion and deletion, so all operations run in (amortized) constant time with respect to the number of mesh elements, and usually do not incur any memory allocations. [Containers](containers.md) automatically update after mesh operations.
 
 As much as possible, these routines will check for validity before executing and throw an exception if something isn't right. The `NGC_SAFETY_CHECKS` define disables this behavior for a modest increase in performance, but checks are enabled by default even in release builds.
 
 Note that aggressive use of these routines may reduce a mesh from a _simplicial complex_ to a _$\Delta$-complex_. For instance, flipping enough edges in a mesh might create self-edges, which connect a vertex to itself. See the [$\Delta$-complex](delta_complex.md) section for details, and an explanation of why these complexes are important.
 
+!!! note "General `SurfaceMesh`"
+    
+    Many of these operations could be defined for a general `SurfaceMesh`, but are currently only implemented on the `ManifoldSurfaceMesh`. Future releases of geometry-central will gradually port them over.
+
 ## In-place modifications
 
 These routines modify a mesh, but do not require inserting or deleting elements.
 
-??? func "`#!cpp bool HalfedgeMesh::flip(Edge e)`"
+??? func "`#!cpp bool SurfaceMesh::flip(Edge e)`"
 
     Flip an edge by rotating counter-clockwise. 
 
@@ -30,7 +34,7 @@ Note that some operations my re-use existing elements to create their output. Fo
 
 ---
 
-??? func "`#!cpp Halfedge HalfedgeMesh::insertVertexAlongEdge(Edge e)`"
+??? func "`#!cpp Halfedge ManifoldSurfaceMesh::insertVertexAlongEdge(Edge e)`"
 
     Adds a degree 2 vertex along an edge. Unlike `splitEdge()`, this _does not_ triangulate the adjacent faces; the degree of adjacent faces will be increased by 1. Works as expected on boundary edges.
 
@@ -39,7 +43,7 @@ Note that some operations my re-use existing elements to create their output. Fo
     Preserves canonical direction of edge.halfedge() for both halves of new edge. The original edge is repurposed as one of the two new edges (same for original halfedges).
 
 
-??? func "`#!cpp Halfedge HalfedgeMesh::splitEdge(Edge e)`"
+??? func "`#!cpp Halfedge ManifoldSurfaceMesh::splitEdge(Edge e)`"
 
     Inserts a vertex along an edge, and triangulates the adjacent faces. On a triangle mesh, the newly inserted vertex will be a degree 4 vertex.  Works as expected on boundary edges.
 
@@ -48,7 +52,7 @@ Note that some operations my re-use existing elements to create their output. Fo
     Preserves canonical direction of edge.halfedge() for both halves of new edge. The original edge is repurposed as one of the new edges (same for original halfedges).
     
 
-??? func "`#!cpp Vertex HalfedgeMesh::insertVertex(Face f)`"
+??? func "`#!cpp Vertex ManifoldSurfaceMesh::insertVertex(Face f)`"
 
     TODO
     // Add vertex inside face and triangulate. Returns new vertex.
@@ -66,7 +70,7 @@ Note that some operations my re-use existing elements to create their output. Fo
     Returns new halfedge with `heA.vertex()` at tail, and `he.twin().face()` is the new face.
 
 
-??? func "`#!cpp std::vector<Face> HalfedgeMesh::triangulate(Face face)`"
+??? func "`#!cpp std::vector<Face> ManifoldSurfaceMesh::triangulate(Face face)`"
 
     Triangulate a face in the mesh, returning all of the resulting faces.
     
@@ -77,7 +81,7 @@ Note that some operations my re-use existing elements to create their output. Fo
     
 To amortize the cost of allocation, mesh buffers are resized sporadically in large increments; these resized buffers might significantly increase (e.g., double) the storage size of a mesh and the associated containers. Calling `trimStorage()` frees up any unused storage space to reduce memory usage. 
 
-??? func "`#!cpp void HalfedgeMesh::trimStorage()`"
+??? func "`#!cpp void ManifoldSurfaceMesh::trimStorage()`"
 
     Free any additional storage associated with the mesh. Does not invalidate elements.
 
@@ -90,13 +94,13 @@ To amortize the cost of allocation, mesh buffers are resized sporadically in lar
 
 These routines delete mesh elements. Elements (like `Vertex`) and containers (like `VertexData<>`) will remain valid through deletions. However, performing any deletion will cause the mesh to no longer be [compressed](#compressed-mode).
 
-??? func "`#!cpp Vertex HalfedgeMesh::collapseEdge(Edge e)`"
+??? func "`#!cpp Vertex ManifoldSurfaceMesh::collapseEdge(Edge e)`"
 
     // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
     // collapsible.
     Vertex collapseEdge(Edge e);
 
-??? func "`#!cpp bool HalfedgeMesh::removeFaceAlongBoundary(Face f)`"
+??? func "`#!cpp bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f)`"
 
     // Remove a face which is adjacent to the boundary of the mesh (along with its edge on the boundary).
     // Face must have exactly one boundary edge.
@@ -118,11 +122,11 @@ All meshes are compressed after construction, and only become non-compressed if 
 
 The `compress()` function invalidates pointers, and incurs an update of existing containers. As such, it is recommended to be called sporadically, after a sequence of operations is completed.
 
-??? func "`#!cpp bool HalfedgeMesh::isCompressed()`"
+??? func "`#!cpp bool SurfaceMesh::isCompressed()`"
 
     Returns true if the mesh is compressed.
 
-??? func "`#!cpp void HalfedgeMesh::compress()`"
+??? func "`#!cpp void SurfaceMesh::compress()`"
 
     Re-index the elements of the mesh to yield a dense enumeration. Invalidates all `Vertex`, `Edge` (etc) objects. All `VertexData<>`, `FaceData<>`, etc containers are automatically resized and re-indexed.
 

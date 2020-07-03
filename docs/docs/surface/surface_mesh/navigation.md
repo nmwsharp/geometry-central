@@ -2,11 +2,11 @@
 
 Use these routines to iterate over all of the elements in the mesh.
 
-**Note:** Generally, modifying the mesh in the midst of iteration is not supported.
+**Note:** Generally, modifying the mesh while iterating is allowed, but the new elements may or may not be iterated over, and previous elements might even appear again later later in the iteration after modifying.
 
 ---
 
-??? func "`#!cpp HalfedgeMesh::vertices()`"
+??? func "`#!cpp SurfaceMesh::vertices()`"
     Iterate over the vertices in a mesh.
     ```cpp
     for(Vertex v : mesh.vertices()) {
@@ -14,7 +14,7 @@ Use these routines to iterate over all of the elements in the mesh.
     }
     ```
 
-??? func "`#!cpp HalfedgeMesh::halfedges()`"
+??? func "`#!cpp SurfaceMesh::halfedges()`"
     Iterate over all of the halfedges in a mesh (both real and imaginary, if the mesh has boundary).
     ```cpp
     for(Halfedge he : mesh.halfedges()) {
@@ -22,7 +22,7 @@ Use these routines to iterate over all of the elements in the mesh.
     }
     ```
 
-??? func "`#!cpp HalfedgeMesh::realHalfedges()`"
+??? func "`#!cpp SurfaceMesh::realHalfedges()`"
     Iterate over the real halfedges in a mesh.
     ```cpp
     for(Halfedge he : mesh.realHalfedges()) {
@@ -31,16 +31,16 @@ Use these routines to iterate over all of the elements in the mesh.
     ```
     Note that on a boundary edge between vertices `i <--> j`, this set will only include a halfedge from `i --> j`, but not from `j --> i` (or vice versa).
 
-??? func "`#!cpp HalfedgeMesh::imaginaryHalfedges()`"
-    Iterate over the imaginary halfedges in a mesh.
+??? func "`#!cpp SurfaceMesh::exteriorHalfedges()`"
+    Iterate over the exterior halfedges in a mesh. (only useful on `ManifoldSurfaceMesh`)
     ```cpp
-    for(Halfedge he : mesh.imaginaryHalfedges()) {
+    for(Halfedge he : mesh.exteriorHalfedges()) {
       // do science here
     }
     ```
     Note that on a boundary edge between vertices `i <--> j`, this set will only include a halfedge from `i --> j`, but not from `j --> i` (or vice versa).
 
-??? func "`#!cpp HalfedgeMesh::edges()`"
+??? func "`#!cpp SurfaceMesh::edges()`"
     Iterate over the edges in a mesh.
     ```cpp
     for(Edge e : mesh.edges()) {
@@ -48,7 +48,7 @@ Use these routines to iterate over all of the elements in the mesh.
     }
     ```
 
-??? func "`#!cpp HalfedgeMesh::faces()`"
+??? func "`#!cpp SurfaceMesh::faces()`"
     Iterate over the faces in a mesh.
     ```cpp
     for(Face f : mesh.faces()) {
@@ -122,7 +122,7 @@ Use these routines to iterate over the neighbors of a mesh element.
 
 ??? func "`#!cpp Edge::adjacentHalfedges()`"
 
-    Iterate over the two halfedges incident on this edge.
+    Iterate over the halfedges incident on this edge.
     ```cpp
     for(Halfedge he : edge.adjacentHalfedges()) {
       // do science here
@@ -209,20 +209,20 @@ Use these routines to access elements of the mesh by their index.
 
 ---
 
-??? func "`#!cpp Halfedge HalfedgeMesh::halfedge(size_t index)`"
+??? func "`#!cpp Halfedge SurfaceMesh::halfedge(size_t index)`"
     Constructs a reference to the i'th halfedge in the mesh. `0 <= index < nHalfedges()`.
     
-??? func "`#!cpp Vertex HalfedgeMesh::vertex(size_t index)`"
+??? func "`#!cpp Vertex SurfaceMesh::vertex(size_t index)`"
     Constructs a reference to the i'th vertex in the mesh. `0 <= index < nVertices()`.
     
-??? func "`#!cpp Face HalfedgeMesh::face(size_t index)`"
+??? func "`#!cpp Face SurfaceMesh::face(size_t index)`"
     Constructs a reference to the i'th face in the mesh. `0 <= index < nFaces()`.
     
-??? func "`#!cpp Edge HalfedgeMesh::edge(size_t index)`"
+??? func "`#!cpp Edge SurfaceMesh::edge(size_t index)`"
     Constructs a reference to the i'th edge in the mesh. `0 <= index < nEdges()`.
     
-??? func "`#!cpp Face HalfedgeMesh::face(size_t index)`"
+??? func "`#!cpp Face SurfaceMesh::face(size_t index)`"
     Constructs a reference to the i'th face in the mesh. `0 <= index < nFaces()`.
 
-??? func "`#!cpp Face HalfedgeMesh::boundaryLoop(size_t index)`"
+??? func "`#!cpp Face SurfaceMesh::boundaryLoop(size_t index)`"
     Constructs a reference to the i'th boundary loop in the mesh. `0 <= index < nBoundaryLoops()`.

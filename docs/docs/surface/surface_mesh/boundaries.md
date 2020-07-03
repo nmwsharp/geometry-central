@@ -2,11 +2,16 @@ Mesh boundaries in halfedge meshes are modelled by logically treating each _boun
 
 ![halfedge boundary diagram](../../media/halfedge_boundary_diagram.svg)
 
+!!! note "Manifold Surfaces Only"
+
+    This section largely only applies to `ManifoldSurfaceMesh`, which has well-defined boundary loops. On a general `SurfaceMesh`, you can test if an element is along the boundary (like `edge.isBoundary()`), but not much else.
+
+
 ## Exterior halfedges
 
 Nearly all routines involving halfedges include both interior and exterior halfedges, as this is most often what is needed in algorithms. `HalfedgeData<>` containers can hold data on exterior halfedges, and iterators (like `Vertex::outgoingHalfedges`) will iterate over both interior and exterior halfedges.
 
-A few routines explicitly indicate whether they process interior halfedges, exterior halfedges, or both, such as `HalfedgeMesh::nInteriorHalfedges()`.
+A few routines explicitly indicate whether they process interior halfedges, exterior halfedges, or both, such as `ManifoldSurfaceMesh::nInteriorHalfedges()`.
 
 ??? func "`#!cpp bool Halfedge::isInterior()`"
     **Return:** true if the halfedge is an interior halfedge, and false if it is an exterior halfedge.
@@ -16,7 +21,7 @@ A few routines explicitly indicate whether they process interior halfedges, exte
 
 The separate type `BoundaryLoop` is used to represent boundary loops, and offers all functionality of other element types. For instance, the `BoundaryLoopData<>` container can be used to associate data with boundary loops, and `BoundaryLoop::adjacentVertices()` can be used to iterate over the vertices along a boundary component.
 
-Since boundary loops act like faces in the mesh connectivity, traversing the mesh might yield a "face" referring to what is really a boundary loop. In particular, calling `Halfedge::face()` on an exterior halfedge will yield the "face" which is its boundary loop.  However, this "face" is a lie, we have not really _added_ a face to the mesh: `HalfedgeMesh::nFaces()` will still report the actual number of faces, etc.  The only valid thing to do with a `Face` which actually a boundary loop is to immediately convert it to a `BoundaryLoop`, See the example below.
+Since boundary loops act like faces in the mesh connectivity, traversing the mesh might yield a "face" referring to what is really a boundary loop. In particular, calling `Halfedge::face()` on an exterior halfedge will yield the "face" which is its boundary loop.  However, this "face" is a lie, we have not really _added_ a face to the mesh: `ManifoldSurfaceMesh::nFaces()` will still report the actual number of faces, etc.  The only valid thing to do with a `Face` which actually a boundary loop is to immediately convert it to a `BoundaryLoop`, See the example below.
 
 ```cpp
 Halfedge myHe = /* some exterior halfedge */;

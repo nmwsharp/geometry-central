@@ -61,6 +61,16 @@ A vertex is a 0-dimensional point which serves as a node in the mesh.
     See [boundaries](boundaries.md) for more information.
 
 
+??? func "`#!cpp bool Vertex::isManifold()`"
+
+    Returns true if the vertex neighborhood is manifold.
+
+
+??? func "`#!cpp bool Vertex::isManifoldAndOriented()`"
+
+    Returns true if the vertex neighborhood is manifold, and all faces have consistent orientations.
+
+
 ??? func "`#!cpp size_t Vertex::degree()`"
 
     The degree of the vertex, i.e. the number of edges incident on the vertex.
@@ -75,15 +85,20 @@ A vertex is a 0-dimensional point which serves as a node in the mesh.
 
 ## Halfedge
 
-A halfedge is a the basic building block of a halfedge mesh. As its name suggests, the halfedge is *half* of an *edge*, connecting two vertices and sitting on on side of an edge in some face. The halfedge is directed, from its _tail_, to its _tip_. Our halfedges have a counter-clockwise orientation: the halfedges with in a face will always point in the counter-clockwise direction, and a halfedge and its _twin_ (the neighbor across an edge) will point in opposite directions.
+A halfedge is a the basic building block of a halfedge mesh. As its name suggests, the halfedge is *half* of an *edge*, connecting two vertices and sitting on on side of an edge in some face. The halfedge is directed, from its _tail_, to its _tip_. Our halfedges have a counter-clockwise orientation: the halfedges with in a face will always point in the counter-clockwise direction. On a `ManifoldSurfaceMesh`, a halfedge and its _twin_ (the neighbor across an edge) will point in opposite directions.
 
 **Traversal:**
 
 ??? func "`#!cpp Halfedge Halfedge::twin()`"
 
-    Returns the halfedge's _twin_, its neighbor across an edge, which points in the opposite direction.
+    Returns the halfedge's _twin_, a neighbor across an edge. See notes in `sibling()`.
+    
+    On a `ManifoldSurfaceMesh`, it will point in the opposite direction.  Calling twin twice will always return to the initial halfedge: `halfedge.twin().twin() == halfedge`.
 
-    Calling twin twice will always return to the initial halfedge: `halfedge.twin().twin() == halfedge`.
+
+??? func "`#!cpp Halfedge Halfedge::sibling()`"
+
+    A synonym for `twin()`, which makes it clear that on a general `SurfaceMesh` which is not manifold there may be many halfedges incident on an edge. Calling `sibling()` repeatedly orbits around these halfedges.
 
 
 ??? func "`#!cpp Halfedge Halfedge::next()`"
@@ -94,6 +109,14 @@ A halfedge is a the basic building block of a halfedge mesh. As its name suggest
 ??? func "`#!cpp Vertex Halfedge::vertex()`"
 
     Returns the vertex at the tail of this halfedge.
+
+??? func "`#!cpp Vertex Halfedge::tailVertex()`"
+
+    Returns the vertex at the tail of this halfedge.
+
+??? func "`#!cpp Vertex Halfedge::tipVertex()`"
+
+    Returns the vertex at the tip of this halfedge.
 
 
 ??? func "`#!cpp Edge Halfedge::edge()`"
@@ -123,15 +146,6 @@ A halfedge is a the basic building block of a halfedge mesh. As its name suggest
     
     Generally this operation can (and should) be avoided with proper code structure.
 
-??? func "`#!cpp Halfedge Halfedge::prevOrbitVertex()`"
-
-    Returns the _previous_ halfedge, that is the halfedge such that `he.next() == *this`. This result is found by orbiting around the shared vertex.
-    
-    Because our halfedge mesh is singly-connected, this is not a simple $O(1)$ lookup, but must be computed by orbiting around the vertex. Be careful: calling `he.prevOrbitVertex()` in a loop around a very high-degree vertex can easily lead to $O(N^2)$ algorithm complexity, as each call walks all the way around the vertex.
-    
-    Generally this operation can (and should) be avoided with proper code structure.
-
-
 
 **Utility:**
 
@@ -140,6 +154,13 @@ A halfedge is a the basic building block of a halfedge mesh. As its name suggest
     Returns true if the edge is _interior_, and false if it is _exterior_ (i.e., incident on a boundary loop).
     
     See [boundaries](boundaries.md) for more information.
+
+
+??? func "`#!cpp bool Halfedge::orientation()`"
+
+    Returns true if the halfedge points in the same direction as the arbitrary orientation defined at each edge.
+
+    For instance, for two halfedges incident on the same edge, you can test if they point in the same direction by checking `heA.orientation() == heB.orientation()`. Recall that two halfedges will point in the same direction along an edge when their respective faces have _opposite_ orientation.
 
 ---
 
@@ -150,12 +171,16 @@ A halfedge is a the basic building block of a halfedge mesh. As its name suggest
 An _edge_ is a 1-dimensional element that connects two vertices in the mesh.
 
 
-
 **Traversal:**
 
 ??? func "`#!cpp Halfedge Edge::halfedge()`"
 
     Returns one of the two halfedges incident on this edge. If the edge is a boundary edge, it is guaranteed that the returned edge will be the interior one.
+
+
+??? func "`#!cpp Vertex Halfedge::otherVertex(Vertex v)`"
+
+    Of the two vertices incident on the edge, returns the one which is not `v`. If both incident vertices are `v`, returns `v`.
     
 **Utility:**
 
@@ -164,6 +189,15 @@ An _edge_ is a 1-dimensional element that connects two vertices in the mesh.
     Returns true if the edge is along the boundary of the mesh. Note that edges which merely touch the boundary at one endpoint are not considered to be boundary edges.
     
     See [boundaries](boundaries.md) for more information.
+
+
+??? func "`#!cpp bool Edge::isOriented()`"
+
+    Returns true if the faces on either side have matching orientations. A nonmanifold edge is never oriented.
+
+??? func "`#!cpp size_t Edge::degree()`"
+
+    Returns the number of faces indcident on the edge.
 
 --- 
 
@@ -202,7 +236,7 @@ A _face_ is a 2-dimensional element formed by a loop of 3 or more edges. In gene
 
 ## Boundary Loop
 
-A _boundary loop_ is a special face-like element used to represent holes in the mesh due to surface boundary.  See [boundaries](boundaries.md) for more information.
+A _boundary loop_ is a special face-like element used to represent holes in the mesh due to surface boundary.  These are only defined on a `ManifoldSurfaceMesh`, which necessarily has coherent boundary loops.  See [boundaries](boundaries.md) for more information.
 
 
 **Traversal:**
