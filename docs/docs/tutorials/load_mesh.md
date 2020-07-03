@@ -1,4 +1,4 @@
-This tutorials walks through some basics with geometry-central, showing how to load a mesh from file and iterate through its elements.
+This tutorial walks through some basics with geometry-central, showing how to load a mesh from file and iterate through its elements.
 
 [View full, runnable source code in the tutorial repository.](https://github.com/nmwsharp/geometry-central-tutorials)
 
