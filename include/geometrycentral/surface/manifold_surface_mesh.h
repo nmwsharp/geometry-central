@@ -16,7 +16,6 @@ public:
   // The output will preserve the ordering of vertices and faces.
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
 
-  // TODO
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
                       const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins);
 

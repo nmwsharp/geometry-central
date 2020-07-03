@@ -287,7 +287,14 @@ inline Edge::Edge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
 //inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigator
-inline Halfedge Edge::halfedge() const { return Halfedge(mesh, mesh->eHalfedge(ind)); }
+inline Halfedge Edge::halfedge() const      { return Halfedge(mesh, mesh->eHalfedge(ind)); }
+inline Vertex Edge::otherVertex(Vertex v) const { 
+  if(halfedge().tailVertex() == v) {
+    return halfedge().tipVertex();
+  } else {
+    return halfedge().tailVertex();
+  }
+}
 inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
 
 // Properties

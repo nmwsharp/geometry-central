@@ -55,15 +55,15 @@ nav:
     - 'Direction fields' : 'tutorials/direction_fields.md'
     - 'Intrinsic triangulations' : 'tutorials/intrinsic_triangulations.md'
   - Surface:
-    - Halfedge Mesh: 
-      - 'Basics' : 'surface/halfedge_mesh/basics.md'
-      - 'Elements' : 'surface/halfedge_mesh/elements.md'
-      - 'Boundaries' : 'surface/halfedge_mesh/boundaries.md'
-      - 'Navigation and Iteration' : 'surface/halfedge_mesh/navigation.md'
-      - 'Containers' : 'surface/halfedge_mesh/containers.md'
-      - 'Mutation' : 'surface/halfedge_mesh/mutation.md'
-      - 'Delta Complexes' : 'surface/halfedge_mesh/delta_complex.md'
-      - 'Internals' : 'surface/halfedge_mesh/internals.md'
+    - Surface Mesh: 
+      - 'Basics' : 'surface/surface_mesh/basics.md'
+      - 'Elements' : 'surface/surface_mesh/elements.md'
+      - 'Boundaries' : 'surface/surface_mesh/boundaries.md'
+      - 'Navigation and Iteration' : 'surface/surface_mesh/navigation.md'
+      - 'Containers' : 'surface/surface_mesh/containers.md'
+      - 'Mutation' : 'surface/surface_mesh/mutation.md'
+      - 'Delta Complexes' : 'surface/surface_mesh/delta_complex.md'
+      - 'Internals' : 'surface/surface_mesh/internals.md'
     - Geometry: 
       - 'Overview' : 'surface/geometry/geometry.md'
       - 'Quantities' : 'surface/geometry/quantities.md'

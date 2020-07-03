@@ -204,6 +204,7 @@ public:
 
   // Navigators
   Halfedge halfedge() const;
+  Vertex otherVertex(Vertex v) const;
   bool isDead() const;
 
   // Properties
