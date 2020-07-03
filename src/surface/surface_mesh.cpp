@@ -529,12 +529,12 @@ std::unique_ptr<ManifoldSurfaceMesh> SurfaceMesh::toManifoldMesh() {
     size_t i = 0;
     for (Halfedge he : f.adjacentHalfedges()) {
       if (he.edge().isBoundary()) {
-        thisTwin[i] = {INVALID_IND, INVALID_IND};
+        thisTwin[i] = std::make_tuple(INVALID_IND, INVALID_IND);
       } else {
         Halfedge heT = he.sibling();
         size_t oF = faceInd[heT.face()];
         size_t heTInd = iHeInFace[heT];
-        thisTwin[i] = {oF, heTInd};
+        thisTwin[i] = std::make_tuple(oF, heTInd);
       }
       i++;
     }
