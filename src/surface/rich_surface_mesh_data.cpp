@@ -261,7 +261,7 @@ VertexData<Vector3> RichSurfaceMeshData::getVertexColors() {
     }
     return color;
 
-  } catch (std::runtime_error orig_e) {
+  } catch (std::runtime_error &orig_e) {
 
     // If that doesn't work, try float
     try {
@@ -274,7 +274,7 @@ VertexData<Vector3> RichSurfaceMeshData::getVertexColors() {
         color[v][2] = b[v];
       }
       return color;
-    } catch (std::runtime_error second_e) {
+    } catch (std::runtime_error &second_e) {
       throw std::runtime_error("Could not find vertex colors in PLY file, as uchar or float");
     }
   }
