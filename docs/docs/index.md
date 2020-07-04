@@ -19,12 +19,15 @@ std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = readSurfaceMesh("spot.obj"); 
 
 // Compute vertex areas
-VertexData<double> vertArea(*mesh, 0.);
+VertexData<double> vertexAreas(*mesh);
+
 geometry->requireFaceAreas();
 for(Vertex v : mesh->vertices()) {
-  for(Face f : v.adjacentVertices()) {
-    vertArea[v] += geometry->faceAreas[f] / f.degree();
+  double A = 0.;
+  for(Face f : v.adjacentFaces()) {
+    A += geometry->faceAreas[f] / v.degree();
   }
+  vertexAreas[v] = A;
 }
 ```
 
