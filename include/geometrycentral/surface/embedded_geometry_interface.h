@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/surface/extrinsic_geometry_interface.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/utilities/vector3.h"
 
 #include <Eigen/SparseCore>
@@ -15,7 +15,7 @@ class EmbeddedGeometryInterface : public ExtrinsicGeometryInterface {
 protected:
   // Constructor is protected, because this class is an interface which is not meant to be instantiated directly.
   // Instantiate it via some realization which encapsulates input data, like VertexPositionGeometry.
-  EmbeddedGeometryInterface(HalfedgeMesh& mesh_);
+  EmbeddedGeometryInterface(SurfaceMesh& mesh_);
 
 public:
   virtual ~EmbeddedGeometryInterface() {}

@@ -5,7 +5,7 @@ namespace surface {
 
 
 // clang-format off
-BaseGeometryInterface::BaseGeometryInterface(HalfedgeMesh& mesh_)
+BaseGeometryInterface::BaseGeometryInterface(SurfaceMesh& mesh_)
     : mesh(mesh_),
       
   // Construct the dependency graph of managed quantities and their callbacks

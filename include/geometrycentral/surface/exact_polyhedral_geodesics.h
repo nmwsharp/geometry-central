@@ -1,18 +1,24 @@
 #pragma once
 
-#include "geometrycentral/surface/edge_length_geometry.h"
-#include "geometrycentral/surface/geometry.h"
+#include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/utilities/utilities.h"
 
-#include <cmath>
-#include <queue>
-#include <utility>
+#include <unordered_map>
 #include <vector>
 
 
 namespace geometrycentral {
 namespace surface {
 
+
+// Return all vertices and their geodesic distance within the given radius threshold. Uses sparse data structures, so is
+// efficient for small queries on large meshes. However, performs greedy triangle unfolding to compute distance, so has
+// exponential worst-case complexity. Should be used for small queries only!
+std::unordered_map<Vertex, double> vertexGeodesicDistanceWithinRadius(IntrinsicGeometryInterface& geom,
+                                                                      Vertex centerVert, double radius);
+
+
+/*
 const double REL_ERR = 1e-8;
 
 struct Window {
@@ -136,6 +142,8 @@ private:
   bool isValidWindow(const Window& win, bool isLeftChild);
   double intersect(const Vector2& v0, const Vector2& v1, const Vector2& p0, const Vector2& p1);
 };
+
+*/
 
 } // namespace surface
 } // namespace geometrycentral

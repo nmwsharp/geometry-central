@@ -4,7 +4,7 @@ namespace surface {
 inline double VertexPositionGeometry::edgeLength(Edge e) const {
   Halfedge he = e.halfedge();
   Vector3 pA = inputVertexPositions[he.vertex()];
-  Vector3 pB = inputVertexPositions[he.twin().vertex()];
+  Vector3 pB = inputVertexPositions[he.next().vertex()];
   return norm(pA - pB);
 }
 
@@ -64,7 +64,11 @@ inline double VertexPositionGeometry::halfedgeCotanWeight(Halfedge heI) const {
 }
 
 inline double VertexPositionGeometry::edgeCotanWeight(Edge e) const {
-  return halfedgeCotanWeight(e.halfedge()) + halfedgeCotanWeight(e.halfedge().twin());
+  double sum = 0;
+  for (Halfedge he : e.adjacentInteriorHalfedges()) {
+    sum += halfedgeCotanWeight(he);
+  }
+  return sum;
 }
 
 // Face normal

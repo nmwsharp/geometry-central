@@ -41,25 +41,35 @@ repo_url: 'https://github.com/nmwsharp/geometry-central'
 nav:
   - Home: 'index.md'
   - Build: 
+    - 'Versions' : 'build/versions.md'
     - 'Building' : 'build/building.md'
     - 'Dependencies' : 'build/dependencies.md'
     - 'Tests' : 'build/tests.md'
-  #- Tutorials: 
-    #- 'Load a mesh' : 'tutorials/load_mesh.md'
+  - Tutorials: 
+    - 'Load & navigate a mesh' : 'tutorials/load_mesh.md'
+    #- 'Mesh containers' : 'tutorials/mesh_containers.md'
+    - 'Basic Mutation' : 'tutorials/basic_mutation.md'
+    #- 'Nonmanifold meshes' : 'tutorials/nonmanifold_meshes.md'
+    #- 'Geometry hierarchy' : 'tutorials/geometry_hierarchy.md'
+    #- 'Mesh mutations' : 'tutorials/mesh_mutations.md'
+    #- 'Linear algebra' : 'tutorials/linear_algebra.md'
+    - 'Direction fields' : 'tutorials/direction_fields.md'
+    #- 'Intrinsic triangulations' : 'tutorials/intrinsic_triangulations.md'
   - Surface:
-    - Halfedge Mesh: 
-      - 'Basics' : 'surface/halfedge_mesh/basics.md'
-      - 'Elements' : 'surface/halfedge_mesh/elements.md'
-      - 'Boundaries' : 'surface/halfedge_mesh/boundaries.md'
-      - 'Navigation and Iteration' : 'surface/halfedge_mesh/navigation.md'
-      - 'Containers' : 'surface/halfedge_mesh/containers.md'
-      - 'Mutation' : 'surface/halfedge_mesh/mutation.md'
-      - 'Delta Complexes' : 'surface/halfedge_mesh/delta_complex.md'
-      - 'Internals' : 'surface/halfedge_mesh/internals.md'
+    - Surface Mesh: 
+      - 'Basics' : 'surface/surface_mesh/basics.md'
+      - 'Elements' : 'surface/surface_mesh/elements.md'
+      - 'Boundaries' : 'surface/surface_mesh/boundaries.md'
+      - 'Navigation and Iteration' : 'surface/surface_mesh/navigation.md'
+      - 'Containers' : 'surface/surface_mesh/containers.md'
+      - 'Mutation' : 'surface/surface_mesh/mutation.md'
+      - 'Delta Complexes' : 'surface/surface_mesh/delta_complex.md'
+      - 'Internals' : 'surface/surface_mesh/internals.md'
     - Geometry: 
       - 'Overview' : 'surface/geometry/geometry.md'
       - 'Quantities' : 'surface/geometry/quantities.md'
     - Utilities: 
+      - 'Simple Polygon Mesh' : 'surface/utilities/simple_polygon_mesh.md'
       - 'I/O' : 'surface/utilities/io.md'
       - 'Surface Point' : 'surface/utilities/surface_point.md'
     - Algorithms: 
@@ -68,6 +78,7 @@ nav:
       - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
       - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
       - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
+      - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
   - Numerical: 
     - 'Matrix Types' : 'numerical/matrix_types.md'
     - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'

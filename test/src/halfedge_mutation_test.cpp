@@ -1,5 +1,5 @@
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 
 #include "geometrycentral/surface/base_geometry_interface.h"
@@ -47,31 +47,11 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipTest) {
   }
 }
 
-// Flip a lot of edges on one mesh without boundary
-TEST_F(HalfedgeMutationSuite, EdgeFlipClosedManyTest) {
-
-  auto asset = getAsset("sphere_small.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
-
-  int count = 1000;
-  int indInc = static_cast<int>(std::ceil(mesh.nVertices() / static_cast<double>(count)));
-
-  int flipInd = 0;
-  for (int i = 0; i < count; i++) {
-
-    // Flip an edge
-    Edge eFlip = mesh.edge(flipInd);
-    mesh.flip(eFlip);
-    mesh.validateConnectivity();
-
-    flipInd = (flipInd + 1) % mesh.nVertices();
-  }
-}
 
 // Split a few edges on a bunch of meshes
 TEST_F(HalfedgeMutationSuite, InsertVertexAlongEdgeTest) {
 
-  for (MeshAsset& a : allMeshes()) {
+  for (MeshAsset& a : manifoldSurfaceMeshes()) {
     a.printThyName();
 
     int count = 10;
@@ -81,11 +61,11 @@ TEST_F(HalfedgeMutationSuite, InsertVertexAlongEdgeTest) {
     for (int i = 0; i < count; i++) {
 
       // Insert along an edge
-      Edge e = a.mesh->edge(ind);
-      a.mesh->insertVertexAlongEdge(e);
-      a.mesh->validateConnectivity();
+      Edge e = a.manifoldMesh->edge(ind);
+      a.manifoldMesh->insertVertexAlongEdge(e);
+      a.manifoldMesh->validateConnectivity();
 
-      ind = (ind + indInc) % a.mesh->nVertices();
+      ind = (ind + indInc) % a.manifoldMesh->nVertices();
     }
   }
 }
@@ -94,27 +74,27 @@ TEST_F(HalfedgeMutationSuite, InsertVertexAlongEdgeTest) {
 // Insert a vertex along every edge and triangulate (not-quite subdivision)
 TEST_F(HalfedgeMutationSuite, InsertVertexAndTriangulateSubdivideTest) {
 
-  for (MeshAsset& a : allMeshes()) {
+  for (MeshAsset& a : manifoldSurfaceMeshes()) {
     a.printThyName();
 
     // Split every edge
     std::vector<Edge> origEdges;
-    for (Edge e : a.mesh->edges()) {
+    for (Edge e : a.manifoldMesh->edges()) {
       origEdges.push_back(e);
     }
     for (Edge e : origEdges) {
-      a.mesh->insertVertexAlongEdge(e);
+      a.manifoldMesh->insertVertexAlongEdge(e);
     }
 
-    a.mesh->validateConnectivity();
+    a.manifoldMesh->validateConnectivity();
 
     // Triangulate
     // TODO this loops while modifying. Do we allow that?
-    for (Face f : a.mesh->faces()) {
-      a.mesh->triangulate(f);
+    for (Face f : a.manifoldMesh->faces()) {
+      a.manifoldMesh->triangulate(f);
     }
 
-    a.mesh->validateConnectivity();
+    a.manifoldMesh->validateConnectivity();
   }
 }
 
@@ -124,31 +104,31 @@ TEST_F(HalfedgeMutationSuite, SplitFlipSubdivide) {
   for (MeshAsset& a : triangularMeshes()) {
     a.printThyName();
 
-    VertexData<char> isNewVertex(*a.mesh, false);
-    for (Vertex v : a.mesh->vertices()) {
+    VertexData<char> isNewVertex(*a.manifoldMesh, false);
+    for (Vertex v : a.manifoldMesh->vertices()) {
       isNewVertex[v] = true;
     }
 
     // Split every edge
     std::vector<Edge> origEdges;
-    for (Edge e : a.mesh->edges()) {
+    for (Edge e : a.manifoldMesh->edges()) {
       origEdges.push_back(e);
     }
     for (Edge e : origEdges) {
-      a.mesh->splitEdgeTriangular(e);
+      a.manifoldMesh->splitEdgeTriangular(e);
     }
-    a.mesh->validateConnectivity();
+    a.manifoldMesh->validateConnectivity();
 
     // Flip edges between old and new
-    for (Edge e : a.mesh->edges()) {
+    for (Edge e : a.manifoldMesh->edges()) {
       if (isNewVertex[e.halfedge().vertex()] != isNewVertex[e.halfedge().twin().vertex()]) {
-        a.mesh->flip(e);
+        a.manifoldMesh->flip(e);
       }
     }
-    a.mesh->validateConnectivity();
+    a.manifoldMesh->validateConnectivity();
 
     // Should yield subdivision
-    for (Face f : a.mesh->faces()) {
+    for (Face f : a.manifoldMesh->faces()) {
       EXPECT_TRUE(f.isTriangle());
     }
   }
@@ -161,18 +141,194 @@ TEST_F(HalfedgeMutationSuite, EdgeSplitTest) {
     a.printThyName();
 
     int count = 10;
-    int indInc = static_cast<int>(std::ceil(a.mesh->nVertices() / static_cast<double>(count)));
+    int indInc = static_cast<int>(std::ceil(a.manifoldMesh->nVertices() / static_cast<double>(count)));
 
     int splitInd = 0;
     for (int i = 0; i < count; i++) {
 
       // Split an edge
-      Edge eSplit = a.mesh->edge(splitInd);
-      a.mesh->splitEdgeTriangular(eSplit);
+      Edge eSplit = a.manifoldMesh->edge(splitInd);
+      a.manifoldMesh->splitEdgeTriangular(eSplit);
+      a.manifoldMesh->validateConnectivity();
+
+      splitInd = (splitInd + indInc) % a.manifoldMesh->nVertices();
+    }
+  }
+}
+
+
+// Invert face orientation on a bunch of meshes
+TEST_F(HalfedgeMutationSuite, InvertOrientationTest) {
+
+  for (MeshAsset& a : allMeshes()) {
+    if (a.isSubclassManifoldSurfaceMesh) continue;
+    a.printThyName();
+
+    int count = 10;
+    int ind = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Invert
+      Face f = a.mesh->face(ind);
+      a.mesh->invertOrientation(f);
       a.mesh->validateConnectivity();
 
-      splitInd = (splitInd + indInc) % a.mesh->nVertices();
+      ind = (ind + 1) % a.mesh->nFaces();
     }
+  }
+}
+
+
+TEST_F(HalfedgeMutationSuite, DuplicateFaceTest) {
+
+  for (const MeshAsset& a : {getAsset("triple_vierbein.obj", false)}) {
+    a.printThyName();
+
+    int count = 10;
+    int ind = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Invert
+      Face f = a.mesh->face(ind);
+      Face newF = a.mesh->duplicateFace(f);
+      a.mesh->validateConnectivity();
+
+      ind = (ind + 1) % a.mesh->nFaces();
+    }
+  }
+}
+
+// == A few higher level tests which do many operations
+
+TEST_F(HalfedgeMutationSuite, SeparateEdgesTest) {
+
+  for (const MeshAsset& a : {getAsset("triple_vierbein.obj", false)}) {
+    a.printThyName();
+    a.mesh->separateNonmanifoldEdges();
+    a.mesh->validateConnectivity();
+
+    EXPECT_TRUE(a.mesh->isEdgeManifold());
+  }
+}
+
+TEST_F(HalfedgeMutationSuite, SeparateEdgesAndVerticesTest) {
+
+  for (const MeshAsset& a : {getAsset("triple_vierbein.obj", false)}) {
+    a.printThyName();
+    a.mesh->separateNonmanifoldEdges();
+    a.mesh->separateNonmanifoldVertices();
+    a.mesh->validateConnectivity();
+
+    EXPECT_TRUE(a.mesh->isManifold());
+  }
+}
+
+
+TEST_F(HalfedgeMutationSuite, GreedyOrientTest) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", false)}) {
+    a.printThyName();
+
+    // Do a bunch of random inversion
+    int count = 100;
+    int ind = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Invert
+      Face f = a.mesh->face(ind);
+      a.mesh->invertOrientation(f);
+
+      ind = (ind + 13) % a.mesh->nFaces();
+    }
+
+
+    a.mesh->greedilyOrientFaces();
+    a.mesh->validateConnectivity();
+
+    EXPECT_TRUE(a.mesh->isOriented());
+  }
+}
+
+TEST_F(HalfedgeMutationSuite, ToManifoldTest) {
+
+  for (const MeshAsset& a : {
+           getAsset("bob_small.ply", false),
+           getAsset("hourglass_ico.obj", false),
+           getAsset("lego.ply", false),
+       }) {
+    a.printThyName();
+
+    a.mesh->separateNonmanifoldEdges();
+    EXPECT_TRUE(a.mesh->isEdgeManifold());
+
+    a.mesh->separateNonmanifoldVertices();
+    EXPECT_TRUE(a.mesh->isManifold());
+
+    a.mesh->greedilyOrientFaces();
+    EXPECT_TRUE(a.mesh->isOriented());
+
+    a.mesh->validateConnectivity();
+
+    std::unique_ptr<ManifoldSurfaceMesh> manifMesh = a.mesh->toManifoldMesh();
+    manifMesh->validateConnectivity();
+
+    EXPECT_EQ(a.mesh->nVertices(), manifMesh->nVertices());
+    EXPECT_EQ(a.mesh->nFaces(), manifMesh->nFaces());
+    EXPECT_EQ(a.mesh->nEdges(), manifMesh->nEdges());
+  }
+}
+
+
+// Flip a lot of edges on one mesh without boundary
+TEST_F(HalfedgeMutationSuite, EdgeFlipClosedManyTest) {
+
+  for (const MeshAsset& asset : {getAsset("sphere_small.ply", true)}) {
+    SurfaceMesh& mesh = *asset.mesh;
+
+    int count = 1000;
+    int indInc = static_cast<int>(std::ceil(mesh.nVertices() / static_cast<double>(count)));
+
+    int flipInd = 0;
+    for (int i = 0; i < count; i++) {
+
+      // Flip an edge
+      Edge eFlip = mesh.edge(flipInd);
+      bool didFlip = mesh.flip(eFlip);
+      // mesh.validateConnectivity();
+
+      flipInd = (flipInd + 1) % mesh.nVertices();
+    }
+
+    mesh.validateConnectivity();
+  }
+}
+
+// Flip a lot of edges and orientations on one mesh
+TEST_F(HalfedgeMutationSuite, EdgeFlipInvertOrientClosedManyTest) {
+
+  for (const MeshAsset& asset : {getAsset("sphere_small.ply", false)}) {
+    SurfaceMesh& mesh = *asset.mesh;
+
+    int count = 1000;
+    int flipInd = 0;
+    int invertInd = mesh.nEdges() / 2;
+    for (int i = 0; i < count; i++) {
+
+      // Invert a faces
+      Face fInvert = mesh.face(invertInd);
+      mesh.invertOrientation(fInvert);
+      // mesh.validateConnectivity();
+
+      // Flip an edge
+      Edge eFlip = mesh.edge(flipInd);
+      bool didFlip = mesh.flip(eFlip);
+      // mesh.validateConnectivity();
+
+      flipInd = (flipInd + 1) % mesh.nEdges();
+      invertInd = (invertInd + 1) % mesh.nFaces();
+    }
+
+    mesh.validateConnectivity();
   }
 }
 
@@ -182,8 +338,8 @@ TEST_F(HalfedgeMutationSuite, EdgeSplitTest) {
 
 TEST_F(HalfedgeMutationSuite, ContainerExpandTest) {
 
-  auto asset = getAsset("lego.ply");
-  HalfedgeMesh& mesh = *asset.mesh;
+  auto asset = getAsset("lego.ply", true);
+  ManifoldSurfaceMesh& mesh = *asset.manifoldMesh;
   VertexPositionGeometry& origGeometry = *asset.geometry;
 
   // Initial element counts

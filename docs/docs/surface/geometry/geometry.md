@@ -1,4 +1,4 @@
-While the [halfedge mesh](../halfedge_mesh/basics.md) encodes the _connectivity_ of a surface, this section covers the classes which sit atop a halfedge mesh to define its _geometry_.
+While the [halfedge mesh](../surface_mesh/basics.md) encodes the _connectivity_ of a surface, this section covers the classes which sit atop a halfedge mesh to define its _geometry_.
 
 The first section below explains the class structure used to expose geometric logic, and the second section explains the system of automatically-cached quantities.
 
@@ -190,12 +190,12 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
     The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
 
 
-??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(HalfedgeMesh& mesh)`"
+??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh)`"
 
     Construct a new geometry for the mesh, with all positions set to the origin `Vector3{0., 0., 0.,}`.
 
 
-??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(HalfedgeMesh& mesh, VertexData<Vector3> positions)`"
+??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, VertexData<Vector3> positions)`"
 
     Construct a new geometry for a mesh from known vertex positions.
 
@@ -207,7 +207,7 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
     Copy the geometry, creating a new identical geometry on the same mesh. Any `require()` counts or already-computed quantities are not transferred, the new geometry is a blank slate.
 
 
-??? func "`#!cpp std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::reinterpretTo(HalfedgeMesh& targetMesh)`"
+??? func "`#!cpp std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::reinterpretTo(SurfaceMesh& targetMesh)`"
 
     Copy the geometry, creating a new identical geometry on `targetMesh`. The target mesh must be in vertex-correspondence with the input mesh, in the sense that both meshes have the same number of vertices and iterating through the vertex sets yields matching vertices.
     
@@ -250,7 +250,7 @@ This class inherits from the `IntrinsicGeometryInterface`, so only intrinsic qua
 
 `#!cpp #include "geometrycentral/surface/edge_length_geometry.h"`
 
-??? func "`#!cpp void EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh, EdgeData<double> edgeLengths)`"
+??? func "`#!cpp void EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh, EdgeData<double> edgeLengths)`"
 
     Construct a new geometry for a mesh from known edge lengths.
 
@@ -262,7 +262,7 @@ This class inherits from the `IntrinsicGeometryInterface`, so only intrinsic qua
     Copy the geometry, creating a new identical geometry on the same mesh. Any `require()` counts or already-computed quantities are not transferred, the new geometry is a blank slate.
 
 
-??? func "`#!cpp std::unique_ptr<EdgeLengthGeometry> reinterpretTo(HalfedgeMesh& targetMesh)`"
+??? func "`#!cpp std::unique_ptr<EdgeLengthGeometry> reinterpretTo(SurfaceMesh& targetMesh)`"
 
     Copy the geometry, creating a new identical geometry on `targetMesh`. The target mesh must be in edge-correspondence with the input mesh, in the sense that both meshes have the same number of edges and iterating through the edge sets yields matching edges.
     

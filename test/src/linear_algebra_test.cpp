@@ -51,7 +51,7 @@ protected:
   std::mt19937 test_mersenne_twister{0};
 
   // Use spot to generate interesting matrices
-  static std::unique_ptr<HalfedgeMesh> spotMesh;
+  static std::unique_ptr<ManifoldSurfaceMesh> spotMesh;
   static std::unique_ptr<VertexPositionGeometry> spotGeometry;
 
   // == Random generators
@@ -101,7 +101,7 @@ protected:
     return vec;
   }
 };
-std::unique_ptr<HalfedgeMesh> LinearAlgebraTestSuite::spotMesh;
+std::unique_ptr<ManifoldSurfaceMesh> LinearAlgebraTestSuite::spotMesh;
 std::unique_ptr<VertexPositionGeometry> LinearAlgebraTestSuite::spotGeometry;
 
 // ============================================================

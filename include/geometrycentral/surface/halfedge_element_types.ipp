@@ -2,160 +2,22 @@
 
 // Implementations for halfedge_mesh_types.ipp
 
+// Make the element types hashable (this _should_ be doable for just the parent class, but I couldn't sort out how)
+namespace std {
+// clang-format off
+template <> struct hash<geometrycentral::surface::Vertex>         { std::size_t operator()(const geometrycentral::surface::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Halfedge>       { std::size_t operator()(const geometrycentral::surface::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Corner>         { std::size_t operator()(const geometrycentral::surface::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Edge>           { std::size_t operator()(const geometrycentral::surface::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::Face>           { std::size_t operator()(const geometrycentral::surface::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
+template <> struct hash<geometrycentral::surface::BoundaryLoop>   { std::size_t operator()(const geometrycentral::surface::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
+// clang-format on
+} // namespace std
+
 namespace geometrycentral {
 namespace surface {
 
 // clang-format off
-
-// ==========================================================
-// ================      Base Element      ==================
-// ==========================================================
-
-// Constructors
-template<typename T> 
-Element<T>::Element() {}
-template<typename T> 
-Element<T>::Element(HalfedgeMesh* mesh_, size_t ind_) : mesh(mesh_), ind(ind_) {}
-template<typename T> 
-Element<T>::Element(const DynamicElement<T>& e) : mesh(e.getMesh()), ind(e.getIndex()) {}
-
-// Comparators
-template<typename T> 
-inline bool Element<T>::operator==(const Element<T>& other) const { return ind == other.ind; }
-template<typename T> 
-inline bool Element<T>::operator!=(const Element<T>& other) const { return !(*this == other); }
-template<typename T> 
-inline bool Element<T>::operator>(const Element<T>& other) const { return ind > other.ind; }
-template<typename T> 
-inline bool Element<T>::operator>=(const Element<T>& other) const { return ind >= other.ind; }
-template<typename T> 
-inline bool Element<T>::operator<(const Element<T>& other) const { return ind < other.ind; }
-template<typename T> 
-inline bool Element<T>::operator<=(const Element<T>& other) const { return ind <= other.ind; }
-
-template <typename T>
-size_t Element<T>::getIndex() const { return ind; }
-
-template <typename T>
-HalfedgeMesh* Element<T>::getMesh() const { return mesh; }
-
-template <typename T>
-inline ::std::ostream& operator<<(::std::ostream& output, const Element<T>& e) {
-  output << typeShortName<T>() << "_" << e.ind;
-  return output;
-}
-
-// Dynamic element
-template<typename S> 
-DynamicElement<S>::DynamicElement() {}
-
-template<typename S> 
-DynamicElement<S>::DynamicElement(HalfedgeMesh* mesh_, size_t ind_) : S(mesh_, ind_) {
-  registerWithMesh();
-}
-
-template<typename S> 
-DynamicElement<S>::DynamicElement(const S& e) : S(e) {
-  registerWithMesh();
-}
-  
-template <typename S>
-DynamicElement<S>::DynamicElement(const DynamicElement& other) : S(other.mesh, other.ind) {
-  registerWithMesh();
-}
-
-template <typename S>
-DynamicElement<S>::DynamicElement(DynamicElement&& other) : S(other.mesh, other.ind) {
-  registerWithMesh();
-}
-
-template <typename S>
-DynamicElement<S>& DynamicElement<S>::operator=(const DynamicElement<S>& other) {
-  deregisterWithMesh();
-  this->mesh = other.mesh;
-  this->ind = other.ind;
-  registerWithMesh();
-  return *this;
-}
-
-template <typename S>
-DynamicElement<S>& DynamicElement<S>::operator=(DynamicElement<S>&& other) noexcept {
-  deregisterWithMesh();
-  this->mesh = other.mesh;
-  this->ind = other.ind;
-  registerWithMesh();
-  return *this;
-}
-
-template<typename S> 
-DynamicElement<S>::~DynamicElement() {
-  deregisterWithMesh();
-}
-
-template<typename S> 
-void DynamicElement<S>::registerWithMesh() {
-  
-  // Callback function on permutation
-  std::function<void(const std::vector<size_t>&)> permuteFunc = [this](const std::vector<size_t>& perm) {
-    // TODO FIXME not implemented. See note in mesh compression callbacks.
-  };
-
-  // Callback function on mesh delete
-  std::function<void()> deleteFunc = [this]() {
-    // Ensures that we don't try to remove with iterators on deconstruct of this object
-    this->mesh = nullptr;
-  };
-
-  permuteCallbackIt = getPermuteCallbackList<S>(this->mesh).insert(getPermuteCallbackList<S>(this->mesh).end(), permuteFunc);
-  deleteCallbackIt = this->mesh->meshDeleteCallbackList.insert(this->mesh->meshDeleteCallbackList.end(), deleteFunc);
-}
-
-template<typename S> 
-void DynamicElement<S>::deregisterWithMesh() {
-  if (this->mesh == nullptr) return;
-  getPermuteCallbackList<S>(this->mesh).erase(permuteCallbackIt);
-  this->mesh->meshDeleteCallbackList.erase(deleteCallbackIt);
-}
-
-
-// Base iterators
-template <typename F>
-inline RangeIteratorBase<F>::RangeIteratorBase(HalfedgeMesh* mesh_, size_t iStart_, size_t iEnd_) : mesh(mesh_), iCurr(iStart_), iEnd(iEnd_) {
-  if (iCurr != iEnd && !F::elementOkay(*mesh, iCurr)) {
-    this->operator++();
-  }
-}
-
-template <typename F>
-inline const RangeIteratorBase<F>& RangeIteratorBase<F>::operator++() {
-  iCurr++;
-  while (iCurr != iEnd && !F::elementOkay(*mesh, iCurr)) {
-    iCurr++;
-  }
-  return *this;
-}
-
-template <typename F>
-inline bool RangeIteratorBase<F>::operator==(const RangeIteratorBase<F>& other) const {
-	return iCurr == other.iCurr;
-}
-
-template <typename F>
-inline bool RangeIteratorBase<F>::operator!=(const RangeIteratorBase<F>& other) const {
-	return !(*this == other);
-}
-
-template <typename F>
-inline typename F::Etype RangeIteratorBase<F>::operator*() const { return typename F::Etype(mesh, iCurr); }
-
-template <typename F>
-RangeSetBase<F>::RangeSetBase(HalfedgeMesh* mesh_, size_t iStart_, size_t iEnd_) : mesh(mesh_), iStart(iStart_), iEnd(iEnd_) {}  
-
-template <typename F>
-inline RangeIteratorBase<F> RangeSetBase<F>::begin() const { return RangeIteratorBase<F>(mesh, iStart, iEnd); }
-
-template <typename F>
-inline RangeIteratorBase<F> RangeSetBase<F>::end() const { return RangeIteratorBase<F>(mesh, iEnd, iEnd); }
 
 // ==========================================================
 // ================        Vertex          ==================
@@ -164,53 +26,177 @@ inline RangeIteratorBase<F> RangeSetBase<F>::end() const { return RangeIteratorB
 // Constructors
 // (see note in header, these should be inherited but aren't due to compiler issues)
 inline Vertex::Vertex() {}
-inline Vertex::Vertex(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline Vertex::Vertex(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline Vertex::Vertex(const DynamicElement<Vertex>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
-inline Halfedge Vertex::halfedge() const    { return Halfedge(mesh, mesh->vHalfedge[ind]); }
+inline Halfedge Vertex::halfedge() const    { return Halfedge(mesh, mesh->vHalfedge(ind)); }
 inline Corner Vertex::corner() const        { return halfedge().corner(); }
+inline bool Vertex::isDead() const          { return mesh->vertexIsDead(ind); }
 
 // Properties
 inline bool Vertex::isBoundary() const { return !halfedge().twin().isInterior(); }
+inline bool Vertex::isManifoldAndOriented() const { 
+  // TODO this routine is actually pretty nontrivial, it probably deserves some more thought
+  // strategy: bootstrap off of the adjacency iterator, which already has functionality for nonmanifold vertices
+  if(mesh->usesImplicitTwin()) return true;
+  size_t d = degree(); 
+  size_t kManif = 0; 
+  Halfedge firstHe = halfedge();
+  Halfedge currHe = firstHe;
+  do {
+    kManif++;
+    currHe = currHe.twin().next();
+    if(currHe.vertex() != *this) return false;
+    if(kManif > d) return false;
+  } while(currHe != firstHe);
+
+  return kManif == d;
+}
+inline bool Vertex::isManifold() const { 
+  if(mesh->usesImplicitTwin()) return true;
+ 
+  // test if all incoming edges are manifold
+  for(Edge e : adjacentEdges()) {
+    if(!e.isManifold()) return false;
+  }
+  
+  // test if there is a single edge-connected component
+  std::vector<Face> toProc{halfedge().face()};
+  std::unordered_set<Face> seen;
+  while(!toProc.empty()) {
+    Face f = toProc.back();
+    toProc.pop_back();
+    if(seen.find(f) != seen.end()) continue;
+    seen.insert(f);
+    for(Halfedge he : f.adjacentHalfedges()) {
+      if(he.vertex()  == *this || he.next().vertex() ==*this) {
+        for(Face fn : he.edge().adjacentFaces()) {
+          if(seen.find(fn) == seen.end()) toProc.push_back(fn);
+        }
+      }
+    }
+  }
+  for (Face f : adjacentFaces()) { 
+    if(seen.find(f) == seen.end()) return false;
+  }
+
+  return true;
+}
 inline size_t Vertex::degree() const {
   size_t k = 0;
-  for (Halfedge h : outgoingHalfedges()) { k++; }
+  for (Edge e: adjacentEdges()) { k++; }
   return k;
 }
 inline size_t Vertex::faceDegree() const {
-  size_t d = degree();
-  if(isBoundary()) {
-    return d - 1;
-  } else {
-    return d;
-  }
+  size_t k = 0;
+  for (Face f : adjacentFaces()) { k++; }
+  return k;
 }
 
 // Navigation iterators 
 inline NavigationSetBase<VertexIncomingHalfedgeNavigator> Vertex::incomingHalfedges() const { 
-  return NavigationSetBase<VertexIncomingHalfedgeNavigator>(halfedge()); 
+  return NavigationSetBase<VertexIncomingHalfedgeNavigator>(halfedge().prevOrbitFace()); 
 }
 inline NavigationSetBase<VertexOutgoingHalfedgeNavigator> Vertex::outgoingHalfedges() const { 
   return NavigationSetBase<VertexOutgoingHalfedgeNavigator>(halfedge()); 
 }
 inline NavigationSetBase<VertexAdjacentVertexNavigator> Vertex::adjacentVertices() const { 
-  return NavigationSetBase<VertexAdjacentVertexNavigator>(halfedge()); 
+  return NavigationSetBase<VertexAdjacentVertexNavigator>(VertexNeighborIteratorState(halfedge(), mesh->usesImplicitTwin())); 
 }
 inline NavigationSetBase<VertexAdjacentFaceNavigator> Vertex::adjacentFaces() const { 
   return NavigationSetBase<VertexAdjacentFaceNavigator>(halfedge()); 
 }
 inline NavigationSetBase<VertexAdjacentEdgeNavigator> Vertex::adjacentEdges() const { 
-  return NavigationSetBase<VertexAdjacentEdgeNavigator>(halfedge()); 
+  return NavigationSetBase<VertexAdjacentEdgeNavigator>(VertexNeighborIteratorState(halfedge(), mesh->usesImplicitTwin())); 
 }
 inline NavigationSetBase<VertexAdjacentCornerNavigator> Vertex::adjacentCorners() const {
   return NavigationSetBase<VertexAdjacentCornerNavigator>(halfedge());
 }
 
-// Range iterators
-inline bool VertexRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+// == Range iterators
+inline bool VertexRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.vertexIsDead(ind);
 }
+
+// == Navigation iterators
+
+// Iterating around vertices on a nonmanifold/nonoriented mesh is hard. 
+// Our data structure offers iteration around the outgoing halfedges from each vertex, which takes care of outoing halfedges. Furthermore one thing we know is that for every face in which the vertex appears, there is at least one incoming and one outgoing halfedge. We can use this to find the faces and outgoing halfedges.  For edges and vertices, 
+// In both the mannifold and nonmanifold case, if a vertex appears in a face multiple times, (aka its a Delta-complex), then these iterators will return elements multiple times.
+
+inline VertexNeighborIteratorState::VertexNeighborIteratorState(Halfedge currHe_, bool useImplicitTwin_) : useImplicitTwin(useImplicitTwin_), currHe(currHe_), firstHe(currHe_) {}
+
+// clang-format on
+inline void VertexNeighborIteratorState::advance() {
+  if (useImplicitTwin) {
+    currHe = currHe.nextOutgoingNeighbor(); // twin().next()
+  } else {
+    if (!processingIncoming) {
+      // this happens first
+      currHe = currHe.nextOutgoingNeighbor();
+      if (currHe == firstHe) { // switch to processing incoming if needed
+        processingIncoming = true;
+        currHe = firstHe.prevOrbitFace();
+        firstHe = currHe;
+      }
+    } else {
+      // this happens second
+      currHe = currHe.nextIncomingNeighbor();
+      if (currHe == firstHe) { // switch back to processing outgoing if needed (returning to initial state)
+        processingIncoming = false;
+        currHe = firstHe.next();
+        firstHe = currHe;
+      }
+    }
+  }
+}
+
+inline bool VertexNeighborIteratorState::isHalfedgeCanonical() const {
+  // TODO I _think_ that this leads to different Delta-complex behavior on implicit twin vs. without wrt yielding
+  // elements multiple times when there is a self-edge...
+  if (useImplicitTwin) {
+    return true;
+  } else {
+    return currHe == currHe.edge().halfedge();
+  }
+}
+
+inline bool VertexNeighborIteratorState::operator==(const VertexNeighborIteratorState& rhs) const {
+  return currHe == rhs.currHe && processingIncoming == rhs.processingIncoming;
+}
+// clang-format off
+
+inline void VertexAdjacentVertexNavigator::advance() { currE.advance(); }
+inline bool VertexAdjacentVertexNavigator::isValid() const { return currE.isHalfedgeCanonical(); }
+inline Vertex VertexAdjacentVertexNavigator::getCurrent() const {
+  if(currE.useImplicitTwin || !currE.processingIncoming) {
+    return currE.currHe.next().vertex();
+  } else {
+    return currE.currHe.vertex();
+  }
+}
+
+inline void VertexIncomingHalfedgeNavigator::advance() { currE = currE.nextIncomingNeighbor(); }
+inline bool VertexIncomingHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge VertexIncomingHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void VertexOutgoingHalfedgeNavigator::advance() {currE = currE.nextOutgoingNeighbor(); }
+inline bool VertexOutgoingHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge VertexOutgoingHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void VertexAdjacentCornerNavigator::advance() { currE = currE.nextOutgoingNeighbor(); }
+inline bool VertexAdjacentCornerNavigator::isValid() const { return currE.isInterior(); }
+inline Corner VertexAdjacentCornerNavigator::getCurrent() const { return currE.corner(); }
+
+inline void VertexAdjacentEdgeNavigator::advance() { currE.advance(); }
+inline bool VertexAdjacentEdgeNavigator::isValid() const { return currE.isHalfedgeCanonical(); }
+inline Edge VertexAdjacentEdgeNavigator::getCurrent() const { return currE.currHe.edge(); }
+
+inline void VertexAdjacentFaceNavigator::advance() { currE = currE.nextOutgoingNeighbor(); }
+inline bool VertexAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
+inline Face VertexAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
+
 
 // ==========================================================
 // ================        Halfedge        ==================
@@ -218,16 +204,22 @@ inline bool VertexRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 
 // Constructors
 inline Halfedge::Halfedge() {}
-inline Halfedge::Halfedge(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline Halfedge::Halfedge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline Halfedge::Halfedge(const DynamicElement<Halfedge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
-inline Halfedge Halfedge::twin() const  { return Halfedge(mesh, HalfedgeMesh::heTwin(ind)); }
-inline Halfedge Halfedge::next() const  { return Halfedge(mesh, mesh->heNext[ind]); }
-inline Vertex Halfedge::vertex() const  { return Vertex(mesh, mesh->heVertex[ind]); }
-inline Edge Halfedge::edge() const      { return Edge(mesh, HalfedgeMesh::heEdge(ind)); }
-inline Face Halfedge::face() const      { return Face(mesh, mesh->heFace[ind]); }
-inline Corner Halfedge::corner() const  { return Corner(mesh, ind); }
+inline Halfedge Halfedge::twin() const                  { return Halfedge(mesh, mesh->heSibling(ind)); }
+inline Halfedge Halfedge::sibling() const               { return Halfedge(mesh, mesh->heSibling(ind)); }
+inline Halfedge Halfedge::next() const                  { return Halfedge(mesh, mesh->heNext(ind)); }
+inline Vertex Halfedge::vertex() const                  { return Vertex(mesh, mesh->heVertex(ind)); }
+inline Vertex Halfedge::tipVertex() const               { return next().vertex(); }
+inline Vertex Halfedge::tailVertex() const              { return vertex(); }
+inline Halfedge Halfedge::nextOutgoingNeighbor() const  { return Halfedge(mesh, mesh->heNextOutgoingNeighbor(ind)); }
+inline Halfedge Halfedge::nextIncomingNeighbor() const  { return Halfedge(mesh, mesh->heNextIncomingNeighbor(ind)); }
+inline Edge Halfedge::edge() const                      { return Edge(mesh, mesh->heEdge(ind)); }
+inline Face Halfedge::face() const                      { return Face(mesh, mesh->heFace(ind)); }
+inline Corner Halfedge::corner() const                  { return Corner(mesh, ind); }
+inline bool Halfedge::isDead() const                    { return mesh->halfedgeIsDead(ind); }
 
 
 // Super-navigators
@@ -252,15 +244,16 @@ inline Halfedge Halfedge::prevOrbitVertex() const  {
 
 // Properties
 inline bool Halfedge::isInterior() const { return  mesh->heIsInterior(ind); }
+inline bool Halfedge::orientation() const { return  mesh->heOrientation(ind); }
 
 // Range iterators
-inline bool HalfedgeRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+inline bool HalfedgeRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.halfedgeIsDead(ind);
 }
-inline bool HalfedgeInteriorRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+inline bool HalfedgeInteriorRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.halfedgeIsDead(ind) && mesh.heIsInterior(ind);
 }
-inline bool HalfedgeExteriorRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+inline bool HalfedgeExteriorRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.halfedgeIsDead(ind) && !mesh.heIsInterior(ind);
 }
 
@@ -270,16 +263,17 @@ inline bool HalfedgeExteriorRangeF::elementOkay(const HalfedgeMesh& mesh, size_t
 
 // Constructors
 inline Corner::Corner() {}
-inline Corner::Corner(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline Corner::Corner(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline Corner::Corner(const DynamicElement<Corner>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
 inline Halfedge Corner::halfedge() const { return Halfedge(mesh, ind); }
 inline Vertex Corner::vertex() const { return halfedge().vertex(); }
 inline Face Corner::face() const { return halfedge().face(); }
+inline bool Corner::isDead() const    { return halfedge().isDead(); }
 
 // Range iterators
-inline bool CornerRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+inline bool CornerRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.halfedgeIsDead(ind) && mesh.heIsInterior(ind);
 }
 
@@ -289,19 +283,71 @@ inline bool CornerRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 
 // Constructors
 inline Edge::Edge() {}
-inline Edge::Edge(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline Edge::Edge(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline Edge::Edge(const DynamicElement<Edge>& e) : Element(e.getMesh(), e.getIndex()) {}
 
-// Navigators
-inline Halfedge Edge::halfedge() const { return Halfedge(mesh, HalfedgeMesh::eHalfedge(ind)); }
+// Navigator
+inline Halfedge Edge::halfedge() const      { return Halfedge(mesh, mesh->eHalfedge(ind)); }
+inline Vertex Edge::otherVertex(Vertex v) const { 
+  if(halfedge().tailVertex() == v) {
+    return halfedge().tipVertex();
+  } else {
+    return halfedge().tailVertex();
+  }
+}
+inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
 
 // Properties
-inline bool Edge::isBoundary() const { return !halfedge().isInterior() || !halfedge().twin().isInterior(); }
+inline bool Edge::isBoundary() const { 
+  if(mesh->usesImplicitTwin()) {
+    return !halfedge().twin().isInterior();
+  } else {
+    return halfedge().sibling() == halfedge();
+  }
+} 
+inline bool Edge::isManifold() const { return halfedge().sibling().sibling() == halfedge() || halfedge().sibling() == halfedge(); }
+inline bool Edge::isOriented() const { 
+  Halfedge he = halfedge();
+  if(he == he.sibling()) return true; // boundary
+  if(he.sibling().sibling() != he) return false; // not manifold
+  return he.orientation() != he.sibling().orientation();
+}
+inline size_t Edge::degree() const { 
+  size_t k = 0;
+  for(Halfedge he : adjacentInteriorHalfedges()) {
+    k++;
+  }
+  return k;
+}
 
 // Range iterators
-inline bool EdgeRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+inline bool EdgeRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.edgeIsDead(ind);
 }
+
+// Navigation iterators
+
+inline NavigationSetBase<EdgeAdjacentHalfedgeNavigator> Edge::adjacentHalfedges() const { 
+  return NavigationSetBase<EdgeAdjacentHalfedgeNavigator>(halfedge()); 
+}
+inline NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> Edge::adjacentInteriorHalfedges() const { 
+  return NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator>(halfedge()); 
+}
+inline NavigationSetBase<EdgeAdjacentFaceNavigator> Edge::adjacentFaces() const { 
+  return NavigationSetBase<EdgeAdjacentFaceNavigator>(halfedge()); 
+}
+
+inline void EdgeAdjacentHalfedgeNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge EdgeAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void EdgeAdjacentInteriorHalfedgeNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentInteriorHalfedgeNavigator::isValid() const { return currE.isInterior(); }
+inline Halfedge EdgeAdjacentInteriorHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void EdgeAdjacentFaceNavigator::advance() { currE = currE.sibling(); }
+inline bool EdgeAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
+inline Face EdgeAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
 
 
 // ==========================================================
@@ -310,15 +356,16 @@ inline bool EdgeRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 
 // Constructors
 inline Face::Face() {}
-inline Face::Face(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline Face::Face(const DynamicElement<Face>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline Face::Face(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline Face::Face(const DynamicElement<Face>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 // Navigators
-inline Halfedge Face::halfedge() const { return Halfedge(mesh, mesh->fHalfedge[ind]); }
+inline Halfedge Face::halfedge() const { return Halfedge(mesh, mesh->fHalfedge(ind)); }
 inline BoundaryLoop Face::asBoundaryLoop() const { 
   GC_SAFETY_ASSERT(isBoundaryLoop(), "face must be boundary loop to call asBoundaryLoop()")
   return BoundaryLoop(mesh, mesh->faceIndToBoundaryLoopInd(ind)); 
 }
+inline bool Face::isDead() const    { return mesh->faceIsDead(ind); }
 
 // Properties
 inline bool Face::isTriangle() const {
@@ -341,7 +388,7 @@ inline NavigationSetBase<FaceAdjacentVertexNavigator> Face::adjacentVertices() c
   return NavigationSetBase<FaceAdjacentVertexNavigator>(halfedge()); 
 }
 inline NavigationSetBase<FaceAdjacentFaceNavigator> Face::adjacentFaces() const { 
-  return NavigationSetBase<FaceAdjacentFaceNavigator>(halfedge()); 
+  return NavigationSetBase<FaceAdjacentFaceNavigator>(std::make_pair(halfedge(), halfedge())); 
 }
 inline NavigationSetBase<FaceAdjacentEdgeNavigator> Face::adjacentEdges() const { 
   return NavigationSetBase<FaceAdjacentEdgeNavigator>(halfedge()); 
@@ -351,10 +398,39 @@ inline NavigationSetBase<FaceAdjacentCornerNavigator> Face::adjacentCorners() co
 }
 
 
-// Range iterators
-inline bool FaceRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+// == Range iterators
+inline bool FaceRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.faceIsDead(ind);
 }
+
+// == Navigation iterators
+
+inline void FaceAdjacentVertexNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentVertexNavigator::isValid() const { return true; }
+inline Vertex FaceAdjacentVertexNavigator::getCurrent() const { return currE.vertex(); }
+
+inline void FaceAdjacentHalfedgeNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge FaceAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void FaceAdjacentCornerNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentCornerNavigator::isValid() const { return true; }
+inline Corner FaceAdjacentCornerNavigator::getCurrent() const { return currE.corner(); }
+
+inline void FaceAdjacentEdgeNavigator::advance() { currE = currE.next(); }
+inline bool FaceAdjacentEdgeNavigator::isValid() const { return true; }
+inline Edge FaceAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
+
+inline void FaceAdjacentFaceNavigator::advance() { 
+  currE.second = currE.second.sibling();
+  if(currE.first == currE.second) {
+    currE.first = currE.first.next(); 
+    currE.second = currE.first;
+  }
+}
+inline bool FaceAdjacentFaceNavigator::isValid() const { return currE.first != currE.second && currE.second.isInterior(); }
+inline Face FaceAdjacentFaceNavigator::getCurrent() const { return currE.second.face(); }
+
 
 // ==========================================================
 // ================     Boundary Loop      ==================
@@ -362,12 +438,14 @@ inline bool FaceRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
 
 // Constructors
 inline BoundaryLoop::BoundaryLoop() {}
-inline BoundaryLoop::BoundaryLoop(HalfedgeMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
-inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Element(e.getMesh(), e.getIndex()) {}
+inline BoundaryLoop::BoundaryLoop(SurfaceMesh* mesh_, size_t ind_) : Element(mesh_,ind_) {}
+//inline BoundaryLoop::BoundaryLoop(const DynamicElement<BoundaryLoop>& e) : Element(e.getMesh(), e.getIndex()) {}
 
 
 inline Halfedge BoundaryLoop::halfedge() const { return asFace().halfedge(); }
 inline Face BoundaryLoop::asFace() const { return Face(mesh, mesh->boundaryLoopIndToFaceInd(ind)); }
+inline bool BoundaryLoop::isDead() const    { return asFace().isDead(); }
+
 inline size_t BoundaryLoop::degree() const {
   size_t k = 0;
   for (Halfedge h : adjacentHalfedges()) { k++; }
@@ -384,10 +462,24 @@ inline NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator> BoundaryLoop::adjace
   return NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator>(halfedge()); 
 }
 
-// Range iterators
-inline bool BoundaryLoopRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind) {
+// == Range iterators
+inline bool BoundaryLoopRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
   return !mesh.faceIsDead(mesh.boundaryLoopIndToFaceInd(ind));
 }
+
+// == Navigation iterators
+
+inline void BoundaryLoopAdjacentVertexNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentVertexNavigator::isValid() const { return true; }
+inline Vertex BoundaryLoopAdjacentVertexNavigator::getCurrent() const { return currE.vertex(); }
+
+inline void BoundaryLoopAdjacentHalfedgeNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentHalfedgeNavigator::isValid() const { return true; }
+inline Halfedge BoundaryLoopAdjacentHalfedgeNavigator::getCurrent() const { return currE; }
+
+inline void BoundaryLoopAdjacentEdgeNavigator::advance() { currE = currE.next(); }
+inline bool BoundaryLoopAdjacentEdgeNavigator::isValid() const { return true; }
+inline Edge BoundaryLoopAdjacentEdgeNavigator::getCurrent() const { return currE.edge(); }
 
 
 // clang-format on
@@ -395,18 +487,3 @@ inline bool BoundaryLoopRangeF::elementOkay(const HalfedgeMesh& mesh, size_t ind
 } // namespace surface
 } // namespace geometrycentral
 
-namespace std {
-
-// For lookup reasons I don't entirely understand, need to list these out explicitly, template on base does not resolve
-
-// clang-format off
-template <> struct hash<geometrycentral::surface::Vertex>         { std::size_t operator()(const geometrycentral::surface::Vertex& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Halfedge>       { std::size_t operator()(const geometrycentral::surface::Halfedge& e)       const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Corner>         { std::size_t operator()(const geometrycentral::surface::Corner& e)         const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Edge>           { std::size_t operator()(const geometrycentral::surface::Edge& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::Face>           { std::size_t operator()(const geometrycentral::surface::Face& e)           const { return std::hash<size_t>{}(e.getIndex()); } };
-template <> struct hash<geometrycentral::surface::BoundaryLoop>   { std::size_t operator()(const geometrycentral::surface::BoundaryLoop& e)   const { return std::hash<size_t>{}(e.getIndex()); } };
-
-// clang-format on
-
-} // namespace std

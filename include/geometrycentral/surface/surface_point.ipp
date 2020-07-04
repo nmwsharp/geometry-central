@@ -8,6 +8,8 @@ namespace surface {
 inline SurfacePoint::SurfacePoint() : type(SurfacePointType::Vertex) {}
 inline SurfacePoint::SurfacePoint(Vertex v) : type(SurfacePointType::Vertex), vertex(v) {}
 inline SurfacePoint::SurfacePoint(Edge e, double tEdge_) : type(SurfacePointType::Edge), edge(e), tEdge(tEdge_) {}
+inline SurfacePoint::SurfacePoint(Halfedge he, double tHalfedge)
+    : type(SurfacePointType::Edge), edge(he.edge()), tEdge(he == he.edge().halfedge() ? tHalfedge : (1. - tHalfedge)) {}
 inline SurfacePoint::SurfacePoint(Face f, Vector3 faceCoords_)
     : type(SurfacePointType::Face), face(f), faceCoords(faceCoords_) {}
 
@@ -80,6 +82,68 @@ inline SurfacePoint SurfacePoint::inSomeFace() const {
   }
 
   throw std::logic_error("bad switch");
+  return *this;
+}
+
+inline SurfacePoint SurfacePoint::inFace(Face targetFace) const {
+
+  switch (type) {
+  case SurfacePointType::Vertex: {
+
+    Halfedge he = targetFace.halfedge();
+
+    // Find the appropriate barycentric coordinate and return
+    if (he.vertex() == vertex) {
+      return SurfacePoint(targetFace, Vector3{1., 0., 0.});
+    }
+    he = he.next();
+    if (he.vertex() == vertex) {
+      return SurfacePoint(targetFace, Vector3{0., 1., 0.});
+    }
+    he = he.next();
+    if (he.vertex() == vertex) {
+      return SurfacePoint(targetFace, Vector3{0., 0., 1.});
+    }
+
+    break;
+  }
+
+  case SurfacePointType::Edge: {
+
+    double thisT = tEdge;
+    for (Halfedge targetHe : {edge.halfedge(), edge.halfedge().twin()}) {
+
+      int i = 0;
+      for (Halfedge he : targetFace.adjacentHalfedges()) {
+        if (he == targetHe) {
+          // Find the appropriate barycentric coordinate and return
+
+          Vector3 bary = Vector3::zero();
+          bary[i] = 1.0 - thisT;
+          bary[(i + 1) % 3] = thisT;
+
+          return SurfacePoint(targetFace, bary);
+        }
+        i++;
+      }
+
+      // Flip the point to be along the other halfedge
+      thisT = 1. - thisT;
+    }
+
+    break;
+  }
+
+  case SurfacePointType::Face: {
+    if (face == targetFace) {
+      return *this;
+    };
+    break;
+  }
+  }
+
+  throw std::logic_error("SurfacePoint " + std::to_string(*this) + " not adjacent to target face " +
+                         std::to_string(targetFace));
   return *this;
 }
 
@@ -169,6 +233,55 @@ inline void SurfacePoint::validate() const {
   }
 }
 
+inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
+  if (type != other.type) return false;
+  switch (type) {
+  case SurfacePointType::Vertex: {
+    return vertex == other.vertex;
+    break;
+  }
+  case SurfacePointType::Edge: {
+    return edge == other.edge && tEdge == other.tEdge;
+    break;
+  }
+  case SurfacePointType::Face: {
+    return face == other.face && faceCoords == other.faceCoords;
+    break;
+  }
+  }
+  return false; // should never be reached
+}
+inline bool SurfacePoint::operator!=(const SurfacePoint& other) const { return !(*this == other); }
+
+
+inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
+
+  switch (pA.type) {
+
+  case SurfacePointType::Vertex:
+    for (Face f : pA.vertex.adjacentFaces()) {
+      if (checkAdjacent(SurfacePoint(f, Vector3::zero()), pB)) return f;
+    }
+    break;
+
+  case SurfacePointType::Edge:
+
+    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().face(), Vector3::zero()), pB)) {
+      return pA.edge.halfedge().face();
+    }
+    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().twin().face(), Vector3::zero()), pB)) {
+      return pA.edge.halfedge().twin().face();
+    }
+    break;
+
+  case SurfacePointType::Face:
+    if (checkAdjacent(pA, pB)) return pA.face;
+    break;
+  }
+
+  // no shared face
+  return Face();
+}
 } // namespace surface
 } // namespace geometrycentral
 

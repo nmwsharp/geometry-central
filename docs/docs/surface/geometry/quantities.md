@@ -8,7 +8,7 @@ Recall that these quantities are each associated with a [geometry interface](geo
 using namespace geometrycentral::surface;
 
 // Load a mesh and geometry from file
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> positionGeometry;
 std::tie<mesh, positionGeometry> = loadMesh("spot.obj");
 
@@ -39,7 +39,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### vertex indices
 
-    A dense 0-based enumeration of vertices. Equivalent to the result of `HalfedgeMesh::getVertexIndices()`.
+    A dense 0-based enumeration of vertices. Equivalent to the result of `SurfaceMesh::getVertexIndices()`.
 
     - **member:** `VertexData<size_t> BaseGeometryInterface::vertexIndices`
     - **require:** `void BaseGeometryInterface::requireVertexIndices()`
@@ -49,7 +49,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### halfedge indices
 
-    A dense 0-based enumeration of halfedges. Equivalent to the result of `HalfedgeMesh::getHalfedgeIndices()`.
+    A dense 0-based enumeration of halfedges. Equivalent to the result of `SurfaceMesh::getHalfedgeIndices()`.
 
     - **member:** `HalfedgeData<size_t> BaseGeometryInterface::halfedgeIndices`
     - **require:** `void BaseGeometryInterface::requireHalfedgeIndices()`
@@ -59,7 +59,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### corner indices
 
-    A dense 0-based enumeration of corners. Equivalent to the result of `HalfedgeMesh::getCornerIndices()`.
+    A dense 0-based enumeration of corners. Equivalent to the result of `SurfaceMesh::getCornerIndices()`.
 
     - **member:** `CornerData<size_t> BaseGeometryInterface::cornerIndices`
     - **require:** `void BaseGeometryInterface::requireCornerIndices()`
@@ -68,7 +68,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### edge indices
 
-    A dense 0-based enumeration of edges. Equivalent to the result of `HalfedgeMesh::getEdgeIndices()`.
+    A dense 0-based enumeration of edges. Equivalent to the result of `SurfaceMesh::getEdgeIndices()`.
 
     - **member:** `EdgeData<size_t> BaseGeometryInterface::edgeIndices`
     - **require:** `void BaseGeometryInterface::requireEdgeIndices()`
@@ -78,7 +78,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### face indices
 
-    A dense 0-based enumeration of faces. Equivalent to the result of `HalfedgeMesh::getFaceIndices()`.
+    A dense 0-based enumeration of faces. Equivalent to the result of `SurfaceMesh::getFaceIndices()`.
 
     - **member:** `FaceData<size_t> BaseGeometryInterface::faceIndices`
     - **require:** `void BaseGeometryInterface::requireFaceIndices()`
@@ -88,7 +88,7 @@ These quantities are defined for the base `BaseGeometryInterface`, and will alwa
     
     ##### boundary loop indices
 
-    A dense 0-based enumeration of [boundary loops](../../halfedge_mesh/boundaries). Equivalent to the result of `HalfedgeMesh::getBoundaryLoopIndices()`.
+    A dense 0-based enumeration of [boundary loops](../../surface_mesh/boundaries). Equivalent to the result of `SurfaceMesh::getBoundaryLoopIndices()`.
 
     - **member:** `BoundaryLoopData<size_t> BaseGeometryInterface::boundaryLoopIndices`
     - **require:** `void BaseGeometryInterface::requireBoundaryLoopIndices()`
@@ -188,7 +188,7 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
 
     The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a vertex, defined via the angle defect $K_v = 2 \pi - \sum \theta_i$, where $\sum \theta_i$ is the `vertexAngleSum` as above.
 
-    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature in the neighborhood of the vertex. On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_v K_v = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../halfedge_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
+    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature in the neighborhood of the vertex. On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_v K_v = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
 
     Only valid on triangular meshes.
 
@@ -204,7 +204,7 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
 
     Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature inside of the face. A corresponding curvature-per-unit-area can be computed by dividing by the area of the face.
 
-    On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_f K_f = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../halfedge_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
+    On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_f K_f = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
 
     Only valid on triangular meshes.
 
@@ -360,7 +360,7 @@ See [vertex tangent basis](#vertex-tangent-basis) to convert these tangent vecto
 
 These quantities are defined for any `IntrinsicGeometryInterface`, which is the base class of all other geometry objects---they will always be available on any kind of geometry. A full explanation of these operators is beyond the scope of these docs; see [these course notes](https://www.cs.cmu.edu/~kmcrane/Projects/DDG/paper.pdf) for one introduction.
 
-All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `HalfedgeMesh::getVertexIndices()` (etc).
+All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `SurfaceMesh::getVertexIndices()` (etc).
 
 ??? func "cotangent Laplacian"
     
@@ -522,7 +522,7 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     ```cpp
  
-    HalfedgeMesh& mesh = /* ... */ 
+    SurfaceMesh& mesh = /* ... */ 
     VertexPositionGeometry& geometry = /* ... */;    
     FaceData<Vector2> myTangentVectorField;
   
@@ -553,7 +553,7 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     ```cpp
  
-    HalfedgeMesh& mesh = /* ... */ 
+    SurfaceMesh& mesh = /* ... */ 
     VertexPositionGeometry& geometry = /* ... */;    
     VertexData<Vector2> myTangentVectorField;
   

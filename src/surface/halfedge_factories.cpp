@@ -3,67 +3,66 @@
 
 namespace geometrycentral {
 namespace surface {
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
-makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions,
-                        bool compressIndices, bool verbose) {
-
-  if (compressIndices) {
-
-    // Check which indices are used
-    size_t nV = vertexPositions.size();
-    std::vector<char> vertexUsed(nV, false);
-    for (auto poly : polygons) {
-      for (auto i : poly) {
-        GC_SAFETY_ASSERT(i < nV,
-                         "polygon list has index " + std::to_string(i) + " >= num vertices " + std::to_string(nV));
-        vertexUsed[i] = true;
-      }
-    }
 
 
-    // Re-index
-    std::vector<size_t> newInd(nV, INVALID_IND);
-    std::vector<Vector3> newVertexPositions(nV);
-    size_t nNewV = 0;
-    for (size_t iOldV = 0; iOldV < nV; iOldV++) {
-      if (!vertexUsed[iOldV]) continue;
-      size_t iNewV = nNewV++;
-      newInd[iOldV] = iNewV;
-      newVertexPositions[iNewV] = vertexPositions[iOldV];
-    }
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions) {
 
-    // Translate the polygon listing
-    std::vector<std::vector<size_t>> newPolygons = polygons;
-    for (auto& poly : newPolygons) {
-      for (auto& i : poly) {
-        i = newInd[i];
-      }
-    }
-
-
-    // Construct
-    std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(newPolygons, verbose));
-    std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
-    for (Vertex v : mesh->vertices()) {
-      // Use the low-level indexers here since we're constructing
-      (*geometry).inputVertexPositions[v] = newVertexPositions[v.getIndex()];
-    }
-
-    return std::make_tuple(std::move(mesh), std::move(geometry));
-
-  } else {
-
-    // Construct
-    std::unique_ptr<HalfedgeMesh> mesh(new HalfedgeMesh(polygons, verbose));
-    std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
-    for (Vertex v : mesh->vertices()) {
-      // Use the low-level indexers here since we're constructing
-      (*geometry).inputVertexPositions[v] = vertexPositions[v.getIndex()];
-    }
-
-    return std::make_tuple(std::move(mesh), std::move(geometry));
-  }
+  return makeHalfedgeAndGeometry(polygons, {}, vertexPositions);
 }
+
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                        const std::vector<Vector3> vertexPositions) {
+
+  // Construct
+  std::unique_ptr<ManifoldSurfaceMesh> mesh;
+  if (twins.empty()) {
+    mesh.reset(new ManifoldSurfaceMesh(polygons));
+  } else {
+    mesh.reset(new ManifoldSurfaceMesh(polygons, twins));
+  }
+  std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
+  for (Vertex v : mesh->vertices()) {
+    // Use the low-level indexers here since we're constructing
+    (*geometry).inputVertexPositions[v] = vertexPositions[v.getIndex()];
+  }
+
+  return std::make_tuple(std::move(mesh), std::move(geometry));
+}
+
+
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeGeneralHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                                   const std::vector<Vector3> vertexPositions) {
+
+  return makeGeneralHalfedgeAndGeometry(polygons, {}, vertexPositions);
+}
+
+
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+makeGeneralHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                                   const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                                   const std::vector<Vector3> vertexPositions) {
+
+  // Construct
+  std::unique_ptr<SurfaceMesh> mesh;
+  if (twins.empty()) {
+    mesh.reset(new SurfaceMesh(polygons));
+  } else {
+    mesh.reset(new SurfaceMesh(polygons, twins));
+  }
+  std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
+  for (Vertex v : mesh->vertices()) {
+    // Use the low-level indexers here since we're constructing
+    (*geometry).inputVertexPositions[v] = vertexPositions[v.getIndex()];
+  }
+
+  return std::make_tuple(std::move(mesh), std::move(geometry));
+}
+
+
 
 } // namespace surface
 } // namespace geometrycentral

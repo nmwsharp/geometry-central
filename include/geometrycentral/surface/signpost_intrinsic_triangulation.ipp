@@ -59,13 +59,6 @@ inline double SignpostIntrinsicTriangulation::edgeCotanWeight(Edge e) const {
   return halfedgeCotanWeight(e.halfedge()) + halfedgeCotanWeight(e.halfedge().twin());
 }
 
-inline double SignpostIntrinsicTriangulation::area(double lAB, double lBC, double lCA) {
-  double s = (lAB + lBC + lCA) / 2.0;
-  double arg = std::max(0., s * (s - lAB) * (s - lBC) * (s - lCA));
-  double area = std::sqrt(arg);
-  return area;
-}
-
 inline std::array<Vector2, 4> SignpostIntrinsicTriangulation::layoutDiamond(Halfedge iHe) {
 
   // Conventions:
@@ -101,27 +94,6 @@ inline std::array<Vector2, 4> SignpostIntrinsicTriangulation::layoutDiamond(Half
   return {p0, p1, p2, p3};
 }
 
-inline Vector2 SignpostIntrinsicTriangulation::layoutTriangleVertex(const Vector2& pA, const Vector2& pB,
-                                                                    const double& lBC, const double& lCA) {
-
-  const double lAB = norm(pB - pA);
-  double tArea = area(lAB, lBC, lCA);
-
-  // Compute width and height of right triangle formed via altitude from C
-  double h = 2. * tArea / lAB;
-  double w = std::sqrt(std::max(0., lCA * lCA - h * h));
-
-  // Take the closer of the positive and negative solutions
-  if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
-
-  // Project some vectors to get the actual position
-  Vector2 vABn = (pB - pA) / lAB;
-  Vector2 vABnPerp{-vABn.y, vABn.x};
-  Vector2 pC = pA + w * vABn + h * vABnPerp;
-
-  return pC;
-}
-
 inline double SignpostIntrinsicTriangulation::shortestEdge(Face f) const {
   Halfedge he = f.halfedge();
   double lA = intrinsicEdgeLengths[he.edge()];
@@ -139,7 +111,7 @@ inline double SignpostIntrinsicTriangulation::area(Face f) const {
   double b = intrinsicEdgeLengths[he.edge()];
   he = he.next();
   double c = intrinsicEdgeLengths[he.edge()];
-  return area(a, b, c);
+  return triangleArea(a, b, c);
 }
 
 inline double SignpostIntrinsicTriangulation::circumradius(Face f) const {
@@ -150,13 +122,26 @@ inline double SignpostIntrinsicTriangulation::circumradius(Face f) const {
   he = he.next();
   double c = intrinsicEdgeLengths[he.edge()];
 
-  double A = area(a, b, c);
+  double A = triangleArea(a, b, c);
   return a * b * c / (4. * A);
 }
 
 inline std::array<Vector2, 3> SignpostIntrinsicTriangulation::vertexCoordinatesInTriangle(Face face) {
   return {Vector2{0., 0.}, halfedgeVectorsInFace[face.halfedge()],
           -halfedgeVectorsInFace[face.halfedge().next().next()]};
+}
+
+inline bool SignpostIntrinsicTriangulation::isFixed(Edge e) {
+  if (e.isBoundary()) return true;
+  if (markedEdges.size() > 0 && markedEdges[e]) return true;
+  return false;
+}
+
+inline bool SignpostIntrinsicTriangulation::isOnFixedEdge(Vertex v) {
+  for (Edge e : v.adjacentEdges()) {
+    if (isFixed(e)) return true;
+  }
+  return false;
 }
 
 
