@@ -490,13 +490,13 @@ public:
   virtual void readNext(std::istream& stream) override {
 
     // Read the size of the list
-    size_t count = 0;
-    uint8_t rawVal;
-    stream.read(((char*)&rawVal), listCountBytes);
-    count = rawVal;
+    unsigned char count = 0;
+    //uint8_t rawVal;
+    stream.read(((char*)&count), listCountBytes);
+    //count = rawVal;
 
-    std::cout << "  reading list len " << count << std::endl;
-    std::cout << "    rawVal = " << rawVal << std::endl;
+    //std::cout << "  reading list len " << count << std::endl;
+    //std::cout << "    rawVal = " << rawVal << std::endl;
 
     // Read list elements
     size_t currSize = flattenedData.size();
@@ -504,9 +504,9 @@ public:
     flattenedData.resize(afterSize);
     if (count > 0) {
       stream.read((char*)&flattenedData[currSize], count * sizeof(T));
-      for (size_t i = 0; i < count; i++) {
-        std::cout << "  read value = " << flattenedData[currSize] << std::endl;
-      }
+      //for (size_t i = 0; i < count; i++) {
+        //std::cout << "  read value = " << flattenedData[currSize] << std::endl;
+      //}
     }
     flattenedIndexStart.emplace_back(afterSize);
   }
