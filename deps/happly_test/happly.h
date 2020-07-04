@@ -491,9 +491,12 @@ public:
 
     // Read the size of the list
     size_t count = 0;
-    stream.read(((char*)&count), listCountBytes);
+    uint8_t rawVal;
+    stream.read(((char*)&rawVal), listCountBytes);
+    count = rawVal;
 
     std::cout << "  reading list len " << count << std::endl;
+    std::cout << "    rawVal = " << rawVal << std::endl;
 
     // Read list elements
     size_t currSize = flattenedData.size();
