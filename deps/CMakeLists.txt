@@ -147,7 +147,8 @@ add_library(nanoflann INTERFACE)
 target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include>)
 
 add_library(happly INTERFACE)
-target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+#target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly_test>) # FIXME
 
 # Find other simpler dependencies
 list(APPEND GC_DEP_LIBS nanort)
