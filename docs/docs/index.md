@@ -28,7 +28,7 @@ for(Vertex v : mesh->vertices()) {
 }
 ```
 
-For more, see the [tutorials](../tutorials/load_mesh). To get started with the code, see [building](../build/build).
+For more, see the [tutorials](../tutorials/load_mesh). To get started with the code, see [building](../build/build). Use the [sample project](https://github.com/nmwsharp/gc-polyscope-project-template/) to get started with a build system and a gui.
 
 <!--**What is geometry-central not?**-->
 

@@ -31,7 +31,8 @@ for(Vertex v : mesh->vertices()) {
 }
 ```
 
-Check out the docs, tutorials, and build instructions at [geometry-central.net](http://geometry-central.net)
+Check out the docs, tutorials, and build instructions at [geometry-central.net](http://geometry-central.net).  Use the [sample project](https://github.com/nmwsharp/gc-polyscope-project-template/) to get started with a build system and a gui.
+
 
 **Related alternatives:** 
 [CGAL](https://www.cgal.org/),
