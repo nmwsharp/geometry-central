@@ -410,7 +410,7 @@ void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
 void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
   clear();
 
-  happly::PLYData plyIn(in);
+  happly::PLYData plyIn(in, true);
 
   std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
   vertexCoordinates.resize(vPos.size());
