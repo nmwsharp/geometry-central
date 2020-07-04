@@ -504,6 +504,9 @@ public:
     flattenedData.resize(afterSize);
     if (count > 0) {
       stream.read((char*)&flattenedData[currSize], count * sizeof(T));
+      for (size_t i = 0; i < count; i++) {
+        std::cout << "  read value = " << flattenedData[currSize] << std::cout;
+      }
     }
     flattenedIndexStart.emplace_back(afterSize);
   }
