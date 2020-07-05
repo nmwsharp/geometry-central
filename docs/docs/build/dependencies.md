@@ -32,7 +32,7 @@ Note: once upon a time, Eigen was a submodule of geometry-central. If updating f
 
 ## Suitesparse
 
-geometry-central's linear solvers will automatically use [Suitesparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) routines under the hood if detected at configure time. The output of the CMake script will indicate whether or not suitesparse was found.
+[Suitesparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) is an optional dependency which improves the performance and robustness of geometry-central's sparse linear solver routines. If Suitesparse is detected at configure time, linear solves will automatically use Suitesparse under the hood, and otherwise they will default to Eigen's solvers. The output of the CMake script will indicate whether or not Suitesparse was found.
 
 At any time, setting the `SUITESPARSE` CMake variable to false will stop the build system from using Suitesparse, even if it is availble.
 

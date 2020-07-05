@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 
 #include <Eigen/SparseCore>
@@ -12,8 +12,8 @@ namespace surface {
 class EdgeLengthGeometry : public IntrinsicGeometryInterface {
 
 public:
-  EdgeLengthGeometry(HalfedgeMesh& mesh_);
-  EdgeLengthGeometry(HalfedgeMesh& mesh_, EdgeData<double>& inputEdgeLengths);
+  EdgeLengthGeometry(SurfaceMesh& mesh_);
+  EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths);
   virtual ~EdgeLengthGeometry() {}
   
   // Construct a new geometry which is exactly the same as this one, on the same mesh.
@@ -23,7 +23,7 @@ public:
   // Construct a new geometry which is exactly the same as this one, on another mesh.
   // This is a deep copy, no quantites are shared, etc. Require counts/computed quantities are not copied.
   // The meshes must be in correspondence (have the same connectivity).
-  std::unique_ptr<EdgeLengthGeometry> reinterpretTo(HalfedgeMesh& targetMesh);
+  std::unique_ptr<EdgeLengthGeometry> reinterpretTo(SurfaceMesh& targetMesh);
 
   EdgeData<double> inputEdgeLengths;
 

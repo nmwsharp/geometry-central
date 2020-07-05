@@ -1,9 +1,8 @@
 #include "geometrycentral/surface/meshio.h"
 
-#include "geometrycentral/surface/halfedge_containers.h"
 #include "geometrycentral/surface/halfedge_factories.h"
-#include "geometrycentral/surface/halfedge_mesh.h"
-#include "geometrycentral/surface/polygon_soup_mesh.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
+#include "geometrycentral/surface/simple_polygon_mesh.h"
 
 #include "happly.h"
 
@@ -18,194 +17,133 @@ namespace surface {
 
 // ======= Input =======
 
-// strip unused vertices from face-vertex lists
-void stripUnusedVertices(std::vector<Vector3>& positions, std::vector<std::vector<size_t>>& faceIndices) {
-
-  size_t nVert = positions.size();
-
-  // Find any unused vertices
-  std::vector<size_t> vertexDegreeCount(nVert, 0);
-  size_t nUsedVerts = 0;
-  for (auto& f : faceIndices) {
-    for (auto& i : f) {
-      // Make sure we can safely index positions
-      GC_SAFETY_ASSERT(i < positions.size(),
-                       "face index list has a vertex index which is greater than the number of vertices");
-
-      vertexDegreeCount[i]++;
-      if (vertexDegreeCount[i] == 1) {
-        nUsedVerts++;
-      }
-    }
-  }
-
-  // Early exit if dense
-  if (nUsedVerts == nVert) {
-    return;
-  }
-
-  // Else: strip unused vertices and re-index faces
-  size_t nNewVertices = 0;
-  std::vector<size_t> oldToNewVertexInd(nVert);
-  for (size_t iV = 0; iV < nVert; iV++) {
-    if (vertexDegreeCount[iV] > 0) {
-      oldToNewVertexInd[iV] = nNewVertices;
-      positions[nNewVertices] = positions[iV];
-      nNewVertices++;
-    }
-  }
-  positions.resize(nNewVertices);
-  for (auto& f : faceIndices) {
-    for (auto& i : f) {
-      i = oldToNewVertexInd[i];
-    }
-  }
-}
-
-
-// Mesh loader helpers
+// Helpers for mesh loading
 namespace {
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_PLY(std::string filename,
-                                                                                                bool verbose) {
+void processLoadedMesh(SimplePolygonMesh& mesh, std::string type) {
+  mesh.stripUnusedVertices();
 
-  happly::PLYData plyData(filename);
-
-  // === Get vertex positions
-  std::vector<std::array<double, 3>> rawPos = plyData.getVertexPositions();
-  std::vector<Vector3> vertexPositions(rawPos.size());
-  for (size_t i = 0; i < rawPos.size(); i++) {
-    vertexPositions[i][0] = rawPos[i][0];
-    vertexPositions[i][1] = rawPos[i][1];
-    vertexPositions[i][2] = rawPos[i][2];
+  // Apply any special processing for particular filetypes
+  if (type == "stl") {
+    mesh.mergeIdenticalVertices();
   }
-
-  // Get face list
-  std::vector<std::vector<size_t>> faceIndices = plyData.getFaceIndices();
-
-  stripUnusedVertices(vertexPositions, faceIndices);
-
-  // === Build the mesh objects
-  return makeHalfedgeAndGeometry(faceIndices, vertexPositions, verbose);
 }
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_OBJ(std::string filename,
-                                                                                                bool verbose) {
-  PolygonSoupMesh soup(filename, "obj");
-  stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
-  return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
+
+std::vector<Vector3> geometryToStdVector(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry) {
+  geometry.requireVertexPositions();
+  std::vector<Vector3> verts(mesh.nVertices());
+  size_t i = 0;
+  for (Vertex v : mesh.vertices()) {
+    verts[i] = geometry.vertexPositions[v];
+    i++;
+  }
+  geometry.unrequireVertexPositions();
+  return verts;
 }
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh_STL(std::string filename,
-                                                                                                bool verbose) {
-  PolygonSoupMesh soup(filename, std::string("stl"));
-  soup.mergeIdenticalVertices();
-  stripUnusedVertices(soup.vertexCoordinates, soup.polygons);
-  return makeHalfedgeAndGeometry(soup.polygons, soup.vertexCoordinates, verbose);
+
+std::vector<std::vector<Vector2>> paramToStdVector(SurfaceMesh& mesh, CornerData<Vector2>& param) {
+  std::vector<std::vector<Vector2>> uv(mesh.nFaces());
+  size_t i = 0;
+  for (Face f : mesh.faces()) {
+    for (Corner c : f.adjacentCorners()) {
+      uv[i].push_back(param[c]);
+    }
+    i++;
+  }
+  return uv;
 }
 
 } // namespace
 
-std::tuple<std::unique_ptr<HalfedgeMesh>, std::unique_ptr<VertexPositionGeometry>>
-loadMesh(std::string filename, bool verbose, std::string type) {
-
-  // Check if file exists
-  std::ifstream testStream(filename);
-  if (!testStream) {
-    throw std::runtime_error("Could not load mesh; file does not exist: " + filename);
-  }
-  testStream.close();
-
-  // Attempt to detect filename
-  bool typeGiven = type != "";
-  std::string::size_type sepInd = filename.rfind('.');
-  if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = filename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
-  }
-
-
-  if (type == "obj") {
-    return loadMesh_OBJ(filename, verbose);
-  } else if (type == "ply") {
-    return loadMesh_PLY(filename, verbose);
-  } else if (type == "stl") {
-    return loadMesh_STL(filename, verbose);
-  } else {
-    if (typeGiven) {
-      throw std::runtime_error("Did not recognize mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to load mesh from " + filename);
-    }
-  }
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> loadMesh(std::string filename,
+                                                                                                   std::string type) {
+  return readManifoldSurfaceMesh(filename, type);
 }
 
-// connectivity loader helpers
-namespace {
-std::unique_ptr<HalfedgeMesh> loadConnectivity_PLY(std::string filename, bool verbose) {
 
-  happly::PLYData plyData(filename);
-
-  // Get face list
-  std::vector<std::vector<size_t>> faceIndices = plyData.getFaceIndices();
-
-  // === Build the mesh objects
-  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(faceIndices, verbose));
+// Load a general surface mesh, which might or might not be manifold
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::string filename,
+                                                                                                  std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeGeneralHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+}
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::istream& in,
+                                                                                                  std::string type) {
+  std::string loadType = type;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(in, type);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeGeneralHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
-std::unique_ptr<HalfedgeMesh> loadConnectivity_OBJ(std::string filename, bool verbose) {
-  // TODO this will fail unless the obj file has vertex listings, which is not strictly needed to load connectivity. I'm
-  // not sure if that's really a valid .obj file, but nonetheless this function could certainly process such .obj files.
-  PolygonSoupMesh soup(filename);
-  return std::unique_ptr<HalfedgeMesh>(new HalfedgeMesh(soup.polygons, verbose));
+// Load a manifold surface mesh; an exception will by thrown if the mesh is not manifold.
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+readManifoldSurfaceMesh(std::string filename, std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
-} // namespace
-
-
-std::unique_ptr<HalfedgeMesh> loadConnectivity(std::string filename, bool verbose, std::string type) {
-
-  // Check if file exists
-  std::ifstream testStream(filename);
-  if (!testStream) {
-    throw std::runtime_error("Could not load mesh; file does not exist: " + filename);
-  }
-  testStream.close();
-
-  // Attempt to detect filename
-  bool typeGiven = type != "";
-  std::string::size_type sepInd = filename.rfind('.');
-  if (!typeGiven) {
-    if (sepInd != std::string::npos) {
-      std::string extension;
-      extension = filename.substr(sepInd + 1);
-
-      // Convert to all lowercase
-      std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
-      type = extension;
-    }
-  }
-
-
-  if (type == "obj") {
-    return loadConnectivity_OBJ(filename, verbose);
-  } else if (type == "ply") {
-    return loadConnectivity_PLY(filename, verbose);
-  } else {
-    if (typeGiven) {
-      throw std::runtime_error("Did not recognize mesh file type " + type);
-    } else {
-      throw std::runtime_error("Could not detect file type to load mesh from " + filename);
-    }
-  }
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+readManifoldSurfaceMesh(std::istream& in, std::string type) {
+  std::string loadType = type;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(in, type);
+  processLoadedMesh(simpleMesh, loadType);
+  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
 
 // ======= Output =======
+
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::string filename, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry));
+  simpleMesh.writeMesh(filename, type);
+}
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords,
+                      std::string filename, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry),
+                               paramToStdVector(mesh, texCoords));
+  simpleMesh.writeMesh(filename, type);
+}
+
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, std::ostream& out, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry));
+  simpleMesh.writeMesh(out, type);
+}
+void writeSurfaceMesh(SurfaceMesh& mesh, EmbeddedGeometryInterface& geometry, CornerData<Vector2>& texCoords,
+                      std::ostream& out, std::string type) {
+  SimplePolygonMesh simpleMesh(mesh.getFaceVertexList(), geometryToStdVector(mesh, geometry),
+                               paramToStdVector(mesh, texCoords));
+  simpleMesh.writeMesh(out, type);
+}
+
+
+CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& vals) {
+  CornerData<Vector2> out(mesh);
+  for (Corner c : mesh.corners()) {
+    Vertex v = c.vertex();
+    out[c] = Vector2{vals[v], 0.};
+  }
+  return out;
+}
+CornerData<Vector2> packToParam(SurfaceMesh& mesh, VertexData<double>& valsX, VertexData<double>& valsY) {
+  CornerData<Vector2> out(mesh);
+  for (Corner c : mesh.corners()) {
+    Vertex v = c.vertex();
+    out[c] = Vector2{valsX[v], valsY[v]};
+  }
+  return out;
+}
+
+
 bool WavefrontOBJ::write(std::string filename, EmbeddedGeometryInterface& geometry) {
   std::ofstream out;
   if (!openStream(out, filename)) return false;
@@ -262,7 +200,7 @@ void WavefrontOBJ::writeHeader(std::ofstream& out, EmbeddedGeometryInterface& ge
 }
 
 void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& geometry) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
   geometry.requireVertexPositions();
 
   for (Vertex v : mesh.vertices()) {
@@ -273,7 +211,7 @@ void WavefrontOBJ::writeVertices(std::ofstream& out, EmbeddedGeometryInterface& 
 
 void WavefrontOBJ::writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface& geometry,
                                   CornerData<Vector2>& texcoords) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
 
   for (Corner c : mesh.corners()) {
     Vector2 z = texcoords[c];
@@ -282,7 +220,7 @@ void WavefrontOBJ::writeTexCoords(std::ofstream& out, EmbeddedGeometryInterface&
 }
 
 void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geometry, bool useTexCoords) {
-  HalfedgeMesh& mesh(geometry.mesh);
+  SurfaceMesh& mesh(geometry.mesh);
 
   // Get vertex indices
   VertexData<size_t> indices = mesh.getVertexIndices();
@@ -302,7 +240,7 @@ void WavefrontOBJ::writeFaces(std::ofstream& out, EmbeddedGeometryInterface& geo
   }
 }
 
-std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(HalfedgeMesh& mesh) {
+std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(SurfaceMesh& mesh) {
   std::array<std::pair<std::vector<size_t>, size_t>, 5> result;
 
   // This works because of the iteration order that we we know these iterators obey. If iteration orders ever change,
@@ -357,13 +295,13 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Half
   return result;
 }
 
-EdgeData<char> polyscopeEdgeOrientations(HalfedgeMesh& mesh) {
+EdgeData<char> polyscopeEdgeOrientations(SurfaceMesh& mesh) {
 
   EdgeData<char> result(mesh);
   VertexData<size_t> vertexIndices = mesh.getVertexIndices();
 
   for (Edge e : mesh.edges()) {
-    result[e] = vertexIndices[e.halfedge().vertex()] < vertexIndices[e.halfedge().twin().vertex()];
+    result[e] = vertexIndices[e.halfedge().vertex()] < vertexIndices[e.halfedge().next().vertex()];
   }
 
   return result;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 
 #include "geometrycentral/utilities/vector2.h"
 #include "geometrycentral/utilities/vector3.h"

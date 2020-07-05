@@ -6,16 +6,16 @@
 namespace geometrycentral {
 namespace surface {
 
-EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh_)
+EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh_)
     : IntrinsicGeometryInterface(mesh_), inputEdgeLengths(mesh_, 0.)
 {}
 
-EdgeLengthGeometry::EdgeLengthGeometry(HalfedgeMesh& mesh_, EdgeData<double>& inputEdgeLengths_)
+EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths_)
     : IntrinsicGeometryInterface(mesh_), inputEdgeLengths(inputEdgeLengths_) {}
 
 std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::copy() { return reinterpretTo(mesh); }
 
-std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::reinterpretTo(HalfedgeMesh& targetMesh) {
+std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::reinterpretTo(SurfaceMesh& targetMesh) {
   std::unique_ptr<EdgeLengthGeometry> newGeom(new EdgeLengthGeometry(targetMesh));
   newGeom->inputEdgeLengths = inputEdgeLengths.reinterpretTo(targetMesh);
   return newGeom;

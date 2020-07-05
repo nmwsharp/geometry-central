@@ -17,5 +17,6 @@ p, a, ul, li {
 }
 .md-typeset .admonition.func>.admonition-title:before, .md-typeset details.func>.admonition-title:before, .md-typeset details.func>summary:before {
     color: #d12;
+    background-color: #d12;
     content: "code"}
     

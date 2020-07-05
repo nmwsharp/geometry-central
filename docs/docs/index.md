@@ -4,40 +4,39 @@ Geometry-central is a modern C++ library of data structures and algorithms for g
 
 Features include:
 
-- A polished **halfedge mesh** class, with efficient support for mesh modification, and a system of containers for associating data with mesh elements.
+- A polished **surface mesh** class, with efficient support for mesh modification, and a system of containers for associating data with mesh elements.
 - Implementations of canonical **geometric quantities** on surfaces, ranging from normals and curvatures to tangent vector bases to operators from discrete differential geometry.
 - A suite of **powerful algorithms**, including computing distances on surface, generating direction fields, and manipulating intrinsic Delaunay triangulations.
 - A coherent set of sparse **linear algebra tools**, based on Eigen and augmented to automatically utilize better solvers if available on your system.
-
-!!! warning "Under construction"
-
-    As of July 30, 2019, geometry-central and its documentation are still under active development. You are welcome and encouraged to start using the library, but some components are still being built and modified.
 
 
 **Sample:**
 
 ```cpp
 // Load a mesh
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
-std::tie(mesh, geometry) = loadMesh("spot.obj"); 
+std::tie(mesh, geometry) = readSurfaceMesh("spot.obj"); 
 
 // Compute vertex areas
-VertexData<double> vertArea(*mesh, 0.);
+VertexData<double> vertexAreas(*mesh);
+
 geometry->requireFaceAreas();
 for(Vertex v : mesh->vertices()) {
-  for(Face f : v.adjacentVertices()) {
-    vertArea[v] += geometry->faceAreas[f] / f.degree();
+  double A = 0.;
+  for(Face f : v.adjacentFaces()) {
+    A += geometry->faceAreas[f] / v.degree();
   }
+  vertexAreas[v] = A;
 }
 ```
 
-For more, see the [tutorials](../tutorials/load_mesh). To get started with the code, see [building](../build/build).
+For more, see the [tutorials](/tutorials/load_mesh). To get started with the code, see [building](/build/building). Use the [sample project](https://github.com/nmwsharp/gc-polyscope-project-template/) to get started with a build system and a gui.
 
-**What is geometry-central not?**
+<!--**What is geometry-central not?**-->
 
-- **A user interface**. Geometry-central does not include any facilities for user interaction; it is an algorithms and data structures library on which you might build user-facing tools. This philosphy keeps the library lightweight, and avoids dependencies on rendering and windowing systems. For a UI that interoperates well with geometry-central, see [Polyscope](https://polyscope.run).
-- **A research code dump**. Geometry-central was built by researchers, and is used to prototype research projects. However, we strive to ensure that this library contains only polished & tested, broadly useful algorithms.
+<!--- **A user interface**. Geometry-central does not include any facilities for user interaction; it is an algorithms and data structures library on which you might build user-facing tools. This philosphy keeps the library lightweight, and avoids dependencies on rendering and windowing systems. For a UI that interoperates well with geometry-central, see [Polyscope](https://polyscope.run).-->
+<!--- **A research code dump**. Geometry-central was built by researchers, and is used to prototype research projects. However, we strive to ensure that this library contains only polished & tested, broadly useful algorithms.-->
 
 
 **Related alternatives:** 
@@ -51,7 +50,7 @@ For more, see the [tutorials](../tutorials/load_mesh). To get started with the c
 
 **Credits**
 
-Geometry-central is developed primarily by [Nicholas Sharp](http://nmwsharp.com), with contributions from 
+Geometry-central is developed by [Nicholas Sharp](http://nmwsharp.com), with many contributions from 
 [Keenan Crane](http://keenan.is/here), 
 [Yousuf Soliman](http://www.its.caltech.edu/~ysoliman/),
 [Mark Gillespie](http://markjgillespie.com/),

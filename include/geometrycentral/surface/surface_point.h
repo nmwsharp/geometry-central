@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/utilities/vector3.h"
 
 #include <iostream>
@@ -22,6 +22,7 @@ struct SurfacePoint {
   SurfacePoint();                           // default: yields invalid SurfacePoint with Type::Vertex and null vertex
   SurfacePoint(Vertex v);                   // at vertex
   SurfacePoint(Edge e, double tEdge);       // in edge
+  SurfacePoint(Halfedge he, double tHalfedge); // in edge (flips direction if needed)
   SurfacePoint(Face f, Vector3 faceCoords); // in face
 
 
@@ -46,7 +47,11 @@ struct SurfacePoint {
   // returns one of the equivalent surface points in a face (chosen arbitrarily). If this point is a face point, the
   // output is a copy of this point.
   inline SurfacePoint inSomeFace() const;
-  
+
+  // Returns the surface point as a face point in face f (see comment in inSomeFace()). If the the SurfacePoint is not
+  // on or adjacent to the requested face, throws an error.
+  inline SurfacePoint inFace(Face f) const;
+
   // Return the nearest vertex to this surface point
   inline Vertex nearestVertex() const;
 
@@ -59,7 +64,22 @@ struct SurfacePoint {
 
   // Throws an exception if the surface point is invalid in any way
   inline void validate() const;
+
+
+  // === Operators
+  bool operator==(const SurfacePoint& other) const;
+  bool operator!=(const SurfacePoint& other) const;
 };
+
+// Check if two surface points are adjacent on the mesh (aka occur in adjacent simplices)
+bool checkAdjacent(const SurfacePoint& pA, const SurfacePoint& pB);
+
+// Check if they are on the same vertex/edge/face
+bool onSameElement(const SurfacePoint& pA, const SurfacePoint& pB);
+
+// Return some face which both points are on or adjacent to. Returns Face() if non exists.
+inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB);
+
 
 // Printing
 ::std::ostream& operator<<(std::ostream& output, const SurfacePoint& p);

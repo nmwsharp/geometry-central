@@ -22,7 +22,7 @@ Example
 #include "geometrycentral/surface/meshio.h"
 
 // Load a mesh
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 
@@ -51,7 +51,7 @@ Example:
 #include "geometrycentral/surface/meshio.h"
 
 // Load a mesh
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 

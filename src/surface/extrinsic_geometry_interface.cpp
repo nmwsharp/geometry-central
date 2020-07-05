@@ -6,7 +6,7 @@ namespace geometrycentral {
 namespace surface {
 
 // clang-format off
-ExtrinsicGeometryInterface::ExtrinsicGeometryInterface(HalfedgeMesh& mesh_) : 
+ExtrinsicGeometryInterface::ExtrinsicGeometryInterface(SurfaceMesh& mesh_) : 
   IntrinsicGeometryInterface(mesh_),
 
   edgeDihedralAnglesQ                    (&edgeDihedralAngles,                      std::bind(&ExtrinsicGeometryInterface::computeEdgeDihedralAngles, this),            quantities),

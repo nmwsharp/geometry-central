@@ -12,7 +12,7 @@ namespace geometrycentral {
 namespace surface {
 
 // clang-format off
-IntrinsicGeometryInterface::IntrinsicGeometryInterface(HalfedgeMesh& mesh_) : 
+IntrinsicGeometryInterface::IntrinsicGeometryInterface(SurfaceMesh& mesh_) : 
   BaseGeometryInterface(mesh_), 
 
   edgeLengthsQ              (&edgeLengths,                  std::bind(&IntrinsicGeometryInterface::computeEdgeLengths, this),               quantities),
@@ -25,6 +25,8 @@ IntrinsicGeometryInterface::IntrinsicGeometryInterface(HalfedgeMesh& mesh_) :
   faceGaussianCurvaturesQ   (&faceGaussianCurvatures,       std::bind(&IntrinsicGeometryInterface::computeFaceGaussianCurvatures, this),    quantities),
   halfedgeCotanWeightsQ     (&halfedgeCotanWeights,         std::bind(&IntrinsicGeometryInterface::computeHalfedgeCotanWeights, this),      quantities),
   edgeCotanWeightsQ         (&edgeCotanWeights,             std::bind(&IntrinsicGeometryInterface::computeEdgeCotanWeights, this),          quantities),
+  shapeLengthScaleQ         (&shapeLengthScale,             std::bind(&IntrinsicGeometryInterface::computeShapeLengthScale, this),          quantities),
+  meshLengthScaleQ          (&meshLengthScale,              std::bind(&IntrinsicGeometryInterface::computeMeshLengthScale, this),          quantities),
   
   halfedgeVectorsInFaceQ            (&halfedgeVectorsInFace,            std::bind(&IntrinsicGeometryInterface::computeHalfedgeVectorsInFace, this),             quantities),
   transportVectorsAcrossHalfedgeQ   (&transportVectorsAcrossHalfedge,   std::bind(&IntrinsicGeometryInterface::computeTransportVectorsAcrossHalfedge, this),    quantities),
@@ -236,42 +238,61 @@ void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
   for (Edge e : mesh.edges()) {
     // WARNING: Logic duplicated between cached and immediate version
     double cotSum = 0.;
-
-    { // First halfedge-- always real
-      Halfedge he = e.halfedge();
+    for (Halfedge he : e.adjacentInteriorHalfedges()) {
+      Halfedge heFirst = he;
       double l_ij = edgeLengths[he.edge()];
       he = he.next();
       double l_jk = edgeLengths[he.edge()];
       he = he.next();
       double l_ki = edgeLengths[he.edge()];
       he = he.next();
-      GC_SAFETY_ASSERT(he == e.halfedge(), "faces mush be triangular");
+      GC_SAFETY_ASSERT(he == heFirst, "faces mush be triangular");
       double area = faceAreas[he.face()];
       double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
       cotSum += cotValue / 2;
     }
-
-    if (e.halfedge().twin().isInterior()) { // Second halfedge
-      Halfedge he = e.halfedge().twin();
-      double l_ij = edgeLengths[he.edge()];
-      he = he.next();
-      double l_jk = edgeLengths[he.edge()];
-      he = he.next();
-      double l_ki = edgeLengths[he.edge()];
-      double area = faceAreas[he.face()];
-      double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
-      cotSum += cotValue / 2;
-    }
-
     edgeCotanWeights[e] = cotSum;
   }
 }
 void IntrinsicGeometryInterface::requireEdgeCotanWeights() { edgeCotanWeightsQ.require(); }
 void IntrinsicGeometryInterface::unrequireEdgeCotanWeights() { edgeCotanWeightsQ.unrequire(); }
 
+// Shape length scale
+void IntrinsicGeometryInterface::computeShapeLengthScale() {
+  faceAreasQ.ensureHave();
+
+  double totalArea = 0.;
+  for (Face f : mesh.faces()) {
+    totalArea += faceAreas[f];
+  }
+
+  shapeLengthScale = std::sqrt(totalArea);
+}
+void IntrinsicGeometryInterface::requireShapeLengthScale() { shapeLengthScaleQ.require(); }
+void IntrinsicGeometryInterface::unrequireShapeLengthScale() { shapeLengthScaleQ.unrequire(); }
+
+// Mesh length scale
+void IntrinsicGeometryInterface::computeMeshLengthScale() {
+  edgeLengthsQ.ensureHave();
+
+  double totalEdgeLength = 0.;
+  for (Edge e : mesh.edges()) {
+    totalEdgeLength += edgeLengths[e];
+  }
+
+  meshLengthScale = totalEdgeLength / mesh.nEdges();
+}
+void IntrinsicGeometryInterface::requireMeshLengthScale() { meshLengthScaleQ.require(); }
+void IntrinsicGeometryInterface::unrequireMeshLengthScale() { meshLengthScaleQ.unrequire(); }
+
 
 // Halfedge vectors in face
 void IntrinsicGeometryInterface::computeHalfedgeVectorsInFace() {
+  if (!mesh.usesImplicitTwin()) {
+    // TODO this could be removed
+    throw std::runtime_error("ERROR: Tangent spaces not implemented for general SurfaceMesh, use ManifoldSurfaceMesh");
+  }
+
   edgeLengthsQ.ensureHave();
   faceAreasQ.ensureHave();
 
@@ -348,6 +369,11 @@ void IntrinsicGeometryInterface::unrequireTransportVectorsAcrossHalfedge() {
 
 // Halfedge vectors in vertex
 void IntrinsicGeometryInterface::computeHalfedgeVectorsInVertex() {
+
+  if (!mesh.usesImplicitTwin()) {
+    throw std::runtime_error("ERROR: Tangent spaces not implemented for general SurfaceMesh, use ManifoldSurfaceMesh");
+  }
+
   edgeLengthsQ.ensureHave();
   cornerScaledAnglesQ.ensureHave();
 
@@ -407,7 +433,7 @@ void IntrinsicGeometryInterface::computeCotanLaplacian() {
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
     Vertex vTail = he.vertex();
-    Vertex vHead = he.twin().vertex();
+    Vertex vHead = he.next().vertex();
 
     size_t iVHead = vertexIndices[vHead];
     size_t iVTail = vertexIndices[vTail];
@@ -493,7 +519,7 @@ void IntrinsicGeometryInterface::computeVertexConnectionLaplacian() {
   for (Halfedge he : mesh.halfedges()) {
 
     size_t iTail = vertexIndices[he.vertex()];
-    size_t iTip = vertexIndices[he.twin().vertex()];
+    size_t iTip = vertexIndices[he.next().vertex()];
 
     double weight = edgeCotanWeights[he.edge()];
     Vector2 rot = transportVectorsAlongHalfedge[he.twin()];
@@ -571,7 +597,7 @@ void IntrinsicGeometryInterface::computeDECOperators() {
       size_t iEdge = edgeIndices[e];
       Halfedge he = e.halfedge();
       Vertex vTail = he.vertex();
-      Vertex vHead = he.twin().vertex();
+      Vertex vHead = he.next().vertex();
 
       size_t iVHead = vertexIndices[vHead];
       tripletList.emplace_back(iEdge, iVHead, 1.0);

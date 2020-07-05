@@ -64,7 +64,11 @@ inline double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge heI) const {
 }
 
 inline double EdgeLengthGeometry::edgeCotanWeight(Edge e) const {
-  return halfedgeCotanWeight(e.halfedge()) + halfedgeCotanWeight(e.halfedge().twin());
+  double sum = 0;
+  for (Halfedge he : e.adjacentInteriorHalfedges()) {
+    sum += halfedgeCotanWeight(he);
+  }
+  return sum;
 }
 
 } // namespace surface

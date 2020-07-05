@@ -94,6 +94,7 @@ set(TEST_SRCS
   src/halfedge_mesh_test.cpp
   src/halfedge_mutation_test.cpp
   src/halfedge_geometry_test.cpp
+  src/surface_misc_test.cpp
   src/linear_algebra_test.cpp
 )
 

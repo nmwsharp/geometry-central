@@ -4,7 +4,7 @@
 
 #include "geometrycentral/utilities/vector2.h"
 
-#include "geometrycentral/surface/halfedge_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 
@@ -42,6 +42,9 @@ public:
   // Solve for distance from a collection of surface points
   VertexData<double> computeDistance(const std::vector<SurfacePoint>& sourcePoints);
 
+  // Solve for distance from a custom right hand side
+  // (returns WITHOUT performing constant shift to 0)
+  Vector<double> computeDistanceRHS(const Vector<double>& rhs);
 
   // === Options and parameters
 
@@ -59,7 +62,7 @@ private:
   // === Members
 
   // Basics
-  HalfedgeMesh& mesh;
+  SurfaceMesh& mesh;
   IntrinsicGeometryInterface& geom;
 
   // Parameters
