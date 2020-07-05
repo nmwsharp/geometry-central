@@ -240,6 +240,12 @@ Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E, T>::raw() {
 }
 
 template <typename E, typename T>
+const Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E, T>::raw() const{
+  return data;
+}
+
+
+template <typename E, typename T>
 inline MeshData<E, T> MeshData<E, T>::reinterpretTo(ParentMeshT& targetMesh) const {
   GC_SAFETY_ASSERT(nElements<E>(mesh) == nElements<E>(&targetMesh),
                    "meshes must have same number of elements to reinterpret");
