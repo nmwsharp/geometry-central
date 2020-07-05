@@ -212,6 +212,30 @@ TEST_F(HalfedgeMeshSuite, ConnectedComponentsTest) {
 }
 
 
+TEST_F(HalfedgeMeshSuite, PrintElementTest) {
+  MeshAsset a = getAsset("lego.ply", true);
+  SurfaceMesh& mesh = *a.mesh;
+  std::cout << mesh.halfedge(0) << std::endl;
+  std::cout << mesh.corner(0) << std::endl;
+  std::cout << mesh.vertex(0) << std::endl;
+  std::cout << mesh.edge(0) << std::endl;
+  std::cout << mesh.face(0) << std::endl;
+  std::cout << mesh.boundaryLoop(0) << std::endl;
+}
+
+
+TEST_F(HalfedgeMeshSuite, PrintElementStringTest) {
+  MeshAsset a = getAsset("lego.ply", true);
+  SurfaceMesh& mesh = *a.mesh;
+  std::cout << std::to_string(mesh.halfedge(0)) << std::endl;
+  std::cout << std::to_string(mesh.corner(0)) << std::endl;
+  std::cout << std::to_string(mesh.vertex(0)) << std::endl;
+  std::cout << std::to_string(mesh.edge(0)) << std::endl;
+  std::cout << std::to_string(mesh.face(0)) << std::endl;
+  std::cout << std::to_string(mesh.boundaryLoop(0)) << std::endl;
+}
+
+
 // ============================================================
 // =============== Containers
 // ============================================================
