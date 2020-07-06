@@ -132,7 +132,7 @@ void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type,
   }
 
   // Open the file and load it
-  std::ifstream inStream(filename);
+  std::ifstream inStream(filename, std::ios::binary);
   if (!inStream) throw std::runtime_error("couldn't open file " + filename);
   readMeshFromFile(inStream, type);
 
