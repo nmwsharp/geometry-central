@@ -48,3 +48,9 @@ TEST_F(SimplePolygonSuite, PLYLoad) {
   }
 }
 
+
+TEST_F(SimplePolygonSuite, SimplyPolygonPLYLoad) {
+  std::string fullPath = std::string(GC_TEST_ASSETS_ABS_PATH) + "/" + "spot.ply";
+  SimplePolygonMesh p(fullPath);
+}
+
