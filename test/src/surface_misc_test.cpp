@@ -2,6 +2,8 @@
 
 #include "load_test_meshes.h"
 
+#include "happly.h"
+
 #include "gtest/gtest.h"
 
 #include <iostream>
@@ -28,6 +30,21 @@ TEST_F(SimplePolygonSuite, BasicTest) {
 
     ASSERT_GT(simpleMesh.nFaces(), 0);
     ASSERT_GT(simpleMesh.nVertices(), 0);
+  }
+}
+
+
+TEST_F(SimplePolygonSuite, PLYLoad) {
+
+  std::string fullPath = std::string(GC_TEST_ASSETS_ABS_PATH) + "/" + "spot.ply";
+  happly::PLYData plyIn(fullPath, true);
+  plyIn.validate();
+
+  std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
+  std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices();
+
+  for (std::vector<size_t>& face : fInd) {
+    EXPECT_EQ(face.size(), 3);
   }
 }
 
