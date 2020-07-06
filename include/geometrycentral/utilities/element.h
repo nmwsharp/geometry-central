@@ -43,23 +43,6 @@ class NavigationSetBase;
 // ================      Base Element      ==================
 // ==========================================================
 
-
-// Need to pre-declare template friends to avoid generating a non-template version
-// (see https://isocpp.org/wiki/faq/templates#template-friends)
-template <typename T, typename M>
-class Element;
-} // namespace geometrycentral
-
-
-namespace std {
-template <typename T, typename M>
-std::ostream& operator<<(std::ostream& o, const geometrycentral::Element<T, M>& x);
-template <typename T, typename M>
-std::string to_string(const geometrycentral::Element<T, M>& e);
-} // namespace std
-
-namespace geometrycentral {
-
 // Forward-declare dynamic equivalent so we can declare a conversion constructor
 // template <typename S>
 // class DynamicElement;
@@ -89,9 +72,9 @@ public:
   inline bool operator<=(const Element<T, M>& other) const;
 
   // Get the "index" associated with the element.
-  // Note that these are not always a dense enumeration, and generally should not be accessed by "users" unless you are
-  // monkeying around the HalfedgeMesh datastructure in some deep and scary way. Generally prefer
-  // `HalfedgeMesh::getVertexIndices()` (etc) if you are looking for a set of indices for a linear algebra problem or
+  // Note that these are not always a dense enumeration, and probably should not be accessed by "users" unless you are
+  // monkeying around the halfedge mesh datastructure in some deep way. Generally prefer
+  // `SurfaceMesh::getVertexIndices()` (etc) if you are looking for a set of indices for a linear algebra problem or
   // something.
   size_t getIndex() const;
 
@@ -105,9 +88,7 @@ protected:
   size_t ind = INVALID_IND;
 
   // Friends
-  friend std::ostream& std::operator<<<>(std::ostream& output, const Element<T, M>& e);
   friend struct std::hash<Element<T, M>>;
-  friend std::string std::to_string<>(const Element<T, M>& e);
 };
 
 } // namespace geometrycentral
