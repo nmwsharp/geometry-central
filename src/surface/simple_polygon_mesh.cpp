@@ -410,21 +410,6 @@ void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
 void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
   clear();
 
-  // TODO FIXME DEBUG
-  {
-    std::string fullPath = std::string(GC_TEST_ASSETS_ABS_PATH) + "/" + "spot.ply";
-    happly::PLYData plyIn(fullPath, true);
-    plyIn.validate();
-
-    std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
-    std::vector<std::vector<size_t>> fInd = plyIn.getFaceIndices();
-
-    for (std::vector<size_t>& face : fInd) {
-      GC_SAFETY_ASSERT(face.size() >= 3, "face must have size >= 3, size is " + std::to_string(face.size()));
-    }
-  }
-
-
   happly::PLYData plyIn(in);
 
   std::vector<std::array<double, 3>> vPos = plyIn.getVertexPositions();
@@ -435,13 +420,7 @@ void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
     }
   }
 
-  // polygons = plyIn.getFaceIndices<size_t>();
   polygons = plyIn.getFaceIndices();
-
-  // TODO FIXME DEBUG
-  for (std::vector<size_t>& face : polygons) {
-    GC_SAFETY_ASSERT(face.size() >= 3, "face must have size >= 3, size is " + std::to_string(face.size()));
-  }
 }
 
 // Mutate this mesh by merging vertices with identical floating point positions.
