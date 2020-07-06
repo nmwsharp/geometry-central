@@ -420,7 +420,8 @@ void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
     }
   }
 
-  polygons = plyIn.getFaceIndices<size_t>();
+  //polygons = plyIn.getFaceIndices<size_t>();
+  polygons = plyIn.getFaceIndices();
 
   // TODO FIXME DEBUG
   for(std::vector<size_t>& face : polygons) {
