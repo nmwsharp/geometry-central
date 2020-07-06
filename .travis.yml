@@ -40,6 +40,5 @@ script:
     if [ "$TRAVIS_OS_NAME" = "windows" ]; then 
       cmake --build "."
       ls
-      ./bin/Debug/geometry-central-test.exe  --gtest_filter="SimplePolygonSuite.*"
       ./bin/Debug/geometry-central-test.exe 
     fi
