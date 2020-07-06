@@ -30,3 +30,4 @@ TEST_F(SimplePolygonSuite, BasicTest) {
     ASSERT_GT(simpleMesh.nVertices(), 0);
   }
 }
+
