@@ -131,7 +131,11 @@ void SimplePolygonMesh::readMeshFromFile(std::string filename, std::string type,
     type = detectFileType(filename);
   }
 
-  // Open the file and load it
+  // == Open the file and load it
+  // NOTE: Intentionally always open the stream as binary, even though some of the subsequent formats are plaintext and
+  // others are binary.  The only real difference is that non-binary mode performs automatic translation of line ending
+  // characters (e.g. \r\n --> \n from DOS). However, this behavior is platform-dependent and having platform-dependent
+  // behavior seems more confusing then just handling the newlines properly in the parsers.
   std::ifstream inStream(filename, std::ios::binary);
   if (!inStream) throw std::runtime_error("couldn't open file " + filename);
   readMeshFromFile(inStream, type);
