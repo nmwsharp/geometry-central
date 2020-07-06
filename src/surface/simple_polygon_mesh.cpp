@@ -421,6 +421,11 @@ void SimplePolygonMesh::readMeshFromPlyFile(std::istream& in) {
   }
 
   polygons = plyIn.getFaceIndices<size_t>();
+
+  // TODO FIXME DEBUG
+  for(std::vector<size_t>& face : polygons) {
+    GC_SAFETY_ASSERT(face.size() >= 3, "face must have size >= 3, size is " + std::to_string(face.size()));
+  }
 }
 
 // Mutate this mesh by merging vertices with identical floating point positions.
