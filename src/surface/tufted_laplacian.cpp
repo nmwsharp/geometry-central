@@ -33,7 +33,7 @@ buildTuftedLaplacian(SurfaceMesh& mesh, EmbeddedGeometryInterface& geom, double 
   tuftedIntrinsicGeom.requireCotanLaplacian();
   tuftedIntrinsicGeom.requireVertexLumpedMassMatrix();
 
-  return std::make_tuple(tuftedIntrinsicGeom.cotanLaplacian, tuftedIntrinsicGeom.vertexLumpedMassMatrix);
+  return std::make_tuple(0.5 * tuftedIntrinsicGeom.cotanLaplacian, 0.5 * tuftedIntrinsicGeom.vertexLumpedMassMatrix);
 }
 
 void buildIntrinsicTuftedCover(SurfaceMesh& mesh, EdgeData<double>& edgeLengths, EmbeddedGeometryInterface* posGeom) {
