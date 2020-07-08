@@ -42,7 +42,7 @@ M* Element<T, M>::getMesh() const { return mesh; }
 namespace std {
 template <typename T, typename M>
 inline ostream& operator<<(ostream& output, const geometrycentral::Element<T, M>& e) {
-  output << geometrycentral::typeShortName<T>() << "_" << e.ind;
+  output << geometrycentral::typeShortName<T>() << "_" << e.getIndex();
   return output;
 }
 
