@@ -33,7 +33,7 @@ There are also a small number of operations which might throw an error if called
 The `SurfaceMesh` also comes with a collection of lightweight types serving as logical references, or "handles" to mesh elements: `Vertex`, `Halfedge`, `Edge`, `Corner`, `Face`, and `BoundaryLoop` (`ManifoldSurfaceMesh` only). These handles are essentially just a typed wrapper around an ID for the element.  Deleting one of these handles does not delete the underlying element, and one may have many distinct handles to the same element `Vertex a; Vertex b; a == b;`.
 
 
-### Mesh mesh connectivity
+### Mesh connectivity
 
 Generally, you can (and should) interact with the mesh via [higher-level, abstracted routines](/surface/surface_mesh/navigation). However, this section details the low-level relationships between these handles. Note that on a `ManifoldSurfaceMesh`, the guarantees about these relationships are much stronger than on a more general `SurfaceMesh`.
 
@@ -83,8 +83,6 @@ These properties are invariants which always hold for the `ManifoldSurfaceMesh`;
 
 ### Constructors
 
-  SurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
-
 ??? func "`#!cpp SurfaceMesh(const std::vector<std::vector<size_t>>& polygons)`"
     Constructs a mesh from a face-index list.
 
@@ -92,9 +90,21 @@ These properties are invariants which always hold for the `ManifoldSurfaceMesh`;
 
 
 ??? func "`#!cpp ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons)`"
-    Constructs a mesh from a face-index list.
 
-    - `polygons` a list of faces, each holding the indices of the vertices incident on that face, zero-indexed and in counter-clockwise order.
+    Same as above, but constructs a manifold surface mesh.
+
+
+??? func "`#!cpp SurfaceMesh(const Eigen::MatrixBase<T>& faces)`"
+
+    Constructs a mesh from a rectangular face-index matrix, like an `Fx3` array of triangle indices, or an `Fx4` array of quad indices. The matrix scalar can be any integer type, like `size_t` or `int`.
+
+    The `Eigen:MatrixBase<T>` type is just a general type which accepts most Eigen matrix types as input, including geoemtry-central's nicely-named wrapper `DenseMatrix<T>`.
+
+
+??? func "`#!cpp ManifoldSurfaceMesh(const Eigen::MatrixBase<T>& faces)`"
+    
+    Same as above, but constructs a manifold surface mesh.
+
 
 ??? func "`#!cpp ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons, const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins)`"
 
@@ -185,6 +195,22 @@ Remember, all functions from `SurfaceMesh` can also be called on `ManifoldSurfac
 
     Return a listing of the vertex indices incident on each face.
 
+
+??? func "`#!cpp DenseMatrix<T> SurfaceMesh::getFaceVertexMatrix()`"
+
+    Return a dense `F x D` matrix of the vertex indices for each face in the mesh.  All faces in the mesh must have the same degree `D`.
+    
+    This function is templated on the scalar type for the resulting matrix, so call it like
+    ```cpp
+    DenseMatrix<size_t> F = mesh->getFaceVertexMatrix<size_t>();
+    ```
+    to get a matrix where each entry is a `size_t`, or like
+    ```cpp
+    DenseMatrix<int> F = mesh->getFaceVertexMatrix<int>();
+    ```
+    to get a matrix where each entry is an `int`.
+
+    Remember that `DenseMatrix<T>` is just our nice synonym for `Eigen:::DenseMatrix`.
 
 ??? func "`#!cpp std::unique_ptr<SurfaceMesh> SurfaceMesh::copy() const`"
 

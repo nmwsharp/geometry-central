@@ -16,6 +16,10 @@ public:
   // The output will preserve the ordering of vertices and faces.
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
 
+  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer type.
+  template <typename T>
+  ManifoldSurfaceMesh(const Eigen::MatrixBase<T>& triangles);
+
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
                       const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins);
 
@@ -106,3 +110,5 @@ protected:
 
 } // namespace surface
 } // namespace geometrycentral
+
+#include "geometrycentral/surface/manifold_surface_mesh.ipp"

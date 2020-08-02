@@ -1,5 +1,7 @@
 #pragma once
 
+#include "geometrycentral/numerical/linear_algebra_utilities.h"
+
 namespace geometrycentral {
 namespace surface {
 
@@ -85,7 +87,47 @@ inline BoundaryLoop SurfaceMesh::boundaryLoop(size_t index) { return BoundaryLoo
 
 inline bool SurfaceMesh::isCompressed() const { return isCompressedFlag; }
 
+
+
 // clang-format on
+
+// === Constructors
+
+// TODO it's silly to convert from a flat representation to a nested one... it would be good to rework the main
+// constructors to take flat representation
+template <typename T>
+SurfaceMesh::SurfaceMesh(const Eigen::MatrixBase<T>& faces) : SurfaceMesh(unpackMatrixToStdVector<size_t>(faces.template cast<size_t>())) {}
+
+// === Utilities
+
+template<typename T>
+DenseMatrix<T> SurfaceMesh::getFaceVertexMatrix() {
+
+  size_t F = nFaces();
+
+  // get the size of the first face
+  size_t D = 0;
+  for(Face f : faces()) {
+    D = f.degree();
+    break; 
+  }
+
+  DenseMatrix<T> mat(F, D);
+  VertexData<size_t> vInd = getVertexIndices();
+  size_t iF = 0;
+  for(Face f : faces()) {
+    size_t j = 0;
+    for(Vertex v : f.adjacentVertices()) {
+      GC_SAFETY_ASSERT(j < D, "all faces must have the same number of vertices")
+      size_t iV = vInd[v];
+      mat(iF,j) = static_cast<T>(iV);
+      j++;
+    }
+    iF++;
+  }
+
+  return mat;
+}
 
 
 } // namespace surface

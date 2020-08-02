@@ -55,6 +55,80 @@ TEST_F(HalfedgeMeshSuite, ValidateBoundaryMeshTest) {
 }
 
 // ============================================================
+// =============== Constructor tests
+// ============================================================
+
+TEST_F(HalfedgeMeshSuite, MatrixConstructorTest) {
+
+  std::unique_ptr<SurfaceMesh> mesh = getAsset("spot.ply", false).mesh;
+
+  { // size_t
+    DenseMatrix<size_t> F = mesh->getFaceVertexMatrix<size_t>();
+    SurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+
+  { // unsigned int
+    DenseMatrix<unsigned int> F = mesh->getFaceVertexMatrix<unsigned int>();
+    SurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+
+  { // int
+    DenseMatrix<int> F = mesh->getFaceVertexMatrix<int>();
+    SurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+  
+  
+  { // fixed-size int
+    DenseMatrix<int> Fbig = mesh->getFaceVertexMatrix<int>();
+    Eigen::Matrix<int, Eigen::Dynamic, 3> F = Fbig;
+    SurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+}
+
+TEST_F(HalfedgeMeshSuite, MatrixConstructorManifoldTest) {
+
+  std::unique_ptr<SurfaceMesh> mesh = getAsset("spot.ply", false).mesh;
+
+  { // size_t
+    DenseMatrix<size_t> F = mesh->getFaceVertexMatrix<size_t>();
+    ManifoldSurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+
+  { // unsigned int
+    DenseMatrix<unsigned int> F = mesh->getFaceVertexMatrix<unsigned int>();
+    ManifoldSurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+
+  { // int
+    DenseMatrix<int> F = mesh->getFaceVertexMatrix<int>();
+    ManifoldSurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+  
+  
+  { // fixed-size int
+    DenseMatrix<int> Fbig = mesh->getFaceVertexMatrix<int>();
+    Eigen::Matrix<int, Eigen::Dynamic, 3> F = Fbig;
+    ManifoldSurfaceMesh newM(F);
+    newM.validateConnectivity();
+    EXPECT_EQ(newM.nVertices(), mesh->nVertices());
+  }
+}
+
+// ============================================================
 // =============== Range iterator tests
 // ============================================================
 
@@ -271,15 +345,13 @@ TEST_F(HalfedgeMeshSuite, ContainerAccessTest) {
     }
 
     testDA.raw() += testDB.raw();
-    
+
     for (Vertex v : mesh->vertices()) {
       ASSERT_EQ(testDA[v], 5.);
     }
 
   } // scope block triggers testD delete
-
 }
-
 
 
 // ============================================================
