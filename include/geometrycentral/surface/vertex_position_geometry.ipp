@@ -1,6 +1,26 @@
 namespace geometrycentral {
 namespace surface {
 
+
+template <typename T>
+VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_, const Eigen::MatrixBase<T>& vMat)
+    : VertexPositionGeometry(mesh_) {
+
+  // sanity checks on input matrix dimensions
+  GC_SAFETY_ASSERT(vMat.cols() == 3, "input must be a V x 3 matrix -- cols() should == 3");
+  GC_SAFETY_ASSERT(static_cast<size_t>(vMat.rows()) == mesh_.nVertices(),
+                   "input must be a V x 3 matrix -- rows() should == nVertices()");
+
+  size_t iV = 0;
+  for (Vertex v : mesh_.vertices()) {
+    double x = vMat(iV, 0);
+    double y = vMat(iV, 1);
+    double z = vMat(iV, 2);
+    inputVertexPositions[v] = Vector3{x, y, z};
+    iV++;
+  }
+}
+
 inline double VertexPositionGeometry::edgeLength(Edge e) const {
   Halfedge he = e.halfedge();
   Vector3 pA = inputVertexPositions[he.vertex()];

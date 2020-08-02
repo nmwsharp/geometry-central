@@ -10,7 +10,8 @@ SET(SRCS
 
   surface/surface_mesh.cpp
   surface/manifold_surface_mesh.cpp
-  surface/halfedge_factories.cpp
+  surface/halfedge_factories.cpp  
+  surface/surface_mesh_factories.cpp
   surface/meshio.cpp
   surface/simple_polygon_mesh.cpp
   surface/rich_surface_mesh_data.cpp

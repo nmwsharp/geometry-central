@@ -195,11 +195,18 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
     Construct a new geometry for the mesh, with all positions set to the origin `Vector3{0., 0., 0.,}`.
 
 
-??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, VertexData<Vector3> positions)`"
+??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, const VertexData<Vector3>& positions)`"
 
     Construct a new geometry for a mesh from known vertex positions.
 
     The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
+
+
+??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, const Eigen::MatrixBase<T>& positions)`"
+
+    Construct a new geometry for a mesh from known vertex positions, where the positions are stored as an Eigen matrix.
+
+    The input matrix should be a `Vx3` matrix of floating point values. The `Eigen::MatrixBase` type is just a generic type which accepts most Eigen matrices as input, including the geometry-central `DenseMatrix<>` type.
 
 
 ??? func "`#!cpp std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::copy()`"

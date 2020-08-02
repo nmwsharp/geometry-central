@@ -8,6 +8,7 @@
 #include "geometrycentral/surface/extrinsic_geometry_interface.h"
 #include "geometrycentral/surface/geometry.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/surface_mesh_factories.h"
 #include "geometrycentral/surface/rich_surface_mesh_data.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
@@ -208,6 +209,80 @@ TEST_F(HalfedgeGeometrySuite, CopyTest) {
     // Copy vertex position
     std::unique_ptr<EdgeLengthGeometry> copy2 = eGeom.copy();
     copy2->requireFaceAreas();
+  }
+}
+
+
+// ============================================================
+// =============== Constructor tests
+// ============================================================
+
+TEST_F(HalfedgeGeometrySuite, PositionMatrixConstructionTest) {
+  for (auto& asset : {getAsset("bob_small.ply", false)}) {
+    SurfaceMesh& mesh = *asset.mesh;
+    VertexPositionGeometry& vGeom = *asset.geometry;
+
+    // Build out a matrix
+    DenseMatrix<double> vPos(mesh.nVertices(), 3);
+    size_t iV = 0;
+    for (Vertex v : mesh.vertices()) {
+      Vector3 p = vGeom.inputVertexPositions[v];
+      vPos(iV, 0) = p.x;
+      vPos(iV, 1) = p.y;
+      vPos(iV, 2) = p.z;
+      iV++;
+    }
+
+    // Construct a geometry
+    VertexPositionGeometry newGeom(mesh, vPos);
+
+    vGeom.requireMeshLengthScale();
+    newGeom.requireMeshLengthScale();
+
+    EXPECT_EQ(vGeom.meshLengthScale, newGeom.meshLengthScale);
+  }
+}
+
+TEST_F(HalfedgeGeometrySuite, MatrixFactoryTest) {
+  for (auto& asset : {getAsset("bob_small.ply", false)}) {
+    SurfaceMesh& mesh = *asset.mesh;
+    VertexPositionGeometry& vGeom = *asset.geometry;
+
+    // Get face mat
+    DenseMatrix<size_t> F = mesh.getFaceVertexMatrix<size_t>();
+
+    // Build out a matrix
+    DenseMatrix<double> vPos(mesh.nVertices(), 3);
+    size_t iV = 0;
+    for (Vertex v : mesh.vertices()) {
+      Vector3 p = vGeom.inputVertexPositions[v];
+      vPos(iV, 0) = p.x;
+      vPos(iV, 1) = p.y;
+      vPos(iV, 2) = p.z;
+      iV++;
+    }
+
+    vGeom.requireMeshLengthScale();
+
+    // Invoke factory
+
+    { // general
+      std::unique_ptr<SurfaceMesh> newMesh;
+      std::unique_ptr<VertexPositionGeometry> newGeom;
+      std::tie(newMesh, newGeom) = makeSurfaceMeshAndGeometry(vPos, F);
+
+      newGeom->requireMeshLengthScale();
+      EXPECT_EQ(vGeom.meshLengthScale, newGeom->meshLengthScale);
+    }
+
+    { // general
+      std::unique_ptr<ManifoldSurfaceMesh> newMesh;
+      std::unique_ptr<VertexPositionGeometry> newGeom;
+      std::tie(newMesh, newGeom) = makeManifoldSurfaceMeshAndGeometry(vPos, F);
+
+      newGeom->requireMeshLengthScale();
+      EXPECT_EQ(vGeom.meshLengthScale, newGeom->meshLengthScale);
+    }
   }
 }
 

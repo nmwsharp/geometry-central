@@ -83,6 +83,8 @@ These properties are invariants which always hold for the `ManifoldSurfaceMesh`;
 
 ### Constructors
 
+See the [mesh I/O page](/surface/utilities/io) for helpers which read a mesh from file, and factory methods to construct a mesh and geometry simultaneously.
+
 ??? func "`#!cpp SurfaceMesh(const std::vector<std::vector<size_t>>& polygons)`"
     Constructs a mesh from a face-index list.
 
@@ -98,7 +100,7 @@ These properties are invariants which always hold for the `ManifoldSurfaceMesh`;
 
     Constructs a mesh from a rectangular face-index matrix, like an `Fx3` array of triangle indices, or an `Fx4` array of quad indices. The matrix scalar can be any integer type, like `size_t` or `int`.
 
-    The `Eigen:MatrixBase<T>` type is just a general type which accepts most Eigen matrix types as input, including geoemtry-central's nicely-named wrapper `DenseMatrix<T>`.
+    The `Eigen:MatrixBase<T>` type is just a general type which accepts most Eigen matrix types as input, including geometry-central's nicely-named wrapper `DenseMatrix<T>`.
 
 
 ??? func "`#!cpp ManifoldSurfaceMesh(const Eigen::MatrixBase<T>& faces)`"
@@ -210,7 +212,7 @@ Remember, all functions from `SurfaceMesh` can also be called on `ManifoldSurfac
     ```
     to get a matrix where each entry is an `int`.
 
-    Remember that `DenseMatrix<T>` is just our nice synonym for `Eigen:::DenseMatrix`.
+    Remember that `DenseMatrix<T>` is just our nice synonym for `Eigen:::Matrix`.
 
 ??? func "`#!cpp std::unique_ptr<SurfaceMesh> SurfaceMesh::copy() const`"
 

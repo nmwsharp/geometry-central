@@ -1,8 +1,8 @@
 #include "geometrycentral/surface/meshio.h"
 
-#include "geometrycentral/surface/halfedge_factories.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/simple_polygon_mesh.h"
+#include "geometrycentral/surface/surface_mesh_factories.h"
 
 #include "happly.h"
 
@@ -69,7 +69,7 @@ std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(filename, type, loadType);
   processLoadedMesh(simpleMesh, loadType);
-  return makeGeneralHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return makeSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>> readSurfaceMesh(std::istream& in,
                                                                                                   std::string type) {
@@ -77,7 +77,7 @@ std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(in, type);
   processLoadedMesh(simpleMesh, loadType);
-  return makeGeneralHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return makeSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
 // Load a manifold surface mesh; an exception will by thrown if the mesh is not manifold.
@@ -87,7 +87,7 @@ readManifoldSurfaceMesh(std::string filename, std::string type) {
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(filename, type, loadType);
   processLoadedMesh(simpleMesh, loadType);
-  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 readManifoldSurfaceMesh(std::istream& in, std::string type) {
@@ -95,7 +95,7 @@ readManifoldSurfaceMesh(std::istream& in, std::string type) {
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(in, type);
   processLoadedMesh(simpleMesh, loadType);
-  return makeHalfedgeAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 }
 
 

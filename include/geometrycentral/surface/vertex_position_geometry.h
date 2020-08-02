@@ -17,6 +17,10 @@ public:
 
   // Construct from positions
   VertexPositionGeometry(SurfaceMesh& mesh_, const VertexData<Vector3>& inputVertexPositions);
+  
+  // Construct from positions (stored in an Eigen matrix)
+  template <typename T>
+  VertexPositionGeometry(SurfaceMesh& mesh_, const Eigen::MatrixBase<T>& vertexPositions);
 
   // Boring destructor
   virtual ~VertexPositionGeometry() {}
