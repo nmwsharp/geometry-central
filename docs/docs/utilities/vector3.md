@@ -71,6 +71,10 @@ vec = vec.normalize();  // much better
 
     Returns a unit-norm vector pointing in the same direction. If the input is the zero vector, the result will contain NaNs.
 
+??? func "`#!cpp Vector3 Vector3::normalizeCutoff(double mag = 0.)`"
+
+    Returns a unit-norm vector with the same direction. If the input has magnitude less `<= mag`, the vector is unchanged.
+
 ??? func "`#!cpp Vector3 Vector3::rotateAround(Vector3 axis, double theta)`"
 
     Rotate the vector by angle $\theta$ around `axis` in the right-handed direction. `axis` need not be a unit vector.

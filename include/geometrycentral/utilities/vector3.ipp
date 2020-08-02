@@ -133,6 +133,13 @@ inline Vector3 Vector3::normalize() const {
   return *this * r;
 }
 
+inline Vector3 Vector3::normalizeCutoff(double mag) const {
+  double len = std::sqrt(x * x + y * y + z * z);
+  if (len <= mag) len = 1.;
+  double r = 1. / len;
+  return *this * r;
+}
+
 
 inline Vector3 Vector3::removeComponent(const Vector3& unitDir) const { return *this - unitDir * dot(unitDir, *this); }
 

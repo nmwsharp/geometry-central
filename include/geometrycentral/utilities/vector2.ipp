@@ -74,6 +74,13 @@ inline Vector2 Vector2::normalize() const {
   return *this * r;
 }
 
+inline Vector2 Vector2::normalizeCutoff(double mag) const {
+  double len = std::sqrt(x * x + y * y);
+  if (len <= mag) len = 1.;
+  double r = 1. / len;
+  return *this * r;
+}
+
 inline Vector2 unit(const Vector2& v) {
   double n = norm(v);
   return Vector2{v.x / n, v.y / n};

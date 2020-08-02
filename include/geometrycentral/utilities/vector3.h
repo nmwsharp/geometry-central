@@ -49,6 +49,7 @@ struct Vector3 {
   Vector3 removeComponent(const Vector3& unitDir) const; // removes component in direction D
   std::array<Vector3, 2> buildTangentBasis() const;      // build a basis orthogonal to D (need not be unit already)
   Vector3 normalize() const;
+  Vector3 normalizeCutoff(double mag = 0.) const;
 
   double norm() const;
   double norm2() const;

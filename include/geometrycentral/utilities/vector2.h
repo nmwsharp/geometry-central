@@ -57,6 +57,7 @@ struct Vector2 {
   // The non-member functions below return a new object; they do not modify in-place.
 
   Vector2 normalize() const;
+  Vector2 normalizeCutoff(double mag = 0.) const;
   Vector2 rotate(double theta) const;
   Vector2 rotate90() const;
 
