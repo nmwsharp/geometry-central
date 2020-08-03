@@ -12,17 +12,27 @@ function(eigen3checker GC_EIGEN_LOCATION EIGEN3_FIND_VERSION)
   #
 
   set(EIGEN3_FOUND false PARENT_SCOPE)
+  
+  ## Search for the signature_of_eigen3_matrix_library
 
-  # Search for the signature_of_eigen3_matrix_library
+  # Search first for just the requested path
   find_path(EIGEN3_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library
-      PATHS
-        ${GC_EIGEN_LOCATION}
+      PATHS ${GC_EIGEN_LOCATION}
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH
+      NO_CMAKE_FIND_ROOT_PATH
+    )
+
+  # Now search more broadly (will do nothing if the search above succeeded)
+  find_path(EIGEN3_INCLUDE_DIR NAMES signature_of_eigen3_matrix_library
       PATH_SUFFIXES
         eigen3
         eigen
     )
 
-  # message(STATUS "Eigen Include Dir: ${EIGEN3_INCLUDE_DIR}")
   if(EXISTS "${EIGEN3_INCLUDE_DIR}/Eigen/src/Core/util/Macros.h")
 
     # Parse version from Macros.h
