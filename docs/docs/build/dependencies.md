@@ -20,15 +20,22 @@ git submodule update --init --recursive
 As such, the build system uses the following strategies in order to resolve Eigen:
 
 1. The target `Eigen3::Eigen` is already defined somewhere. Use the predefined target over any hints from the user
-2. Using Eigen in any directory passed via the `GC_EIGEN_LOCATION` CMake variable (empty by default)
+2. Using Eigen in any directory passed via the `GC_EIGEN_LOCATION` CMake cache variable (empty by default, see note below)
 3. Using Eigen from your system libraries, as resolved via `find_package(Eigen3 3.3)`
 4. Downloading a copy of Eigen in to the `deps/downloads/` directory
 
-For instance, if your project already has a copy of Eigen in its source tree, you can use with (2) by setting `GC_EIGEN_LOCATION`. If not, many programmers have installed Eigen, which will be found in (3). Finally, as a last resort the build system will download a copy of Eigen as in (4).
+For instance, if your project already has a copy of Eigen in its source tree, you can use it with (2) by setting `GC_EIGEN_LOCATION`. If not, many programmers have installed Eigen, which will be found in (3). Finally, as a last resort the build system will download a copy of Eigen as in (4).
 
 geometry-central is known to work with version 3.3 of Eigen; other versions have not been tested (but recent versions probably work).
 
-Note: once upon a time, Eigen was a submodule of geometry-central. If updating from an old version, you may need to manually delete `deps/eigen-git-mirror`.
+??? note "setting `GC_EIGEN_LOCATION`"
+
+    The joys of CMake: if you are trying to set `GC_EIGEN_LOCATION` from some higher-level CMake script, you need to set it as a cache variable, which are different from 'normal' variables in CMake. As an example:
+
+    ```cmake
+    set(GC_EIGEN_LOCATION "full/path/to/eigen" CACHE PATH "my path")
+    add_subdirectory(geometry-central)
+    ```
 
 ## Suitesparse
 

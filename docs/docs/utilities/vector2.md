@@ -95,6 +95,10 @@ vec = vec.rotate90();   // much better
 
     Returns a unit-norm vector with the same direction. If the input is the zero vector, the result will contain NaNs.
 
+??? func "`#!cpp Vector2 Vector2::normalizeCutoff(double mag = 0.)`"
+
+    Returns a unit-norm vector with the same direction. If the input has magnitude less `<= mag`, the vector is unchanged.
+
 ??? func "`#!cpp Vector2 Vector2::rotate(double theta)`"
 
     Rotate the vector by angle $\theta$ in the counter-clockwise direction.

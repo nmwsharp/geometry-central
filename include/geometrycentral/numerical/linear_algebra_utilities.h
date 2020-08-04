@@ -1,5 +1,6 @@
 #pragma once
 
+#include "geometrycentral/numerical/linear_algebra_types.h"
 #include "geometrycentral/utilities/utilities.h"
 
 #include <Eigen/Core>
@@ -14,20 +15,6 @@
 
 
 namespace geometrycentral {
-
-// Convenience typedefs
-
-// Nicer name for dynamic matrix
-template <typename T>
-using Vector = Eigen::Matrix<T, Eigen::Dynamic, 1>;
-
-// Nicer name for sparse matrix
-template <typename T>
-using SparseMatrix = Eigen::SparseMatrix<T>;
-
-// Nicer name for dense matrix
-template <typename T>
-using DenseMatrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic>;
 
 // ==== Simple utilities
 
@@ -47,6 +34,9 @@ SparseMatrix<T> horizontalStack(const std::vector<SparseMatrix<T>, Eigen::aligne
 // Blow up an NxM complex system to a 2N x2M real system.
 SparseMatrix<double> complexToReal(const SparseMatrix<std::complex<double>>& m);
 Vector<double> complexToReal(const Vector<std::complex<double>>& v);
+
+template <typename T>
+std::vector<std::vector<T>> unpackMatrixToStdVector(const DenseMatrix<T>& mat);
 
 // ==== Sanity checks
 

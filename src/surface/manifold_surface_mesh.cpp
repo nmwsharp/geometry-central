@@ -66,6 +66,11 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
   vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
   fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
 
+  // Sanity check to detect unreferenced vertices
+#ifndef NGC_SAFETY_CHECKS
+  std::vector<char> vertUsed(nVerticesCount, false);
+#endif
+
   // Track halfedges which have already been created
   // TODO replace with compressed list for performance
   std::unordered_map<std::tuple<size_t, size_t>, size_t> createdHalfedges;
@@ -88,6 +93,10 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
 
       size_t indTail = poly[iFaceHe];
       size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+#ifndef NGC_SAFETY_CHECKS
+      vertUsed[indTail] = true;
+#endif
 
       // Get an index for this halfedge
       std::tuple<size_t, size_t> heKey{indTail, indTip};
@@ -133,9 +142,14 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
     heNextArr[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
   }
 
+#ifndef NGC_SAFETY_CHECKS
+  // Look for any vertices which were unreferenced
+  for (size_t iV = 0; iV < nVerticesCount; iV++) {
+    GC_SAFETY_ASSERT(vertUsed[iV], "unreferenced vertex " + std::to_string(iV));
+  }
+
   // Ensure that each boundary neighborhood is either a disk or a half-disk. Harder to diagnose if we wait until the
   // boundary walk below.
-#ifndef NGC_SAFTEY_CHECKS
   {
     std::vector<char> vertexOnBoundary(nVerticesCount, false);
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {
@@ -214,7 +228,7 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
   nBoundaryLoopsFillCount = nBoundaryLoopsCount;
   isCompressedFlag = true;
 
-#ifndef NGC_SAFTEY_CHECKS
+#ifndef NGC_SAFETY_CHECKS
   { // Check that the input was manifold in the sense that each vertex has a single connected loop of faces around it.
     std::vector<char> halfedgeSeen(nHalfedgesCount, false);
     for (size_t iV = 0; iV < nVerticesCount; iV++) {
@@ -345,7 +359,7 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
 
 // Ensure that each boundary neighborhood is either a disk or a half-disk. Harder to diagnose if we wait until the
 // boundary walk below.
-#ifndef NGC_SAFTEY_CHECKS
+#ifndef NGC_SAFETY_CHECKS
   {
     std::vector<char> vertexOnBoundary(nVerticesCount, false);
     for (size_t iHe = 0; iHe < nHalfedgesCount; iHe++) {

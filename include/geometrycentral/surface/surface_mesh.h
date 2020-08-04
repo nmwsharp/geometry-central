@@ -3,6 +3,7 @@
 #include "geometrycentral/surface/halfedge_element_types.h"
 #include "geometrycentral/utilities/mesh_data.h"
 #include "geometrycentral/utilities/utilities.h"
+#include "geometrycentral/numerical/linear_algebra_types.h"
 
 #include <list>
 #include <memory>
@@ -44,6 +45,10 @@ public:
   // (some functions, like in meshio.h preprocess inputs to strip out unused indices).
   // The output will preserve the ordering of vertices and faces.
   SurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
+
+  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer type.
+  template <typename T>
+  SurfaceMesh(const Eigen::MatrixBase<T>& triangles);
 
   // Build a halfedge mesh from connectivity information (0-indexed as always)
   // - `polygons` is the usual vertex indices for each face
@@ -113,7 +118,11 @@ public:
   virtual bool isOriented();
   void printStatistics() const; // print info about element counts to std::cout
 
+  // Get representations of the face vertex indices
   std::vector<std::vector<size_t>> getFaceVertexList();
+  template<typename T>
+  DenseMatrix<T> getFaceVertexMatrix(); // all faces must have same degree
+
   std::unique_ptr<SurfaceMesh> copy() const;
   virtual std::unique_ptr<SurfaceMesh> copyToSurfaceMesh() const;
   std::unique_ptr<ManifoldSurfaceMesh> toManifoldMesh();
@@ -151,7 +160,7 @@ public:
   // before calling. (Only makes sense on a general SurfaceMesh)
   // Returns the "parent" of each vertex before splitting.
   virtual VertexData<Vertex> separateNonmanifoldVertices();
-  
+
   // Invert the orientation of faces to form maximal sets of same-oriented faces.
   // (Only makes sense on a general SurfaceMesh)
   virtual void greedilyOrientFaces();

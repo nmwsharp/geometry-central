@@ -161,7 +161,7 @@ Vector<double> HeatMethodDistanceSolver::computeDistanceRHS(const Vector<double>
       gradUDir += ePerp * heatVec(geom.vertexIndices[he.vertex()]);
     }
 
-    gradUDir = gradUDir.normalize();
+    gradUDir = gradUDir.normalizeCutoff();
 
     for (Halfedge he : f.adjacentHalfedges()) {
       double val = geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);

@@ -86,6 +86,11 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
   nFacesCapacityCount = nFacesCount;
   nFacesFillCount = nFacesCount;
 
+  // Sanity check to detect unreferenced vertices
+#ifndef NGC_SAFETY_CHECKS
+  std::vector<char> vertUsed(nVerticesCount, false);
+#endif
+
   // === Walk the faces, creating halfedges. For now, don't hook up any twin or edge pointers.
   for (size_t iFace = 0; iFace < nFacesCount; iFace++) {
     const std::vector<size_t>& poly = polygons[iFace];
@@ -98,6 +103,10 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
 
       size_t indTail = poly[iFaceHe];
       size_t indTip = poly[(iFaceHe + 1) % faceDegree];
+
+#ifndef NGC_SAFETY_CHECKS
+      vertUsed[indTail] = true;
+#endif
 
       // Get an index for this halfedge
       std::tuple<size_t, size_t> heKey{indTail, indTip};
@@ -123,6 +132,13 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
     }
     heNextArr[prevHeInd] = firstHeInd; // hook up the first next() pointer, which we missed in the loop above
   }
+
+#ifndef NGC_SAFETY_CHECKS
+  // Look for any vertices which were unreferenced
+  for (size_t iV = 0; iV < nVerticesCount; iV++) {
+    GC_SAFETY_ASSERT(vertUsed[iV], "unreferenced vertex " + std::to_string(iV));
+  }
+#endif
 
   // === Create edges and hook up twins
   if (twins.empty()) {
@@ -518,7 +534,7 @@ std::unique_ptr<ManifoldSurfaceMesh> SurfaceMesh::toManifoldMesh() {
       i++;
     }
   }
-  
+
   // Build twin array
   std::vector<std::vector<std::tuple<size_t, size_t>>> twins(nFaces());
   for (Face f : faces()) {

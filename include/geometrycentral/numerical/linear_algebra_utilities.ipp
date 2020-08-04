@@ -30,7 +30,7 @@ SparseMatrix<T> verticalStack(const std::vector<SparseMatrix<T>, Eigen::aligned_
 
   for (const SparseMatrix<T>& mat : mats) {
 
-    if(mat.cols() != nCols) throw std::logic_error("all matrices must have same column size");
+    if (mat.cols() != nCols) throw std::logic_error("all matrices must have same column size");
 
     // Copy entries
     for (int k = 0; k < mat.outerSize(); ++k) {
@@ -64,8 +64,8 @@ SparseMatrix<T> horizontalStack(const std::vector<SparseMatrix<T>, Eigen::aligne
   size_t nColsTot = 0;
 
   for (const SparseMatrix<T>& mat : mats) {
-    
-    if(mat.rows() != nRows) throw std::logic_error("all matrices must have same row size");
+
+    if (mat.rows() != nRows) throw std::logic_error("all matrices must have same row size");
 
     // Copy entries
     for (int k = 0; k < mat.outerSize(); ++k) {
@@ -90,6 +90,22 @@ SparseMatrix<T> horizontalStack(const std::vector<SparseMatrix<T>, Eigen::aligne
 }
 
 
+template <typename T>
+std::vector<std::vector<T>> unpackMatrixToStdVector(const DenseMatrix<T>& mat) {
+  size_t N = static_cast<size_t>(mat.rows());
+  size_t M = static_cast<size_t>(mat.cols());
+
+  // Copy to vector representation
+  std::vector<std::vector<size_t>> vectors(N);
+  for (size_t i = 0; i < N; i++) {
+    vectors[i].resize(M);
+    for (size_t j = 0; j < M; j++) {
+      vectors[i][j] = mat(i,j);
+    }
+  }
+
+  return vectors;
+}
 
 template <typename T>
 inline void checkFinite(const SparseMatrix<T>& m) {
