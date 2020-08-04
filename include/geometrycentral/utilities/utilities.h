@@ -10,7 +10,7 @@
 #include <typeinfo>
 
 // Error checking macro. CONDITION should be true if life is good (like in assert(CONDITION))
-#ifdef NGC_SAFTEY_CHECKS
+#ifdef NGC_SAFETY_CHECKS
 #define GC_SAFETY_ASSERT(CONDITION, MSG)
 #else
 #define GC_SAFETY_ASSERT(CONDITION, MSG)                                                                               \

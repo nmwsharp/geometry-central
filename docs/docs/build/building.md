@@ -26,3 +26,7 @@ For a simple example project using geometry-central (with [Polyscope](https://po
 ### On Windows
 
 When using Visual Studio on Windows, CMake can be used (either via the terminal or gui) to generate Visual Studio project and solution files. The project has been verified to compile out of the box with Visual Studio 2017 & 2019 (older versions not tested).
+
+## Compile flags & options
+
+The library includes a few optional safety checks which are performed at runtime, even in release mode. Such checks are generally very cheap yet quite useful. Nonetheless, adding the `NGC_SAFETY_CHECKS` define will disable all optional safety checks, for a very small increase in performance.
