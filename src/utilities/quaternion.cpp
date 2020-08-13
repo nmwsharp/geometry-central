@@ -13,9 +13,9 @@ Quaternion::Quaternion(void)
     // initializes all components to zero
     : s(0.), v{0., 0., 0.} {}
 
-Quaternion::Quaternion(const Quaternion& q)
-    // initializes from existing quaternion
-    : s(q.s), v(q.v) {}
+// Quaternion::Quaternion(const Quaternion& q)
+//// initializes from existing quaternion
+//: s(q.s), v(q.v) {}
 
 Quaternion::Quaternion(double s_, double vi, double vj, double vk)
     // initializes with specified double (s) and imaginary (v) components
