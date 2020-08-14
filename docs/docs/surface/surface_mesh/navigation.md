@@ -138,6 +138,21 @@ Use these routines to iterate over the neighbors of a mesh element.
     }
     ```
 
+
+??? func "`#!cpp Edge::adjacentVertices()`"
+
+    Iterate over the (two) vertices which are endpoints of the edge.
+    ```cpp
+    for (Vertex v : edge.adjacentVertices()) {
+      // do science here
+    }
+    ```
+
+    Note: unlike most navigators, this routine actually returns a fixed-size array, so you can alternately write things like:
+    ```cpp 
+    std::array<Vertex, 2> verts = edge.adjacentVertices();
+    ```
+
 ### Around a face
 
 ??? func "`#!cpp Face::adjacentVertices()`"

@@ -295,7 +295,9 @@ inline Vertex Edge::otherVertex(Vertex v) const {
     return halfedge().tailVertex();
   }
 }
-inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
+inline Vertex Edge::firstVertex() const     { return halfedge().tailVertex(); }
+inline Vertex Edge::secondVertex() const    { return halfedge().tipVertex(); }
+inline bool Edge::isDead() const            { return mesh->edgeIsDead(ind); }
 
 // Properties
 inline bool Edge::isBoundary() const { 
@@ -348,6 +350,12 @@ inline Halfedge EdgeAdjacentInteriorHalfedgeNavigator::getCurrent() const { retu
 inline void EdgeAdjacentFaceNavigator::advance() { currE = currE.sibling(); }
 inline bool EdgeAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
 inline Face EdgeAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
+
+
+inline std::array<Vertex, 2> Edge::adjacentVertices() const { 
+  Halfedge he = halfedge();
+  return std::array<Vertex, 2>{he.tailVertex(), he.tipVertex()};
+}
 
 
 // ==========================================================
@@ -486,4 +494,3 @@ inline Edge BoundaryLoopAdjacentEdgeNavigator::getCurrent() const { return currE
 
 } // namespace surface
 } // namespace geometrycentral
-

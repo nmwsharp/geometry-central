@@ -176,10 +176,24 @@ An _edge_ is a 1-dimensional element that connects two vertices in the mesh.
     Returns one of the two halfedges incident on this edge. If the edge is a boundary edge, it is guaranteed that the returned edge will be the interior one.
 
 
-??? func "`#!cpp Vertex Halfedge::otherVertex(Vertex v)`"
+??? func "`#!cpp Vertex Edge::otherVertex(Vertex v)`"
 
     Of the two vertices incident on the edge, returns the one which is not `v`. If both incident vertices are `v`, returns `v`.
+
+
+??? func "`#!cpp Vertex Edge::firstVertex()`"
+
+    Returns one of the two vertices incident on the edge. In particular, returns `edge.halfedge().tailVertex()`.
+
+    See also: `Edge::secondVertex()`.
+
+??? func "`#!cpp Vertex Edge::secondVertex()`"
+
+    Returns one of the two vertices incident on the edge. In particular, returns `edge.halfedge().tipVertex()`.
     
+    See also: `Edge::firstVertex()`.
+   
+
 **Utility:**
 
 ??? func "`#!cpp bool Edge::isBoundary()`"

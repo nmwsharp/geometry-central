@@ -205,6 +205,8 @@ public:
   // Navigators
   Halfedge halfedge() const;
   Vertex otherVertex(Vertex v) const;
+  Vertex firstVertex() const;
+  Vertex secondVertex() const;
   bool isDead() const;
 
   // Properties
@@ -217,6 +219,7 @@ public:
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
+  std::array<Vertex, 2> adjacentVertices() const;
 };
 
 // using DynamicEdge = DynamicElement<Edge>;

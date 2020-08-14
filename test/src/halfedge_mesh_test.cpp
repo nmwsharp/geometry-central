@@ -724,6 +724,28 @@ TEST_F(HalfedgeMeshSuite, FaceFaceNavigator) {
   }
 }
 
+TEST_F(HalfedgeMeshSuite, EdgeVertexNavigator) {
+  // test firstVertex()/secondVertex() and e.adjacentVertices()
+
+  std::unique_ptr<SurfaceMesh> mesh = getAsset("spot.ply", false).mesh;
+
+  for (Edge e : mesh->edges()) {
+    EXPECT_FALSE(e.firstVertex() == e.secondVertex());
+
+    Vertex firstV;
+    for (Vertex v : e.adjacentVertices()) {
+      if (firstV == Vertex()) {
+        firstV = v;
+      } else {
+        EXPECT_FALSE(v == firstV);
+      }
+
+      EXPECT_TRUE(v == e.firstVertex() || v == e.secondVertex());
+    }
+  }
+}
+
+
 // ============================================================
 // =============== Utilities
 // ============================================================
