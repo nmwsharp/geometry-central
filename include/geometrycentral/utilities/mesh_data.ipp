@@ -51,6 +51,7 @@ MeshData<E, T>::MeshData(MeshData<E, T>&& other) noexcept
   registerWithMesh();
 }
 
+
 template <typename E, typename T>
 MeshData<E, T>& MeshData<E, T>::operator=(const MeshData<E, T>& other) {
   deregisterWithMesh();
@@ -240,6 +241,16 @@ Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E, T>::raw() {
 }
 
 template <typename E, typename T>
+const Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E, T>::raw() const {
+  return data;
+}
+
+template <typename E, typename T>
+typename MeshData<E, T>::ParentMeshT* MeshData<E, T>::getMesh() const {
+  return mesh;
+}
+
+template <typename E, typename T>
 inline MeshData<E, T> MeshData<E, T>::reinterpretTo(ParentMeshT& targetMesh) const {
   GC_SAFETY_ASSERT(nElements<E>(mesh) == nElements<E>(&targetMesh),
                    "meshes must have same number of elements to reinterpret");
@@ -256,6 +267,19 @@ inline void MeshData<E, T>::setDefault(T newDefault) {
 template <typename E, typename T>
 inline T MeshData<E, T>::getDefault() const {
   return defaultValue;
+}
+
+// === Arithmetic overloads ===
+
+template <typename E, typename T, typename U>
+void checkMeshCompatible(const MeshData<E, T>& lhs, const MeshData<E, U>& rhs) {
+  GC_SAFETY_ASSERT(lhs.getMesh() != nullptr && rhs.getMesh() != nullptr, "arguments must both be initialized");
+  GC_SAFETY_ASSERT(lhs.getMesh() == rhs.getMesh(), "arguments be defined on same mesh");
+}
+
+template <typename E, typename T>
+void checkMeshValid(const MeshData<E, T>& val) {
+  GC_SAFETY_ASSERT(val.getMesh() != nullptr, "argument must be initialized");
 }
 
 } // namespace surface

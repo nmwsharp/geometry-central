@@ -88,6 +88,35 @@ Additionally, see the vector-based initializers in [vector interoperability](con
 
     The size of the container (equal to the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`).
 
+??? func "`#!cpp SurfaceMesh* MeshData<E,T>::getMesh() const`"
+
+    The mesh on which the container is defined.
+
+
+## Arithmetic
+
+`MeshData<>` containers support arithmetic operations with each other, and with scalar values. All arithmetic is applied independently to each value in the container, and is only well-defined for containers defined on the same mesh.
+
+```cpp
+// add two vertex datas together
+VertexData<double> A(*mesh, 1.); // (sample data, filled with all 1's)
+VertexData<double> B(*mesh, 2.); 
+VertexData<double> C = A + B;
+
+// multiply times a scalar
+FaceData<double> vals(*mesh, 1.);
+vals *= 12.0;
+
+// types do not need to be the same, as long as the operation
+// is well-defined
+VertexData<float> scales(*mesh, 2.);
+VertexData<Vector3> vecs(*mesh, Vector3{1., 2., 3.});
+VertexData<Vector3> scaledVecs = scales * vecs ;
+```
+
+The binary operators `+,-,*,/,%,&,|,^,<< ,>>,&&,||` and the unary operators `+,-,!,~` are all supported, along with the matching assignment operators like `+=`. Of course, the underlying container entry types must support the operation, and the result of the operation must be compatible with the destination container.
+
+
 
 ## Vector interoperability
 
@@ -178,5 +207,9 @@ Under the hood, all `MeshData<>` types use a `Eigen::Matrix<T>` to store their v
 ??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E,T>::raw()`"
 
     Access the raw underlying Eigen vector of storage.
+
+??? func "`#!cpp const Eigen::Matrix<T, Eigen::Dynamic, 1>& MeshData<E,T>::raw() const`"
+
+    Access the raw underlying Eigen vector of storage (const).
 
 
