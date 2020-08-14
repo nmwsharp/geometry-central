@@ -9,6 +9,7 @@
 #include <iostream>
 #include <list>
 #include <typeindex>
+#include <array>
 #include <unordered_set>
 
 namespace geometrycentral {
