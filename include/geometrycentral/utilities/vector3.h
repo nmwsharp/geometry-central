@@ -50,6 +50,7 @@ struct Vector3 {
   std::array<Vector3, 2> buildTangentBasis() const;      // build a basis orthogonal to D (need not be unit already)
   Vector3 normalize() const;
   Vector3 normalizeCutoff(double mag = 0.) const;
+  Vector3 unit() const;
 
   double norm() const;
   double norm2() const;
@@ -69,7 +70,10 @@ Vector3 operator*(const T s, const Vector3& v);
 double norm(const Vector3& v);
 double norm2(const Vector3& v);
 
+Vector3 normalize(const Vector3& v);
+Vector3 normalizeCutoff(const Vector3& v, double mag = 0.);
 Vector3 unit(const Vector3& v);
+
 Vector3 cross(const Vector3& u, const Vector3& v);
 double angle(const Vector3& u, const Vector3& v);
 double angleInPlane(const Vector3& u, const Vector3& v, const Vector3& normal);

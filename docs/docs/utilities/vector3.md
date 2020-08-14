@@ -75,6 +75,10 @@ vec = vec.normalize();  // much better
 
     Returns a unit-norm vector with the same direction. If the input has magnitude less `<= mag`, the vector is unchanged.
 
+??? func "`#!cpp Vector3 Vector3::unit()`"
+
+    Alias for `normalize()`.
+
 ??? func "`#!cpp Vector3 Vector3::rotateAround(Vector3 axis, double theta)`"
 
     Rotate the vector by angle $\theta$ around `axis` in the right-handed direction. `axis` need not be a unit vector.
@@ -114,11 +118,17 @@ These operations do not change the vector on which they are called.
 
     Also available as `v.norm2()`.
 
-
-??? func "`#!cpp Vector3 unit(Vector3 v)`"
+??? func "`#!cpp Vector3 normalize(Vector3 v)`"
 
     Returns normalized copy of the vector.
 
+??? func "`#!cpp Vector3 normalizeCutoff(Vector3 v, double mag = 0.)`"
+
+    Returns a normalized copy of the vector. If the input has magnitude less `<= mag`, the vector is unchanged.
+
+??? func "`#!cpp Vector3 unit(Vector3 v)`"
+
+    Alias for `normalize(v)`.
 
 ??? func "`#!cpp double dot(Vector3 u, Vector3 v)`"
 

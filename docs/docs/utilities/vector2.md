@@ -99,6 +99,10 @@ vec = vec.rotate90();   // much better
 
     Returns a unit-norm vector with the same direction. If the input has magnitude less `<= mag`, the vector is unchanged.
 
+??? func "`#!cpp Vector2 Vector2::unit()`"
+
+    Alias for `normalize()`. 
+
 ??? func "`#!cpp Vector2 Vector2::rotate(double theta)`"
 
     Rotate the vector by angle $\theta$ in the counter-clockwise direction.
@@ -142,10 +146,17 @@ These operations do not change the vector on which they are called.
     Also available as `v.norm()`.
 
 
-??? func "`#!cpp Vector2 unit(Vector2 v)`"
+??? func "`#!cpp Vector2 normalize(Vector2 v)`"
 
     Returns normalized copy of the vector.
 
+??? func "`#!cpp Vector2 normalizeCutoff(Vector2 v, double mag = 0.)`"
+
+    Returns a normalized copy of the vector. If the input has magnitude less `<= mag`, the vector is unchanged.
+
+??? func "`#!cpp Vector2 unit(Vector2 v)`"
+
+    Alias for `normalize(v)`.
 
 ??? func "`#!cpp double arg(Vector2 v)`"
 
