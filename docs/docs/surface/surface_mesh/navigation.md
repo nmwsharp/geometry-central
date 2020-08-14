@@ -153,6 +153,33 @@ Use these routines to iterate over the neighbors of a mesh element.
     std::array<Vertex, 2> verts = edge.adjacentVertices();
     ```
 
+
+??? func "`#!cpp Edge::diamondBoundary()`"
+
+    Iterate over the four halfedges bounding the diamond with this edge as its center diagonal.
+
+    More precisely, for an interior edge on a manifold triangle mesh, this returns
+    ```cpp
+    Halfedge he = edge.halfedge();
+    return {he.next(), he.next().next(), he.twin().next(), he.twin().next().next()}
+    ```
+
+
+    Example:
+    ```cpp
+    for (Halfedge he : edge.diamondBoundary()) {
+      // do science here
+    }
+    ```
+
+    Throws an exception if there are non-triangular faces, the edge is on the boundary, or if the edge is nonmanifold.
+
+    Note: unlike most navigators, this routine actually returns a fixed-size array, so you can alternately write things like:
+    ```cpp 
+    std::array<Halfedge, 4> halfedges = edge.diamondBoundary();
+    ```
+
+
 ### Around a face
 
 ??? func "`#!cpp Face::adjacentVertices()`"

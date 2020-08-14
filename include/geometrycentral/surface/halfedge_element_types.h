@@ -207,6 +207,7 @@ public:
   Vertex otherVertex(Vertex v) const;
   Vertex firstVertex() const;
   Vertex secondVertex() const;
+  std::array<Halfedge,4> diamondBoundary() const;
   bool isDead() const;
 
   // Properties

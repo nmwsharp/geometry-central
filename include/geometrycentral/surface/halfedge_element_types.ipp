@@ -297,6 +297,24 @@ inline Vertex Edge::otherVertex(Vertex v) const {
 }
 inline Vertex Edge::firstVertex() const     { return halfedge().tailVertex(); }
 inline Vertex Edge::secondVertex() const    { return halfedge().tipVertex(); }
+inline std::array<Halfedge,4> Edge::diamondBoundary() const {
+   Halfedge h = halfedge();
+   Halfedge hN = h.next();
+   Halfedge hNN = hN.next();
+
+   Halfedge hT = h.sibling();
+   Halfedge hTN = hT.next();
+   Halfedge hTNN = hTN.next();
+
+#ifndef NGC_SAFETY_CHECKS
+   if(hT == h || !hT.isInterior()) throw std::runtime_error("cannot construct diamondBoundary() of boundary edge");
+   if(hT.sibling() != h) throw std::runtime_error("cannot construct diamondBoundary() of nonmanifold edge");
+   if(hNN.next() != h) throw std::runtime_error("cannot construct diamondBoundary() for non-triangular face");
+   if(hTNN.next() != hT) throw std::runtime_error("cannot construct diamondBoundary() for non-triangular face");
+#endif
+
+   return std::array<Halfedge, 4>{hN, hNN, hTN, hTNN};
+}
 inline bool Edge::isDead() const            { return mesh->edgeIsDead(ind); }
 
 // Properties

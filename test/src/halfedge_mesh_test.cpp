@@ -745,6 +745,25 @@ TEST_F(HalfedgeMeshSuite, EdgeVertexNavigator) {
   }
 }
 
+TEST_F(HalfedgeMeshSuite, EdgeDiamondNavigator) {
+
+  std::unique_ptr<SurfaceMesh> mesh = getAsset("spot.ply", false).mesh;
+
+  for (Edge e : mesh->edges()) {
+
+    // make sure each halfedge only shows up once
+    std::unordered_set<Halfedge> badHalfedges;
+    badHalfedges.insert(e.halfedge());
+    badHalfedges.insert(e.halfedge().twin());
+    for (Halfedge he : e.diamondBoundary()) {
+      EXPECT_EQ(badHalfedges.find(he), badHalfedges.end());
+      badHalfedges.insert(he);
+
+      EXPECT_TRUE(he.face() == e.halfedge().face() || he.face() == e.halfedge().twin().face());
+    }
+  }
+}
+
 
 // ============================================================
 // =============== Utilities
