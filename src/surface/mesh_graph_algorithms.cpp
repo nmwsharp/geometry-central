@@ -119,7 +119,7 @@ std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicG
       Vertex targetVert = he.tipVertex();
       double targetDist = currDist + len;
 
-      if (shortestDist.find(targetVert) == shortestDist.end()) {
+      if (targetDist <= ballRad && shortestDist.find(targetVert) == shortestDist.end()) {
         toProcess.emplace(targetDist, targetVert);
       }
     }
