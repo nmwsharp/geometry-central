@@ -117,6 +117,9 @@ public:
   virtual bool isEdgeManifold();
   virtual bool isOriented();
   void printStatistics() const; // print info about element counts to std::cout
+  
+  // Mesh helper utilities
+  Edge connectingEdge(Vertex vA, Vertex vB); // an edge from vA -- vB if one exists; Edge() otherwise
 
   // Get representations of the face vertex indices
   std::vector<std::vector<size_t>> getFaceVertexList();
