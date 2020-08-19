@@ -135,7 +135,9 @@ void MeshData<E, T>::deregisterWithMesh() {
 
 template <typename E, typename T>
 void MeshData<E, T>::fill(T val) {
-  data.setConstant(data.size(), val);
+  for (E e : iterateElements<E>(mesh)) {
+    (*this)[e] = val;
+  }
 }
 
 template <typename E, typename T>
@@ -216,7 +218,7 @@ inline const T& MeshData<E, T>::operator[](E e) const {
 template <typename E, typename T>
 inline T& MeshData<E, T>::operator[](size_t i) {
 #ifndef NDEBUG
-  assert(i < size() && "Attempted to access MeshData with out of bounds index");
+  assert(i < (size_t)data.size() && "Attempted to access MeshData with out of bounds index");
 #endif
   return data[i];
 }
@@ -224,7 +226,7 @@ inline T& MeshData<E, T>::operator[](size_t i) {
 template <typename E, typename T>
 inline const T& MeshData<E, T>::operator[](size_t i) const {
 #ifndef NDEBUG
-  assert(i < size() && "Attempted to access MeshData with out of bounds index");
+  assert(i < (size_t)data.size() && "Attempted to access MeshData with out of bounds index");
 #endif
   return data[i];
 }
@@ -261,7 +263,22 @@ inline MeshData<E, T> MeshData<E, T>::reinterpretTo(ParentMeshT& targetMesh) con
 
 template <typename E, typename T>
 inline void MeshData<E, T>::setDefault(T newDefault) {
+
+  // set the new default
   defaultValue = newDefault;
+
+  // need to ensure that any allocated values beyond the end of the currently used array get populated with this new
+  // default (they are currently filled with the old default)
+  // TODO this is pretty sloppy, and probably indicates a flaw in the design of this class... The default should
+  // probably just be const instead.
+  // TODO could avoid this (and some things in fill()) with an element_fill<E>() template
+  size_t maxInd = 0;
+  for (E e : iterateElements<E>(mesh)) {
+    maxInd = std::max(maxInd, e.getIndex());
+  }
+  for (size_t i = maxInd + 1; i < (size_t)data.size(); i++) {
+    data[i] = defaultValue;
+  }
 }
 
 template <typename E, typename T>
