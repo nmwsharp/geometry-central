@@ -114,9 +114,9 @@ std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicG
 
     shortestDist[currVert] = currDist;
 
-    for (Halfedge he : currVert.outgoingHalfedges()) {
-      double len = geom.edgeLengths[he.edge()];
-      Vertex targetVert = he.tipVertex();
+    for (Edge e : currVert.adjacentEdges()) {
+      double len = geom.edgeLengths[e];
+      Vertex targetVert = e.otherVertex(currVert);
       double targetDist = currDist + len;
 
       if (targetDist <= ballRad && shortestDist.find(targetVert) == shortestDist.end()) {
