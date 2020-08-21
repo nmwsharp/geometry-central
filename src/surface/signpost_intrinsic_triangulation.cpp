@@ -2,6 +2,7 @@
 
 #include "geometrycentral/surface/barycentric_coordinate_helpers.h"
 #include "geometrycentral/surface/exact_polyhedral_geodesics.h"
+#include "geometrycentral/surface/mesh_graph_algorithms.h"
 #include "geometrycentral/surface/trace_geodesic.h"
 
 #include <iomanip>
@@ -14,15 +15,14 @@ namespace geometrycentral {
 namespace surface {
 
 
-SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_)
+SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_,
+                                                               IntrinsicGeometryInterface& inputGeom_)
     // Note: this initializer list does something slightly wacky: it creates the new mesh on the heap, then loses track
     // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
     // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
     // probably a sign of bad design.
-    : 
-      IntrinsicGeometryInterface(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
-      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) 
-  {
+    : IntrinsicGeometryInterface(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
+      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
 
   // Make sure the input mesh is triangular
   if (!mesh.isTriangular()) {
@@ -601,6 +601,10 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
   int recheckCount = 0;
   const int MAX_RECHECK_COUNT = 5;
 
+  // Track statistics
+  size_t nFlips = 0;
+  size_t nInsertions = 0;
+
   // Initialize queue of (possibly) non-delaunay edges
   std::deque<Edge> delaunayCheckQueue;
   EdgeData<char> inDelaunayQueue(mesh, false);
@@ -628,6 +632,35 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
     }
   }
 
+  // Register a callback which checks the neighbors of an edge for further processing after a flip. It's useful to use a
+  // callback, rather than just checking in the loop, because other internal subroutines might perform flips. In
+  // particular, removeInsertedVertex() currently performs flips internally, which might trigger updates.
+  auto checkNeighborsAfterFlip = [&](Edge e) {
+    // std::cout << "  flipped edge " << e << std::endl;
+    nFlips++;
+
+    // Add neighboring faces, which might violate circumradius constraint
+    std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
+    for (Face nF : neighFaces) {
+      if (shouldRefine(nF)) {
+        circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
+      }
+    }
+
+    // Add neighbors to queue, as they may need flipping now
+    Halfedge he = e.halfedge();
+    Halfedge heN = he.next();
+    Halfedge heT = he.twin();
+    Halfedge heTN = heT.next();
+    std::vector<Edge> neighEdges = {heN.edge(), heN.next().edge(), heTN.edge(), heTN.next().edge()};
+    for (Edge nE : neighEdges) {
+      if (!inDelaunayQueue[nE]) {
+        delaunayCheckQueue.push_back(nE);
+        inDelaunayQueue[nE] = true;
+      }
+    }
+  };
+  auto flipCallbackHandle = edgeFlipCallbackList.insert(std::end(edgeFlipCallbackList), checkNeighborsAfterFlip);
 
   // Register a callback, which will be invoked to delete previously-inserted vertices whenever refinment splits an edge
   auto deleteNearbyVertices = [&](Edge e, Halfedge he1, Halfedge he2) {
@@ -635,8 +668,15 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
     double ballRad = std::max(intrinsicEdgeLengths[he1.edge()], intrinsicEdgeLengths[he2.edge()]);
     Vertex newV = he1.vertex();
 
-    // find all vertices within range
-    std::unordered_map<Vertex, double> nearbyVerts = vertexGeodesicDistanceWithinRadius(*this, newV, ballRad);
+    // Find all vertices within range.
+    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on
+    // polyhedral shortest paths which is bad for performance and robustness. Using a Dijsktra ball instead seems to
+    // work fine in practice, and I think you could argue that the factor of 2 makes it provably correct, due to the
+    // stretch factor of a Delaunay triangulation (recalling that deleting extra interior inserted vertices does not
+    // affect correctness).
+    //
+    // std::unordered_map<Vertex, double> nearbyVerts = vertexGeodesicDistanceWithinRadius(*this, newV, ballRad);
+    std::unordered_map<Vertex, double> nearbyVerts = vertexDijkstraDistanceWithinRadius(*this, newV, 2. * ballRad);
 
     // remove inserted vertices
     for (auto p : nearbyVerts) {
@@ -663,13 +703,12 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       }
     }
   };
+
   // Add our new callback at the end, so it gets invoked after any user-defined callbacks which ought to get called
   // right after the split before we mess with the mesh.
-  auto callbackHandle = edgeSplitCallbackList.insert(std::end(edgeSplitCallbackList), deleteNearbyVertices);
+  auto splitCallbackHandle = edgeSplitCallbackList.insert(std::end(edgeSplitCallbackList), deleteNearbyVertices);
 
   // === Outer iteration: flip and insert until we have a mesh that satisfies both angle and circumradius goals
-  size_t nFlips = 0;
-  size_t nInsertions = 0;
   do {
 
     // == First, flip to delaunay
@@ -681,41 +720,16 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
       if (e.isDead()) continue;
       inDelaunayQueue[e] = false;
 
-      bool wasFlipped = flipEdgeIfNotDelaunay(e);
+      flipEdgeIfNotDelaunay(e);
 
-      if (!wasFlipped) continue;
-
-      // Handle the aftermath of a flip
-      // std::cout << "  flipped non-delaunay edge " << e << std::endl;
-      nFlips++;
-
-      // Add neighboring faces, which might violate circumradius constraint
-      std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
-      for (Face nF : neighFaces) {
-        if (shouldRefine(nF)) {
-          circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
-        }
-      }
-
-      // Add neighbors to queue, as they may need flipping now
-      Halfedge he = e.halfedge();
-      Halfedge heN = he.next();
-      Halfedge heT = he.twin();
-      Halfedge heTN = heT.next();
-      std::vector<Edge> neighEdges = {heN.edge(), heN.next().edge(), heTN.edge(), heTN.next().edge()};
-      for (Edge nE : neighEdges) {
-        if (!inDelaunayQueue[nE]) {
-          delaunayCheckQueue.push_back(nE);
-          inDelaunayQueue[nE] = true;
-        }
-      }
+      // Remember that up we registered a callback up above which checks neighbors for subsequent processing after a
+      // flip.
     }
 
     // == Second, insert one circumcenter
 
-    // If we've already inserted the max number of points, empty the queue and call it a day
+    // If we've already inserted the max number of points, call it a day
     if (maxInsertions != INVALID_IND && nInsertions == maxInsertions) {
-      // circumradiusCheckQueue = std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>>();
       break;
     }
 
@@ -755,6 +769,8 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
           }
         }
       }
+
+      continue;
     }
 
     // If the circumradius queue is empty, make sure we didn't miss anything (can happen rarely due to numerics)
@@ -762,25 +778,35 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
     // happens)
     if (recheckCount < MAX_RECHECK_COUNT) {
       recheckCount++;
+      bool anyFound = false;
       if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
         for (Face f : mesh.faces()) {
           if (shouldRefine(f)) {
             circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
+            anyFound = true;
           }
         }
         for (Edge e : mesh.edges()) {
           if (!isDelaunay(e)) {
             delaunayCheckQueue.push_back(e);
             inDelaunayQueue[e] = true;
+            anyFound = true;
           }
         }
       }
+
+      if (!anyFound) {
+        // makes sure we don't recheck multiple times in a row
+        break;
+      }
     }
 
-  } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty());
+  } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty() || recheckCount < MAX_RECHECK_COUNT);
 
   refreshQuantities();
-  edgeSplitCallbackList.erase(callbackHandle);
+
+  edgeSplitCallbackList.erase(splitCallbackHandle);
+  edgeFlipCallbackList.erase(flipCallbackHandle);
 }
 
 

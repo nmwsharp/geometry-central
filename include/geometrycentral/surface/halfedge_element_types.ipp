@@ -295,7 +295,27 @@ inline Vertex Edge::otherVertex(Vertex v) const {
     return halfedge().tailVertex();
   }
 }
-inline bool Edge::isDead() const    { return mesh->edgeIsDead(ind); }
+inline Vertex Edge::firstVertex() const     { return halfedge().tailVertex(); }
+inline Vertex Edge::secondVertex() const    { return halfedge().tipVertex(); }
+inline std::array<Halfedge,4> Edge::diamondBoundary() const {
+   Halfedge h = halfedge();
+   Halfedge hN = h.next();
+   Halfedge hNN = hN.next();
+
+   Halfedge hT = h.sibling();
+   Halfedge hTN = hT.next();
+   Halfedge hTNN = hTN.next();
+
+#ifndef NGC_SAFETY_CHECKS
+   if(hT == h || !hT.isInterior()) throw std::runtime_error("cannot construct diamondBoundary() of boundary edge");
+   if(hT.sibling() != h) throw std::runtime_error("cannot construct diamondBoundary() of nonmanifold edge");
+   if(hNN.next() != h) throw std::runtime_error("cannot construct diamondBoundary() for non-triangular face");
+   if(hTNN.next() != hT) throw std::runtime_error("cannot construct diamondBoundary() for non-triangular face");
+#endif
+
+   return std::array<Halfedge, 4>{hN, hNN, hTN, hTNN};
+}
+inline bool Edge::isDead() const            { return mesh->edgeIsDead(ind); }
 
 // Properties
 inline bool Edge::isBoundary() const { 
@@ -348,6 +368,12 @@ inline Halfedge EdgeAdjacentInteriorHalfedgeNavigator::getCurrent() const { retu
 inline void EdgeAdjacentFaceNavigator::advance() { currE = currE.sibling(); }
 inline bool EdgeAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
 inline Face EdgeAdjacentFaceNavigator::getCurrent() const { return currE.face(); }
+
+
+inline std::array<Vertex, 2> Edge::adjacentVertices() const { 
+  Halfedge he = halfedge();
+  return std::array<Vertex, 2>{he.tailVertex(), he.tipVertex()};
+}
 
 
 // ==========================================================
@@ -486,4 +512,3 @@ inline Edge BoundaryLoopAdjacentEdgeNavigator::getCurrent() const { return currE
 
 } // namespace surface
 } // namespace geometrycentral
-

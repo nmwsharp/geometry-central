@@ -39,7 +39,7 @@ public:
   Quaternion(void);
   // initializes all components to zero
 
-  Quaternion(const Quaternion& q);
+  // Quaternion(const Quaternion& q); // should be same as implicitly defined
   // initializes from existing quaternion
 
   explicit Quaternion(double s, double vi, double vj, double vk);

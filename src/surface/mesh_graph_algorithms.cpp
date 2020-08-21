@@ -84,6 +84,51 @@ std::vector<Halfedge> shortestEdgePath(IntrinsicGeometryInterface& geom, Vertex 
   return std::vector<Halfedge>();
 }
 
+
+std::unordered_map<Vertex, double> vertexDijkstraDistanceWithinRadius(IntrinsicGeometryInterface& geom,
+                                                                      Vertex startVert, double ballRad) {
+
+  // Gather values
+  SurfaceMesh& mesh = geom.mesh;
+  geom.requireEdgeLengths();
+
+  // Search state: incoming halfedges to each vertex, once discovered
+  std::unordered_map<Vertex, double> shortestDist;
+
+  // Search state: visible neighbors eligible to expand to
+  using WeightedVertex = std::tuple<double, Vertex>;
+  std::priority_queue<WeightedVertex, std::vector<WeightedVertex>, std::greater<WeightedVertex>> toProcess;
+
+  // Add initial source
+  toProcess.emplace(0., startVert);
+
+  while (!toProcess.empty()) {
+
+    // Get the next closest neighbor off the queue
+    double currDist = std::get<0>(toProcess.top());
+    Vertex currVert = std::get<1>(toProcess.top());
+    toProcess.pop();
+
+    // skips stale entries
+    if (shortestDist.find(currVert) != shortestDist.end()) continue;
+
+    shortestDist[currVert] = currDist;
+
+    for (Edge e : currVert.adjacentEdges()) {
+      double len = geom.edgeLengths[e];
+      Vertex targetVert = e.otherVertex(currVert);
+      double targetDist = currDist + len;
+
+      if (targetDist <= ballRad && shortestDist.find(targetVert) == shortestDist.end()) {
+        toProcess.emplace(targetDist, targetVert);
+      }
+    }
+  }
+
+  return shortestDist;
+}
+
+
 /*
 
 // Note: Assumes mesh is a single connected component
@@ -186,7 +231,8 @@ EdgeData<char> minimalSpanningTree(EdgeLengthGeometry* geometry) {
 
 
 // Note: Assumes mesh is a single connected component
-EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry, const std::vector<Vertex>& requiredVertices) {
+EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry, const std::vector<Vertex>& requiredVertices)
+{
 
   // Preliminaries
   SurfaceMesh* mesh = geometry->getMesh();
@@ -248,7 +294,8 @@ EdgeData<char> spanningTreeBetweenVertices(Geometry<Euclidean>* geometry, const 
       }
     }
 
-    // This can happen if we're removing the last edge of a tree component, such as if there is a connected component of
+    // This can happen if we're removing the last edge of a tree component, such as if there is a connected component
+of
     // the graph with no required vertices on it
     if (treeHe == Halfedge()) {
       continue;

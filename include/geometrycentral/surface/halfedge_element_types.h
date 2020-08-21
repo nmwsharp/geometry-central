@@ -9,6 +9,7 @@
 #include <iostream>
 #include <list>
 #include <typeindex>
+#include <array>
 #include <unordered_set>
 
 namespace geometrycentral {
@@ -205,6 +206,9 @@ public:
   // Navigators
   Halfedge halfedge() const;
   Vertex otherVertex(Vertex v) const;
+  Vertex firstVertex() const;
+  Vertex secondVertex() const;
+  std::array<Halfedge,4> diamondBoundary() const;
   bool isDead() const;
 
   // Properties
@@ -217,6 +221,7 @@ public:
   NavigationSetBase<EdgeAdjacentHalfedgeNavigator> adjacentHalfedges() const;
   NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator> adjacentInteriorHalfedges() const;
   NavigationSetBase<EdgeAdjacentFaceNavigator> adjacentFaces() const;
+  std::array<Vertex, 2> adjacentVertices() const;
 };
 
 // using DynamicEdge = DynamicElement<Edge>;
