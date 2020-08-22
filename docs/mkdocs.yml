@@ -87,4 +87,4 @@ nav:
     - 'Miscellaneous' : 'utilities/miscellaneous.md'
     - 'Vector2' : 'utilities/vector2.md'
     - 'Vector3' : 'utilities/vector3.md'
-
+    - 'Utilities for Eigen Interoperability' : 'utilities/eigenmap.md'

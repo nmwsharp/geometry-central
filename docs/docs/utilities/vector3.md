@@ -1,6 +1,6 @@
 `geometrycentral::Vector3` is the basic 3D vector type in geometry central. There are many like it, but this one is ours.
 
-`#!cpp #include "geometrycentral/vector3.h"`
+`#!cpp #include "geometrycentral/utilities/vector3.h"`
 
 ### Construction 
 

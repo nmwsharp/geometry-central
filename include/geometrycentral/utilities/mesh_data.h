@@ -20,6 +20,12 @@ namespace surface {
 // T is the data type that it holds (eg double)
 template <typename E, typename T>
 class MeshData {
+public:
+  // The type of the raw buffer which holds the data.
+  // Note that this is Eigen's vector type. In particular, it should (???) implement alignment policies which may
+  // improve vectorization and performance.
+  using DATA_T = Eigen::Matrix<T, Eigen::Dynamic, 1>;
+
 protected:
   // The mesh that this data is defined on
   using ParentMeshT = typename E::ParentMeshT;
@@ -32,9 +38,7 @@ protected:
   // The raw buffer which holds the data.
   // As a mesh is being modified, data.size() might be larger than the number of elements. Don't attempt any direct
   // access to this buffer.
-  // Note that this is Eigen's vector type. In particular, it should (???) implement alignment policies which may
-  // improve vectorization and performance.
-  Eigen::Matrix<T, Eigen::Dynamic, 1> data;
+  DATA_T data;
 
   // Mutability behavior:
   // From the user's point of view, this container can always be accessed with a valid element pointer, no matter what
@@ -81,8 +85,8 @@ public:
   size_t size() const;
 
   // Raw access to the underlying buffer
-  Eigen::Matrix<T, Eigen::Dynamic, 1>& raw();
-  const Eigen::Matrix<T, Eigen::Dynamic, 1>& raw() const;
+  DATA_T& raw();
+  const DATA_T& raw() const;
 
   // Access to the underlying mesh object
   ParentMeshT* getMesh() const;
