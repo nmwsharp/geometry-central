@@ -13,7 +13,7 @@ MeshData<E, T>::MeshData() {}
 template <typename E, typename T>
 MeshData<E, T>::MeshData(ParentMeshT& parentMesh) : mesh(&parentMesh) {
   data.resize(elementCapacity<E>(mesh));
-  fill(defaultValue);
+  data.setConstant(defaultValue);
 
   registerWithMesh();
 }
@@ -21,7 +21,7 @@ MeshData<E, T>::MeshData(ParentMeshT& parentMesh) : mesh(&parentMesh) {
 template <typename E, typename T>
 MeshData<E, T>::MeshData(ParentMeshT& parentMesh, T initVal) : mesh(&parentMesh), defaultValue(initVal) {
   data.resize(elementCapacity<E>(mesh));
-  fill(defaultValue);
+  data.setConstant(defaultValue);
 
   registerWithMesh();
 }
