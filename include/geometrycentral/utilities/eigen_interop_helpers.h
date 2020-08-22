@@ -60,13 +60,14 @@ ConstEigenVectorMap_T<T, k, Options, Alignment> EigenMap(const T* vec, std::size
  *
  * @tparam T        Typename of the output data
  * @tparam k        Number of columns in the output
+ * @tparam Options  Storage order \b Eigen::RowMajor or \b Eigen::ColMajor
  * @tparam E        Typename of the mesh element
  * @tparam O        Typename of the input data
- * @tparam Eigen::RowMajor
+
  * @param vec
  * @return EigenVectorMap_T<T, k, Options, Alignment>
  */
-template <typename T, std::size_t k, typename E, typename O, int Options = Eigen::RowMajor>
+template <typename T, std::size_t k, int Options = Eigen::RowMajor, typename E, typename O>
 auto EigenMap(MeshData<E, O>& vec) -> EigenVectorMap_T<T, k, Options, EigenTraits<E, O>::Alignment> {
   static_assert(std::is_standard_layout<T>::value && std::is_trivially_copyable<O>::value, "O must be a POD type.");
   static_assert(sizeof(O) == k * sizeof(T), "sizeof(O) must be a k multiple of sizeof(T)");
@@ -81,13 +82,13 @@ auto EigenMap(MeshData<E, O>& vec) -> EigenVectorMap_T<T, k, Options, EigenTrait
  *
  * @tparam T        Typename of the output data
  * @tparam k        Number of columns in the output
+ * @tparam Options  Storage order \b Eigen::RowMajor or \b Eigen::ColMajor
  * @tparam E        Typename of the mesh element
  * @tparam O        Typename of the input data
- * @tparam Options  Storage order \b Eigen::RowMajor or \b Eigen::ColMajor
  * @param vec       The data
  * @return ConstEigenVectorMap_T<T, k, Options, Alignment>
  */
-template <typename T, std::size_t k, typename E, typename O, int Options = Eigen::RowMajor>
+template <typename T, std::size_t k, int Options = Eigen::RowMajor, typename E, typename O>
 auto EigenMap(const MeshData<E, O>& vec) -> ConstEigenVectorMap_T<T, k, Options, EigenTraits<E, O>::Alignment> {
   static_assert(std::is_standard_layout<T>::value && std::is_trivially_copyable<O>::value, "O must be a POD type.");
   static_assert(sizeof(O) == k * sizeof(T), "sizeof(O) must be a k multiple of sizeof(T)");
@@ -106,7 +107,7 @@ auto EigenMap(const MeshData<E, O>& vec) -> ConstEigenVectorMap_T<T, k, Options,
  * @tparam E    Typename of the mesh element
  * @tparam O    Typename of the input data
  * @param vec   The data
- * @return AlignedEigenMap_T<T, k>    Eigen map object to the buffer
+ * @return EigenVectorMap_T<T, k, Options, Alignment>    Eigen map object to the buffer
  */
 template <typename T, std::size_t k, typename E, typename O>
 auto FlattenedEigenMap(MeshData<E, O>& vec) -> EigenVectorMap_T<T, 1, Eigen::ColMajor, EigenTraits<E, O>::Alignment> {
@@ -126,7 +127,7 @@ auto FlattenedEigenMap(MeshData<E, O>& vec) -> EigenVectorMap_T<T, 1, Eigen::Col
  * @tparam E    Typename of the mesh element
  * @tparam O    Typename of the input data
  * @param vec   The data
- * @return AlignedEigenMap_T<T, k>    Eigen map object to the buffer
+ * @return ConstEigenVectorMap_T<T, k, Options, Alignment>    Eigen map object to the buffer
  */
 template <typename T, std::size_t k, typename E, typename O>
 auto FlattenedEigenMap(const surface::MeshData<E, O>& vec)

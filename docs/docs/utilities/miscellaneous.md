@@ -1,6 +1,6 @@
 Miscellaneous utility functions.
 
-`#!cpp #include "geometrycentral/utilities.h"`
+`#!cpp #include "geometrycentral/utilities/utilities.h"`
 
 ## Constants
 
@@ -88,4 +88,3 @@ Useful for debugging templated code. Uses `typeid()` from `<typeinfo>`.
 ??? func "`#!cpp std::string typeNameString(T* x)`"
 
     Like `typeNameString(T& x)`, but for pointers.
-

@@ -2,7 +2,7 @@
 
 Of particular interest, `Vector2` is also used to encode 2D rotations, by supporting multiplication as a complex number. See the [rotations section](#rotations-and-complex-multiplication).
 
-`#!cpp #include "geometrycentral/vector2.h"`
+`#!cpp #include "geometrycentral/utilities/vector2.h"`
 
 ### Construction 
 
