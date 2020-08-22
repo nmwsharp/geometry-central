@@ -20,6 +20,8 @@ namespace surface {
 // T is the data type that it holds (eg double)
 template <typename E, typename T>
 class MeshData {
+public:
+  using DATA_T = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 protected:
   // The mesh that this data is defined on
   using ParentMeshT = typename E::ParentMeshT;
@@ -34,7 +36,7 @@ protected:
   // access to this buffer.
   // Note that this is Eigen's vector type. In particular, it should (???) implement alignment policies which may
   // improve vectorization and performance.
-  Eigen::Matrix<T, Eigen::Dynamic, 1> data;
+  DATA_T data;
 
   // Mutability behavior:
   // From the user's point of view, this container can always be accessed with a valid element pointer, no matter what

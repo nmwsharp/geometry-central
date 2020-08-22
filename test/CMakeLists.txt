@@ -92,6 +92,7 @@ add_definitions(-DGC_TEST_ASSETS_ABS_PATH=\"${ABS_ASSETS_DIR}\")
 set(TEST_SRCS
   src/main_test.cpp
   src/load_test_meshes.cpp
+  src/eigen_interop_helpers_test.cpp
   src/halfedge_mesh_test.cpp
   src/halfedge_mutation_test.cpp
   src/halfedge_geometry_test.cpp
@@ -109,4 +110,3 @@ add_subdirectory(../ "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 if(GC_HAVE_SUITESPARSE)
     add_definitions(-DGC_HAVE_SUITESPARSE)
 endif()
-

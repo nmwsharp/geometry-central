@@ -112,6 +112,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/utilities/dependent_quantity.h
   ${INCLUDE_ROOT}/utilities/dependent_quantity.ipp
   ${INCLUDE_ROOT}/utilities/disjoint_sets.h
+  ${INCLUDE_ROOT}/utilities/eigen_interop_helpers.h
   ${INCLUDE_ROOT}/utilities/knn.h
   ${INCLUDE_ROOT}/utilities/mesh_data.h
   ${INCLUDE_ROOT}/utilities/mesh_data.ipp
