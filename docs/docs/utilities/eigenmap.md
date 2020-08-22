@@ -1,6 +1,6 @@
 Helper functions to interface with Eigen data in interesting ways.
 
-`#!cpp #include "geometrycentral/utilities/eigen_interop_helpers.h"
+`#!cpp #include "geometrycentral/utilities/eigen_interop_helpers.h"`
 
 ## Expanding a homogenous POD type into an `Eigen::Matrix`
 
