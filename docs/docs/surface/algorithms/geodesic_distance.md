@@ -10,6 +10,8 @@ TODO document
 
 These routines implement the [Heat Method for Geodesic Distance](http://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/paper.pdf). This algorithm uses short time heat flow to compute distance on surfaces. Because the main burden is simply solving linear systems of equations, it tends to be faster than polyhedral schemes, especially when computing distance multiple times on the same surface.  In the computational geometry sense, this method is an approximation, as the result is not precisely equal to the polyhedral distance on the surface; nonetheless it is fast and well-suited for many applications.
 
+This class supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function. Furthermore, it can optionally use robust operators internally to improve performance on low-quality meshes.
+
 `#include "geometrycentral/surface/heat_method_distance.h"`
 
 ### Single Solves
@@ -36,12 +38,12 @@ VertexData<double> distToSource = heatMethodDistance(*geometry, sourceVert);
 
 ??? func "`#!cpp VertexData<double> heatMethodDistance(IntrinsicGeometryInterface& geom, Vertex v)`"
 
-    Compute the distance from the source using the heat method.
+    Compute the distance from the source using the heat method. See the stateful class below for further options.
 
 
 ### Repeated Solves
 
-The stateful class `HeatMethodDistanceSolver` does precomputation when constructed, then allows many distance solves from different source locations to be performed efficiently.
+The stateful class `HeatMethodDistanceSolver` does precomputation when constructed, then allows many distance solves from different source locations to be performed efficiently. This class also exposes options, like changing the internal short-time parameter, or using a robust operators.
 
 The `computeDistance()` method in `HeatMethodDistanceSolver` can also take `SurfacePoint`(s) as the source location(s). A `SurfacePoint` (see [here](../../utilities/surface_point/)) is a location on a surface, which may be a vertex, a point along an edge, or a point inside a face.
 
@@ -56,7 +58,10 @@ std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 
 // Create the Heat Method solver
-HeatMethodDistanceSolver heatSolver(geometry);
+HeatMethodDistanceSolver heatSolver(*geometry);
+
+// Alternately, set useRobustLaplacian=true to get a robustified version
+// HeatMethodDistanceSolver heatSolver(*geometry, 1.0, true);
 
 // Some vertices as source set
 std::vector<Vertex> sourceVerts = /* some interesting vertices */
@@ -76,13 +81,15 @@ VertexData<double> distToSource = heatSolver.computeDistance(targetP);
 ```
 
 
-??? func "`#!cpp HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& geom, double tCoef=1.0)`"
+??? func "`#!cpp HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& geom, double tCoef=1.0, bool useRobustLaplacian = false)`"
 
     Create a new solver to compute geodesic distance using the heat method. All precomputation work is performed immediately at construction time.
 
     - `geom` is the geometry (and hence mesh) on which to compute. Note that nearly any geometry object (`VertexPositionGeometry`, etc) can be passed here.
 
     - `tCoef` is the time to use for short time heat flow, as a factor `m * h^2`, where `h` is the mean edge length. The default value of `1.0` is almost always sufficient.
+    
+    - `useRobustLaplacian` is true, the solver will internally use a robust intrinsic Laplacian, including mollification & tufting for nonmanifold inputs. See "A Laplacian for Nonmanifold Triangle Meshes" [Sharp & Crane 2020 @ SGP] for algorithmic details and citation.
 
     Algorithm options (like `tCoef`) cannot be changed after construction; create a new solver object with the new settings.
 
