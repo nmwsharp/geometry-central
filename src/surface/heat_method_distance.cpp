@@ -1,5 +1,9 @@
 #include "geometrycentral/surface/heat_method_distance.h"
 
+#include "geometrycentral/surface/intrinsic_mollification.h"
+#include "geometrycentral/surface/simple_idt.h"
+#include "geometrycentral/surface/tufted_laplacian.h"
+
 
 namespace geometrycentral {
 namespace surface {
@@ -8,30 +12,50 @@ VertexData<double> heatMethodDistance(IntrinsicGeometryInterface& geom, Vertex v
   return HeatMethodDistanceSolver(geom).computeDistance(v);
 }
 
-HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& geom_, double tCoef_)
-    : tCoef(tCoef_), mesh(geom_.mesh), geom(geom_)
+HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& geom_, double tCoef_,
+                                                   bool useRobustLaplacian_)
+    : tCoef(tCoef_), useRobustLaplacian(useRobustLaplacian_), mesh(geom_.mesh), geom(geom_) {
 
-{
+  // === Build & factor the linear systems
+  if (useRobustLaplacian) {
+    geom.requireEdgeLengths();
+
+    // Build operators using robust Laplacian (see [Sharp & Crane. A Laplacian for Nonmanifold Triangle Meshes. SGP
+    // 2020]) NOTE: we build explicitly here rather than just calling buildTuftedLaplacian() in order to use an
+    // intrinsic geometry.
+
+    // Create a copy of the mesh / geometry to operate on, and build the mollified (tufted if nonmanifold) cover
+    EdgeData<double> tuftedEdgeLengths;
+    if (mesh.usesImplicitTwin()) {
+      tuftedMesh = mesh.copy();
+      tuftedEdgeLengths = geom.edgeLengths.reinterpretTo(*tuftedMesh);
+    } else {
+      tuftedMesh = mesh.copyToSurfaceMesh();
+      tuftedEdgeLengths = geom.edgeLengths.reinterpretTo(*tuftedMesh);
+      buildIntrinsicTuftedCover(*tuftedMesh, tuftedEdgeLengths);
+    }
+    mollifyIntrinsic(*tuftedMesh, tuftedEdgeLengths, 1e-5);
+    size_t nFlips = flipToDelaunay(*tuftedMesh, tuftedEdgeLengths);
+    tuftedIntrinsicGeom.reset(new EdgeLengthGeometry(*tuftedMesh, tuftedEdgeLengths));
+  }
 
   // Compute mean edge length and set shortTime
-  geom.requireEdgeLengths();
+  getGeom().requireEdgeLengths();
   double meanEdgeLength = 0.;
-  for (Edge e : mesh.edges()) {
-    meanEdgeLength += geom.edgeLengths[e];
+  for (Edge e : getMesh().edges()) {
+    meanEdgeLength += getGeom().edgeLengths[e];
   }
-  meanEdgeLength /= mesh.nEdges();
+  meanEdgeLength /= getMesh().nEdges();
   shortTime = tCoef * meanEdgeLength * meanEdgeLength;
 
 
-  // === Build & factor the linear systems
-
   // Mass matrix
-  geom.requireVertexLumpedMassMatrix();
-  SparseMatrix<double>& M = geom.vertexLumpedMassMatrix;
+  getGeom().requireVertexLumpedMassMatrix();
+  SparseMatrix<double>& M = getGeom().vertexLumpedMassMatrix;
 
   // Laplacian
-  geom.requireCotanLaplacian();
-  SparseMatrix<double>& L = geom.cotanLaplacian;
+  getGeom().requireCotanLaplacian();
+  SparseMatrix<double>& L = getGeom().cotanLaplacian;
 
   // Heat operator
   SparseMatrix<double> heatOp = M + shortTime * L;
@@ -40,12 +64,15 @@ HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& g
   // Poisson solver
   poissonSolver.reset(new PositiveDefiniteSolver<double>(L));
 
-
-  geom.unrequireEdgeLengths();
-  geom.unrequireCotanLaplacian();
-  geom.unrequireVertexLumpedMassMatrix();
+  getGeom().unrequireEdgeLengths();
+  getGeom().unrequireCotanLaplacian();
+  getGeom().unrequireVertexLumpedMassMatrix();
 }
 
+SurfaceMesh& HeatMethodDistanceSolver::getMesh() { return useRobustLaplacian ? *tuftedMesh : mesh; }
+IntrinsicGeometryInterface& HeatMethodDistanceSolver::getGeom() {
+  return useRobustLaplacian ? *tuftedIntrinsicGeom : geom;
+}
 
 VertexData<double> HeatMethodDistanceSolver::computeDistance(const Vertex& sourceVert) {
   // call general version
@@ -67,11 +94,13 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const SurfacePoint&
 }
 
 VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<SurfacePoint>& sourcePoints) {
-  geom.requireHalfedgeCotanWeights();
-  geom.requireHalfedgeVectorsInFace();
+  getGeom().requireHalfedgeCotanWeights();
+  getGeom().requireHalfedgeVectorsInFace();
+  getGeom().requireEdgeLengths();
+  getGeom().requireVertexIndices();
+  getGeom().requireVertexDualAreas();
   geom.requireEdgeLengths();
   geom.requireVertexIndices();
-  geom.requireVertexDualAreas();
 
   // === Build RHS
   VertexData<double> rhs(mesh, 0.);
@@ -98,6 +127,7 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
     for (int i = 0; i < 3; i++) {
       d2 += edgeLengths[i] * edgeLengths[i] * bVec[i] * bVec[(i + 1) % 3];
     }
+    if (!(d2 <= 0)) d2 = 0.; // ensure it's negative so the sqrt below succeed
     return std::sqrt(-d2);
   };
 
@@ -132,53 +162,54 @@ VertexData<double> HeatMethodDistanceSolver::computeDistance(const std::vector<S
   double shift = -distDiffAtSource;
   distVec = distVec.array() + shift;
 
-  geom.unrequireHalfedgeCotanWeights();
-  geom.unrequireHalfedgeVectorsInFace();
+  getGeom().unrequireHalfedgeCotanWeights();
+  getGeom().unrequireHalfedgeVectorsInFace();
+  getGeom().unrequireEdgeLengths();
+  getGeom().unrequireVertexIndices();
+  getGeom().unrequireVertexDualAreas();
   geom.unrequireEdgeLengths();
   geom.unrequireVertexIndices();
-  geom.unrequireVertexDualAreas();
 
   return VertexData<double>(mesh, distVec);
 }
 
 Vector<double> HeatMethodDistanceSolver::computeDistanceRHS(const Vector<double>& rhsVec) {
-  geom.requireHalfedgeCotanWeights();
-  geom.requireHalfedgeVectorsInFace();
-  geom.requireEdgeLengths();
-  geom.requireVertexIndices();
-  geom.requireVertexDualAreas();
+  getGeom().requireHalfedgeCotanWeights();
+  getGeom().requireHalfedgeVectorsInFace();
+  getGeom().requireEdgeLengths();
+  getGeom().requireVertexIndices();
+  getGeom().requireVertexDualAreas();
 
   // === Solve heat
   Vector<double> heatVec = heatSolver->solve(rhsVec);
 
   // === Normalize in each face and evaluate divergence
   Vector<double> divergenceVec = Vector<double>::Zero(mesh.nVertices());
-  for (Face f : mesh.faces()) {
+  for (Face f : getMesh().faces()) {
 
     Vector2 gradUDir = Vector2::zero(); // warning, wrong magnitude because we don't care
     for (Halfedge he : f.adjacentHalfedges()) {
-      Vector2 ePerp = geom.halfedgeVectorsInFace[he.next()].rotate90();
-      gradUDir += ePerp * heatVec(geom.vertexIndices[he.vertex()]);
+      Vector2 ePerp = getGeom().halfedgeVectorsInFace[he.next()].rotate90();
+      gradUDir += ePerp * heatVec(getGeom().vertexIndices[he.vertex()]);
     }
 
     gradUDir = gradUDir.normalizeCutoff();
 
     for (Halfedge he : f.adjacentHalfedges()) {
-      double val = geom.halfedgeCotanWeights[he] * dot(geom.halfedgeVectorsInFace[he], gradUDir);
-      divergenceVec[geom.vertexIndices[he.vertex()]] += val;
-      divergenceVec[geom.vertexIndices[he.twin().vertex()]] += -val;
+      double val = getGeom().halfedgeCotanWeights[he] * dot(getGeom().halfedgeVectorsInFace[he], gradUDir);
+      divergenceVec[getGeom().vertexIndices[he.tailVertex()]] += val;
+      divergenceVec[getGeom().vertexIndices[he.tipVertex()]] += -val;
     }
   }
 
   // === Integrate divergence to get distance
   Vector<double> distVec = poissonSolver->solve(divergenceVec);
 
-
-  geom.unrequireHalfedgeVectorsInFace();
-  geom.unrequireHalfedgeCotanWeights();
-  geom.unrequireEdgeLengths();
-  geom.unrequireVertexIndices();
-  geom.unrequireVertexDualAreas();
+  getGeom().unrequireHalfedgeVectorsInFace();
+  getGeom().unrequireHalfedgeCotanWeights();
+  getGeom().unrequireEdgeLengths();
+  getGeom().unrequireVertexIndices();
+  getGeom().unrequireVertexDualAreas();
 
   return distVec;
 }

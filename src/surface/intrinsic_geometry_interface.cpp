@@ -288,11 +288,6 @@ void IntrinsicGeometryInterface::unrequireMeshLengthScale() { meshLengthScaleQ.u
 
 // Halfedge vectors in face
 void IntrinsicGeometryInterface::computeHalfedgeVectorsInFace() {
-  if (!mesh.usesImplicitTwin()) {
-    // TODO this could be removed
-    throw std::runtime_error("ERROR: Tangent spaces not implemented for general SurfaceMesh, use ManifoldSurfaceMesh");
-  }
-
   edgeLengthsQ.ensureHave();
   faceAreasQ.ensureHave();
 

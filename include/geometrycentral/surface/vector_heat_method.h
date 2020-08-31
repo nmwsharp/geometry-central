@@ -47,11 +47,6 @@ public:
                       // default: 1.0
 
 
-  // what triangulation to perform the computation on
-  // TODO not supported yet
-  const ComputeTriangulation computeTri = ComputeTriangulation::Original;
-
-
 private:
   // === Members
 
