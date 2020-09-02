@@ -32,6 +32,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   // == Initialize geometric data
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
+  inputGeom.requireHalfedgeVectorsInFace();
   inputGeom.requireVertexAngleSums();
   inputGeom.requireCornerAngles();
 
@@ -91,6 +92,115 @@ void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<char>& marked
   markedEdges.setDefault(false);
 }
 
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(SurfacePoint pointOnInput) {
+  pointOnInput = pointOnInput.reduced();
+
+  // Vertex on inputMesh is preserved on intrinsicMesh
+  if (pointOnInput.type == SurfacePointType::Vertex) {
+    return SurfacePoint(intrinsicMesh->vertex(pointOnInput.vertex.getIndex()));
+  }
+
+  // If edge on inputMesh is preserved, simply return it. Otherwise treat it as a face point.
+  if (pointOnInput.type == SurfacePointType::Edge) {
+    if (edgeIsOriginal[pointOnInput.edge.getIndex()]) {
+      return SurfacePoint(intrinsicMesh->edge(pointOnInput.edge.getIndex()), pointOnInput.tEdge);
+    }
+    pointOnInput = pointOnInput.inSomeFace();
+  }
+
+  // Examine all possible tracings from the three vertices of pointOnInput.face
+  std::array<SurfacePoint, 3> startP;
+  std::array<double, 3> traceVecAngle;
+  std::array<double, 3> traceVecLen;
+  for (int inputHE_offset = 0; inputHE_offset < 3; ++inputHE_offset) {
+    Halfedge inputHE = pointOnInput.face.halfedge();
+    for (int i = 0; i < inputHE_offset; ++i) {
+      inputHE = inputHE.next();
+    }
+
+    Vertex inputV = inputHE.vertex();
+    startP[inputHE_offset] = intrinsicMesh->vertex(inputV.getIndex());
+
+    // Get tracing vector from inputV in a local coordinate frame defined by inputHE
+    Vector2 inputHE_unitVecInFace = inputGeom.halfedgeVectorsInFace[inputHE].normalize();
+    std::array<Vector2, 3> vertCoords = {{
+      {0., 0.},
+      inputGeom.halfedgeVectorsInFace[inputHE] / inputHE_unitVecInFace,     // Rotate halfedgeVectorsInFace such that inputHE becomes the X axis
+      -inputGeom.halfedgeVectorsInFace[inputHE.next().next()] / inputHE_unitVecInFace
+    }};
+    Vector2 traceVec_local = pointOnInput.faceCoords[(1 + inputHE_offset) % 3] * vertCoords[1] + pointOnInput.faceCoords[(2 + inputHE_offset) % 3] * vertCoords[2];
+
+    // Adjust tracing angle by rescaling and offsetting
+    traceVecAngle[inputHE_offset] = traceVec_local.arg();
+    traceVecAngle[inputHE_offset] *= (inputV.isBoundary() ? 1. : 2.) * M_PI / inputGeom.vertexAngleSums[inputV];
+    traceVecAngle[inputHE_offset] += inputGeom.halfedgeVectorsInVertex[inputHE].arg();
+    traceVecLen[inputHE_offset] = traceVec_local.norm();
+  }
+
+  // Select traceVec whose length is the smallest
+  int selected =
+    traceVecLen[0] < traceVecLen[1] && traceVecLen[0] < traceVecLen[2] ? 0 :
+    traceVecLen[1] < traceVecLen[2] ? 1 :
+    2;
+  Vector2 traceVec = Vector2::fromAngle(traceVecAngle[selected]) * traceVecLen[selected];
+  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, startP[selected], traceVec);
+  return intrinsicTraceResult.endPoint;
+}
+
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(SurfacePoint pointOnIntrinsic) {
+  pointOnIntrinsic = pointOnIntrinsic.reduced();
+
+  // We already know where each intrinsicMesh vertex is located on inputMesh
+  if (pointOnIntrinsic.type == SurfacePointType::Vertex) {
+    return vertexLocations[pointOnIntrinsic.vertex];
+  }
+
+  // If intrinsicMesh edge is preserved, simply return it. Otherwise treat it as a face point.
+  if (pointOnIntrinsic.type == SurfacePointType::Edge) {
+    if (edgeIsOriginal[pointOnIntrinsic.edge]) {
+      return SurfacePoint(inputMesh.edge(pointOnIntrinsic.edge.getIndex()), pointOnIntrinsic.tEdge);
+    }
+    pointOnIntrinsic = pointOnIntrinsic.inSomeFace();
+  }
+
+  // Examine all possible tracings from the three vertices of pointOnIntrinsic.face
+  std::array<SurfacePoint, 3> startP;
+  std::array<double, 3> traceVecAngle;
+  std::array<double, 3> traceVecLen;
+  for (int intrinsicHE_offset = 0; intrinsicHE_offset < 3; ++intrinsicHE_offset) {
+    Halfedge intrinsicHE = pointOnIntrinsic.face.halfedge();
+    for (int i = 0; i < intrinsicHE_offset; ++i) {
+      intrinsicHE = intrinsicHE.next();
+    }
+
+    Vertex intrinsicV = intrinsicHE.vertex();
+    startP[intrinsicHE_offset] = vertexLocations[intrinsicV];
+
+    // Get tracing vector from intrinsicV in a local coordinate frame defined by intrinsicHE
+    Vector2 intrinsicHE_unitVecInFace = halfedgeVectorsInFace[intrinsicHE].normalize();
+    std::array<Vector2, 3> vertCoords = {{
+      {0., 0.},
+      halfedgeVectorsInFace[intrinsicHE] / intrinsicHE_unitVecInFace,     // Rotate halfedgeVectorsInFace such that intrinsicHE becomes the X axis
+      -halfedgeVectorsInFace[intrinsicHE.next().next()] / intrinsicHE_unitVecInFace
+    }};
+    Vector2 traceVec_local = pointOnIntrinsic.faceCoords[(1 + intrinsicHE_offset) % 3] * vertCoords[1] + pointOnIntrinsic.faceCoords[(2 + intrinsicHE_offset) % 3] * vertCoords[2];
+
+    // Adjust tracing angle by rescaling and offsetting
+    traceVecAngle[intrinsicHE_offset] = traceVec_local.arg();
+    traceVecAngle[intrinsicHE_offset] *= 1.0 / vertexAngleScaling(intrinsicV);
+    traceVecAngle[intrinsicHE_offset] += halfedgeVector(intrinsicHE).arg();
+    traceVecLen[intrinsicHE_offset] = traceVec_local.norm();
+  }
+
+  // Select traceVec whose length is the smallest
+  int selected =
+    traceVecLen[0] < traceVecLen[1] && traceVecLen[0] < traceVecLen[2] ? 0 :
+    traceVecLen[1] < traceVecLen[2] ? 1 :
+    2;
+  Vector2 traceVec = Vector2::fromAngle(traceVecAngle[selected]) * traceVecLen[selected];
+  TraceGeodesicResult inputTraceResult = traceGeodesic(inputGeom, startP[selected], traceVec);
+  return inputTraceResult.endPoint;
+}
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
 

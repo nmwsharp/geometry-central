@@ -98,6 +98,7 @@ set(TEST_SRCS
   src/halfedge_geometry_test.cpp
   src/surface_misc_test.cpp
   src/linear_algebra_test.cpp
+  src/signpost_intrinsic_triangulation_test.cpp
 )
 
 add_executable(geometry-central-test "${TEST_SRCS}")

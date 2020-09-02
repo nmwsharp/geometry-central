@@ -64,10 +64,10 @@ public:
   // ======================================================
 
   // Given a point on the input triangulation, returns the corresponding point on the intrinsic triangulation
-  SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput);
+  SurfacePoint equivalentPointOnIntrinsic(SurfacePoint pointOnInput);
 
   // Given a point on the intrinsic triangulation, returns the corresponding point on the input triangulation
-  SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic);
+  SurfacePoint equivalentPointOnInput(SurfacePoint pointOnIntrinsic);
 
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points

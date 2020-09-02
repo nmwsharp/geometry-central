@@ -699,6 +699,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
     geom.unrequireHalfedgeVectorsInVertex();
     geom.unrequireHalfedgeVectorsInFace();
 
+    result.endPoint = startP;
     result.endingDir = Vector2::zero();
 
     // probably want to ensure we still return a point in a face...
