@@ -42,7 +42,9 @@ public:
 
   // Mutate this mesh by removing any entries in vertexCoordinates which appear in any polygon. Update polygon indexing
   // accordingly.
-  void stripUnusedVertices();
+  // Returns a index translation vector mapping old indices to new, such that vec[ind_old] == ind_new. Holds INVALID_IND
+  // for removed vertices.
+  std::vector<size_t> stripUnusedVertices();
 
   // Mutate this mesh by removing any faces with repeated vertices.
   void stripFacesWithDuplicateVertices();

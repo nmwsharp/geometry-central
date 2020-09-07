@@ -107,9 +107,11 @@ The desired file type can be passed as the `type` to any of the routines below a
     Identity is tested using a simple exact floating-point comparison test, no radius or threshold is supported.
 
 
-??? func "`#!cpp void SimplePolygonMesh::stripUnusedVertices()`"
+??? func "`#!cpp std::vector<size_t> SimplePolygonMesh::stripUnusedVertices()`"
 
-    Remove vertices from `vertexCoordinates` which do not appear in any face. Face indices are updated accordingly.
+    Remove vertices from `vertexCoordinates` which do not appear in any face. Face indices are updated accordingly. 
+  
+    Returns an index translation vector mapping old indices to new, such that `vec[ind_old] == ind_new`. Holds `INVALID_IND` for any old indices which were stripped.
 
 
 ??? func "`#!cpp void SimplePolygonMesh::stripFacesWithDuplicateVertices()`"

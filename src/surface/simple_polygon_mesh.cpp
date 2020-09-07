@@ -465,7 +465,7 @@ void SimplePolygonMesh::mergeIdenticalVertices() {
 }
 
 
-void SimplePolygonMesh::stripUnusedVertices() {
+std::vector<size_t> SimplePolygonMesh::stripUnusedVertices() {
 
   // Check which indices are used
   size_t nV = vertexCoordinates.size();
@@ -497,6 +497,8 @@ void SimplePolygonMesh::stripUnusedVertices() {
       i = newInd[i];
     }
   }
+
+  return newInd; 
 }
 
 void SimplePolygonMesh::clear() {
