@@ -176,6 +176,42 @@ inline Vertex SurfacePoint::nearestVertex() const {
   return vertex;
 }
 
+inline SurfacePoint SurfacePoint::reduced() const {
+  switch (type) {
+  case SurfacePointType::Vertex: {
+    return *this;
+  }
+  case SurfacePointType::Edge: {
+    if (tEdge == 0. || tEdge == 1.)
+      return SurfacePoint(nearestVertex());
+    else
+      return *this;
+  }
+  case SurfacePointType::Face: {
+    if (faceCoords.x == 1. || faceCoords.y == 1. || faceCoords.z == 1.)
+      return SurfacePoint(nearestVertex());
+    else if (faceCoords.z == 0.) {
+        Edge e = face.halfedge().edge();
+        double tEdge = face == e.halfedge().face() ? faceCoords.y : faceCoords.x;
+        return SurfacePoint(e, tEdge);
+    } else if (faceCoords.x == 0.) {
+        Edge e = face.halfedge().next().edge();
+        double tEdge = face == e.halfedge().face() ? faceCoords.z : faceCoords.y;
+        return SurfacePoint(e, tEdge);
+    } else if (faceCoords.y == 0.) {
+        Edge e = face.halfedge().next().next().edge();
+        double tEdge = face == e.halfedge().face() ? faceCoords.x : faceCoords.z;
+        return SurfacePoint(e, tEdge);
+    } else {
+      return *this;
+    }
+  }
+  }
+
+  throw std::logic_error("bad switch");
+  return {};
+}
+
 template <typename T>
 inline T SurfacePoint::interpolate(const VertexData<T>& data) const {
 
