@@ -47,6 +47,7 @@ public:
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
   Vector3 faceNormal(Face f) const;
+  Vector3 halfedgeVector(Halfedge he) const;
 
 
 protected:
