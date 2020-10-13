@@ -133,6 +133,16 @@ public:
   void requireVertexConnectionLaplacian();
   void unrequireVertexConnectionLaplacian();
 
+  // Face Galerkin Mass Matrix
+  Eigen::SparseMatrix<double> faceGalerkinMassMatrix;
+  void requireFaceGalerkinMassMatrix();
+  void unrequireFaceGalerkinMassMatrix();
+
+  // Face connection Laplacian
+  Eigen::SparseMatrix<std::complex<double>> faceConnectionLaplacian;
+  void requireFaceConnectionLaplacian();
+  void unrequireFaceConnectionLaplacian();
+
   // DEC Operators
   Eigen::SparseMatrix<double> hodge0, hodge0Inverse, hodge1, hodge1Inverse, hodge2, hodge2Inverse, d0, d1;
   void requireDECOperators();
@@ -228,6 +238,14 @@ protected:
   // Vertex connection Laplacian
   DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> vertexConnectionLaplacianQ;
   virtual void computeVertexConnectionLaplacian();
+
+  // Face Galerkin Mass Matrix
+  DependentQuantityD<Eigen::SparseMatrix<double>> faceGalerkinMassMatrixQ;
+  virtual void computeFaceGalerkinMassMatrix();
+
+  // Face connection Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> faceConnectionLaplacianQ;
+  virtual void computeFaceConnectionLaplacian();
 
   // DEC Operators
   // Note: The DEC operators deviate from the convention of one member per quantity. This extra array allows the

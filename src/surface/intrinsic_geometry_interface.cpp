@@ -37,6 +37,8 @@ IntrinsicGeometryInterface::IntrinsicGeometryInterface(SurfaceMesh& mesh_) :
   vertexLumpedMassMatrixQ       (&vertexLumpedMassMatrix,       std::bind(&IntrinsicGeometryInterface::computeVertexLumpedMassMatrix, this),        quantities),
   vertexGalerkinMassMatrixQ     (&vertexGalerkinMassMatrix,     std::bind(&IntrinsicGeometryInterface::computeVertexGalerkinMassMatrix, this),      quantities),
   vertexConnectionLaplacianQ    (&vertexConnectionLaplacian,    std::bind(&IntrinsicGeometryInterface::computeVertexConnectionLaplacian, this),     quantities),
+  faceGalerkinMassMatrixQ       (&faceGalerkinMassMatrix,       std::bind(&IntrinsicGeometryInterface::computeFaceGalerkinMassMatrix, this),        quantities),
+  faceConnectionLaplacianQ      (&faceConnectionLaplacian,      std::bind(&IntrinsicGeometryInterface::computeFaceConnectionLaplacian, this),       quantities),
 
 
   // DEC operators need some extra work since 8 members are grouped under one require
@@ -502,6 +504,23 @@ void IntrinsicGeometryInterface::computeVertexGalerkinMassMatrix() {
 void IntrinsicGeometryInterface::requireVertexGalerkinMassMatrix() { vertexGalerkinMassMatrixQ.require(); }
 void IntrinsicGeometryInterface::unrequireVertexGalerkinMassMatrix() { vertexGalerkinMassMatrixQ.unrequire(); }
 
+// Face Galerkin mass matrix
+void IntrinsicGeometryInterface::computeFaceGalerkinMassMatrix() {
+  faceIndicesQ.ensureHave();
+  faceAreasQ.ensureHave();
+
+  std::vector<Eigen::Triplet<double>> triplets;
+  for (Face f : mesh.faces()) {
+    size_t i = faceIndices[f];
+    triplets.emplace_back(i, i, faceAreas[f]);
+  }
+
+  faceGalerkinMassMatrix = Eigen::SparseMatrix<double>(mesh.nFaces(), mesh.nFaces());
+  faceGalerkinMassMatrix.setFromTriplets(triplets.begin(), triplets.end());
+}
+void IntrinsicGeometryInterface::requireFaceGalerkinMassMatrix() { faceGalerkinMassMatrixQ.require(); }
+void IntrinsicGeometryInterface::unrequireFaceGalerkinMassMatrix() { faceGalerkinMassMatrixQ.unrequire(); }
+
 
 // Vertex connection Laplacian
 void IntrinsicGeometryInterface::computeVertexConnectionLaplacian() {
@@ -528,6 +547,42 @@ void IntrinsicGeometryInterface::computeVertexConnectionLaplacian() {
 }
 void IntrinsicGeometryInterface::requireVertexConnectionLaplacian() { vertexConnectionLaplacianQ.require(); }
 void IntrinsicGeometryInterface::unrequireVertexConnectionLaplacian() { vertexConnectionLaplacianQ.unrequire(); }
+
+// Face connection Laplacian
+void IntrinsicGeometryInterface::computeFaceConnectionLaplacian() {
+  faceIndicesQ.ensureHave();
+  edgeCotanWeightsQ.ensureHave();
+  transportVectorsAcrossHalfedgeQ.ensureHave();
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  for (Face f : mesh.faces()) {
+    size_t i = faceIndices[f];
+
+    std::complex<double> weightISum = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+
+      if (!he.twin().isInterior()) {
+        continue;
+      }
+
+      Face neighFace = he.twin().face();
+      unsigned int j = faceIndices[neighFace];
+
+      Vector2 rot = transportVectorsAcrossHalfedge[he.twin()];
+
+      double weight = edgeCotanWeights[he.edge()];
+      triplets.emplace_back(i, j, -weight * rot);
+
+      weightISum += weight;
+    }
+
+    triplets.emplace_back(i, i, weightISum);
+  }
+  faceConnectionLaplacian = Eigen::SparseMatrix<std::complex<double>>(mesh.nFaces(), mesh.nFaces());
+  faceConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+}
+void IntrinsicGeometryInterface::requireFaceConnectionLaplacian() { faceConnectionLaplacianQ.require(); }
+void IntrinsicGeometryInterface::unrequireFaceConnectionLaplacian() { faceConnectionLaplacianQ.unrequire(); }
 
 
 void IntrinsicGeometryInterface::computeDECOperators() {
