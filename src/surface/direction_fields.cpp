@@ -42,6 +42,38 @@ VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterf
   return toReturn;
 }
 
+FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceIndices();
+  geometry.requireFaceGalerkinMassMatrix();
+  geometry.requireFaceConnectionLaplacian();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = geometry.faceConnectionLaplacian;
+
+  // Shift to avoid singularity
+  Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
+
+  // Find the smallest eigenvector
+  Vector<std::complex<double>> solution = smallestEigenvectorSquare(energyMatrix, massMatrix);
+
+  // Copy the result to a FaceData vector
+  FaceData<Vector2> toReturn(mesh);
+  for (Face f : mesh.faces()) {
+    toReturn[f] = Vector2::fromComplex(solution(geometry.faceIndices[f]));
+    toReturn[f] = unit(toReturn[f]);
+  }
+
+  return toReturn;
+}
+
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {
