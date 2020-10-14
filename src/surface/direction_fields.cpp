@@ -145,7 +145,7 @@ VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(Intrinsi
   return toReturn;
 }
 
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometryInterface& geometry,
+VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry,
                                                                            int nSym) {
 
 
@@ -155,6 +155,7 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometry
   geometry.requireVertexIndices();
   geometry.requireVertexGalerkinMassMatrix();
   geometry.requireVertexConnectionLaplacian();
+  geometry.requireVertexPrincipalCurvatureDirections();
 
   // Mass matrix
   SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
@@ -164,8 +165,6 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometry
 
   // Store the solution here
   Eigen::VectorXcd solution;
-
-  geometry.requireVertexPrincipalCurvatureDirections();
 
   Vector<std::complex<double>> dirVec(N);
   if (nSym == 2) {
@@ -200,6 +199,75 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometry
   }
 
   return toReturn;
+}
+
+FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInterface& geometry, int nSym) {
+
+  if(nSym != 2 && nSym != 4) {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
+  }
+
+  SurfaceMesh& mesh = geometry.mesh;
+  const unsigned int N = mesh.nFaces();
+
+  geometry.requireEdgeDihedralAngles();
+  geometry.requireFaceIndices();
+  geometry.requireFaceGalerkinMassMatrix();
+  geometry.requireFaceConnectionLaplacian();
+  geometry.requireCornerAngles();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = geometry.faceConnectionLaplacian;
+
+  // Shift to avoid singularity
+  Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
+  eye.setIdentity();
+  energyMatrix += 1e-4 * eye;
+
+  Eigen::VectorXcd dirVec(N);
+  for (Face f : mesh.faces()) {
+
+    // Compute something like the principal directions
+    double weightSum = 0;
+    std::complex<double> sum = 0;
+
+    for (Halfedge he : f.adjacentHalfedges()) {
+
+      double dihedralAngle = std::abs(geometry.edgeDihedralAngles[he.edge()]);
+      double weight = geometry.edgeLengths[he.edge()];
+      weightSum += weight;
+      double angleCoord = geometry.cornerAngles[he.corner()];
+      std::complex<double> coord = std::exp(std::complex<double>(angleCoord * 1i * nSym));
+      sum += coord * weight * dihedralAngle;
+    }
+
+    sum /= weightSum;
+
+    dirVec[geometry.faceIndices[f]] = sum;
+  }
+
+  // Normalize the alignment field
+  double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+  dirVec /= scale;
+
+  double lambdaT = 0.0; // this is something of a magical constant, see "Globally Optimal Direction Fields", eqn 16
+
+  // Eigen::VectorXcd RHS = massMatrix * dirVec;
+  Eigen::VectorXcd RHS = dirVec;
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
+
+
+  // Copy the result to a FaceData object
+  FaceData<Vector2> field(mesh);
+  for (Face f : mesh.faces()) {
+    field[f] = Vector2::fromComplex(solution[geometry.faceIndices[f]] / std::abs(solution[geometry.faceIndices[f]]));
+  }
+
+  return field;
 }
 
 /*
