@@ -74,6 +74,76 @@ FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface&
   return toReturn;
 }
 
+VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
+                                                                        int nSym) {
+  SurfaceMesh& mesh = geometry.mesh;
+
+  if (!mesh.hasBoundary()) {
+    throw std::logic_error("tried to compute smoothest boundary aligned direction field on a mesh without boundary");
+  }
+
+  geometry.requireVertexGalerkinMassMatrix();
+  geometry.requireVertexConnectionLaplacian();
+  geometry.requireHalfedgeVectorsInVertex();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+
+  // Compute the boundary values
+  VertexData<std::complex<double>> boundaryValues(mesh);
+  VertexData<char> isBoundary(mesh, false);
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary()) {
+      isBoundary[v] = true;
+
+      // Find incoming and outgoing boundary vectors as tangent
+      Halfedge heBoundaryA = v.halfedge();
+      Halfedge heBoundaryB = heBoundaryA.twin().next();
+
+      Vector2 vecA = geometry.halfedgeVectorsInVertex[heBoundaryA];
+      Vector2 vecB = geometry.halfedgeVectorsInVertex[heBoundaryB];
+
+      Vector2 tangentV = unit(-vecA + vecB);
+      Vector2 normalV = tangentV.rotate90();
+
+      boundaryValues[v] = normalV.pow(nSym);
+    } else {
+      boundaryValues[v] = 0;
+    }
+  }
+  Vector<std::complex<double>> b = boundaryValues.toVector();
+  Vector<char> isBoundaryVec = isBoundary.toVector();
+
+  // Block decompose problem
+
+
+  // Compute the actual solution
+  std::cout << "Solving linear problem..." << std::endl;
+
+  // Store the solution here
+  Eigen::VectorXcd solution;
+
+  std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
+  Eigen::VectorXcd RHS = massMatrix * b;
+  solution = solveSquare(LHS, RHS);
+
+  // Copy the result to a VertexData vector for both the boundary and interior
+  VertexData<Vector2> toReturn(mesh);
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary()) {
+      toReturn[v] = Vector2::fromComplex(boundaryValues[v]);
+    } else {
+      toReturn[v] = Vector2::fromComplex(solution(geometry.vertexIndices[v]));
+      toReturn[v] = unit(toReturn[v]);
+    }
+  }
+
+  return toReturn;
+}
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {
