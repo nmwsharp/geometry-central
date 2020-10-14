@@ -144,6 +144,64 @@ VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(Intrinsi
 
   return toReturn;
 }
+
+VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometryInterface& geometry,
+                                                                           int nSym) {
+
+
+  SurfaceMesh& mesh = geometry.mesh;
+  size_t N = mesh.nVertices();
+
+  geometry.requireVertexIndices();
+  geometry.requireVertexGalerkinMassMatrix();
+  geometry.requireVertexConnectionLaplacian();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+
+  // Store the solution here
+  Eigen::VectorXcd solution;
+
+  geometry.requireVertexPrincipalCurvatureDirections();
+
+  Vector<std::complex<double>> dirVec(N);
+  if (nSym == 2) {
+    for (Vertex v : mesh.vertices()) {
+      dirVec[geometry.vertexIndices[v]] = geometry.vertexPrincipalCurvatureDirections[v];
+    }
+  } else if (nSym == 4) {
+    for (Vertex v : mesh.vertices()) {
+      dirVec[geometry.vertexIndices[v]] = std::pow(std::complex<double>(geometry.vertexPrincipalCurvatureDirections[v]), 2);
+    }
+  } else {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
+  }
+
+  // Normalize the alignment field
+  double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+  dirVec /= scale;
+
+  double lambdaT = 0.0; // this is something of a magical constant, see
+  // "Globally Optimal Direction Fields", eqn 16
+
+  Eigen::VectorXcd RHS = dirVec;
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+  solution = solveSquare(LHS, RHS);
+
+
+  // Copy the result to a VertexData vector
+  VertexData<Vector2> toReturn(mesh);
+  for (Vertex v : mesh.vertices()) {
+    toReturn[v] = Vector2::fromComplex(solution(geometry.vertexIndices[v]));
+    toReturn[v] = unit(toReturn[v]);
+  }
+
+  return toReturn;
+}
+
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {

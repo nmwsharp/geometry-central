@@ -22,7 +22,7 @@ FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface&
 
 
 // Same as above, but aligned to curvatures
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 1);
+VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(EmbeddedGeometryInterface& geometry, int nSym = 2);
 
 // Also curvature aligned, but using extrinsic Dirichlet strategy
 // TODO
