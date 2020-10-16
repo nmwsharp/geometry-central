@@ -536,7 +536,7 @@ void IntrinsicGeometryInterface::computeVertexConnectionLaplacian() {
     size_t iTip = vertexIndices[he.next().vertex()];
 
     double weight = edgeCotanWeights[he.edge()];
-    Vector2 rot = transportVectorsAlongHalfedge[he.twin()];
+    Vector2 rot = transportVectorsAlongHalfedge[he.twin()]; // shouldn't this be std::pow(rot, nSym) instead?
 
     triplets.emplace_back(iTail, iTail, weight);
     triplets.emplace_back(iTail, iTip, -weight * rot);
@@ -568,9 +568,10 @@ void IntrinsicGeometryInterface::computeFaceConnectionLaplacian() {
       Face neighFace = he.twin().face();
       unsigned int j = faceIndices[neighFace];
 
-      Vector2 rot = transportVectorsAcrossHalfedge[he.twin()];
+      // LC connection between the faces
+      Vector2 rot = transportVectorsAcrossHalfedge[he.twin()]; // shouldn't this be std::exp(rot, nSym) instead?
 
-      double weight = edgeCotanWeights[he.edge()];
+      double weight = 1; // FIXME TODO figure out weights
       triplets.emplace_back(i, j, -weight * rot);
 
       weightISum += weight;
