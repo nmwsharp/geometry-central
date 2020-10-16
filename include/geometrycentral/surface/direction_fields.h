@@ -23,11 +23,12 @@ FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface&
 FaceData<Vector2> computeSmoothestBoundaryAlignedFaceDirectionField(IntrinsicGeometryInterface& geometry, int nSym = 1);
 
 // Same as above, but aligned to curvatures
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2);
+// TODO
+// VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2);
 
 // Also curvature aligned, but using extrinsic Dirichlet strategy
 // TODO
-FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInterface& geometry, int nSym = 2);
+// FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInterface& geometry, int nSym = 2);
 
 
 // Find singularities in direction fields
