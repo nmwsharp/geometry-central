@@ -14,6 +14,75 @@ using std::endl;
 namespace geometrycentral {
 namespace surface {
 
+namespace {
+
+SparseMatrix<std::complex<double>> computeVertexConnectionLaplacian(IntrinsicGeometryInterface& geometry, int nSym) {
+  
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireVertexIndices();
+  geometry.requireEdgeCotanWeights();
+  geometry.requireTransportVectorsAlongHalfedge();
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  for (Halfedge he : mesh.halfedges()) {
+
+    size_t iTail = geometry.vertexIndices[he.vertex()];
+    size_t iTip = geometry.vertexIndices[he.next().vertex()];
+
+    double weight = geometry.edgeCotanWeights[he.edge()];
+    Vector2 rot = geometry.transportVectorsAlongHalfedge[he.twin()].pow(nSym);
+
+    triplets.emplace_back(iTail, iTail, weight);
+    triplets.emplace_back(iTail, iTip, -weight * rot);
+  }
+
+  Eigen::SparseMatrix<std::complex<double>> vertexConnectionLaplacian(mesh.nVertices(), mesh.nVertices());
+  vertexConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+
+  return vertexConnectionLaplacian;
+}
+
+SparseMatrix<std::complex<double>> computeFaceConnectionLaplacian(IntrinsicGeometryInterface& geometry, int nSym) {
+    
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceIndices();
+  geometry.requireTransportVectorsAcrossHalfedge();
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  for (Face f : mesh.faces()) {
+    size_t i = geometry.faceIndices[f];
+
+    std::complex<double> weightISum = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+
+      if (!he.twin().isInterior()) {
+        continue;
+      }
+
+      Face neighFace = he.twin().face();
+      size_t j = geometry.faceIndices[neighFace];
+
+      // LC connection between the faces
+      Vector2 rot = geometry.transportVectorsAcrossHalfedge[he.twin()].pow(nSym); // shouldn't this be std::pow(rot, nSym) instead?
+
+      double weight = 1; // FIXME TODO figure out weights
+      triplets.emplace_back(i, j, -weight * rot);
+
+      weightISum += weight;
+    }
+
+    triplets.emplace_back(i, i, weightISum);
+  }
+  Eigen::SparseMatrix<std::complex<double>> faceConnectionLaplacian(mesh.nFaces(), mesh.nFaces());
+  faceConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+
+  return faceConnectionLaplacian;
+}
+
+}
+
 VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
 
 
@@ -27,7 +96,7 @@ VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterf
   SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, nSym);
 
   // Shift to avoid singularity
   Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
@@ -59,7 +128,7 @@ FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface&
   SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.faceConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
 
   // Shift to avoid singularity
   Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
@@ -95,7 +164,7 @@ VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(Intrinsi
   SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, nSym);
 
   // Shift to avoid singularity
   Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
@@ -124,19 +193,10 @@ VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(Intrinsi
   }
   Vector<std::complex<double>> b = boundaryValues.toVector();
 
-  // Block decompose problem
-
-
-  // Compute the actual solution
-  std::cout << "Solving linear problem..." << std::endl;
-
-  // Store the solution here
-  Eigen::VectorXcd solution;
-
   std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
   Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
   Eigen::VectorXcd RHS = massMatrix * b;
-  solution = solveSquare(LHS, RHS);
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
 
   // Copy the result to a VertexData vector for both the boundary and interior
   VertexData<Vector2> toReturn(mesh);
@@ -164,7 +224,7 @@ FaceData<Vector2> computeSmoothestBoundaryAlignedFaceDirectionField(IntrinsicGeo
   SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.faceConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
 
   // Shift to avoid singularity
   Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
@@ -232,7 +292,7 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometr
   SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, 2);
 
   // Store the solution here
   Eigen::VectorXcd solution;
@@ -291,7 +351,7 @@ FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInte
   SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.faceConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
 
   // Shift to avoid singularity
   Eigen::SparseMatrix<std::complex<double>> eye(energyMatrix.rows(), energyMatrix.cols());
@@ -311,7 +371,7 @@ FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInte
       double weight = geometry.edgeLengths[he.edge()];
       weightSum += weight;
       double angleCoord = geometry.cornerAngles[he.corner()];
-      std::complex<double> coord = std::exp(std::complex<double>{0, angleCoord * nSym});
+      std::complex<double> coord = std::polar(1, angleCoord * nSym);
       sum += coord * weight * dihedralAngle;
     }
 
