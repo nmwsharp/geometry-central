@@ -46,7 +46,7 @@ template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& ge
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Corner       >(surface::SurfaceMesh* mesh)   { return mesh->halfedgePermuteCallbackList;   }
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Edge         >(surface::SurfaceMesh* mesh)   { return mesh->edgePermuteCallbackList;   }
 template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::Face         >(surface::SurfaceMesh* mesh)   { return mesh->facePermuteCallbackList;   }
-template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::BoundaryLoop >(surface::SurfaceMesh* mesh)   { return mesh->facePermuteCallbackList;   }
+template<> inline std::list<std::function<void(const std::vector<size_t>&)>>& getPermuteCallbackList<surface::BoundaryLoop >(surface::SurfaceMesh* mesh)   { return mesh->boundaryLoopPermuteCallbackList;   }
 
 template<> inline std::string typeShortName<surface::Vertex       >()            { return "v";    }
 template<> inline std::string typeShortName<surface::Halfedge     >()            { return "he";   }

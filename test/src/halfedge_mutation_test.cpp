@@ -363,7 +363,7 @@ TEST_F(HalfedgeMutationSuite, RemoveVertexAndCompress) {
     // Remove a vertex
     a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(7));
     a.manifoldMesh->validateConnectivity();
-    
+
     a.manifoldMesh->compress();
     a.manifoldMesh->validateConnectivity();
   }
@@ -531,22 +531,117 @@ TEST_F(HalfedgeMutationSuite, ContainerCompress) {
     // Create a container
     VertexData<int> values(*a.manifoldMesh, 7);
 
-    // Remove a vertex 
-    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(7));
+    // Remove a vertex
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(12));
 
     // Iterate through and check values
     EXPECT_EQ(values.size(), a.manifoldMesh->nVertices());
-    for(Vertex v : a.manifoldMesh->vertices()) {
+    for (Vertex v : a.manifoldMesh->vertices()) {
       EXPECT_EQ(values[v], 7);
     }
 
     // Compress
     a.manifoldMesh->compress();
+
     // Iterate through and check values
     EXPECT_EQ(values.size(), a.manifoldMesh->nVertices());
-    for(Vertex v : a.manifoldMesh->vertices()) {
+    for (Vertex v : a.manifoldMesh->vertices()) {
       EXPECT_EQ(values[v], 7);
     }
+  }
+}
+
+// Test that edge containers get updated properly (it's a bit of a special case in the implicit twin implementation)
+TEST_F(HalfedgeMutationSuite, ContainerCompressEdge) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true)}) {
+    a.printThyName();
+
+    // Create a container
+    EdgeData<int> values(*a.manifoldMesh, 7);
+
+    // Remove a vertex
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(12));
+
+    // Iterate through and check values
+    EXPECT_EQ(values.size(), a.manifoldMesh->nEdges());
+    for (Edge e : a.manifoldMesh->edges()) {
+      EXPECT_EQ(values[e], 7);
+    }
+
+    // Compress
+    a.manifoldMesh->compress();
+
+    // Iterate through and check values
+    EXPECT_EQ(values.size(), a.manifoldMesh->nEdges());
+    for (Edge e : a.manifoldMesh->edges()) {
+      EXPECT_EQ(values[e], 7);
+    }
+  }
+}
+
+// do ALL the containers
+TEST_F(HalfedgeMutationSuite, ContainerCompressAll) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true), getAsset("lego.ply", true)}) {
+    a.printThyName();
+
+    // Create a container
+    VertexData<int> values_vertex(*a.manifoldMesh, 7);
+    HalfedgeData<int> values_halfedge(*a.manifoldMesh, 7);
+    EdgeData<int> values_edge(*a.manifoldMesh, 7);
+    FaceData<int> values_face(*a.manifoldMesh, 7);
+    BoundaryLoopData<int> values_bl(*a.manifoldMesh, 7);
+
+    auto checkVertex = [&]() {
+      EXPECT_EQ(values_vertex.size(), a.manifoldMesh->nVertices());
+      for (Vertex v : a.manifoldMesh->vertices()) {
+        EXPECT_EQ(values_vertex[v], 7);
+      }
+    };
+    auto checkHalfedge = [&]() {
+      EXPECT_EQ(values_halfedge.size(), a.manifoldMesh->nHalfedges());
+      for (Halfedge he : a.manifoldMesh->halfedges()) {
+        EXPECT_EQ(values_halfedge[he], 7);
+      }
+    };
+    auto checkEdge = [&]() {
+      EXPECT_EQ(values_edge.size(), a.manifoldMesh->nEdges());
+      for (Edge e : a.manifoldMesh->edges()) {
+        EXPECT_EQ(values_edge[e], 7);
+      }
+    };
+    auto checkFace = [&]() {
+      EXPECT_EQ(values_face.size(), a.manifoldMesh->nFaces());
+      for (Face f : a.manifoldMesh->faces()) {
+        EXPECT_EQ(values_face[f], 7);
+      }
+    };
+    auto checkBoundaryLoop= [&]() {
+      EXPECT_EQ(values_bl.size(), a.manifoldMesh->nBoundaryLoops());
+      for (BoundaryLoop bl : a.manifoldMesh->boundaryLoops()) {
+        EXPECT_EQ(values_bl[bl], 7);
+      }
+    };
+
+    // Remove a vertex
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(144));
+
+    checkVertex();
+    checkHalfedge();
+    checkEdge();
+    checkFace();
+    checkBoundaryLoop();
+
+
+    // Compress
+    a.manifoldMesh->compress();
+
+    checkVertex();
+    checkHalfedge();
+    checkEdge();
+    checkFace();
+    checkBoundaryLoop();
   }
 }
 
