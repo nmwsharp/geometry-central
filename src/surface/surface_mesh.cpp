@@ -1711,8 +1711,8 @@ void SurfaceMesh::compressHalfedges() {
   heNextArr = applyPermutation(heNextArr, newIndMap);
   heVertexArr = applyPermutation(heVertexArr, newIndMap);
   heFaceArr = applyPermutation(heFaceArr, newIndMap);
-  heSiblingArr = applyPermutation(heSiblingArr, newIndMap);
   if (!usesImplicitTwin()) {
+    heSiblingArr = applyPermutation(heSiblingArr, newIndMap);
     heEdgeArr = applyPermutation(heEdgeArr, newIndMap);
     heOrientArr = applyPermutation(heOrientArr, newIndMap);
     heVertInNextArr = applyPermutation(heVertInNextArr, newIndMap);

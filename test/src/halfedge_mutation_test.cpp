@@ -332,6 +332,43 @@ TEST_F(HalfedgeMutationSuite, EdgeFlipInvertOrientClosedManyTest) {
   }
 }
 
+
+// =====================================================
+// ========= Removal tests
+// =====================================================
+
+TEST_F(HalfedgeMutationSuite, RemoveVertex) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true)}) {
+    a.printThyName();
+
+    // Remove some vertices
+    a.manifoldMesh->validateConnectivity();
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(7));
+    a.manifoldMesh->validateConnectivity();
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(12));
+    a.manifoldMesh->validateConnectivity();
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(44));
+    a.manifoldMesh->validateConnectivity();
+  }
+}
+
+TEST_F(HalfedgeMutationSuite, RemoveVertexAndCompress) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true)}) {
+    a.printThyName();
+
+    a.manifoldMesh->validateConnectivity();
+
+    // Remove a vertex
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(7));
+    a.manifoldMesh->validateConnectivity();
+    
+    a.manifoldMesh->compress();
+    a.manifoldMesh->validateConnectivity();
+  }
+}
+
 // =====================================================
 // ========= Container tests
 // =====================================================
@@ -486,6 +523,32 @@ TEST_F(HalfedgeMutationSuite, ContainerExpandTest) {
   }
 }
 
+TEST_F(HalfedgeMutationSuite, ContainerCompress) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true)}) {
+    a.printThyName();
+
+    // Create a container
+    VertexData<int> values(*a.manifoldMesh, 7);
+
+    // Remove a vertex 
+    a.manifoldMesh->removeVertex(a.manifoldMesh->vertex(7));
+
+    // Iterate through and check values
+    EXPECT_EQ(values.size(), a.manifoldMesh->nVertices());
+    for(Vertex v : a.manifoldMesh->vertices()) {
+      EXPECT_EQ(values[v], 7);
+    }
+
+    // Compress
+    a.manifoldMesh->compress();
+    // Iterate through and check values
+    EXPECT_EQ(values.size(), a.manifoldMesh->nVertices());
+    for(Vertex v : a.manifoldMesh->vertices()) {
+      EXPECT_EQ(values[v], 7);
+    }
+  }
+}
 
 // =====================================================
 // ========= Mutation helper tests
