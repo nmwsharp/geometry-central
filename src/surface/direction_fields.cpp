@@ -408,6 +408,92 @@ FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInte
 
   return field;
 }
+
+
+FaceData<int> computeFaceIndex(IntrinsicGeometryInterface& geometry, const VertexData<Vector2>& directionField,
+                               int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireTransportVectorsAlongHalfedge();
+  geometry.requireFaceGaussianCurvatures();
+
+  // Store the result here
+  FaceData<int> indices(mesh);
+
+  // TODO haven't tested that this correctly reports the index when it is larger
+  // than +-1
+
+  for (Face f : mesh.faces()) {
+    // Trace the direction field around the face and see how many times it
+    // spins!
+    double totalRot = geometry.faceGaussianCurvatures[f] * nSym;
+
+    for (Halfedge he : f.adjacentHalfedges()) {
+      if (he.twin().isInterior()) {
+        // Compute the rotation along the halfedge implied by the field
+        Vector2 x0 = directionField[he.vertex()];
+        Vector2 x1 = directionField[he.twin().vertex()];
+        Vector2 rot = geometry.transportVectorsAlongHalfedge[he].pow(nSym);
+
+        // Find the difference in angle
+        double theta0 = (rot * x0).arg();
+        double theta1 = x1.arg();
+        double deltaTheta = regularizeAngle(theta1 - theta0 + PI) - PI; // regularize to [-PI,PI]
+
+        totalRot += deltaTheta; // accumulate
+      }
+    }
+
+    // Compute the net rotation and corresponding index
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
+    indices[f] = index;
+  }
+
+  return indices;
+}
+
+
+VertexData<int> computeVertexIndex(IntrinsicGeometryInterface& geometry, const FaceData<Vector2>& directionField,
+                                   int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireTransportVectorsAcrossHalfedge();
+  geometry.requireVertexGaussianCurvatures();
+
+  // Store the result here
+  VertexData<int> indices(mesh);
+
+  // TODO haven't tested that this correctly reports the index when it is larger
+  // than +-1
+
+  for (Vertex v : mesh.vertices()) {
+
+    // Trace the direction field around the face and see how many times it
+    // spins!
+    double totalRot = geometry.vertexGaussianCurvatures[v] * nSym;
+
+    if (!v.isBoundary()) {
+      for (Halfedge he : v.incomingHalfedges()) {
+        // Compute the rotation along the halfedge implied by the field
+        Vector2 x0 = directionField[he.face()];
+        Vector2 x1 = directionField[he.twin().face()];
+        Vector2 rot = geometry.transportVectorsAcrossHalfedge[he].pow(nSym);
+
+        double deltaTheta = regularizeAngle(x1.arg() - (rot * x0).arg() + PI) - PI; // regularize to [-PI,PI]
+
+        totalRot += deltaTheta;
+      }
+    }
+
+    // Compute the net rotation and corresponding index
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
+    indices[v] = index;
+  }
+
+  return indices;
+}
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {
