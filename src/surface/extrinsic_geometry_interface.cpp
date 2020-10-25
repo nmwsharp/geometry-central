@@ -34,10 +34,10 @@ void ExtrinsicGeometryInterface::computeVertexPrincipalCurvatureDirections() {
       double len = edgeLengths[he.edge()];
       double alpha = edgeDihedralAngles[he.edge()];
       Vector2 vec = halfedgeVectorsInVertex[he];
-      principalDir += -vec * vec / len * std::abs(alpha);
+      principalDir += -vec * vec / len * alpha;
     }
 
-    vertexPrincipalCurvatureDirections[v] = principalDir / 4.0;
+    vertexPrincipalCurvatureDirections[v] = principalDir / 2.0;
   }
 }
 void ExtrinsicGeometryInterface::requireVertexPrincipalCurvatureDirections() {

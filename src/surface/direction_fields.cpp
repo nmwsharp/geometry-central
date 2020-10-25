@@ -383,8 +383,9 @@ FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInte
       double len = geometry.edgeLengths[he.edge()];
       double alpha = geometry.edgeDihedralAngles[he.edge()];
       std::complex<double> vec = geometry.halfedgeVectorsInFace[he];
-      sum += -vec * vec / len * std::abs(alpha);
+      sum += -vec * vec / len * alpha;
     }
+    sum /= 2.0;
 
     dirVec[geometry.faceIndices[f]] = sum;
   }
