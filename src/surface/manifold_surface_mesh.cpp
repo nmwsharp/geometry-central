@@ -1417,10 +1417,12 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
 
   // Actually delete all of the elements
   for (Halfedge he : toRemove) {
-    if (he.face() != keepFace) {
-      deleteElement(he.face());
-    }
+    // delete the edge before the face since deleteEdgeBundle() needs to check manifold-ness (see note there)
+    Face f = he.face();
     deleteEdgeBundle(he.edge());
+    if (f != keepFace) {
+      deleteElement(f);
+    }
   }
   deleteElement(v);
 
