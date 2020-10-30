@@ -39,6 +39,7 @@ SET(SRCS
   surface/exact_polyhedral_geodesics.cpp
   surface/intrinsic_mollification.cpp
   surface/tufted_laplacian.cpp
+  surface/flip_geodesics.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
 
