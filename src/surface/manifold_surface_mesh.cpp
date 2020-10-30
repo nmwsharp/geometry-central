@@ -1382,7 +1382,7 @@ bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
 
 Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
   if (v.isBoundary()) {
-    throw std::runtime_error("not implemented");
+    throw std::runtime_error("removeVertex() not implemented for boundary vertices");
   }
 
   // Halfedges/edges/faces that will be removed
@@ -1398,6 +1398,11 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
       return Face();
     }
     ringHalfedges.push_back(oppHe);
+
+    // Must be triangular to be removable
+    if (oppHe.next().next() != he) {
+      throw std::runtime_error("removeVertex() requires that all incident faces are triangular");
+    }
   }
 
   Face keepFace = toRemove[0].face();
