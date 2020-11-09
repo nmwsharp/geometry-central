@@ -308,7 +308,6 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometr
 
   geometry.requireVertexIndices();
   geometry.requireVertexGalerkinMassMatrix();
-  geometry.requireVertexConnectionLaplacian();
   geometry.requireVertexPrincipalCurvatureDirections();
 
   // Mass matrix
@@ -354,17 +353,12 @@ VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometr
 
 FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInterface& geometry, int nSym) {
 
-  if (nSym != 2 && nSym != 4) {
-    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
-  }
-
   SurfaceMesh& mesh = geometry.mesh;
   const unsigned int N = mesh.nFaces();
 
-  geometry.requireEdgeDihedralAngles();
   geometry.requireFaceIndices();
   geometry.requireFaceGalerkinMassMatrix();
-  geometry.requireHalfedgeVectorsInFace();
+  geometry.requireFacePrincipalCurvatureDirections();
 
   // Mass matrix
   SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
@@ -373,21 +367,16 @@ FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInte
   SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
 
   Eigen::VectorXcd dirVec(N);
-  for (Face f : mesh.faces()) {
-
-    // Compute something like the principal directions
-    std::complex<double> sum = 0;
-
-    for (Halfedge he : f.adjacentHalfedges()) {
-
-      double len = geometry.edgeLengths[he.edge()];
-      double alpha = geometry.edgeDihedralAngles[he.edge()];
-      std::complex<double> vec = geometry.halfedgeVectorsInFace[he];
-      sum += -vec * vec / len * alpha;
+  if (nSym == 2) {
+    for (Face f : mesh.faces()) {
+      dirVec[geometry.faceIndices[f]] = geometry.facePrincipalCurvatureDirections[f];
     }
-    sum /= 2.0;
-
-    dirVec[geometry.faceIndices[f]] = sum;
+  } else if (nSym == 4) {
+    for (Face f : mesh.faces()) {
+      dirVec[geometry.faceIndices[f]] = std::pow(std::complex<double>(geometry.facePrincipalCurvatureDirections[f]), 2);
+    }
+  } else {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
   }
 
   // Normalize the alignment field

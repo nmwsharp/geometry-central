@@ -9,8 +9,9 @@ namespace surface {
 ExtrinsicGeometryInterface::ExtrinsicGeometryInterface(SurfaceMesh& mesh_) : 
   IntrinsicGeometryInterface(mesh_),
 
-  edgeDihedralAnglesQ                    (&edgeDihedralAngles,                      std::bind(&ExtrinsicGeometryInterface::computeEdgeDihedralAngles, this),            quantities),
-  vertexPrincipalCurvatureDirectionsQ    (&vertexPrincipalCurvatureDirections,      std::bind(&ExtrinsicGeometryInterface::computeVertexPrincipalCurvatureDirections, this),     quantities)
+  edgeDihedralAnglesQ                  (&edgeDihedralAngles,                   std::bind(&ExtrinsicGeometryInterface::computeEdgeDihedralAngles, this),                 quantities),
+  vertexPrincipalCurvatureDirectionsQ  (&vertexPrincipalCurvatureDirections,   std::bind(&ExtrinsicGeometryInterface::computeVertexPrincipalCurvatureDirections, this), quantities),
+  facePrincipalCurvatureDirectionsQ    (&facePrincipalCurvatureDirections,     std::bind(&ExtrinsicGeometryInterface::computeFacePrincipalCurvatureDirections, this),   quantities)
   
   {
   }
@@ -37,7 +38,7 @@ void ExtrinsicGeometryInterface::computeVertexPrincipalCurvatureDirections() {
       principalDir += -vec * vec / len * alpha;
     }
 
-    vertexPrincipalCurvatureDirections[v] = principalDir / 2.0;
+    vertexPrincipalCurvatureDirections[v] = principalDir / 4;
   }
 }
 void ExtrinsicGeometryInterface::requireVertexPrincipalCurvatureDirections() {
@@ -45,6 +46,34 @@ void ExtrinsicGeometryInterface::requireVertexPrincipalCurvatureDirections() {
 }
 void ExtrinsicGeometryInterface::unrequireVertexPrincipalCurvatureDirections() {
   vertexPrincipalCurvatureDirectionsQ.unrequire();
+}
+
+
+void ExtrinsicGeometryInterface::computeFacePrincipalCurvatureDirections() {
+  edgeLengthsQ.ensureHave();
+  halfedgeVectorsInFaceQ.ensureHave();
+  edgeDihedralAnglesQ.ensureHave();
+
+  facePrincipalCurvatureDirections = FaceData<Vector2>(mesh);
+
+  for (Face f : mesh.faces()) {
+    Vector2 principalDir{0.0, 0.0};
+    for (Halfedge he : f.adjacentHalfedges()) {
+      double len = edgeLengths[he.edge()];
+      double alpha = edgeDihedralAngles[he.edge()];
+      Vector2 vec = halfedgeVectorsInFace[he];
+      principalDir += -vec * vec / len * alpha;
+    }
+
+    facePrincipalCurvatureDirections[f] = principalDir / 4;
+  }
+}
+
+void ExtrinsicGeometryInterface::requireFacePrincipalCurvatureDirections() {
+  facePrincipalCurvatureDirectionsQ.require();
+}
+void ExtrinsicGeometryInterface::unrequireFacePrincipalCurvatureDirections() {
+  facePrincipalCurvatureDirectionsQ.unrequire();
 }
 
 
