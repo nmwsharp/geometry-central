@@ -1613,7 +1613,7 @@ std::vector<Face> ManifoldSurfaceMesh::triangulate(Face f) {
   Halfedge connectHe = f.halfedge();
   for (size_t i = 2; i + 1 < neighHalfedges.size(); i++) {
     connectHe = connectVertices(connectHe, neighHalfedges[i]);
-    allFaces.emplace_back(neighHalfedges[i].face());
+    allFaces.emplace_back(connectHe.twin().face());
   }
 
   modificationTick++;
