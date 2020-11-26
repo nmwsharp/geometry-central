@@ -77,15 +77,11 @@ These routines compute smooth n-direction fields which align to the input surfac
 ??? func "`VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2)`"
 
     Compute a smooth n-direction field on the input surface which is aligned to the surface's principal curvatures. By default, n = 2.
-
-    This algorithm uses a different strategy than the face-aligned version: it tries to match principle curvature directions computed at vertices.
     
 ??? func "`FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2)`"
 
     Compute a smooth n-direction field on the input surface which is aligned to the surface's principal curvatures. By default, n = 2.
 
-    This algorithm uses a different strategy than the vertex-aligned version: an extrinsic Dirichlet energy. See e.g. "Extrinsically Smooth Direction Fields" by Huang et al.
-    
 ## Index Computation
 
 These methods compute the index of a given n-direction field at every point of the input mesh. If the direction field is represented by vector at vertices, then the singularities live on faces and vice versa.
