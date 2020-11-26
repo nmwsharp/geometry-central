@@ -8,6 +8,8 @@ Most of these routines only depend on the _intrinsic_ geometry of a surface (via
 
 ## Smoothest Direction Fields
 
+![direction fields basic](/media/direction_field_basic.jpg)
+
 These routines compute the smoothest possible n-direction field on the input surface. They place singularities automatically. If you need to find out where the singularities are, refer to the [Index Computation](#index-computation) section below.
 
 The two routines are almost identical. The only difference is that one discretizes direction fields using vectors at vertices, and the other uses vectors on faces.
@@ -37,15 +39,34 @@ VertexData<Vector2> directions = computeSmoothestVertexDirectionField(*geometry)
 
 ## Smoothest Boundary-Aligned Direction Fields
 
+
 This routine works like the previous ones, except it imposes Dirichlet boundary conditions to force the generated direction field to be aligned with the mesh's boundary. By default, the direction fields are aligned so that one of the field's vectors is perpendicular to the boundary at each boundary vertex. If you set `normalAlign` to `false` then the direction fields are aligned so that one of the field's vectors is parallel to the boundary instead.
 
+<figure>
+  <img src="/media/direction_field_boundary.jpg"/>
+  <figcaption>
+    A direction field aligned with the boundary of the shape. 
+  </figcaption>
+</figure>
+
 ??? func "`#!cpp  VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry, bool normalAlign = true, int nSym = 1)`"
+
+    Compute the smoothest n-direction field on the input surface, but ensures that the field is aligned with the surface's boundary.
+
+??? func "`#!cpp  FaceData<Vector2> computeSmoothestBoundaryAlignedFaceDirectionField(IntrinsicGeometryInterface& geometry, int nSym = 1)`"
 
     Compute the smoothest n-direction field on the input surface, but ensures that the field is aligned with the surface's boundary.
 
 ## Curvature-Aligned Direction Fields
 
 These routines compute smooth n-direction fields which align to the input surface's principle curvatures. Since the principle curvatures form a 4-direction field, these methods only generate 2-direction fields and 4-direction fields.
+
+<figure>
+  <img src="/media/direction_field_curvature.jpg"/>
+  <figcaption>
+    A 4-symmetric, curvature aligned direction field, rendered by tracing streamlines.
+  </figcaption>
+</figure>
 
 !!! warning "Principal directions depend on the extrinsic geometry"
 
@@ -56,10 +77,14 @@ These routines compute smooth n-direction fields which align to the input surfac
 ??? func "`VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2)`"
 
     Compute a smooth n-direction field on the input surface which is aligned to the surface's principal curvatures. By default, n = 2.
+
+    This algorithm uses a different strategy than the face-aligned version: it tries to match principle curvature directions computed at vertices.
     
 ??? func "`FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(ExtrinsicGeometryInterface& geometry, int nSym = 2)`"
 
     Compute a smooth n-direction field on the input surface which is aligned to the surface's principal curvatures. By default, n = 2.
+
+    This algorithm uses a different strategy than the vertex-aligned version: an extrinsic Dirichlet energy. See e.g. "Extrinsically Smooth Direction Fields" by Huang et al.
     
 ## Index Computation
 
