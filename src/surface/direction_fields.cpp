@@ -225,6 +225,10 @@ FaceData<Vector2> computeSmoothestBoundaryAlignedFaceDirectionField(IntrinsicGeo
 
   SurfaceMesh& mesh = geometry.mesh;
 
+  if (!mesh.hasBoundary()) {
+    throw std::logic_error("tried to compute smoothest boundary aligned direction field on a mesh without boundary");
+  }
+
   geometry.requireFaceGalerkinMassMatrix();
   geometry.requireHalfedgeVectorsInFace();
 
