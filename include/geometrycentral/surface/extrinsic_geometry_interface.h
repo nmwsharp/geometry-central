@@ -1,7 +1,7 @@
 #pragma once
 
-#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/utilities/vector2.h"
 
 #include <Eigen/SparseCore>
@@ -24,14 +24,18 @@ public:
   EdgeData<double> edgeDihedralAngles;
   void requireEdgeDihedralAngles();
   void unrequireEdgeDihedralAngles();
-  
+
   // Vertex principal curvature
   VertexData<Vector2> vertexPrincipalCurvatureDirections;
   void requireVertexPrincipalCurvatureDirections();
   void unrequireVertexPrincipalCurvatureDirections();
 
-protected:
+  // Face principal curvature
+  FaceData<Vector2> facePrincipalCurvatureDirections;
+  void requireFacePrincipalCurvatureDirections();
+  void unrequireFacePrincipalCurvatureDirections();
 
+protected:
   // Edge dihedral angle
   DependentQuantityD<EdgeData<double>> edgeDihedralAnglesQ;
   virtual void computeEdgeDihedralAngles() = 0;
@@ -40,6 +44,9 @@ protected:
   DependentQuantityD<VertexData<Vector2>> vertexPrincipalCurvatureDirectionsQ;
   virtual void computeVertexPrincipalCurvatureDirections();
 
+  // Face principal curvature
+  DependentQuantityD<FaceData<Vector2>> facePrincipalCurvatureDirectionsQ;
+  virtual void computeFacePrincipalCurvatureDirections();
 };
 
 } // namespace surface

@@ -14,6 +14,80 @@ using std::endl;
 namespace geometrycentral {
 namespace surface {
 
+namespace {
+
+SparseMatrix<std::complex<double>> computeVertexConnectionLaplacian(IntrinsicGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireVertexIndices();
+  geometry.requireEdgeCotanWeights();
+  geometry.requireTransportVectorsAlongHalfedge();
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  for (Halfedge he : mesh.halfedges()) {
+
+    size_t iTail = geometry.vertexIndices[he.vertex()];
+    size_t iTip = geometry.vertexIndices[he.next().vertex()];
+
+    // Levi-Civita connection between vertices
+    Vector2 rot = geometry.transportVectorsAlongHalfedge[he.twin()].pow(nSym);
+    double weight = geometry.edgeCotanWeights[he.edge()];
+
+    triplets.emplace_back(iTail, iTail, weight);
+    triplets.emplace_back(iTail, iTip, -weight * rot);
+  }
+  // assemble matrix from triplets
+  Eigen::SparseMatrix<std::complex<double>> vertexConnectionLaplacian(mesh.nVertices(), mesh.nVertices());
+  vertexConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+
+  // Shift to avoid singularity
+  Eigen::SparseMatrix<std::complex<double>> eye(mesh.nVertices(), mesh.nVertices());
+  eye.setIdentity();
+  vertexConnectionLaplacian += 1e-9 * eye;
+
+  return vertexConnectionLaplacian;
+}
+
+SparseMatrix<std::complex<double>> computeFaceConnectionLaplacian(IntrinsicGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceIndices();
+  geometry.requireTransportVectorsAcrossHalfedge();
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  for (Face f : mesh.faces()) {
+    size_t i = geometry.faceIndices[f];
+
+    std::complex<double> weightDiagSum = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      if (he.twin().isInterior()) {
+
+        Face neighFace = he.twin().face();
+        size_t j = geometry.faceIndices[neighFace];
+
+        // Levi-Civita connection between the faces
+        Vector2 rot = geometry.transportVectorsAcrossHalfedge[he.twin()].pow(nSym);
+
+        double weight = 1;
+        triplets.emplace_back(i, j, -weight * rot);
+
+        weightDiagSum += weight;
+      }
+    }
+
+    triplets.emplace_back(i, i, weightDiagSum + 1e-9); // Shift to avoid singularity
+  }
+  // assemble matrix from triplets
+  Eigen::SparseMatrix<std::complex<double>> faceConnectionLaplacian(mesh.nFaces(), mesh.nFaces());
+  faceConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+
+  return faceConnectionLaplacian;
+}
+
+} // namespace
+
 VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
 
 
@@ -21,13 +95,12 @@ VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterf
 
   geometry.requireVertexIndices();
   geometry.requireVertexGalerkinMassMatrix();
-  geometry.requireVertexConnectionLaplacian();
 
   // Mass matrix
   SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
 
   // Energy matrix
-  SparseMatrix<std::complex<double>> energyMatrix = geometry.vertexConnectionLaplacian;
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, nSym);
 
   // Find the smallest eigenvector
   Vector<std::complex<double>> solution = smallestEigenvectorSquare(energyMatrix, massMatrix);
@@ -42,6 +115,375 @@ VertexData<Vector2> computeSmoothestVertexDirectionField(IntrinsicGeometryInterf
   return toReturn;
 }
 
+FaceData<Vector2> computeSmoothestFaceDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceIndices();
+  geometry.requireFaceGalerkinMassMatrix();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
+
+  // Find the smallest eigenvector
+  Vector<std::complex<double>> solution = smallestEigenvectorSquare(energyMatrix, massMatrix);
+
+  // Copy the result to a FaceData vector
+  FaceData<Vector2> toReturn(mesh);
+  for (Face f : mesh.faces()) {
+    toReturn[f] = Vector2::fromComplex(solution(geometry.faceIndices[f]));
+    toReturn[f] = unit(toReturn[f]);
+  }
+
+  return toReturn;
+}
+
+VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
+                                                                        int nSym) {
+  SurfaceMesh& mesh = geometry.mesh;
+
+  if (!mesh.hasBoundary()) {
+    throw std::logic_error("tried to compute smoothest boundary aligned direction field on a mesh without boundary");
+  }
+
+  geometry.requireVertexGalerkinMassMatrix();
+  geometry.requireHalfedgeVectorsInVertex();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, nSym);
+
+  // Compute the boundary values
+  VertexData<std::complex<double>> boundaryValues(mesh);
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary()) {
+
+      // Find incoming and outgoing boundary vectors as tangent
+      Halfedge heBoundaryA = v.halfedge();
+      Halfedge heBoundaryB = heBoundaryA.twin().next();
+
+      Vector2 vecA = geometry.halfedgeVectorsInVertex[heBoundaryA];
+      Vector2 vecB = geometry.halfedgeVectorsInVertex[heBoundaryB];
+
+      Vector2 tangentV = unit(-vecA + vecB);
+      Vector2 normalV = tangentV.rotate90();
+
+      boundaryValues[v] = normalV.pow(nSym);
+    } else {
+      boundaryValues[v] = 0;
+    }
+  }
+
+  // Assemble right-hand side from these boundary values
+  Vector<std::complex<double>> b(mesh.nVertices());
+  b.setZero();
+
+  for (Vertex v : mesh.vertices()) {
+    if (!v.isBoundary()) {
+
+      for (Halfedge he : v.incomingHalfedges()) {
+        Face neighFace = he.twin().face();
+        if (he.vertex().isBoundary()) {
+
+          size_t i = geometry.vertexIndices[v];
+          size_t j = geometry.vertexIndices[he.vertex()];
+
+          // move boundary terms to the right-hand side and remove the corresponding matrix entries
+          std::complex<double> Aij = energyMatrix.coeff(i, j);
+          energyMatrix.coeffRef(i, j) = 0;
+          std::complex<double> bVal = boundaryValues[he.vertex()];
+          b(i) += -Aij * bVal;
+        }
+      }
+    }
+  }
+
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
+  Eigen::VectorXcd RHS = massMatrix * b;
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
+
+  // Copy the result to a VertexData vector for both the boundary and interior
+  VertexData<Vector2> toReturn(mesh);
+  for (Vertex v : mesh.vertices()) {
+    if (v.isBoundary()) {
+      toReturn[v] = Vector2::fromComplex(boundaryValues[v]);
+    } else {
+      toReturn[v] = Vector2::fromComplex(solution(geometry.vertexIndices[v]));
+      toReturn[v] = unit(toReturn[v]);
+    }
+  }
+
+  return toReturn;
+}
+
+FaceData<Vector2> computeSmoothestBoundaryAlignedFaceDirectionField(IntrinsicGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceGalerkinMassMatrix();
+  geometry.requireHalfedgeVectorsInFace();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
+
+  // Compute boundary values
+  FaceData<bool> isInterior(mesh);
+  FaceData<std::complex<double>> boundaryValues(mesh);
+  for (Face f : mesh.faces()) {
+    bool isBoundary = false;
+    for (Edge e : f.adjacentEdges()) {
+      isBoundary |= e.isBoundary();
+    }
+    isInterior[f] = !isBoundary;
+
+    if (isInterior[f]) {
+      boundaryValues[f] = 0;
+    } else {
+      Vector2 bC = Vector2::zero();
+      for (Halfedge he : f.adjacentHalfedges()) {
+        if (he.edge().isBoundary()) {
+          bC -= geometry.halfedgeVectorsInFace[he].rotate90(); // negate the vector to point outwards
+        }
+      }
+      bC = unit(bC);
+      boundaryValues[f] = bC.pow(nSym);
+    }
+  }
+
+  // Assemble right-hand side from these boundary values
+  Vector<std::complex<double>> b(mesh.nFaces());
+  b.setZero();
+
+  for (Face f : mesh.faces()) {
+    if (isInterior[f]) {
+
+      for (Halfedge he : f.adjacentHalfedges()) {
+        Face neighFace = he.twin().face();
+        if (!isInterior[neighFace]) {
+
+          size_t i = geometry.faceIndices[f];
+          size_t j = geometry.faceIndices[neighFace];
+
+          // move boundary terms to the right-hand side and remove the corresponding matrix entries
+          std::complex<double> Aij = energyMatrix.coeff(i, j);
+          energyMatrix.coeffRef(i, j) = 0;
+          std::complex<double> bVal = boundaryValues[neighFace];
+          b(i) += -Aij * bVal;
+        }
+      }
+    }
+  }
+
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
+  Eigen::VectorXcd RHS = massMatrix * b;
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
+
+  // Copy the result to a FaceData object
+  FaceData<Vector2> field(mesh);
+  for (Face f : mesh.faces()) {
+    if (isInterior[f]) {
+      field[f] = Vector2::fromComplex(solution(geometry.faceIndices[f]));
+      field[f] = unit(field[f]);
+    } else {
+      field[f] = Vector2::fromComplex(boundaryValues[f]);
+    }
+  }
+
+  return field;
+}
+
+VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym) {
+
+
+  SurfaceMesh& mesh = geometry.mesh;
+  size_t N = mesh.nVertices();
+
+  geometry.requireVertexIndices();
+  geometry.requireVertexGalerkinMassMatrix();
+  geometry.requireVertexPrincipalCurvatureDirections();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.vertexGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = computeVertexConnectionLaplacian(geometry, nSym);
+
+  Vector<std::complex<double>> dirVec(N);
+  if (nSym == 2) {
+    for (Vertex v : mesh.vertices()) {
+      dirVec[geometry.vertexIndices[v]] = geometry.vertexPrincipalCurvatureDirections[v];
+    }
+  } else if (nSym == 4) {
+    for (Vertex v : mesh.vertices()) {
+      dirVec[geometry.vertexIndices[v]] =
+          std::pow(std::complex<double>(geometry.vertexPrincipalCurvatureDirections[v]), 2);
+    }
+  } else {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
+  }
+
+  // Normalize the alignment field
+  double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+  dirVec /= scale;
+
+  // this is something of a magical constant, see "Globally Optimal Direction Fields", eqn 16
+  double lambdaT = 0;
+
+  Eigen::VectorXcd RHS = massMatrix * dirVec;
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
+
+  // Copy the result to a VertexData vector
+  VertexData<Vector2> toReturn(mesh);
+  for (Vertex v : mesh.vertices()) {
+    toReturn[v] = Vector2::fromComplex(solution(geometry.vertexIndices[v]));
+    toReturn[v] = unit(toReturn[v]);
+  }
+
+  return toReturn;
+}
+
+FaceData<Vector2> computeCurvatureAlignedFaceDirectionField(EmbeddedGeometryInterface& geometry, int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+  const unsigned int N = mesh.nFaces();
+
+  geometry.requireFaceIndices();
+  geometry.requireFaceGalerkinMassMatrix();
+  geometry.requireFacePrincipalCurvatureDirections();
+
+  // Mass matrix
+  SparseMatrix<std::complex<double>> massMatrix = geometry.faceGalerkinMassMatrix.cast<std::complex<double>>();
+
+  // Energy matrix
+  SparseMatrix<std::complex<double>> energyMatrix = computeFaceConnectionLaplacian(geometry, nSym);
+
+  Eigen::VectorXcd dirVec(N);
+  if (nSym == 2) {
+    for (Face f : mesh.faces()) {
+      dirVec[geometry.faceIndices[f]] = geometry.facePrincipalCurvatureDirections[f];
+    }
+  } else if (nSym == 4) {
+    for (Face f : mesh.faces()) {
+      dirVec[geometry.faceIndices[f]] = std::pow(std::complex<double>(geometry.facePrincipalCurvatureDirections[f]), 2);
+    }
+  } else {
+    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
+  }
+
+  // Normalize the alignment field
+  double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
+  dirVec /= scale;
+
+  double lambdaT = 0.0; // this is something of a magical constant, see "Globally Optimal Direction Fields", eqn 16
+
+  Eigen::VectorXcd RHS = massMatrix * dirVec;
+  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
+  Eigen::VectorXcd solution = solveSquare(LHS, RHS);
+
+  // Copy the result to a FaceData object
+  FaceData<Vector2> field(mesh);
+  for (Face f : mesh.faces()) {
+    field[f] = Vector2::fromComplex(solution[geometry.faceIndices[f]]);
+    field[f] = unit(field[f]);
+  }
+
+  return field;
+}
+
+
+FaceData<int> computeFaceIndex(IntrinsicGeometryInterface& geometry, const VertexData<Vector2>& directionField,
+                               int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireTransportVectorsAlongHalfedge();
+  geometry.requireFaceGaussianCurvatures();
+
+  // Store the result here
+  FaceData<int> indices(mesh);
+
+  // TODO haven't tested that this correctly reports the index when it is larger
+  // than +-1
+
+  for (Face f : mesh.faces()) {
+    // Trace the direction field around the face and see how many times it
+    // spins!
+    double totalRot = geometry.faceGaussianCurvatures[f] * nSym;
+
+    for (Halfedge he : f.adjacentHalfedges()) {
+      if (he.twin().isInterior()) {
+        // Compute the rotation along the halfedge implied by the field
+        Vector2 x0 = directionField[he.vertex()];
+        Vector2 x1 = directionField[he.twin().vertex()];
+        Vector2 rot = geometry.transportVectorsAlongHalfedge[he].pow(nSym);
+
+        // Find the difference in angle
+        double theta0 = (rot * x0).arg();
+        double theta1 = x1.arg();
+        double deltaTheta = regularizeAngle(theta1 - theta0 + PI) - PI; // regularize to [-PI,PI]
+
+        totalRot += deltaTheta; // accumulate
+      }
+    }
+
+    // Compute the net rotation and corresponding index
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
+    indices[f] = index;
+  }
+
+  return indices;
+}
+
+
+VertexData<int> computeVertexIndex(IntrinsicGeometryInterface& geometry, const FaceData<Vector2>& directionField,
+                                   int nSym) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireTransportVectorsAcrossHalfedge();
+  geometry.requireVertexGaussianCurvatures();
+
+  // Store the result here
+  VertexData<int> indices(mesh);
+
+  // TODO haven't tested that this correctly reports the index when it is larger
+  // than +-1
+
+  for (Vertex v : mesh.vertices()) {
+
+    // Trace the direction field around the face and see how many times it
+    // spins!
+    double totalRot = geometry.vertexGaussianCurvatures[v] * nSym;
+
+    if (!v.isBoundary()) {
+      for (Halfedge he : v.incomingHalfedges()) {
+        // Compute the rotation along the halfedge implied by the field
+        Vector2 x0 = directionField[he.face()];
+        Vector2 x1 = directionField[he.twin().face()];
+        Vector2 rot = geometry.transportVectorsAcrossHalfedge[he].pow(nSym);
+
+        double deltaTheta = regularizeAngle(x1.arg() - (rot * x0).arg() + PI) - PI; // regularize to [-PI,PI]
+
+        totalRot += deltaTheta;
+      }
+    }
+
+    // Compute the net rotation and corresponding index
+    int index = static_cast<int>(std::round(totalRot / (2 * PI))); // should be very close to a multiple of 2PI
+    indices[v] = index;
+  }
+
+  return indices;
+}
 /*
 VertexData<Vector2> computeSmoothestBoundaryAlignedVertexDirectionField(IntrinsicGeometryInterface& geometry,
                                                                         int nSym) {
@@ -466,238 +908,6 @@ FaceData<Vector2> computeSmoothestFaceDirectionField(Geometry<Euclidean>* geomet
     return computeSmoothestFaceDirectionField_noBoundary(geometry, nSym, alignCurvature);
   }
 }
-
-// Anonymous namespace for helper functions for computing vertex-based curvature aligned
-namespace {
-
-using Complex = std::complex<double>;
-
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField_noBoundary(IntrinsicGeometryInterface& geometry,
-                                                                           int nSym) {
-
-
-  SurfaceMesh& mesh = geometry.mesh;
-  size_t N = mesh.nVertices();
-
-  geometry.requireVertexIndices();
-  geometry.requireVertexGalerkinMassMatrix();
-  geometry.requireVertexConnectionLaplacian();
-
-  // Mass matrix
-  SparseMatrix<Complex> massMatrix = geometry.vertexGalerkinMassMatrix.cast<Complex>();
-
-  // Energy matrix
-  SparseMatrix<Complex> energyMatrix = geometry.vertexConnectionLaplacian;
-
-  // Store the solution here
-  Eigen::VectorXcd solution;
-
-  // If requested, align to principal curvatures
-  if (alignCurvature) {
-
-    geometry.requireVertexPrincipalCurvatureDirections();
-
-    Vector<Complex> dirVec(N);
-    if (nSym == 2) {
-      for (Vertex v : mesh.vertices()) {
-        dirVec[geometry.vertexIndices[v]] = geometry.vertexPrincipalCurvatureDirections[v];
-      }
-    } else if (nSym == 4) {
-      for (Vertex v : mesh.vertices()) {
-        dirVec[geometry.vertexIndices[v]] = std::pow(geometry.vertexPrincipalCurvatureDirections[v], 2);
-      }
-    }
-
-    // Normalize the alignment field
-    double scale = std::sqrt(std::abs((dirVec.adjoint() * massMatrix * dirVec)[0]));
-    dirVec /= scale;
-
-    double lambdaT = 0.0; // this is something of a magical constant, see
-                          // "Globally Optimal Direction Fields", eqn 16
-
-    Eigen::VectorXcd RHS = dirVec;
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix - lambdaT * massMatrix;
-    solution = solveSquare(LHS, RHS);
-  }
-  // Otherwise find the smallest eigenvector
-  else {
-    std::cout << "Solving smoothest field eigenvalue problem..." << std::endl;
-    solution = smallestEigenvectorSquare(energyMatrix, massMatrix);
-  }
-
-  // Copy the result to a VertexData vector
-  VertexData<Vector2> toReturn(mesh);
-  for (Vertex v : mesh.vertices()) {
-    toReturn[v] = unit(solution[geometry.vertexIndices[v]]);
-  }
-
-  return toReturn;
-} // namespace
-
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField_boundary(IntrinsicGeometryInterface& geometry,
-                                                                         int nSym) {
-  SurfaceMesh* mesh = geometry->getMesh();
-  size_t nInterior = mesh.nInteriorVertices();
-
-  GeometryCache<Euclidean>& geometry = geometry->cache;
-  geometry.requireVertexTransportCoefs();
-  geometry.requireEdgeCotanWeights();
-  geometry.requireVertexBases();
-  geometry.requireInteriorVertexIndices();
-  geometry.requireVertexDualAreas();
-
-  // Compute the boundary values
-  VertexData<std::complex<double>> boundaryValues(*mesh);
-  for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      Vector3 b = geometry->boundaryNormal(v);
-      Vector2 bC(dot(geometry.vertexBases[v][0], b), dot(geometry.vertexBases[v][1], b)); // TODO can do better
-      bC = unit(bC);
-      boundaryValues[v] = std::pow(bC, nSym);
-    } else {
-      boundaryValues[v] = 0;
-    }
-  }
-
-  VertexData<size_t> vertInd = mesh.getInteriorVertexIndices();
-
-  // Energy matrix
-  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> energyMatrix(nInterior, nInterior);
-
-  Eigen::VectorXi nEntries(nInterior);
-  for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      continue;
-    }
-    nEntries[geometry.interiorVertexIndices[v]] = v.degree() + 1;
-  }
-  energyMatrix.reserve(nEntries);
-
-  // Mass matrix
-  Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> massMatrix(nInterior, nInterior);
-  massMatrix.reserve(1);
-
-  // RHS
-  Eigen::VectorXcd b(nInterior);
-
-  // === Build matrices
-
-  // Build the mass matrix and zero b
-  for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      continue;
-    }
-    size_t i = geometry.interiorVertexIndices[v];
-    b(i) = 0.0;
-    massMatrix.insert(i, i) = geometry.vertexDualAreas[v];
-  }
-
-  // Build the energy matrix
-  for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      continue;
-    }
-    size_t i = geometry.interiorVertexIndices[v];
-
-    std::complex<double> weightISum = 0;
-    for (Halfedge he : v.incomingHalfedges()) {
-      std::complex<double> rBar = std::pow(geometry.vertexTransportCoefs[he], nSym);
-      double w = geometry.edgeCotanWeights[he.edge()];
-
-      // Interior-boundary term
-      if (he.vertex().isBoundary()) {
-        std::complex<double> bVal = boundaryValues[he.vertex()];
-        b(i) += w * rBar * bVal;
-      } else { // Interior-interior term
-        size_t j = geometry.interiorVertexIndices[he.vertex()];
-        energyMatrix.insert(i, j) = -w * rBar;
-      }
-      weightISum += w;
-    }
-
-    energyMatrix.insert(i, i) = weightISum;
-  }
-
-  // Shift to avoid singularities
-  Eigen::SparseMatrix<Vector2> eye(nInterior, nInterior);
-  eye.setIdentity();
-  energyMatrix += 1e-4 * eye;
-
-  // Compute the actual solution
-  std::cout << "Solving linear problem..." << std::endl;
-
-  // Store the solution here
-  Eigen::VectorXcd solution;
-
-  // If requested, align to principal curvatures
-  if (alignCurvature) {
-
-    geometry.requirePrincipalDirections();
-
-    Eigen::VectorXcd dirVec(nInterior);
-    for (Vertex v : mesh.vertices()) {
-      if (v.isBoundary()) {
-        continue;
-      }
-
-      Vector2 directionVal = geometry.principalDirections[v];
-      if (nSym == 4) {
-        directionVal = std::pow(directionVal, 2);
-      }
-
-      // Normalize the curvature vectors. By doing so, we lose the property of adjusting the strength of the alignment
-      // based on the strength of the curvature, but resolve any scaling issues between the magnitude of the normals and
-      // the magnitude of the desired field.  Be careful when interpreting this as opposed to the usual direction field
-      // optimization.
-      dirVec[geometry.interiorVertexIndices[v]] = directionVal / std::abs(directionVal);
-    }
-
-    double t = 0.01; // this is something of a magical constant, see "Globally
-                     // Optimal Direction Fields", eqn 9
-
-    Eigen::VectorXcd RHS = massMatrix * (t * dirVec + b);
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
-    solution = solveSquare(LHS, RHS);
-  }
-  // Otherwise find the general closest solution
-  else {
-    std::cout << "Solving smoothest field dirichlet problem..." << std::endl;
-    Eigen::SparseMatrix<std::complex<double>, Eigen::ColMajor> LHS = energyMatrix;
-    Eigen::VectorXcd RHS = massMatrix * b;
-    solution = solveSquare(LHS, RHS);
-  }
-
-  // Copy the result to a VertexData vector for both the boudary and interior
-  VertexData<Vector2> toReturn(*mesh);
-  for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      toReturn[v] = boundaryValues[v];
-    } else {
-      toReturn[v] = unit(solution[geometry.interiorVertexIndices[v]]);
-    }
-  }
-
-  return toReturn;
-}
-}; // namespace
-
-VertexData<Vector2> computeCurvatureAlignedVertexDirectionField(ExtrinsicGeometryInterface& geometry, int nSym) {
-  std::cout << "Computing globally optimal direction field" << std::endl;
-
-  if (!(nSym == 2 || nSym == 4)) {
-    throw std::logic_error("ERROR: It only makes sense to align with curvature when nSym = 2 or 4");
-  }
-
-  // Dispatch to either the boundary of no boundary variant
-  bool hasBoundary = geometry.mesh.hasBoundary();
-
-  if (hasBoundary) {
-    return computeCurvatureAlignedVertexDirectionField_boundary(geometry, nSym);
-  } else {
-    return computeCurvatureAlignedVertexDirectionField_noBoundary(geometry, nSym);
-  }
-}
-
 
 FaceData<int> computeFaceIndex(IntrinsicGeometryInterface& geometry, const VertexData<Vector2>& directionField,
                                int nSym) {
