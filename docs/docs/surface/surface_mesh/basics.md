@@ -1,4 +1,4 @@
-The `SurfaceMesh` is the workhorse datastructure for representing for represeting surface in geometry-central. Internally, it is reference-based mesh (similar to halfedge mesh), and can hold general polygonal meshes (though many routines only support triangle meshes). `SurfaceMesh` offers wide support for things like iterating around a mesh, modifying a mesh, and associating data with a mesh via containers. Under the hood, it is implemented with dense, automatically resizing buffers for efficient performance.
+The `SurfaceMesh` is the workhorse datastructure for representing surface in geometry-central. Internally, it is reference-based mesh (similar to halfedge mesh), and can hold general polygonal meshes (though many routines only support triangle meshes). `SurfaceMesh` offers wide support for things like iterating around a mesh, modifying a mesh, and associating data with a mesh via containers. Under the hood, it is implemented with dense, automatically resizing buffers for efficient performance.
 
 ```
 #include "geometrycentral/surface/surface_mesh.h"
