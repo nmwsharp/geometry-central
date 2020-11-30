@@ -59,7 +59,7 @@ This routine works like the previous ones, except it imposes Dirichlet boundary 
 
 ## Curvature-Aligned Direction Fields
 
-These routines compute smooth n-direction fields which align to the input surface's principle curvatures. Since the principle curvatures form a 4-direction field, these methods only generate 2-direction fields and 4-direction fields.
+These routines compute smooth n-direction fields which align to the input surface's principal curvatures. Since the principal curvatures form a 4-direction field, these methods only generate 2-direction fields and 4-direction fields.
 
 <figure>
   <img src="/media/direction_field_curvature.jpg"/>
