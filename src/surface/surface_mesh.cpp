@@ -844,6 +844,11 @@ bool SurfaceMesh::flip(Edge eFlip) {
   Vertex vb = hb1.vertex();
   Vertex vc = ha3.vertex();
   Vertex vd = hb3.vertex();
+  // if flipped, make sure it is not a duplicate
+  for(Vertex v : vc.adjacentVertices()){
+    if(v == vd) return false;
+  }
+  
   Face fa = ha1.face();
   Face fb = hb1.face();
 
