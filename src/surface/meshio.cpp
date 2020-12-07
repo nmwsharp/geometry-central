@@ -251,13 +251,12 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
     edgePerm.resize(mesh.nEdges());
     result[2].second = mesh.nEdges();
 
-    EdgeData<size_t> edgeIndices = mesh.getEdgeIndices();
     EdgeData<char> edgeSeen(mesh, false);
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Edge e : f.adjacentEdges()) {
         if (!edgeSeen[e]) {
-          edgePerm[i++] = edgeIndices[e];
+          edgePerm[i++] = e.getIndex();
           edgeSeen[e] = true;
         }
       }
@@ -269,11 +268,10 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
     halfedgePerm.resize(mesh.nInteriorHalfedges());
     result[3].second = mesh.nHalfedges();
 
-    HalfedgeData<size_t> halfedgeIndices = mesh.getHalfedgeIndices();
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Halfedge he : f.adjacentHalfedges()) {
-        halfedgePerm[i++] = halfedgeIndices[he];
+        halfedgePerm[i++] = he.getIndex();
       }
     }
   }
@@ -283,11 +281,10 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
     cornerPerm.resize(mesh.nCorners());
     result[4].second = mesh.nCorners();
 
-    CornerData<size_t> cornerIndices = mesh.getCornerIndices();
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Corner c : f.adjacentCorners()) {
-        cornerPerm[i++] = cornerIndices[c];
+        cornerPerm[i++] = c.getIndex();
       }
     }
   }
