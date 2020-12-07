@@ -101,6 +101,9 @@ std::tie(mesh2, geometry2) = readSurfaceMesh("spot_messy.obj");
     When reading from a stream, the type _must_ be specified and cannot be automatically inferred.
 
 
+??? func "`#!cpp std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>, std::unique_ptr<CornerData<Vector2>>> readParameterizedManifoldSurfaceMesh(std::istream& in, std::string type)`"
+
+    Loads a manifold surface mesh plus UV (texture) coordinates from a file.  Currently only OBJ files are supported.
 
 ## Writing meshes
 
