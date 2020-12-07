@@ -23,6 +23,8 @@ std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>
 // Load a manifold surface mesh; an exception will by thrown if the mesh is not manifold.
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 readManifoldSurfaceMesh(std::string filename, std::string type = "");
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+readManifoldSurfaceMesh(std::istream& in, std::string type);
 
 // Load a mesh with UV coordinates, which will be stored as data at triangle
 // corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
