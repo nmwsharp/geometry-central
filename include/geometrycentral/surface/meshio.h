@@ -24,8 +24,15 @@ std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 readManifoldSurfaceMesh(std::string filename, std::string type = "");
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-readManifoldSurfaceMesh(std::istream& in, std::string type);
+readManifoldSurfaceMesh(std::istream& in, std::string type, std::unique_ptr<CornerData<Vector2>> texcoords = std::unique_ptr<CornerData<Vector2>>(nullptr));
 
+// Load a mesh with UV coordinates, which will be stored as data at triangle
+// corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
+std::tuple<
+   std::unique_ptr<ManifoldSurfaceMesh>,
+   std::unique_ptr<VertexPositionGeometry>,
+   std::unique_ptr<CornerData<Vector2>>>
+readParameterizedManifoldSurfaceMesh(std::string filename, std::string type = "");
 
 // Legacy method, prefer one of the variants above
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>

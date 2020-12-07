@@ -17,7 +17,12 @@ std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionG
 makeHalfedgeAndGeometry(const std::vector<std::vector<size_t>>& polygons,
                         const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
                         const std::vector<Vector3> vertexPositions) {
-  return makeManifoldSurfaceMeshAndGeometry(polygons, twins, vertexPositions);
+  auto lvals = makeManifoldSurfaceMeshAndGeometry(polygons, twins, vertexPositions,{});
+
+  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+         std::unique_ptr<VertexPositionGeometry>>
+  ( std::move(std::get<0>(lvals)), //mesh
+    std::move(std::get<1>(lvals)) ); // geometry
 }
 
 

@@ -14,15 +14,28 @@ namespace surface {
 
 // Assumes manifoldness, errors our if not
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
-makeManifoldSurfaceMeshAndGeometry(const std::vector<std::vector<size_t>>& polygons, const std::vector<Vector3> vertexPositions);
+makeManifoldSurfaceMeshAndGeometry(const std::vector<std::vector<size_t>>& polygons,
+                                   const std::vector<Vector3> vertexPositions);
 
 
 // Like above, but with known twin connectivity
-std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+           std::unique_ptr<VertexPositionGeometry>,
+           std::unique_ptr<CornerData<Vector2>>>
 makeManifoldSurfaceMeshAndGeometry(const std::vector<std::vector<size_t>>& polygons,
-                        const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
-                        const std::vector<Vector3> vertexPositions);
+                                   const std::vector<std::vector<std::tuple<size_t, size_t>>>& twins,
+                                   const std::vector<Vector3> vertexPositions,
+                                   const std::vector<std::vector<Vector2>>& paramCoordinates );
 
+// Make a manifold surface mesh with both geometry and UV coordinates
+std::tuple<
+   std::unique_ptr<ManifoldSurfaceMesh>,
+   std::unique_ptr<VertexPositionGeometry>,
+   std::unique_ptr<CornerData<Vector2>>>
+makeParameterizedManifoldSurfaceMeshAndGeometry(
+      const std::vector<std::vector<size_t>>& polygons,
+      const std::vector<Vector3> vertexPositions,
+      const std::vector<std::vector<Vector2>>& paramCoordinates );
 
 // Same a above, but constructs a potentially-nonmanifold surface mesh
 std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
