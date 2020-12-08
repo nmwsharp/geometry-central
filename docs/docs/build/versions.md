@@ -1,5 +1,8 @@
 
 
+### Changes in main branch since last version
+
+- Change the semantics of `MeshData<>::size()` to match what `size()` usually means
 
 ### July 3, 2020
 

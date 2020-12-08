@@ -86,7 +86,11 @@ Additionally, see the vector-based initializers in [vector interoperability](con
 
 ??? func "`#!cpp size_t MeshData<E,T>::size()`"
 
-    The size of the container (equal to the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`).
+    The size of the underlying buffer for the container. In particular, the largest integer `i` such that `data[i]` is safe.
+
+    Generally on a compressed mesh this is the same as the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`, but on an uncompressed mesh or in the presence of exterior halfedges it may be larger.
+
+    NOTE: The behavior of this function as changed in recent versions.
 
 ??? func "`#!cpp SurfaceMesh* MeshData<E,T>::getMesh() const`"
 
