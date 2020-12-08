@@ -89,9 +89,8 @@ readManifoldSurfaceMesh(std::string filename, std::string type) {
   processLoadedMesh(simpleMesh, loadType);
   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
   return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-         std::unique_ptr<VertexPositionGeometry>>
-     ( std::move(std::get<0>( lvals )), // mesh
-       std::move(std::get<1>( lvals )) ); // geometry
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
 }
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 readManifoldSurfaceMesh(std::istream& in, std::string type) {
@@ -102,27 +101,34 @@ readManifoldSurfaceMesh(std::istream& in, std::string type) {
 
   auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
   return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
-         std::unique_ptr<VertexPositionGeometry>>
-     ( std::move(std::get<0>( lvals )), // mesh
-       std::move(std::get<1>( lvals )) ); // geometry
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
 }
 
 // Load a mesh with UV coordinates, which will be stored as data at triangle
 // corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
-std::tuple<
-   std::unique_ptr<ManifoldSurfaceMesh>,
-   std::unique_ptr<VertexPositionGeometry>,
-   std::unique_ptr<CornerData<Vector2>>>
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>,
+           std::unique_ptr<CornerData<Vector2>>>
 readParameterizedManifoldSurfaceMesh(std::string filename, std::string type) {
   std::string loadType;
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(filename, type, loadType);
   processLoadedMesh(simpleMesh, loadType);
-  return makeManifoldSurfaceMeshAndGeometry(
-        simpleMesh.polygons,
-        {},
-        simpleMesh.vertexCoordinates,
-        simpleMesh.paramCoordinates);
+
+  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, {}, simpleMesh.vertexCoordinates,
+                                            simpleMesh.paramCoordinates);
+}
+
+// Load a mesh with UV coordinates, which will be stored as data at triangle
+// corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>, std::unique_ptr<CornerData<Vector2>>>
+readParameterizedSurfaceMesh(std::string filename, std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+
+  return makeSurfaceMeshAndGeometry(simpleMesh.polygons, {}, simpleMesh.vertexCoordinates, simpleMesh.paramCoordinates);
 }
 
 // ======= Output =======
