@@ -86,7 +86,11 @@ Additionally, see the vector-based initializers in [vector interoperability](con
 
 ??? func "`#!cpp size_t MeshData<E,T>::size()`"
 
-    The size of the container (equal to the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`).
+    The size of the underlying buffer for the container. In particular, the largest integer `i` such that `data[i]` is safe.
+
+    Generally on a compressed mesh this is the same as the number of elements of type `E`, e.g. `SurfaceMesh::nVertices()`, but on an uncompressed mesh or in the presence of exterior halfedges it may be larger.
+
+    NOTE: The behavior of this function as changed in recent versions.
 
 ??? func "`#!cpp SurfaceMesh* MeshData<E,T>::getMesh() const`"
 
@@ -153,12 +157,16 @@ The corresponding vectors are indexed according to the indices of the underlying
 
 ??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E,T>::toVector()`"
 
-    Return a new vector which holds the contents of this container.
+    Return a new `std::vector` which holds the contents of this container.
+
+    Detail: this vector will always be a dense listing of values per-element, regardless of whether the mesh is compressed, etc. Therefore, the contents of this vector are _not_ necessarily always identical to the raw underlying buffer via `raw()`. Even in the case of a compressed mesh, for `CornerData<>` the resulting vector will omit implicit indices for exterior "outside" corners which may exist on meshes with boundary.
     
 
 ??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E,T>::toVector(MeshData<E, size_t>& indexer)`"
 
     Return a new vector which holds the contents of this container, indexed according to `indexer`.
+
+    See `toVector()` for more details.
     
 
     
