@@ -157,12 +157,16 @@ The corresponding vectors are indexed according to the indices of the underlying
 
 ??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E,T>::toVector()`"
 
-    Return a new vector which holds the contents of this container.
+    Return a new `std::vector` which holds the contents of this container.
+
+    Detail: this vector will always be a dense listing of values per-element, regardless of whether the mesh is compressed, etc. Therefore, the contents of this vector are _not_ necessarily always identical to the raw underlying buffer via `raw()`. Even in the case of a compressed mesh, for `CornerData<>` the resulting vector will omit implicit indices for exterior "outside" corners which may exist on meshes with boundary.
     
 
 ??? func "`#!cpp Eigen::Matrix<T, Eigen::Dynamic, 1> MeshData<E,T>::toVector(MeshData<E, size_t>& indexer)`"
 
     Return a new vector which holds the contents of this container, indexed according to `indexer`.
+
+    See `toVector()` for more details.
     
 
     
