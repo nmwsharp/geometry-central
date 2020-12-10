@@ -14,14 +14,16 @@ Note that aggressive use of these routines may reduce a mesh from a _simplicial 
 
 These routines modify a mesh, but do not require inserting or deleting elements.
 
-??? func "`#!cpp bool SurfaceMesh::flip(Edge e)`"
+??? func "`#!cpp bool SurfaceMesh::flip(Edge e, bool preventSelfEdges = false)`"
 
-    Flip an edge by rotating counter-clockwise. 
+    Flip an edge by rotating counter-clockwise.
 
     An edge cannot be combinatorially flipped if it is:
 
       - a boundary edge
       - incident on a degree-1 vertex.
+
+    If `true` is passed as the optional argument `preventSelfEdges`, then the edge will also not be flipped if it would result in both endpoints of the edge becoming the same vertex. 
 
     **Return:** true if the edge was actually flipped 
 
@@ -94,11 +96,11 @@ To amortize the cost of allocation, mesh buffers are resized sporadically in lar
 
 These routines delete mesh elements. Elements (like `Vertex`) and containers (like `VertexData<>`) will remain valid through deletions. However, performing any deletion will cause the mesh to no longer be [compressed](#compressed-mode).
 
-??? func "`#!cpp Vertex ManifoldSurfaceMesh::collapseEdge(Edge e)`"
+??? func "`#!cpp Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e)`"
 
     // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
     // collapsible.
-    Vertex collapseEdge(Edge e);
+    Vertex collapseEdgeTriangular(Edge e);
 
 ??? func "`#!cpp bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f)`"
 
