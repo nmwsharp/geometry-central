@@ -187,6 +187,45 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
     - **member:** `CornerData<double> IntrinsicGeometryInterface::cornerScaledAngles`
     - **require:** `void IntrinsicGeometryInterface::requireCornerScaledAngles()`
 
+??? func "halfedge cotan weight"
+    
+    ##### halfedge cotan weight
+
+    The "cotangent weight" of an interior halfedge, defined as $\frac{1}{2} \cot(\theta)$, where $\theta$ is the corner angle opposite the halfedge. Defined to be $0$ for exterior halfedges.
+
+    Can be computed directly from edge lengths, or more efficiently in an embedded triangle via $\cot(\theta) = \frac{u \cdot v}{||u \times v||}$, where $u$ and $v$ are the edge vectors emanating from the opposite corner.
+
+    Only valid on triangular meshes.
+
+    - **member:** `HalfedgeData<double> IntrinsicGeometryInterface::halfedgeCotanWeights`
+    - **require:** `void IntrinsicGeometryInterface::requireHalfedgeCotanWeights()`
+
+    The inline immediate method can alternately be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge he)`
+    - **immediate:** `double VertexPositionGeometry::halfedgeCotanWeight(Halfedge he)`
+
+??? func "edge cotan weight"
+
+    ##### edge cotan weight
+
+    The "cotangent weight" of an edge, defined as the sum of halfedge cotan weights for incident interior halfedges.
+
+    Only valid on triangular meshes.
+
+    - **member:** `EdgeData<double> IntrinsicGeometryInterface::edgeCotanWeights`
+    - **require:** `void IntrinsicGeometryInterface::requireEdgeCotanWeights()`
+
+    The inline immediate method can alternately be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double EdgeLengthGeometry::edgeCotanWeight(Edge e)`
+    - **immediate:** `double VertexPositionGeometry::edgeCotanWeight(Edge e)`
+
+
+## Curvatures
+
+Different curvatures are available depending on whether geometry is intrinsic or extrinsic.  In particular, Gaussian curvature is available for any `IntrinsicGeometryInterface` (such as `EdgeLengthGeometry`), which is the base class of all other geometry objects, whereas mean and principal curvatures are available only from an `ExtrinsicGeometryInterface` (such as `VertexPositionGeometry`).  All curvatures are rigid motion invariant.  Importantly, Gaussian and mean curvatures correspond to the _integral_ of curvature over a local neighborhood, and are hence scale invariant---to get the pointwise curvatures you should divide by area (see details below).  Principal curvatures are pointwise values.  See also `vertexPrincipalCurvatureDirections`, which provides curvature directions (rather than curvature magnitudes).  See [this video](vertexPrincipalCurvatureDirections) for further background on discrete curvature.
+
 ![vertex scalar curvatures](/media/vertex_scalar_curvatures.jpg)
 
 ??? func "vertex Gaussian curvature"
@@ -260,40 +299,6 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
 
     - **member:** `FaceData<double> IntrinsicGeometryInterface::faceGaussianCurvatures`
     - **require:** `void IntrinsicGeometryInterface::requireFaceGaussianCurvatures()`
-
-??? func "halfedge cotan weight"
-    
-    ##### halfedge cotan weight
-
-    The "cotangent weight" of an interior halfedge, defined as $\frac{1}{2} \cot(\theta)$, where $\theta$ is the corner angle opposite the halfedge. Defined to be $0$ for exterior halfedges.
-
-    Can be computed directly from edge lengths, or more efficiently in an embedded triangle via $\cot(\theta) = \frac{u \cdot v}{||u \times v||}$, where $u$ and $v$ are the edge vectors emanating from the opposite corner.
-
-    Only valid on triangular meshes.
-
-    - **member:** `HalfedgeData<double> IntrinsicGeometryInterface::halfedgeCotanWeights`
-    - **require:** `void IntrinsicGeometryInterface::requireHalfedgeCotanWeights()`
-
-    The inline immediate method can alternately be used to compute this value directly from input data for a single element:
-
-    - **immediate:** `double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge he)`
-    - **immediate:** `double VertexPositionGeometry::halfedgeCotanWeight(Halfedge he)`
-
-??? func "edge cotan weight"
-
-    ##### edge cotan weight
-
-    The "cotangent weight" of an edge, defined as the sum of halfedge cotan weights for incident interior halfedges.
-
-    Only valid on triangular meshes.
-
-    - **member:** `EdgeData<double> IntrinsicGeometryInterface::edgeCotanWeights`
-    - **require:** `void IntrinsicGeometryInterface::requireEdgeCotanWeights()`
-
-    The inline immediate method can alternately be used to compute this value directly from input data for a single element:
-
-    - **immediate:** `double EdgeLengthGeometry::edgeCotanWeight(Edge e)`
-    - **immediate:** `double VertexPositionGeometry::edgeCotanWeight(Edge e)`
 
 ## Tangent vectors and transport
 
