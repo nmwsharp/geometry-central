@@ -1037,7 +1037,7 @@ Vertex ManifoldSurfaceMesh::insertVertex(Face fIn) {
 }
 
 
-bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
+Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
   /*  must maintain these
       std::vector<size_t> heNextArr;    // he.next(), forms a circular singly-linked list in each face
       std::vector<size_t> heVertexArr;  // he.vertex()
@@ -1057,16 +1057,14 @@ bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
 
     // check if edge is part of a 'pinch' triangle
     if (heA0.twin().next().next().next() == heA0.twin()) {
-      v = heA0.vertex();
-      return false;
+      return Vertex();
     }
     for (Halfedge he1 : heA0.tipVertex().outgoingHalfedges()) {
       for (Halfedge he2 : he1.tipVertex().outgoingHalfedges()) {
         if (!(heA0.next() == he1 && he1.next() == he2) &&
             !(he1.twin().next().twin() == heA0 && he2.twin().next().twin() == he1)) { // not just going around a face
           if (he2.tipVertex() == heA0.vertex()) {
-            v = heA0.vertex();
-            return false;
+            return Vertex();
           }
         }
       }
@@ -1122,15 +1120,13 @@ bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
     deleteElement(vA);
     deleteElement(fA);
 
-    v = vB;
-    return true;
+    return vB;
   }
 
   else {
     Halfedge heA0 = e.halfedge();
     if (heA0.vertex().isBoundary() && heA0.twin().vertex().isBoundary()) {
-      v = heA0.vertex();
-      return false;
+      return Vertex();
     }
     if (heA0.vertex().isBoundary()) {
       heA0 = heA0.twin();
@@ -1143,8 +1139,7 @@ bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
             !(he1.twin().next().twin() == heA0 && he2.twin().next().twin() == he1)) { // not just going around a face
           if (he2.tipVertex() == heA0.vertex()) {
             // std::cerr<<heA0<<" "<<he1<<" "<<he2<<"\n";
-            v = heA0.vertex();
-            return false;
+            return Vertex();
           }
         }
       }
@@ -1209,8 +1204,7 @@ bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
       deleteElement(fA);
       deleteElement(fB);
 
-      v = vB;
-      return true;
+      return vB;
     }
 
     else if (heA0.vertex().degree() == 3) {
@@ -1257,15 +1251,12 @@ bool ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, Vertex& v) {
       deleteElement(fA);
       deleteElement(fB);
 
-      v = vB;
-      return true;
+      return vB;
     }
 
     else {
       // return heA0.vertex();
-      throw std::runtime_error("what is this vertex " + std::to_string(heA0.vertex()) + " with degree " +
-                               std::to_string(heA0.vertex().degree()) + " on edge " + std::to_string(heA0.edge()) +
-                               "?\n");
+      throw std::runtime_error("Collapsing interior vertices with degree < 3 is not supported.");
     }
   }
 

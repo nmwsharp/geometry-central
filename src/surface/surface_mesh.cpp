@@ -813,7 +813,7 @@ Face SurfaceMesh::duplicateFace(Face f) {
   return newFace;
 }
 
-bool SurfaceMesh::flip(Edge eFlip) {
+bool SurfaceMesh::flip(Edge eFlip, bool preventSelfEdges) {
   if (eFlip.isBoundary()) return false;
 
   // Get halfedges of first face
@@ -844,9 +844,12 @@ bool SurfaceMesh::flip(Edge eFlip) {
   Vertex vb = hb1.vertex();
   Vertex vc = ha3.vertex();
   Vertex vd = hb3.vertex();
-  // if flipped, make sure it is not a duplicate
-  for(Vertex v : vc.adjacentVertices()){
-    if(v == vd) return false;
+
+  if (preventSelfEdges) {
+    // If enabled, make sure it is not a duplicate
+    for (Vertex v : vc.adjacentVertices()) {
+      if(v == vd) return false;
+    }
   }
   
   Face fa = ha1.face();

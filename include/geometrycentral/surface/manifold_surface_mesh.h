@@ -65,7 +65,7 @@ public:
   // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
   Vertex collapseEdge(Edge e);
   
-  bool collapseEdgeTriangular(Edge e, Vertex &v);
+  Vertex collapseEdgeTriangular(Edge e);
 
   // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
   // boundary. Return Face() if impossible (generally because doing so would make a manifold mesh nonmanifold).
