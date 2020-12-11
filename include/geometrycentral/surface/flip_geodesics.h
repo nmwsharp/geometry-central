@@ -15,7 +15,7 @@
 //      You Can Find Geodesic Paths in Triangle Meshes by Just Flipping Edges
 //      Nicholas Sharp and Keenan Crane
 //      ACM Trans. on Graph. (SIGGRAPH Asia 2020)
-// 
+//
 // The FlipEdgeNetwork class contains the high-level functionality.
 
 namespace geometrycentral {
@@ -95,23 +95,24 @@ public:
 
   // Construct a network from a collection of paths
   FlipEdgeNetwork(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom,
-              std::vector<std::vector<Halfedge>> paths, VertexData<bool> extraMarkedVerts = VertexData<bool>());
+                  std::vector<std::vector<Halfedge>> paths, VertexData<bool> extraMarkedVerts = VertexData<bool>());
 
   // === Static initializers
 
   // Run Dijkstra between endpoints to initialize path
   static std::unique_ptr<FlipEdgeNetwork> constructFromDijkstraPath(ManifoldSurfaceMesh& mesh,
-                                                                IntrinsicGeometryInterface& geom, Vertex startVert,
-                                                                Vertex endVert);
+                                                                    IntrinsicGeometryInterface& geom, Vertex startVert,
+                                                                    Vertex endVert);
   // Run Dijkstra between i'th and (i+1)'th point to initialize path
   static std::unique_ptr<FlipEdgeNetwork>
   constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom,
                                      std::vector<Vertex> points, bool closed = false, bool markInterior = false);
 
   // Consturct path(s) from marked edges, heuristically inferring endpoints, loopiness, etc
-  static std::unique_ptr<FlipEdgeNetwork> constructFromEdgeSet(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom,
-                                                           const EdgeData<bool>& inPath,
-                                                           const VertexData<bool>& extraMarkedVertices);
+  static std::unique_ptr<FlipEdgeNetwork> constructFromEdgeSet(ManifoldSurfaceMesh& mesh,
+                                                               IntrinsicGeometryInterface& geom,
+                                                               const EdgeData<bool>& inPath,
+                                                               const VertexData<bool>& extraMarkedVertices);
 
 
   // add a path to an existing network
@@ -194,9 +195,16 @@ public:
   };
   ShortestReturnBoth locallyShortestTestWithBoth(Halfedge hePrev, Halfedge heNext); // classifies both side angles
 
+  // Get a path as a sequence of surface points along the mesh
   std::vector<std::vector<SurfacePoint>> getPathPolyline();
-  std::vector<std::vector<SurfacePoint>> allEdgePolyline();
+  std::vector<std::vector<SurfacePoint>> getAllEdgePolyline();
   std::vector<std::vector<SurfacePoint>> getPathPolyline(bool& wasPerfectOut);
+
+  // Get a path as positions in 3D
+  std::vector<std::vector<Vector3>> pathTo3D(const std::vector<std::vector<SurfacePoint>>& pathPoints); // helper
+  std::vector<std::vector<Vector3>> getPathPolyline3D();
+  std::vector<std::vector<Vector3>> getAllEdgePolyline3D();
+
 
   // Perform a whole bunch of sanity checks
   void validate();
@@ -228,8 +236,6 @@ public:
 
   // === Visualization
   VertexPositionGeometry* posGeom = nullptr; // for visualization only!
-
-  void visualizePath();
   void savePath(std::string filenamePLY);
   void savePathOBJLine(std::string filenamePrefix, bool withAll = false);
 

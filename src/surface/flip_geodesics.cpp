@@ -1542,7 +1542,7 @@ std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::getPathPolyline(bool& wa
   return result;
 }
 
-std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::allEdgePolyline() {
+std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::getAllEdgePolyline() {
 
   std::vector<std::vector<SurfacePoint>> result;
 
@@ -1560,6 +1560,29 @@ std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::allEdgePolyline() {
   return result;
 }
 
+std::vector<std::vector<Vector3>> FlipEdgeNetwork::pathTo3D(const std::vector<std::vector<SurfacePoint>>& pathPoints) {
+  std::vector<std::vector<Vector3>> pathTraces3D;
+
+  if (posGeom == nullptr) {
+    throw std::runtime_error("can't visualize, no position geometry registered. set the posGeom member");
+    return pathTraces3D;
+  }
+
+  for (const std::vector<SurfacePoint>& edgePath : pathPoints) {
+    pathTraces3D.emplace_back();
+    for (const SurfacePoint& p : edgePath) {
+      Vector3 p3d = p.interpolate(posGeom->inputVertexPositions);
+      pathTraces3D.back().push_back(p3d);
+    }
+  }
+
+  return pathTraces3D;
+}
+
+std::vector<std::vector<Vector3>> FlipEdgeNetwork::getPathPolyline3D() { return pathTo3D(getPathPolyline()); }
+
+std::vector<std::vector<Vector3>> FlipEdgeNetwork::getAllEdgePolyline3D() { return pathTo3D(getAllEdgePolyline()); }
+
 void FlipEdgeNetwork::savePathOBJLine(std::string filenamePrefix, bool withAll) {
   if (posGeom == nullptr) {
     throw std::runtime_error("can't visualize, no position geometry registered");
@@ -1569,7 +1592,7 @@ void FlipEdgeNetwork::savePathOBJLine(std::string filenamePrefix, bool withAll) 
 
   std::vector<std::vector<SurfacePoint>> polyline;
   if (withAll) {
-    polyline = allEdgePolyline();
+    polyline = getAllEdgePolyline();
   } else {
     polyline = getPathPolyline();
   }
@@ -1722,8 +1745,8 @@ void FlipEdgeNetwork::updatePathAfterEdgeSplit(Halfedge origHe, Halfedge newHeFr
 
 
   addToWedgeAngleQueue(pathSeg); // spliting the edge probably changed computed angle by numerical epsilon
-  // NOTE: shouldn't need to add to wedge angle queue for straightening, the newly created wedge is straight, since it's
-  // a subdivided (geodesic) edge, but do so anyway to think less about numerics
+  // NOTE: shouldn't need to add to wedge angle queue for straightening, the newly created wedge is straight, since
+  // it's a subdivided (geodesic) edge, but do so anyway to think less about numerics
   addToWedgeAngleQueue(newSeg);
 
   // validate();
