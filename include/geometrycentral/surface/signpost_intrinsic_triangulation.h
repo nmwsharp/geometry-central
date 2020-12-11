@@ -39,7 +39,7 @@ public:
   EdgeData<double> intrinsicEdgeLengths;            // length of each edge
   HalfedgeData<double> intrinsicHalfedgeDirections; // direction of each halfedge, in radians from [0, angleSum]
   VertexData<double> intrinsicVertexAngleSums;      // vertex cone angle sum
-  EdgeData<char> edgeIsOriginal; // did this edge come from the original triangulation? used mainly for optimizations.
+  EdgeData<bool> edgeIsOriginal; // did this edge come from the original triangulation? used mainly for optimizations.
 
   // NOTE: To enable use to make efficient use of the surface tracers, this class always automatically updates the
   // halfedgeVectorsInVertex and halfedgeVectorsInFace geometry members. Could remove this requirement if we change the
@@ -55,8 +55,8 @@ public:
   // (set to an array which holds true if an edge is fixed, and should not be flipped)
   // A callback is automatically registered which will update this array as edge splits are performed, so if a marked
   // edge is split the two resulting edges will be marked.
-  EdgeData<char> markedEdges;
-  void setMarkedEdges(const EdgeData<char>& markedEdges);
+  EdgeData<bool> markedEdges;
+  void setMarkedEdges(const EdgeData<bool>& markedEdges);
 
 
   // ======================================================

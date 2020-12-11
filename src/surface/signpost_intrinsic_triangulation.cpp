@@ -69,7 +69,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   }
 
   // Initialize all edges as original, but new ones should be false
-  edgeIsOriginal = EdgeData<char>(mesh, false);
+  edgeIsOriginal = EdgeData<bool>(mesh, false);
   edgeIsOriginal.fill(true);
 
   requireHalfedgeVectorsInVertex();
@@ -86,7 +86,7 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   edgeSplitCallbackList.push_back(updateMarkedEdges);
 }
 
-void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<char>& markedEdges_) {
+void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) {
   markedEdges = markedEdges_;
   markedEdges.setDefault(false);
 }
@@ -513,7 +513,7 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
 void SignpostIntrinsicTriangulation::flipToDelaunay() {
 
   std::deque<Edge> edgesToCheck;
-  EdgeData<char> inQueue(mesh, true);
+  EdgeData<bool> inQueue(mesh, true);
   for (Edge e : mesh.edges()) {
     edgesToCheck.push_back(e);
   }
@@ -607,7 +607,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
 
   // Initialize queue of (possibly) non-delaunay edges
   std::deque<Edge> delaunayCheckQueue;
-  EdgeData<char> inDelaunayQueue(mesh, false);
+  EdgeData<bool> inDelaunayQueue(mesh, false);
   for (Edge e : mesh.edges()) {
     delaunayCheckQueue.push_back(e);
     inDelaunayQueue[e] = true;
@@ -833,7 +833,7 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
 
   // === Make repeated passes through, splitting edges until no more bent edges remain
   bool anySplit = true;
-  EdgeData<char> edgeIsGood(mesh, false);
+  EdgeData<bool> edgeIsGood(mesh, false);
   size_t nSplit = 0;
   while (anySplit) {
     anySplit = false;

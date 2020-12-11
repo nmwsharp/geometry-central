@@ -95,7 +95,7 @@ public:
 
   // Construct a network from a collection of paths
   FlipEdgeNetwork(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom,
-              std::vector<std::vector<Halfedge>> paths, VertexData<char> extraMarkedVerts = VertexData<char>());
+              std::vector<std::vector<Halfedge>> paths, VertexData<bool> extraMarkedVerts = VertexData<bool>());
 
   // === Static initializers
 
@@ -110,8 +110,8 @@ public:
 
   // Consturct path(s) from marked edges, heuristically inferring endpoints, loopiness, etc
   static std::unique_ptr<FlipEdgeNetwork> constructFromEdgeSet(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom,
-                                                           const EdgeData<char>& inPath,
-                                                           const VertexData<char>& extraMarkedVertices);
+                                                           const EdgeData<bool>& inPath,
+                                                           const VertexData<bool>& extraMarkedVertices);
 
 
   // add a path to an existing network
@@ -138,7 +138,7 @@ public:
   // HalfedgeData<int> pathCountAtHalfedge;
 
   // Vertices at which paths in the network terminate
-  VertexData<char> isMarkedVertex;
+  VertexData<bool> isMarkedVertex;
 
   // Queue of angles to be straightened, sorted by smallest angle. The list ref always refers to the wedge at
   // he.vertex().

@@ -220,7 +220,7 @@ std::vector<Halfedge> FlipEdgePath::getHalfedgeList() {
 }
 
 FlipEdgeNetwork::FlipEdgeNetwork(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom,
-                                 std::vector<std::vector<Halfedge>> hePaths, VertexData<char> extraMarkedVerts)
+                                 std::vector<std::vector<Halfedge>> hePaths, VertexData<bool> extraMarkedVerts)
     : tri(std::unique_ptr<SignpostIntrinsicTriangulation>(new SignpostIntrinsicTriangulation(mesh_, inputGeom))),
       mesh(*(tri->intrinsicMesh)), pathsAtEdge(mesh), isMarkedVertex(mesh, false) {
 
@@ -287,7 +287,7 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstra
 
 
   std::vector<Halfedge> halfedges;
-  VertexData<char> extraMark(geom.mesh, false);
+  VertexData<bool> extraMark(geom.mesh, false);
 
   size_t end = closed ? points.size() : points.size() - 1;
   for (size_t i = 0; i < end; i++) {
@@ -314,8 +314,8 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstra
 
 std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromEdgeSet(ManifoldSurfaceMesh& mesh_,
                                                                        IntrinsicGeometryInterface& geom,
-                                                                       const EdgeData<char>& inPath,
-                                                                       const VertexData<char>& extraMarkedVertices) {
+                                                                       const EdgeData<bool>& inPath,
+                                                                       const VertexData<bool>& extraMarkedVertices) {
   ManifoldSurfaceMesh& mesh = mesh_;
 
   std::vector<std::vector<Halfedge>> allHalfedges;
@@ -329,7 +329,7 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromEdgeSet(ManifoldS
     }
   }
 
-  VertexData<char> isEndpoint(mesh, false);
+  VertexData<bool> isEndpoint(mesh, false);
   for (Vertex v : mesh.vertices()) {
     if (extraMarkedVertices[v] || (endpointCount[v] != 0 && endpointCount[v] != 2)) {
       isEndpoint[v] = true;
@@ -338,7 +338,7 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromEdgeSet(ManifoldS
 
 
   // Walk paths between the endpoints
-  EdgeData<char> walked(mesh, false);
+  EdgeData<bool> walked(mesh, false);
   for (Halfedge heStart : mesh.halfedges()) {
 
     // Check if we should start a walk
@@ -1023,7 +1023,7 @@ void FlipEdgeNetwork::addAllWedgesToAngleQueue() {
 void FlipEdgeNetwork::makeDelaunay() {
 
   // == Mark path edges as fixed
-  EdgeData<char> fixedEdges(tri->mesh);
+  EdgeData<bool> fixedEdges(tri->mesh);
   for (Edge e : tri->mesh.edges()) {
     fixedEdges[e] = edgeInPath(e);
   }
@@ -1035,7 +1035,7 @@ void FlipEdgeNetwork::makeDelaunay() {
 void FlipEdgeNetwork::delaunayRefine(double areaThresh, size_t maxInsertions, double angleBound) {
 
   // == Mark path edges as fixed
-  EdgeData<char> fixedEdges(tri->mesh);
+  EdgeData<bool> fixedEdges(tri->mesh);
   for (Edge e : tri->mesh.edges()) {
     fixedEdges[e] = edgeInPath(e);
   }
@@ -1056,7 +1056,7 @@ void FlipEdgeNetwork::delaunayRefine(double areaThresh, size_t maxInsertions, do
 void FlipEdgeNetwork::splitBentEdges(double angleDeg, size_t maxInsertions) {
 
   // == Mark path edges as fixed
-  EdgeData<char> fixedEdges(tri->mesh);
+  EdgeData<bool> fixedEdges(tri->mesh);
   for (Edge e : tri->mesh.edges()) {
     fixedEdges[e] = edgeInPath(e);
   }
@@ -1474,7 +1474,7 @@ void FlipEdgeNetwork::validate() {
 
 
   // Check that all path edges are noted as edges
-  HalfedgeData<char> halfedgeSeen(mesh, false);
+  HalfedgeData<bool> halfedgeSeen(mesh, false);
   for (auto& epPtr : paths) {
     FlipEdgePath& path = *epPtr;
 
