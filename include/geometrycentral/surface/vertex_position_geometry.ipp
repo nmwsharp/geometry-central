@@ -44,6 +44,16 @@ inline double VertexPositionGeometry::faceArea(Face f) const {
   return area;
 }
 
+// Vertex dual areas
+inline double VertexPositionGeometry::vertexDualArea(Vertex v) const {
+  // WARNING: Logic duplicated between cached and immediate version
+   double area = 0.;
+   for( Face f : v.adjacentFaces() ) {
+      area += faceArea(f);
+   }
+   return area/3.;
+}
+
 // Corner angles
 inline double VertexPositionGeometry::cornerAngle(Corner c) const {
   // WARNING: Logic duplicated between cached and immediate version
@@ -119,6 +129,75 @@ inline Vector3 VertexPositionGeometry::faceNormal(Face f) const {
 
 inline Vector3 VertexPositionGeometry::halfedgeVector(Halfedge he) const {
   return inputVertexPositions[he.tipVertex()] - inputVertexPositions[he.tailVertex()];
+}
+
+inline double VertexPositionGeometry::edgeDihedralAngle(Edge e) const {
+   // WARNING: Logic duplicated between cached and immediate version
+    if (e.isBoundary() || !e.isManifold() ) {
+       return 0.;
+    }
+
+    Vector3 N1 = faceNormal(e.halfedge().face());
+    Vector3 N2 = faceNormal(e.halfedge().sibling().face());
+    Vector3 pTail = inputVertexPositions[e.halfedge().vertex()];
+    Vector3 pTip = inputVertexPositions[e.halfedge().next().vertex()];
+    Vector3 edgeDir = unit(pTip - pTail);
+
+    return atan2(dot(edgeDir, cross(N1, N2)), dot(N1, N2));
+}
+
+inline double VertexPositionGeometry::vertexMeanCurvature(Vertex v) const {
+   // WARNING: Logic duplicated between cached and immediate version
+   double meanCurvature = 0.;
+   for (Halfedge he : v.outgoingHalfedges()) {
+      double len = edgeLength(he.edge());
+      double alpha = edgeDihedralAngle(he.edge());
+      meanCurvature += alpha * len / 2.;
+   }
+   return meanCurvature/2.;
+}
+
+inline double VertexPositionGeometry::vertexGaussianCurvature(Vertex v) const {
+   // WARNING: Logic duplicated between cached and immediate version
+   
+   // the triangles neighboring any boundary vertex can be flattened into
+   // the plane without any stretching/distortion; hence, a boundary
+   // vertex has no Gaussian curvature
+   if( v.isBoundary() ) return 0.;
+
+   double gaussianCurvature = 2.*PI;
+   for (Corner c : v.adjacentCorners() ) {
+      gaussianCurvature -= cornerAngle(c);
+   }
+   return gaussianCurvature;
+}
+
+inline double VertexPositionGeometry::vertexMaxPrincipalCurvature(Vertex v) const {
+   // WARNING: Logic duplicated between cached and immediate version
+   return vertexPrincipalCurvature(2,v);
+}
+
+inline double VertexPositionGeometry::vertexMinPrincipalCurvature(Vertex v) const {
+   // WARNING: Logic duplicated between cached and immediate version
+   return vertexPrincipalCurvature(1,v);
+}
+
+inline double VertexPositionGeometry::vertexPrincipalCurvature(int whichCurvature, Vertex v) const {
+   // WARNING: Logic duplicated between cached and immediate version
+   double A = vertexDualArea(v);
+   double H = vertexMeanCurvature(v) / A;
+   double K = vertexGaussianCurvature(v) / A;
+
+   // The two principal curvatures are given by
+   //    H +/- sqrt( H^2 - K )
+   double c = std::sqrt(std::max(0.,H*H - K));
+   double k1 = H - c;
+   double k2 = H + c;
+
+   if( whichCurvature == 1 )
+      return std::min( k1, k2 );
+   else
+      return std::max( k1, k2 );
 }
 
 } // namespace surface

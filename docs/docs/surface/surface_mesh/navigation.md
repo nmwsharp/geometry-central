@@ -56,6 +56,17 @@ Use these routines to iterate over all of the elements in the mesh.
     }
     ```
 
+??? func "`#!cpp SurfaceMesh::boundaryLoops()`"
+    Iterate over the boundary loops for a mesh.
+
+    Remember that only `ManifoldSurfaceMesh`s have well-defined boundary loops.
+
+    ```cpp
+    for(BoundaryLoop bl : mesh.boundaryLoops()) {
+      // do science here
+    }
+    ```
+
 
 ## Neighborhood Iterators 
 

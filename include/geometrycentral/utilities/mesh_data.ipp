@@ -234,7 +234,7 @@ inline const T& MeshData<E, T>::operator[](size_t i) const {
 template <typename E, typename T>
 inline size_t MeshData<E, T>::size() const {
   if (mesh == nullptr) return 0;
-  return nElements<E>(mesh);
+  return elementCapacity<E>(mesh);
 }
 
 template <typename E, typename T>

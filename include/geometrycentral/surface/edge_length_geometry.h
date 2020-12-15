@@ -29,9 +29,11 @@ public:
 
   // == Immediates
   double faceArea(Face f) const;
+  double vertexDualArea(Vertex v) const;
   double cornerAngle(Corner c) const;
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
+  double vertexGaussianCurvature(Vertex v) const;
 
 
 protected:

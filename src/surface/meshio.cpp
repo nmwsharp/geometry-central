@@ -87,7 +87,10 @@ readManifoldSurfaceMesh(std::string filename, std::string type) {
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(filename, type, loadType);
   processLoadedMesh(simpleMesh, loadType);
-  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
 }
 std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>>
 readManifoldSurfaceMesh(std::istream& in, std::string type) {
@@ -95,9 +98,38 @@ readManifoldSurfaceMesh(std::istream& in, std::string type) {
   SimplePolygonMesh simpleMesh;
   simpleMesh.readMeshFromFile(in, type);
   processLoadedMesh(simpleMesh, loadType);
-  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+
+  auto lvals = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
+  return std::tuple<std::unique_ptr<ManifoldSurfaceMesh>,
+                    std::unique_ptr<VertexPositionGeometry>>(std::move(std::get<0>(lvals)),  // mesh
+                                                             std::move(std::get<1>(lvals))); // geometry
 }
 
+// Load a mesh with UV coordinates, which will be stored as data at triangle
+// corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
+std::tuple<std::unique_ptr<ManifoldSurfaceMesh>, std::unique_ptr<VertexPositionGeometry>,
+           std::unique_ptr<CornerData<Vector2>>>
+readParameterizedManifoldSurfaceMesh(std::string filename, std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+
+  return makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, {}, simpleMesh.vertexCoordinates,
+                                            simpleMesh.paramCoordinates);
+}
+
+// Load a mesh with UV coordinates, which will be stored as data at triangle
+// corners (to allow for UVs that are discontinuous across edges, e.g., at cuts)
+std::tuple<std::unique_ptr<SurfaceMesh>, std::unique_ptr<VertexPositionGeometry>, std::unique_ptr<CornerData<Vector2>>>
+readParameterizedSurfaceMesh(std::string filename, std::string type) {
+  std::string loadType;
+  SimplePolygonMesh simpleMesh;
+  simpleMesh.readMeshFromFile(filename, type, loadType);
+  processLoadedMesh(simpleMesh, loadType);
+
+  return makeSurfaceMeshAndGeometry(simpleMesh.polygons, {}, simpleMesh.vertexCoordinates, simpleMesh.paramCoordinates);
+}
 
 // ======= Output =======
 
@@ -246,18 +278,42 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
   // This works because of the iteration order that we we know these iterators obey. If iteration orders ever change,
   // this will be broken.
 
+  // Note: vertices & faces are generally in the polyscope default ordering, but this is still useful in hte case of a
+  // non-compressed mesh.
+
+  { // Vertices
+    std::vector<size_t>& vertPerm = result[0].first;
+    vertPerm.resize(mesh.nVertices());
+    result[0].second = mesh.nVerticesCapacity();
+
+    size_t i = 0;
+    for (Vertex v : mesh.vertices()) {
+      vertPerm[i++] = v.getIndex();
+    }
+  }
+
+  { // Faces
+    std::vector<size_t>& facePerm = result[1].first;
+    facePerm.resize(mesh.nFaces());
+    result[1].second = mesh.nFacesCapacity();
+
+    size_t i = 0;
+    for (Face f : mesh.faces()) {
+      facePerm[i++] = f.getIndex();
+    }
+  }
+
   { // Edges
     std::vector<size_t>& edgePerm = result[2].first;
     edgePerm.resize(mesh.nEdges());
-    result[2].second = mesh.nEdges();
+    result[2].second = mesh.nEdgesCapacity();
 
-    EdgeData<size_t> edgeIndices = mesh.getEdgeIndices();
     EdgeData<char> edgeSeen(mesh, false);
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Edge e : f.adjacentEdges()) {
         if (!edgeSeen[e]) {
-          edgePerm[i++] = edgeIndices[e];
+          edgePerm[i++] = e.getIndex();
           edgeSeen[e] = true;
         }
       }
@@ -267,13 +323,12 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
   { // Halfedges
     std::vector<size_t>& halfedgePerm = result[3].first;
     halfedgePerm.resize(mesh.nInteriorHalfedges());
-    result[3].second = mesh.nHalfedges();
+    result[3].second = mesh.nHalfedgesCapacity();
 
-    HalfedgeData<size_t> halfedgeIndices = mesh.getHalfedgeIndices();
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Halfedge he : f.adjacentHalfedges()) {
-        halfedgePerm[i++] = halfedgeIndices[he];
+        halfedgePerm[i++] = he.getIndex();
       }
     }
   }
@@ -281,13 +336,12 @@ std::array<std::pair<std::vector<size_t>, size_t>, 5> polyscopePermutations(Surf
   { // Corners
     std::vector<size_t>& cornerPerm = result[4].first;
     cornerPerm.resize(mesh.nCorners());
-    result[4].second = mesh.nCorners();
+    result[4].second = mesh.nHalfedgesCapacity();
 
-    CornerData<size_t> cornerIndices = mesh.getCornerIndices();
     size_t i = 0;
     for (Face f : mesh.faces()) {
       for (Corner c : f.adjacentCorners()) {
-        cornerPerm[i++] = cornerIndices[c];
+        cornerPerm[i++] = c.getIndex();
       }
     }
   }

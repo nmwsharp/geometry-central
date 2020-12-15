@@ -144,6 +144,11 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
     - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexDualAreas`
     - **require:** `void IntrinsicGeometryInterface::requireVertexDualAreas()`
 
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double EdgeLengthGeometry::vertexDualArea(Vertex v)`
+    - **immediate:** `double VertexPositionGeometry::vertexDualArea(Vertex v)`
+
 ??? func "corner angles"
     
     ##### corner angles
@@ -182,35 +187,6 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
     - **member:** `CornerData<double> IntrinsicGeometryInterface::cornerScaledAngles`
     - **require:** `void IntrinsicGeometryInterface::requireCornerScaledAngles()`
 
-??? func "vertex Gaussian curvature"
-    
-    ##### vertex Gaussian curvature
-
-    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a vertex, defined via the angle defect $K_v = 2 \pi - \sum \theta_i$, where $\sum \theta_i$ is the `vertexAngleSum` as above.
-
-    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature in the neighborhood of the vertex. On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_v K_v = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
-
-    Only valid on triangular meshes.
-
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexGaussianCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexGaussianCurvatures()`
-
-
-??? func "face Gaussian curvature"
-    
-    ##### face Gaussian curvature
-
-    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a face, defined via the rescaled angle defect in the face $K_f = \pi - \sum \tilde{\theta}_i$, where $\tilde{\theta}_i$ are the _rescaled_ corner angles (as in `cornerScaledAngles`) incident on the face.
-
-    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature inside of the face. A corresponding curvature-per-unit-area can be computed by dividing by the area of the face.
-
-    On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_f K_f = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
-
-    Only valid on triangular meshes.
-
-    - **member:** `FaceData<double> IntrinsicGeometryInterface::faceGaussianCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireFaceGaussianCurvatures()`
-
 ??? func "halfedge cotan weight"
     
     ##### halfedge cotan weight
@@ -244,6 +220,85 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
 
     - **immediate:** `double EdgeLengthGeometry::edgeCotanWeight(Edge e)`
     - **immediate:** `double VertexPositionGeometry::edgeCotanWeight(Edge e)`
+
+
+## Curvatures
+
+Different curvatures are available depending on whether geometry is intrinsic or extrinsic.  In particular, Gaussian curvature is available for any `IntrinsicGeometryInterface` (such as `EdgeLengthGeometry`), which is the base class of all other geometry objects, whereas mean and principal curvatures are available only from an `ExtrinsicGeometryInterface` (such as `VertexPositionGeometry`).  All curvatures are rigid motion invariant.  Importantly, Gaussian and mean curvatures correspond to the _integral_ of curvature over a local neighborhood, and are hence scale invariant---to get the pointwise curvatures you should divide by area (see details below).  Principal curvatures are pointwise values.  See also `vertexPrincipalCurvatureDirections`, which provides curvature directions (rather than curvature magnitudes).  See [this video](vertexPrincipalCurvatureDirections) for further background on discrete curvature.
+
+![vertex scalar curvatures](/media/vertex_scalar_curvatures.jpg)
+
+??? func "vertex Gaussian curvature"
+    
+    ##### vertex Gaussian curvature
+
+    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a vertex, defined via the angle defect $K_v = 2 \pi - \sum \theta_i$, where $\sum \theta_i$ is the `vertexAngleSum` as above.
+
+    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature in the neighborhood of the vertex. On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_v K_v = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
+
+    Only valid on triangular meshes.
+
+    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexGaussianCurvatures`
+    - **require:** `void IntrinsicGeometryInterface::requireVertexGaussianCurvatures()`
+
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double VertexPositionGeometry::vertexGaussianCurvature(Vertex v)`
+    - **immediate:** `double EdgeLengthGeometry::vertexGaussianCurvature(Vertex v)`
+
+??? func "vertex mean curvature"
+    
+    ##### vertex mean curvature
+
+    The [_mean curvature_](https://en.wikipedia.org/wiki/Mean_curvature) $H$ at a vertex $i$, defined via the Steiner approximation $H_i = \frac{1}{4}\sum_{ij} \theta_{ij} \ell_{ij}$, where $\theta_{ij}$ is the `edgeDihedralAngle` and $\ell_{ij}$ is the `edgeLength` as defined above (and the sum is taken over halfedges extending from $i$).
+
+    Should be interpreted as an _integrated_ mean curvature (units: $m$), giving the total curvature in the neighborhood of the vertex.  A corresponding _pointwise_ mean curvature (units: $1/m$) can be obtained by dividing by the `vertexDualArea`.
+
+    Only valid on triangular meshes.
+
+    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMeanCurvatures`
+    - **require:** `void IntrinsicGeometryInterface::requireVertexMeanCurvatures()`
+
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double VertexPositionGeometry::vertexMeanCurvature(Vertex v)`
+
+
+??? func "vertex principal curvature"
+    
+    ##### vertex principal curvatures
+
+    The [_principal curvatures_](https://en.wikipedia.org/wiki/Principal_curvature) $\kappa_1,\kappa_2$ at a vertex $i$, defined by the relationships $K = \kappa_1\kappa_2$ and $H = (\kappa_1+\kappa_2)/2$, where $H$ and $K$ are the pointwise mean and Gaussian curvatures (resp.).  These values are signed, and $\kappa_1$ is always the smaller curvature _in value_, but not necessarily the smaller one _in magnitude_ (e.g., $\kappa_1$ could be a very large negative value, and $\kappa_2$ could be a very small positive value).
+
+    These quantities can be interpreted as _pointwise_ quantities (units: $1/m$), approximating the maximum and minimum bending the neighborhood of the vertex.
+
+    Only valid on triangular meshes.
+
+    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMinPrincipalCurvatures`
+    - **require:** `void IntrinsicGeometryInterface::requireVertexMinPrincipalCurvatures()`
+
+    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMaxPrincipalCurvatures`
+    - **require:** `void IntrinsicGeometryInterface::requireVertexMaxPrincipalCurvatures()`
+
+    The inline immediate methods can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double VertexPositionGeometry::vertexMinPrincipalCurvature(Vertex v)`
+    - **immediate:** `double VertexPositionGeometry::vertexMaxPrincipalCurvature(Vertex v)`
+
+??? func "face Gaussian curvature"
+    
+    ##### face Gaussian curvature
+
+    The [_Gaussian curvature_](https://en.wikipedia.org/wiki/Gaussian_curvature) $K$ at a face, defined via the rescaled angle defect in the face $K_f = \pi - \sum \tilde{\theta}_i$, where $\tilde{\theta}_i$ are the _rescaled_ corner angles (as in `cornerScaledAngles`) incident on the face.
+
+    Should be interpreted as an _integrated_ Gaussian curvature, giving the total curvature inside of the face. A corresponding curvature-per-unit-area can be computed by dividing by the area of the face.
+
+    On a closed surface, the [Gauss-Bonnet theorem](https://en.wikipedia.org/wiki/Gauss%E2%80%93Bonnet_theorem) tells us that the sum of these Gaussian curvatures will be a topological constant given by $\sum_f K_f = 2 \pi \chi$, where $\chi$ is the [Euler characteristic](../surface_mesh/basics.md#properties) of the surface. On surfaces with boundary, the geodesic curvature of the boundary factors in.
+
+    Only valid on triangular meshes.
+
+    - **member:** `FaceData<double> IntrinsicGeometryInterface::faceGaussianCurvatures`
+    - **require:** `void IntrinsicGeometryInterface::requireFaceGaussianCurvatures()`
 
 ## Tangent vectors and transport
 
@@ -458,6 +513,10 @@ These quantities depend on extrinsic angles, but are still rotation-invariant, a
 
     - **member:** `EdgeData<double> ExtrinsicGeometryInterface::edgeDihedralAngles`
     - **require:** `void ExtrinsicGeometryInterface::requireEdgeDihedralAngles()`
+
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `double VertexPositionGeometry::edgeDihedralAngle(Edge e)`
 
 ??? func "vertex principal curvature direction"
 
