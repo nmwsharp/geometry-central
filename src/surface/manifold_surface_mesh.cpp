@@ -66,7 +66,7 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
   vHalfedgeArr = std::vector<size_t>(nVerticesCount, INVALID_IND);
   fHalfedgeArr = std::vector<size_t>(nFacesCount, INVALID_IND);
 
-  // Sanity check to detect unreferenced vertices
+// Sanity check to detect unreferenced vertices
 #ifndef NGC_SAFETY_CHECKS
   std::vector<char> vertUsed(nVerticesCount, false);
 #endif
@@ -1040,7 +1040,7 @@ Vertex ManifoldSurfaceMesh::insertVertex(Face fIn) {
 Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
 
   // FIXME I think this function is significantly buggy
-  throw std::runtime_error("don't trust this function");
+  // throw std::runtime_error("don't trust this function");
 
   // Is the edge we're collapsing along the boundary
   bool onBoundary = e.isBoundary();
@@ -1049,11 +1049,13 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
   Halfedge heA0 = e.halfedge();
   Halfedge heA1 = heA0.next();
   Halfedge heA2 = heA1.next();
+  Halfedge heA2T = heA2.twin();
   Face fA = heA0.face();
   Vertex vA = heA0.vertex();
   GC_SAFETY_ASSERT(heA2.next() == heA0, "face must be triangular to collapse")
   Halfedge heA1T = heA1.twin();
-  Halfedge heA1TPrev = heA1T.prevOrbitVertex();
+  Halfedge heA1TNext = heA1.twin().next();
+  Halfedge heA1TPrev = heA1T.prevOrbitFace();
   bool vAOnBoundary = vA.isBoundary();
 
   Halfedge heB0 = heA0.twin();
@@ -1063,7 +1065,8 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
   Vertex vB = heB0.vertex();
   GC_SAFETY_ASSERT(heB2.next() == heB0 || onBoundary, "face must be triangular or on boundary to collapse")
   Halfedge heB2T = heB2.twin();
-  Halfedge heB2TPrev = heB2T.prevOrbitVertex();
+  Halfedge heB2TNext = heB2T.next();
+  Halfedge heB2TPrev = heB2T.prevOrbitFace();
   bool vBOnBoundary = vB.isBoundary();
 
   // === Check validity
@@ -1095,6 +1098,9 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
     return Vertex();
   }
 
+  // Cache vB's incident halfedges
+  std::unordered_set<Halfedge> vBOutgoingHalfedges;
+  for (Halfedge he : vB.outgoingHalfedges()) vBOutgoingHalfedges.insert(he);
 
   // TODO degree 2 vertex case?
 
@@ -1102,16 +1108,11 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
   //   - the halfedge heA2 will be repurposed as heA1.twin()
   //   - the halfedge heB1 will be repurposed as heB2.twin()
 
-  // Neighbors of vB
-  // for(Halfedge he : vB.outgoingHalfedges()) {
-  // heVertexArr[he.getIndex()] = vA.getIndex();
-  //}
-
   // == Around face A
   {
     heNextArr[heA1TPrev.getIndex()] = heA2.getIndex();
-    heNextArr[heA2.getIndex()] = heNextArr[heA1T.getIndex()];
-    heVertexArr[heA2.getIndex()] = heVertexArr[heA1T.getIndex()];
+    heNextArr[heA2.getIndex()] = heA1TNext.getIndex();
+    heVertexArr[heA2T.getIndex()] = vA.getIndex();
     heFaceArr[heA2.getIndex()] = heFaceArr[heA1T.getIndex()];
 
     // Vertex connections
@@ -1140,20 +1141,29 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
 
     // Handle halfedge connections around heB2
     heNextArr[heB2TPrev.getIndex()] = heB1.getIndex();
-    heNextArr[heB1.getIndex()] = heNextArr[heB2T.getIndex()];
-    heVertexArr[heB1.getIndex()] = heVertexArr[heB2T.getIndex()];
+    heNextArr[heB1.getIndex()] = heB2TNext.getIndex();
+    heVertexArr[heB1.getIndex()] = vA.getIndex();
     heFaceArr[heB1.getIndex()] = heFaceArr[heB2T.getIndex()];
 
     // Vertex connections
-    // Don't need to update this vertex, since heB2T.vertex() is about to be deleted
-    // if (heB2T.vertex().halfedge() == heB2T) {
-    // vHalfedgeArr[heB2T.vertex().getIndex()] = heB1.getIndex();
-    //}
+    // Don't need to update vB vertex, since vB is about to be deleted
+    if (heB2.vertex().halfedge() == heB2) {
+      vHalfedgeArr[heB2.vertex().getIndex()] = heB1T.getIndex();
+    }
 
     // Face connections
     if (heB2T.face().halfedge() == heB2T) {
       fHalfedgeArr[heB2T.face().getIndex()] = heB1.getIndex();
     }
+  }
+
+  // Neighbors of vB
+  for (Halfedge he : vBOutgoingHalfedges) {
+    heVertexArr[he.getIndex()] = vA.getIndex();
+  }
+
+  if (vA.halfedge() == heA0) {
+    vHalfedgeArr[vA.getIndex()] = heB1.getIndex();
   }
 
   // Make sure we set the "new" vertex to have an acceptable boundary halfedge if we pulled it on to the boundary
@@ -1167,7 +1177,7 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
   deleteEdgeBundle(heA1.edge());
   deleteElement(vB);
   deleteElement(fA);
-  if (onBoundary) {
+  if (!onBoundary) {
     deleteElement(fB);
     deleteEdgeBundle(heB2.edge());
   }
@@ -1175,6 +1185,66 @@ Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
 
   modificationTick++;
   return vA;
+}
+
+// Removes an edge, unioning two faces. Input must not be a boundary edge. Returns Face() if impossible.
+Face ManifoldSurfaceMesh::removeEdge(Edge e) {
+  if (e.isBoundary()) {
+    throw std::runtime_error("not implemented");
+  }
+
+  // Halfedges/edges/faces that will be removed
+  // (except first face)
+  std::vector<Halfedge> toRemove{e.halfedge(), e.halfedge().twin()};
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge heStart : toRemove) {
+    Halfedge he = heStart.next();
+    while (he != heStart) {
+      // The one-ring must not contain any other copies of e, or we cannot remove the edge
+      if (he.edge() == e) {
+        return Face();
+      }
+      ringHalfedges.push_back(he);
+      he = he.next();
+    }
+  }
+
+  // If both faces are the same, we cannot remove the edge. This should have been caught above
+  if (toRemove[0].face() == toRemove[1].face()) {
+    return Face();
+  }
+  Face keepFace = toRemove[0].face();
+
+
+  // Record these before we break pointers
+  Vertex src = e.halfedge().vertex();
+  Vertex dst = e.halfedge().twin().vertex();
+  Halfedge altSrcHedge = e.halfedge().twin().next();
+  Halfedge altDstHedge = e.halfedge().next();
+
+  // Hook up next and face refs for the halfedges along the ring
+  size_t N = ringHalfedges.size();
+  for (size_t i = 0; i < N; i++) {
+    heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + 1) % N].getIndex();
+    heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
+  }
+
+  // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
+  if (src.halfedge().edge() == e) {
+    vHalfedgeArr[src.getIndex()] = altSrcHedge.getIndex();
+  }
+  if (dst.halfedge().edge() == e) {
+    vHalfedgeArr[dst.getIndex()] = altDstHedge.getIndex();
+  }
+
+  fHalfedgeArr[keepFace.getIndex()] = ringHalfedges[0].getIndex();
+
+  // Actually delete all of the elements
+  deleteElement(toRemove[1].face());
+  deleteEdgeBundle(e);
+
+  modificationTick++;
+  return keepFace;
 }
 
 bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
