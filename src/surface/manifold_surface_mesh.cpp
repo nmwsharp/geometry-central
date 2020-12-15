@@ -1046,6 +1046,10 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
       std::vector<size_t> fHalfedgeArr; // f.halfedge()
   */
 
+  // check triangular
+  GC_SAFETY_ASSERT(e.halfedge().face().isTriangle(), "neighborhood must be triangular");
+  GC_SAFETY_ASSERT(e.isBoundary() || e.halfedge().twin().face().isTriangle(), "neighborhood must be triangular");
+
   // assuming on triangle mesh
   if (e.isBoundary()) {
     // Gather some values
