@@ -16,8 +16,7 @@ public:
   // The output will preserve the ordering of vertices and faces.
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
 
-  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer
-  // type.
+  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer type.
   template <typename T>
   ManifoldSurfaceMesh(const Eigen::MatrixBase<T>& triangles);
 
@@ -64,13 +63,10 @@ public:
 
   // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
   // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
-  Vertex collapseEdge(Edge e);
+  Vertex collapseEdgeTriangular(Edge e);
 
-  // Removes a vertex, leaving a high-degree face. Return Face() if impossible (generally because doing so would make a
-  // manifold mesh nonmanifold).
-  // Current implementation limitaitons:
-  //   - not implemented for boundary vertices
-  //   - all incident faces must be triangular
+  // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
+  // boundary. Return Face() if impossible (generally because doing so would make a manifold mesh nonmanifold).
   Face removeVertex(Vertex v);
 
   // Make the edge a mirror image of itself, switching the side the two halfedges are on.

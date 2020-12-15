@@ -193,7 +193,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
 
   // Combinatorial flip
-  bool flipped = intrinsicMesh->flip(e);
+  bool flipped = intrinsicMesh->flip(e, false);
 
   // Should always be possible, something unusual is going on if we end up here
   if (!flipped) {
@@ -206,7 +206,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   // If we're going to create a non-finite edge length, abort the flip
   // (only happens if you're in a bad numerical place)
   if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e);
+    intrinsicMesh->flip(e, false);
     return false;
   }
 
@@ -245,7 +245,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
 
 
   // Combinatorial flip
-  bool flipped = intrinsicMesh->flip(e);
+  bool flipped = intrinsicMesh->flip(e, false);
 
   // Might not have been flippable for connectivity reasons
   if (!flipped) {
@@ -258,7 +258,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
   // If we're going to create a non-finite edge length, abort the flip
   // (only happens if you're in a bad numerical place)
   if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e);
+    intrinsicMesh->flip(e, false);
     return false;
   }
 

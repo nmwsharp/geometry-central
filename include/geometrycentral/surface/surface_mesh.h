@@ -147,7 +147,7 @@ public:
   // Flip an edge. Edge is rotated clockwise. Return true if the edge was actually flipped (one can only flip
   // manifold, interior, triangular edges which are not incident on degree-1 vertices). Does _not_ create any new
   // elements, or cause the mesh to become decompressed.
-  bool flip(Edge e);
+  bool flip(Edge e, bool preventSelfEdges = true);
 
   // Given two distinct halfedges both incident along some edge `e`, peel them them off of `e`, forming a new edge
   // `e_new` for just those two halfedges. Any other halfedges incident on `e` will be unchanged. If these are the only

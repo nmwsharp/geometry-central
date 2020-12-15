@@ -1037,145 +1037,237 @@ Vertex ManifoldSurfaceMesh::insertVertex(Face fIn) {
 }
 
 
-Vertex ManifoldSurfaceMesh::collapseEdge(Edge e) {
+Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
+  /*  must maintain these
+      std::vector<size_t> heNextArr;    // he.next(), forms a circular singly-linked list in each face
+      std::vector<size_t> heVertexArr;  // he.vertex()
+      std::vector<size_t> heFaceArr;    // he.face()
+      std::vector<size_t> vHalfedgeArr; // v.halfedge()
+      std::vector<size_t> fHalfedgeArr; // f.halfedge()
+  */
 
-  // FIXME I think this function is significantly buggy
-  throw std::runtime_error("don't trust this function");
+  // check triangular
+  GC_SAFETY_ASSERT(e.halfedge().face().isTriangle(), "neighborhood must be triangular");
+  GC_SAFETY_ASSERT(e.isBoundary() || e.halfedge().twin().face().isTriangle(), "neighborhood must be triangular");
 
-  // Is the edge we're collapsing along the boundary
-  bool onBoundary = e.isBoundary();
-
-  // Gather some values
-  Halfedge heA0 = e.halfedge();
-  Halfedge heA1 = heA0.next();
-  Halfedge heA2 = heA1.next();
-  Face fA = heA0.face();
-  Vertex vA = heA0.vertex();
-  GC_SAFETY_ASSERT(heA2.next() == heA0, "face must be triangular to collapse")
-  Halfedge heA1T = heA1.twin();
-  Halfedge heA1TPrev = heA1T.prevOrbitVertex();
-  bool vAOnBoundary = vA.isBoundary();
-
-  Halfedge heB0 = heA0.twin();
-  Halfedge heB1 = heB0.next();
-  Halfedge heB2 = heB1.next();
-  Face fB = heB0.face();
-  Vertex vB = heB0.vertex();
-  GC_SAFETY_ASSERT(heB2.next() == heB0 || onBoundary, "face must be triangular or on boundary to collapse")
-  Halfedge heB2T = heB2.twin();
-  Halfedge heB2TPrev = heB2T.prevOrbitVertex();
-  bool vBOnBoundary = vB.isBoundary();
-
-  // === Check validity
-
-  // Refuse to do a collapse which removes a boundary component
-  // (this could be done, but isn't implemented)
-  if (onBoundary && heB2.next() == heB0) {
-    return Vertex();
-  }
-
-  // Refuse to do a collapse which connects separate boundary components (imagine pinching the neck of an hourglass)
-  if (!onBoundary && vBOnBoundary && vAOnBoundary) {
-    return Vertex();
-  }
-
-  // Should be exactly two vertices, the opposite diamond vertices, in the intersection of the 1-rings.
-  // Checking this property ensures that triangulations stays a simplicial complex (no new self-edges, etc).
-  std::unordered_set<Vertex> vANeighbors;
-  for (Vertex vN : Vertex(vA).adjacentVertices()) {
-    vANeighbors.insert(vN);
-  }
-  size_t nShared = 0;
-  for (Vertex vN : Vertex(vB).adjacentVertices()) {
-    if (vANeighbors.find(vN) != vANeighbors.end()) {
-      nShared++;
-    }
-  }
-  if (nShared > 2) {
-    return Vertex();
-  }
-
-
-  // TODO degree 2 vertex case?
-
-  // == Fix connections
-  //   - the halfedge heA2 will be repurposed as heA1.twin()
-  //   - the halfedge heB1 will be repurposed as heB2.twin()
-
-  // Neighbors of vB
-  // for(Halfedge he : vB.outgoingHalfedges()) {
-  // heVertexArr[he.getIndex()] = vA.getIndex();
-  //}
-
-  // == Around face A
-  {
-    heNextArr[heA1TPrev.getIndex()] = heA2.getIndex();
-    heNextArr[heA2.getIndex()] = heNextArr[heA1T.getIndex()];
-    heVertexArr[heA2.getIndex()] = heVertexArr[heA1T.getIndex()];
-    heFaceArr[heA2.getIndex()] = heFaceArr[heA1T.getIndex()];
-
-    // Vertex connections
-    if (heA1T.vertex().halfedge() == heA1T) {
-      vHalfedgeArr[heA1T.vertex().getIndex()] = heA2.getIndex();
-    }
-    if (vA.halfedge() == heA0) {
-      vHalfedgeArr[vA.getIndex()] = heA2.twin().getIndex();
+  // assuming on triangle mesh
+  if (e.isBoundary()) {
+    // Gather some values
+    Halfedge heA0 = e.halfedge();
+    if (heA0.vertex().degree() == 2) {
+      heA0 = heA0.next().next();
+      e = heA0.edge();
     }
 
-    // Face connections
-    if (heA1T.face().halfedge() == heA1T) {
-      fHalfedgeArr[heA1T.face().getIndex()] = heA2.getIndex();
+    // check if edge is part of a 'pinch' triangle
+    if (heA0.twin().next().next().next() == heA0.twin()) {
+      return Vertex();
+    }
+    for (Halfedge he1 : heA0.tipVertex().outgoingHalfedges()) {
+      for (Halfedge he2 : he1.tipVertex().outgoingHalfedges()) {
+        if (!(heA0.next() == he1 && he1.next() == he2) &&
+            !(he1.twin().next().twin() == heA0 && he2.twin().next().twin() == he1)) { // not just going around a face
+          if (he2.tipVertex() == heA0.vertex()) {
+            return Vertex();
+          }
+        }
+      }
+    }
+
+    Halfedge heA1 = heA0.next();
+    Halfedge heA2 = heA1.next();
+    Halfedge heC2 = heA2.twin();
+    Halfedge heC0 = heC2.next();
+    Halfedge heC1 = heC0.next();
+
+    Face fA = heA0.face();
+    Face fC = heC0.face();
+
+    Vertex vA = heA0.vertex();
+    Vertex vB = heA1.vertex();
+    Vertex vC = heC0.vertex();
+
+    // Special boundary values
+    Halfedge heB0 = heA0.twin();
+    Halfedge heB0prev;
+    for (Halfedge he : vB.incomingHalfedges()) {
+      if (!he.isInterior()) {
+        heB0prev = he;
+        break;
+      }
+    }
+    Halfedge heB0next = heB0.next();
+    Face fB = heB0.face(); // boundary loop
+
+    // Reassign connections
+    std::vector<Halfedge> toReassignVertex;
+    for (Halfedge he : vA.outgoingHalfedges()) {
+      toReassignVertex.push_back(he);
+    }
+    for (Halfedge he : toReassignVertex) {
+      heVertexArr[he.getIndex()] = vB.getIndex();
+    }
+    heNextArr[heC1.getIndex()] = heA1.getIndex();
+    heNextArr[heA1.getIndex()] = heC0.getIndex();
+    heNextArr[heB0prev.getIndex()] = heB0next.getIndex();
+    // do not need to do vB.halfedge
+    heFaceArr[heA1.getIndex()] = fC.getIndex();
+    if (!vC.isBoundary()) {
+      vHalfedgeArr[vC.getIndex()] = heC0.getIndex();
+    }
+    fHalfedgeArr[fC.getIndex()] = heC0.getIndex();
+    fHalfedgeArr[fB.getIndex()] = heB0next.getIndex();
+
+    // Actually delete
+    deleteEdgeBundle(e);
+    deleteEdgeBundle(heA2.edge());
+    deleteElement(vA);
+    deleteElement(fA);
+
+    return vB;
+  }
+
+  else {
+    Halfedge heA0 = e.halfedge();
+    if (heA0.vertex().isBoundary() && heA0.twin().vertex().isBoundary()) {
+      return Vertex();
+    }
+    if (heA0.vertex().isBoundary()) {
+      heA0 = heA0.twin();
+    }
+
+    // check if edge is part of a 'pinch' triangle
+    for (Halfedge he1 : heA0.tipVertex().outgoingHalfedges()) {
+      for (Halfedge he2 : he1.tipVertex().outgoingHalfedges()) {
+        if (!(heA0.next() == he1 && he1.next() == he2) &&
+            !(he1.twin().next().twin() == heA0 && he2.twin().next().twin() == he1)) { // not just going around a face
+          if (he2.tipVertex() == heA0.vertex()) {
+            // std::cerr<<heA0<<" "<<he1<<" "<<he2<<"\n";
+            return Vertex();
+          }
+        }
+      }
+    }
+
+    if (heA0.vertex().degree() > 3) {
+      Halfedge heA1 = heA0.next();
+      Halfedge heA2 = heA1.next();
+      Halfedge heB0 = heA0.twin();
+      Halfedge heB1 = heB0.next();
+      Halfedge heB2 = heB1.next();
+      Halfedge heC2 = heA2.twin();
+      Halfedge heC0 = heC2.next();
+      Halfedge heC1 = heC0.next();
+      Halfedge heD1 = heB1.twin();
+      Halfedge heD2 = heD1.next();
+      Halfedge heD0 = heD2.next();
+
+      Face fA = heA0.face();
+      Face fB = heB0.face();
+      Face fC = heC0.face();
+      Face fD = heD0.face();
+
+      Vertex vA = heA0.vertex();
+      Vertex vB = heB0.vertex();
+      Vertex vC = heC0.vertex();
+      Vertex vD = heD1.vertex();
+
+      // Reassign connections
+      std::vector<Halfedge> toReassignVertex;
+      for (Halfedge he : vA.outgoingHalfedges()) {
+        toReassignVertex.push_back(he);
+      }
+      for (Halfedge he : toReassignVertex) {
+        heVertexArr[he.getIndex()] = vB.getIndex();
+      }
+
+      heNextArr[heD0.getIndex()] = heB2.getIndex();
+      heNextArr[heB2.getIndex()] = heD2.getIndex();
+      heNextArr[heC1.getIndex()] = heA1.getIndex();
+      heNextArr[heA1.getIndex()] = heC0.getIndex();
+      heFaceArr[heB2.getIndex()] = fD.getIndex();
+      heFaceArr[heA1.getIndex()] = fC.getIndex();
+      fHalfedgeArr[fC.getIndex()] = heC0.getIndex();
+      fHalfedgeArr[fD.getIndex()] = heD0.getIndex();
+      // boundary vertex already safe with boundary edge
+      if (!vB.isBoundary()) {
+        vHalfedgeArr[vB.getIndex()] = heA1.getIndex();
+      }
+      if (!vC.isBoundary()) {
+        vHalfedgeArr[vC.getIndex()] = heC0.getIndex();
+      }
+      if (!vD.isBoundary()) {
+        vHalfedgeArr[vD.getIndex()] = heB2.getIndex();
+      }
+
+      // Actually delete
+      deleteEdgeBundle(e);
+      deleteEdgeBundle(heB1.edge());
+      deleteEdgeBundle(heA2.edge());
+      deleteElement(vA);
+      deleteElement(fA);
+      deleteElement(fB);
+
+      return vB;
+    }
+
+    else if (heA0.vertex().degree() == 3) {
+      Halfedge heA1 = heA0.next();
+      Halfedge heA2 = heA1.next();
+      Halfedge heB0 = heA0.twin();
+      Halfedge heB1 = heB0.next();
+      Halfedge heB2 = heB1.next();
+      Halfedge heC2 = heA2.twin();
+      Halfedge heC0 = heC2.next();
+      Halfedge heC1 = heC0.next();
+
+      Face fA = heA0.face();
+      Face fB = heB0.face();
+      Face fC = heC0.face();
+
+      Vertex vA = heA0.vertex();
+      Vertex vB = heB0.vertex();
+      Vertex vC = heC0.vertex();
+      Vertex vD = heC1.vertex();
+
+      heNextArr[heA1.getIndex()] = heC0.getIndex();
+      heNextArr[heC0.getIndex()] = heB2.getIndex();
+      heNextArr[heB2.getIndex()] = heA1.getIndex();
+      heFaceArr[heB2.getIndex()] = fC.getIndex();
+      heFaceArr[heA1.getIndex()] = fC.getIndex();
+      fHalfedgeArr[fC.getIndex()] = heC0.getIndex();
+      // boundary vertex already safe with boundary edge
+      if (!vB.isBoundary()) {
+        vHalfedgeArr[vB.getIndex()] = heA1.getIndex();
+      }
+      if (!vC.isBoundary()) {
+        vHalfedgeArr[vC.getIndex()] = heC0.getIndex();
+      }
+      if (!vD.isBoundary()) {
+        vHalfedgeArr[vD.getIndex()] = heB2.getIndex();
+      }
+
+      // Actually delete
+      deleteEdgeBundle(e);
+      deleteEdgeBundle(heB1.edge());
+      deleteEdgeBundle(heA2.edge());
+      deleteElement(vA);
+      deleteElement(fA);
+      deleteElement(fB);
+
+      return vB;
+    }
+
+    else {
+      // return heA0.vertex();
+      throw std::runtime_error("Collapsing interior vertices with degree < 3 is not supported.");
     }
   }
-
-  // == Around face B
-  if (onBoundary) {
-    // The case where we're collapsing a boundary halfedge, just need to decrease the degree of the boundary loop
-
-    Halfedge heB0P = heB0.prevOrbitVertex();
-    throw std::runtime_error("not quite implemented");
-
-  } else {
-    // The normal case where we're not collapsing a boundary halfedge, similar to what we did at face A
-
-    // Handle halfedge connections around heB2
-    heNextArr[heB2TPrev.getIndex()] = heB1.getIndex();
-    heNextArr[heB1.getIndex()] = heNextArr[heB2T.getIndex()];
-    heVertexArr[heB1.getIndex()] = heVertexArr[heB2T.getIndex()];
-    heFaceArr[heB1.getIndex()] = heFaceArr[heB2T.getIndex()];
-
-    // Vertex connections
-    // Don't need to update this vertex, since heB2T.vertex() is about to be deleted
-    // if (heB2T.vertex().halfedge() == heB2T) {
-    // vHalfedgeArr[heB2T.vertex().getIndex()] = heB1.getIndex();
-    //}
-
-    // Face connections
-    if (heB2T.face().halfedge() == heB2T) {
-      fHalfedgeArr[heB2T.face().getIndex()] = heB1.getIndex();
-    }
-  }
-
-  // Make sure we set the "new" vertex to have an acceptable boundary halfedge if we pulled it on to the boundary
-  if (vBOnBoundary) {
-    ensureVertexHasBoundaryHalfedge(vA);
-  }
-
-  // === Delete the actual elements
-
-  deleteEdgeBundle(heA0.edge());
-  deleteEdgeBundle(heA1.edge());
-  deleteElement(vB);
-  deleteElement(fA);
-  if (onBoundary) {
-    deleteElement(fB);
-    deleteEdgeBundle(heB2.edge());
-  }
-
 
   modificationTick++;
-  return vA;
 }
+
+
 
 bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
 
@@ -1382,7 +1474,7 @@ bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
 
 Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
   if (v.isBoundary()) {
-    throw std::runtime_error("removeVertex() not implemented for boundary vertices");
+    throw std::runtime_error("not implemented");
   }
 
   // Halfedges/edges/faces that will be removed
@@ -1398,11 +1490,6 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
       return Face();
     }
     ringHalfedges.push_back(oppHe);
-
-    // Must be triangular to be removable
-    if (oppHe.next().next() != he) {
-      throw std::runtime_error("removeVertex() requires that all incident faces are triangular");
-    }
   }
 
   Face keepFace = toRemove[0].face();
@@ -1613,7 +1700,7 @@ std::vector<Face> ManifoldSurfaceMesh::triangulate(Face f) {
   Halfedge connectHe = f.halfedge();
   for (size_t i = 2; i + 1 < neighHalfedges.size(); i++) {
     connectHe = connectVertices(connectHe, neighHalfedges[i]);
-    allFaces.emplace_back(connectHe.twin().face());
+    allFaces.emplace_back(neighHalfedges[i].face());
   }
 
   modificationTick++;
