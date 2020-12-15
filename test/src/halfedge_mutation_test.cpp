@@ -369,6 +369,43 @@ TEST_F(HalfedgeMutationSuite, RemoveVertexAndCompress) {
   }
 }
 
+
+TEST_F(HalfedgeMutationSuite, CollapseEdge) {
+
+  for (const MeshAsset& a : {getAsset("bob_small.ply", true)}) {
+    a.printThyName();
+
+    a.manifoldMesh->validateConnectivity();
+
+    // Collapse an edge
+    a.manifoldMesh->collapseEdgeTriangular(a.manifoldMesh->edge(7));
+    a.manifoldMesh->validateConnectivity();
+
+    a.manifoldMesh->compress();
+    a.manifoldMesh->validateConnectivity();
+  }
+}
+
+
+TEST_F(HalfedgeMutationSuite, CollapseEdgeBoundary) {
+
+  for (const MeshAsset& a : {getAsset("lego.ply", true)}) {
+    a.printThyName();
+
+    a.manifoldMesh->validateConnectivity();
+
+    Edge boundaryEdge = a.manifoldMesh->edge(163);
+    ASSERT_TRUE(boundaryEdge.isBoundary());
+
+    // Collapse an edge
+    a.manifoldMesh->collapseEdgeTriangular(boundaryEdge);
+    a.manifoldMesh->validateConnectivity();
+
+    a.manifoldMesh->compress();
+    a.manifoldMesh->validateConnectivity();
+  }
+}
+
 // =====================================================
 // ========= Container tests
 // =====================================================
@@ -617,7 +654,7 @@ TEST_F(HalfedgeMutationSuite, ContainerCompressAll) {
         EXPECT_EQ(values_face[f], 7);
       }
     };
-    auto checkBoundaryLoop= [&]() {
+    auto checkBoundaryLoop = [&]() {
       EXPECT_EQ(values_bl.size(), a.manifoldMesh->nBoundaryLoops());
       for (BoundaryLoop bl : a.manifoldMesh->boundaryLoops()) {
         EXPECT_EQ(values_bl[bl], 7);
