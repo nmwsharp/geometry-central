@@ -14,7 +14,7 @@ Note that aggressive use of these routines may reduce a mesh from a _simplicial 
 
 These routines modify a mesh, but do not require inserting or deleting elements.
 
-??? func "`#!cpp bool SurfaceMesh::flip(Edge e, bool preventSelfEdges = false)`"
+??? func "`#!cpp bool SurfaceMesh::flip(Edge e, bool preventSelfEdges = true)`"
 
     Flip an edge by rotating counter-clockwise.
 
