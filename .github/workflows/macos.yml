@@ -1,0 +1,25 @@
+name: build_and_test_linux
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    if: "! contains(toJSON(github.event.commits.*.message), '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
+
+    - name: configure
+      run: cd test && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+    - name: build
+      run: cd test/build && make
+
+    - name: run test
+      run: cd test/build && ./bin/geometry-central-test
