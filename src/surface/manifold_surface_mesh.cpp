@@ -507,10 +507,6 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<size_t>& heNextArr_, 
   for (Halfedge he : interiorHalfedges()) {
     nInteriorHalfedgesCount++;
   }
-
-
-  // TODO FIXME
-  validateConnectivity();
 }
 
 ManifoldSurfaceMesh::~ManifoldSurfaceMesh() {}
