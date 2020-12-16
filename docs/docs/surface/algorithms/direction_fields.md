@@ -18,6 +18,8 @@ Example
 ```cpp
 #include "geometrycentral/surface/direction_fields.h"
 #include "geometrycentral/surface/meshio.h"
+using namespace geometrycentral;
+using namespace surface;
 
 // Load a mesh
 std::unique_ptr<HalfedgeMesh> mesh;
