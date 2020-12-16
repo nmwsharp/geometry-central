@@ -1,0 +1,25 @@
+name: windows
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    if: "! contains(toJSON(github.event.commits.*.message), '[ci skip]')"
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: true
+
+    - name: configure
+      run: cd test && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+    - name: build
+      run: cd test/build && cmake --build "."
+
+    - name: run test
+      run: cd test/build && ./bin/Debug/geometry-central-test.exe
