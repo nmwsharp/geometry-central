@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [ master ]
 
-git:
-  submodules: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
