@@ -74,9 +74,13 @@ public:
   EdgeData<std::vector<SurfacePoint>> traceEdges();
   std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
 
-  // Given data defined on the intrinsic triangulation, samples it at the vertices of the input triangulation
+  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic triangulation
   template <typename T>
-  VertexData<T> sampleAtInput(const VertexData<T>& dataOnIntrinsic);
+  VertexData<T> sampleFromInput(const VertexData<T>& dataOnInput);
+  
+  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input triangulation
+  template <typename T>
+  VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
 
   // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
   bool isDelaunay();
