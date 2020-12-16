@@ -12,7 +12,7 @@ Note that aggressive use of these routines may reduce a mesh from a _simplicial 
 
 ### Compressed mode
 
-Internally, the halfedge mesh is represented by dense arrays of indices which are lazily expanded (see [interals](internals.md) for details). To support fast deletion operations, we simply mark elements as deleted, without re-packing the index space. We say that the mesh is _compressed_ if the index space is dense and there are no such marked elements. When a mesh is not compressed, the `index` of a mesh element no longer serves as a proper enumeration from `[0,N)`, but merely as a unique ID.
+Internally, the halfedge mesh is represented by dense arrays of indices which are lazily expanded (see [interals](internals.md) for details). To support fast deletion operations, we simply mark elements as deleted, without re-packing the index space. We say that the mesh is _compressed_ if the index space is dense, with no such marked elements. When a mesh is not compressed, the `index` of a mesh element no longer serves as a proper enumeration from `[0,N)`, but merely as a unique ID.
 
 There are two consequences to being non-compressed:
 
@@ -20,7 +20,7 @@ There are two consequences to being non-compressed:
   - Storage space is wasted by deleted elements.
 
 
-All meshes are compressed after construction, and only become non-compressed if the user performs a deletion operation. The `compress()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
+All meshes are compressed after construction, and only become non-compressed if the user performs an insertion or deletion operation. The `compress()` function can be called to re-index the elements of the mesh as a proper enumeration from `[0,N)`.
 
 The `compress()` function invalidates pointers, and incurs an update of existing containers. As such, it is recommended to be called sporadically, after a sequence of operations is completed.
 
