@@ -2,6 +2,10 @@
 
 Geometry-central is a modern C++ library of data structures and algorithms for geometry processing, with a particular focus on surface meshes.
 
+[![actions status linux](https://github.com/nmwsharp/geometry-central/workflows/linux/badge.svg)](https://github.com/nmwsharp/geometry-central/actions)
+[![actions status macOS](https://github.com/nmwsharp/geometry-central/workflows/macOS/badge.svg)](https://github.com/nmwsharp/geometry-central/actions)
+[![actions status windows](https://github.com/nmwsharp/geometry-central/workflows/windows/badge.svg)](https://github.com/nmwsharp/geometry-central/actions)
+
 Features include:
 
 - A polished **surface mesh** class, with efficient support for mesh modification, and a system of containers for associating data with mesh elements.
@@ -33,11 +37,6 @@ for(Vertex v : mesh->vertices()) {
 
 For more, see the [tutorials](/tutorials/load_mesh). To get started with the code, see [building](/build/building). Use the [sample project](https://github.com/nmwsharp/gc-polyscope-project-template/) to get started with a build system and a gui.
 
-<!--**What is geometry-central not?**-->
-
-<!--- **A user interface**. Geometry-central does not include any facilities for user interaction; it is an algorithms and data structures library on which you might build user-facing tools. This philosphy keeps the library lightweight, and avoids dependencies on rendering and windowing systems. For a UI that interoperates well with geometry-central, see [Polyscope](https://polyscope.run).-->
-<!--- **A research code dump**. Geometry-central was built by researchers, and is used to prototype research projects. However, we strive to ensure that this library contains only polished & tested, broadly useful algorithms.-->
-
 
 **Related alternatives:** 
 [CGAL](https://www.cgal.org/),
@@ -54,7 +53,9 @@ Geometry-central is developed by [Nicholas Sharp](http://nmwsharp.com), with man
 [Keenan Crane](http://keenan.is/here), 
 [Yousuf Soliman](http://www.its.caltech.edu/~ysoliman/),
 [Mark Gillespie](http://markjgillespie.com/),
-[Rohan Sawhney](http://rohansawhney.io/), and many others.
+[Rohan Sawhney](http://rohansawhney.io/), 
+[Chris Yu](https://www.cs.cmu.edu/~christoy/),
+and many others.
 
 If geometry-central contributes to an academic publication, cite it as:
 ```bib
