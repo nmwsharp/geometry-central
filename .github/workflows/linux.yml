@@ -1,4 +1,4 @@
-name: build_and_test_linux
+name: linux
 
 on:
   push:
