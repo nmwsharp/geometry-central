@@ -3,6 +3,10 @@
 
 # Welcome to Geometry Central
 
+[![actions status linux](https://github.com/nmwsharp/geometry-central/workflows/linux/badge.svg)](https://github.com/nwmsharp/geometry-central/actions)
+[![actions status macOS](https://github.com/nmwsharp/geometry-central/workflows/macOS/badge.svg)](https://github.com/nwmsharp/geometry-central/actions)
+[![actions status windows](https://github.com/nmwsharp/geometry-central/workflows/windows/badge.svg)](https://github.com/nwmsharp/geometry-central/actions)
+
 Geometry-central is a modern C++ library of data structures and algorithms for geometry processing, with a particular focus on surface meshes.
 
 Features include:
