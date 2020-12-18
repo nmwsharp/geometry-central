@@ -40,6 +40,7 @@ SET(SRCS
   surface/intrinsic_mollification.cpp
   surface/tufted_laplacian.cpp
   surface/flip_geodesics.cpp
+  surface/mutation_manager.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   
