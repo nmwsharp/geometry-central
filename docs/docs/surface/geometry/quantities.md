@@ -429,8 +429,8 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     Only valid on triangular meshes.
 
-    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::laplacian`
-    - **require:** `void IntrinsicGeometryInterface::requireLaplacian()`
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::cotanLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireCotanLaplacian()`
 
 ??? func "vertex lumped mass matrix"
 
@@ -471,8 +471,8 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     Only valid on triangular meshes.
 
-    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::vertexGalerkinMassMatrix`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexGalerkinMassMatrix()`
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::vertexConnectionLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireVertexConnectionLaplacian()`
 
 ??? func "DEC operators"
 
