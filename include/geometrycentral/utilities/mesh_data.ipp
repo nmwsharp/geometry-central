@@ -3,7 +3,6 @@
 // === Implementations for datatypes which hold data stored on the mesh
 
 namespace geometrycentral {
-namespace surface {
 
 // === Actual function implementations
 
@@ -299,5 +298,4 @@ void checkMeshValid(const MeshData<E, T>& val) {
   GC_SAFETY_ASSERT(val.getMesh() != nullptr, "argument must be initialized");
 }
 
-} // namespace surface
 } // namespace geometrycentral

@@ -42,6 +42,8 @@ SET(SRCS
   surface/flip_geodesics.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
+  
+  pointcloud/point_cloud.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp

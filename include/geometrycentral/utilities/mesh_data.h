@@ -12,7 +12,6 @@
 // === Datatypes which hold data stored on the mesh
 
 namespace geometrycentral {
-namespace surface {
 
 
 // Geneneric datatype, specialized as VertexData (etc) below
@@ -200,7 +199,6 @@ GC_INTERNAL_MESHDATA_BINARY_BASIC(||)
 #undef GC_INTERNAL_MESHDATA_BINARY_BASIC
 #undef GC_INTERNAL_MESHDATA_BINARY_EQUALS_ASSIGN
 
-} // namespace surface
 } // namespace geometrycentral
 
 #include "geometrycentral/utilities/mesh_data.ipp"
