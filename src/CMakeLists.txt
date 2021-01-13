@@ -44,6 +44,8 @@ SET(SRCS
   #surface/mesh_ray_tracer.cpp
   
   pointcloud/point_cloud.cpp
+  pointcloud/geometry3D.cpp
+  pointcloud/sample_cloud.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp
