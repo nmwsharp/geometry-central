@@ -55,6 +55,9 @@ struct SurfacePoint {
   // Return the nearest vertex to this surface point
   inline Vertex nearestVertex() const;
 
+  // Return the equivalent surface point in the 'reduced' form (can be seen as the inverse of inSomeFace).
+  // An edge point may be reduced to a vertex point, and a face point may be reduced to an edge point or a vertex point.
+  inline SurfacePoint reduced() const;
 
   // Linearly interpolate data at vertices to this point.
   // T must support addition and multiplication by a double.
