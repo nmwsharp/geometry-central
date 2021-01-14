@@ -13,7 +13,7 @@ inline size_t PointCloud::nPoints() const { return nPointsCount; }
 inline size_t PointCloud::nPointsCapacity() const { return nPointsCapacityCount; }
 
 // Detect dead elements
-inline bool PointCloud::pointIsDead(size_t iP) const { return pointValid[iP]; }
+inline bool PointCloud::pointIsDead(size_t iP) const { return !pointValid[iP]; }
 
 // Methods for iterating over mesh elements w/ range-based for loops ===========
 inline PointSet PointCloud::points() { return PointSet(this, 0, nPointsFillCount); }

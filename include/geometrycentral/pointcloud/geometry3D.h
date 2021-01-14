@@ -1,6 +1,6 @@
 #pragma once
 
-
+#include "geometrycentral/pointcloud/neighborhoods.h"
 #include "geometrycentral/pointcloud/point_cloud.h"
 #include "geometrycentral/utilities/dependent_quantity.h"
 #include "geometrycentral/utilities/vector2.h"
@@ -13,6 +13,7 @@ class Geometry3D {
 public:
   // Data
   Geometry3D(PointCloud& mesh);
+  virtual ~Geometry3D();
 
   // == Members
   PointCloud& cloud;
@@ -45,11 +46,32 @@ public:
 
   // === Quantities
 
+  // TODO switch all the neighborhood stuff to a flat representation w/ containers rather than ested vectors
+
   // Point indices
   PointData<size_t> pointIndices;
   void requirePointIndices();
   void unrequirePointIndices();
 
+  // Neighbors (fixed size for now, according to kNeighborSize)
+  std::unique_ptr<Neighborhoods> neighbors;
+  void requireNeighbors();
+  void unrequireNeighbors();
+
+  // Normals
+  PointData<Vector3> normals;
+  void requireNormals();
+  void unrequireNormals();
+  
+  // Tangent basis
+  PointData<std::array<Vector3,2>> tangentBasis;
+  void requireTangentBasis();
+  void unrequireTangentBasis();
+
+  // Neighborhood tangent coordinates
+  PointData<std::vector<Vector2>> tangentCoordinates;
+  void requireTangentCoordinates();
+  void unrequireTangentCoordinates();
 
 protected:
   // All of the quantities available (subclasses will also add quantities to this list)
@@ -61,6 +83,18 @@ protected:
 
   DependentQuantityD<PointData<size_t>> pointIndicesQ;
   virtual void computePointIndices();
+  
+  DependentQuantityD<std::unique_ptr<Neighborhoods>> neighborsQ;
+  virtual void computeNeighbors();
+  
+  DependentQuantityD<PointData<Vector3>> normalsQ;
+  virtual void computeNormals();
+  
+  DependentQuantityD<PointData<std::array<Vector3,2>>> tangentBasisQ;
+  virtual void computeTangentBasis();
+  
+  DependentQuantityD<PointData<std::vector<Vector2>>> tangentCoordinatesQ;
+  virtual void computeTangentCoordinates();
 };
 
 

@@ -66,6 +66,12 @@ void clearBuffer(std::array<A*, N>* buffer) {
   }
 }
 
+// any unique_ptr<> type
+template <typename P>
+void clearBuffer(std::unique_ptr<P>* buffer) {
+  buffer->reset();
+}
+
 } // namespace
 
 template <typename D>

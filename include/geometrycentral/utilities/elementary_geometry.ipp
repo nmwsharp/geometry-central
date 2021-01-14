@@ -64,5 +64,20 @@ inline RaySegmentIntersectionResult2D raySegmentIntersection(Vector2 rayStart, V
   return RaySegmentIntersectionResult2D{tRay, tLine};
 }
 
+inline RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 ray1Dir, Vector2 ray2Start,
+                                                     Vector2 ray2Dir) {
+
+  Vector2 v1 = ray1Start - ray2Start;
+  Vector2 v2 = ray2Dir;
+  Vector2 v3{-ray1Dir.y, ray1Dir.x};
+
+  double cross21 = cross(v2, v1);
+  double tRay1 = cross21 / dot(v2, v3);
+  double tRay2 = dot(v1, v3) / dot(v2, v3);
+
+  return RayRayIntersectionResult2D{tRay1, tRay2};
+}
+
+
 
 } // namespace geometrycentral

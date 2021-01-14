@@ -45,7 +45,9 @@ SET(SRCS
   
   pointcloud/point_cloud.cpp
   pointcloud/geometry3D.cpp
+  pointcloud/neighborhoods.cpp
   pointcloud/sample_cloud.cpp
+  pointcloud/local_triangulation.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp
@@ -59,6 +61,7 @@ SET(SRCS
   utilities/quaternion.cpp
   utilities/disjoint_sets.cpp
   utilities/knn.cpp
+  utilities/elementary_geometry.cpp
 )
 
 SET(INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../include/geometrycentral/")
@@ -135,6 +138,8 @@ add_library(geometry-central ${SRCS} ${HEADERS})
 
 # Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+
+target_link_libraries(geometry-central PUBLIC polyscope)
 
 # Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
 target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})

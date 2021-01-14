@@ -29,6 +29,7 @@ class PointCloud {
 public:
   // Initialize a point cloud with N points
   PointCloud(size_t nPts);
+  virtual ~PointCloud();
 
   // Number of points
   size_t nPoints() const;

@@ -23,6 +23,8 @@ PointCloud::PointCloud(size_t nPts) {
   isCompressedFlag = true;
 }
 
+PointCloud::~PointCloud() {}
+
 
 // ==========================================================
 // ================       Utilities        ==================
