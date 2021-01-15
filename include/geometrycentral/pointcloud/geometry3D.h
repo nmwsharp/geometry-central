@@ -2,6 +2,7 @@
 
 #include "geometrycentral/pointcloud/neighborhoods.h"
 #include "geometrycentral/pointcloud/point_cloud.h"
+#include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/utilities/dependent_quantity.h"
 #include "geometrycentral/utilities/vector2.h"
 #include "geometrycentral/utilities/vector3.h"
@@ -62,9 +63,9 @@ public:
   PointData<Vector3> normals;
   void requireNormals();
   void unrequireNormals();
-  
+
   // Tangent basis
-  PointData<std::array<Vector3,2>> tangentBasis;
+  PointData<std::array<Vector3, 2>> tangentBasis;
   void requireTangentBasis();
   void unrequireTangentBasis();
 
@@ -72,6 +73,38 @@ public:
   PointData<std::vector<Vector2>> tangentCoordinates;
   void requireTangentCoordinates();
   void unrequireTangentCoordinates();
+  
+  // Rotations to align tangent space
+  // tangentTransport[i][j] holds the rotation which maps a vector in the tangent space of i to that of j.
+  PointData<std::vector<Vector2>> tangentTransport;
+  void requireTangentTransport();
+  void unrequireTangentTransport();
+
+  // Tufted IDT triangulation / geometry. The vertices are in correspondence with the (compressed) point cloud.
+  std::unique_ptr<surface::SurfaceMesh> tuftedMesh;
+  std::unique_ptr<surface::EdgeLengthGeometry> tuftedGeom;
+  void requireTuftedTriangulation();
+  void unrequireTuftedTriangulation();
+
+
+  // === Operators / Matrices
+
+  // Laplacian
+  // (uses Tufted Intrinsic Laplacian: Sharp & Crane 2020 @ SGP)
+  Eigen::SparseMatrix<double> laplacian;
+  void requireLaplacian();
+  void unrequireLaplacian();
+
+  // Connection Laplacian
+  // uses Tufted Intrinsic Laplacian as above
+  Eigen::SparseMatrix<std::complex<double>> connectionLaplacian;
+  void requireConnectionLaplacian();
+  void unrequireConnectionLaplacian();
+
+  // Gradient
+  Eigen::SparseMatrix<std::complex<double>> gradient;
+  void requireGradient();
+  void unrequireGradient();
 
 protected:
   // All of the quantities available (subclasses will also add quantities to this list)
@@ -83,18 +116,40 @@ protected:
 
   DependentQuantityD<PointData<size_t>> pointIndicesQ;
   virtual void computePointIndices();
-  
+
   DependentQuantityD<std::unique_ptr<Neighborhoods>> neighborsQ;
   virtual void computeNeighbors();
-  
+
   DependentQuantityD<PointData<Vector3>> normalsQ;
   virtual void computeNormals();
-  
-  DependentQuantityD<PointData<std::array<Vector3,2>>> tangentBasisQ;
+
+  DependentQuantityD<PointData<std::array<Vector3, 2>>> tangentBasisQ;
   virtual void computeTangentBasis();
-  
+
   DependentQuantityD<PointData<std::vector<Vector2>>> tangentCoordinatesQ;
   virtual void computeTangentCoordinates();
+  
+  DependentQuantityD<PointData<std::vector<Vector2>>> tangentTransportQ;
+  virtual void computeTangentTransport();
+
+  std::pair<std::unique_ptr<surface::SurfaceMesh>*, std::unique_ptr<surface::EdgeLengthGeometry>*> tuftedTriPair;
+  DependentQuantityD<std::pair<std::unique_ptr<surface::SurfaceMesh>*, std::unique_ptr<surface::EdgeLengthGeometry>*>>
+      tuftedTriangulationQ;
+  virtual void computeTuftedTriangulation();
+
+  // === Operators / Matrices
+
+  // Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<double>> laplacianQ;
+  virtual void computeLaplacian();
+
+  // Connection Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> connectionLaplacianQ;
+  virtual void computeConnectionLaplacian();
+
+  // Gradient
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> gradientQ;
+  virtual void computeGradient();
 };
 
 

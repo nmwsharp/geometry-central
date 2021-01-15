@@ -17,8 +17,8 @@ PointData<std::vector<std::array<Point, 3>>> buildLocalTriangulations(PointCloud
 PointData<std::vector<std::array<size_t, 3>>>
 handleToInds(PointCloud& cloud, const PointData<std::vector<std::array<Point, 3>>>& handleResult);
 
-std::vector<std::array<size_t, 3>> handleToFlatInds(PointCloud& cloud,
-                                                    const PointData<std::vector<std::array<Point, 3>>>& handleResult);
+std::vector<std::vector<size_t>> handleToFlatInds(PointCloud& cloud,
+                                                  const PointData<std::vector<std::array<Point, 3>>>& handleResult);
 
 
 } // namespace pointcloud

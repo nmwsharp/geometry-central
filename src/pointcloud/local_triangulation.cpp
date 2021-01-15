@@ -222,16 +222,16 @@ handleToInds(PointCloud& cloud, const PointData<std::vector<std::array<Point, 3>
   return result;
 }
 
-std::vector<std::array<size_t, 3>> handleToFlatInds(PointCloud& cloud,
+std::vector<std::vector<size_t>> handleToFlatInds(PointCloud& cloud,
                                                     const PointData<std::vector<std::array<Point, 3>>>& localResult) {
 
   GC_SAFETY_ASSERT(cloud.isCompressed(), "cloud must be compressed");
 
-  std::vector<std::array<size_t, 3>> result;
+  std::vector<std::vector<size_t>> result;
   for (Point p : cloud.points()) {
     size_t nTri = localResult[p].size();
     for (size_t i = 0; i < nTri; i++) {
-      std::array<size_t, 3> tri;
+      std::vector<size_t> tri(3);
       for (size_t j = 0; j < 3; j++) {
         tri[j] = localResult[p][i][j].getIndex();
       }

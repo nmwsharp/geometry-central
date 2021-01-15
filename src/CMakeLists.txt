@@ -48,6 +48,7 @@ SET(SRCS
   pointcloud/neighborhoods.cpp
   pointcloud/sample_cloud.cpp
   pointcloud/local_triangulation.cpp
+  pointcloud/point_cloud_heat_solver.cpp
 
   numerical/linear_algebra_utilities.cpp
   numerical/suitesparse_utilities.cpp
