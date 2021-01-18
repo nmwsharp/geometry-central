@@ -85,7 +85,7 @@ void clearBuffer(std::pair<A, B>* buffer) {
 
 template <typename D>
 void DependentQuantityD<D>::clearIfNotRequired() {
-  if (requireCount <= 0 && dataBuffer != nullptr && computed) {
+  if (clearable && requireCount <= 0 && dataBuffer != nullptr && computed) {
     clearBuffer(dataBuffer);
     computed = false;
   }

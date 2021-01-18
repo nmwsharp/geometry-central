@@ -44,8 +44,9 @@ SET(SRCS
   #surface/mesh_ray_tracer.cpp
   
   pointcloud/point_cloud.cpp
-  pointcloud/geometry3D.cpp
   pointcloud/neighborhoods.cpp
+  pointcloud/point_position_geometry.cpp
+  pointcloud/point_position_normal_geometry.cpp
   pointcloud/sample_cloud.cpp
   pointcloud/local_triangulation.cpp
   pointcloud/point_cloud_heat_solver.cpp

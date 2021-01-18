@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometrycentral/numerical/linear_solvers.h"
-#include "geometrycentral/pointcloud/geometry3D.h"
+#include "geometrycentral/pointcloud/point_position_geometry.h"
 #include "geometrycentral/pointcloud/point_cloud.h"
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/heat_method_distance.h"
@@ -17,7 +17,7 @@ class PointCloudHeatSolver {
 
 public:
   // === Constructor
-  PointCloudHeatSolver(PointCloud& cloud, Geometry3D& geom, double tCoef = 1.0);
+  PointCloudHeatSolver(PointCloud& cloud, PointPositionGeometry& geom, double tCoef = 1.0);
 
   // === Methods
 
@@ -43,10 +43,14 @@ private:
 
   // Input cloud and geometry
   PointCloud& cloud;
-  Geometry3D& geom;
+  PointPositionGeometry& geom;
 
   // Parameters
   double shortTime; // the actual time used for heat flow computed from tCoef
+
+  // Populate solvers lazily as needed
+  void ensureHaveHeatDistanceWorker(); 
+  void ensureHaveVectorHeatSolver(); 
 
   // Lazy strategy: bootstrap off the mesh version of the solver for distance solves on the tufted mesh
   std::unique_ptr<surface::HeatMethodDistanceSolver> heatDistanceWorker;

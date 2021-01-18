@@ -10,11 +10,12 @@
 namespace geometrycentral {
 namespace pointcloud {
 
-class Geometry3D {
+class PointPositionGeometry {
 public:
   // Data
-  Geometry3D(PointCloud& mesh);
-  virtual ~Geometry3D();
+  PointPositionGeometry(PointCloud& mesh, const PointData<Vector3>& positions);
+  PointPositionGeometry(PointCloud& mesh); // uninitialized positions
+  virtual ~PointPositionGeometry();
 
   // == Members
   PointCloud& cloud;
@@ -30,14 +31,14 @@ public:
   void purgeQuantities();
 
   // Construct a geometry object on another point cloud identical to this one
-  std::unique_ptr<Geometry3D> reinterpretTo(PointCloud& targetCloud);
+  std::unique_ptr<PointPositionGeometry> reinterpretTo(PointCloud& targetCloud);
 
   // Hide copy and move constructors; users are more likely to use them accidentally than intentionally.
   // See the explicit copy() function in derived classes.
-  Geometry3D(const Geometry3D& other) = delete;
-  Geometry3D& operator=(const Geometry3D& other) = delete;
-  Geometry3D(Geometry3D&& other) = delete;
-  Geometry3D& operator=(Geometry3D&& other) = delete;
+  PointPositionGeometry(const PointPositionGeometry& other) = delete;
+  PointPositionGeometry& operator=(const PointPositionGeometry& other) = delete;
+  PointPositionGeometry(PointPositionGeometry&& other) = delete;
+  PointPositionGeometry& operator=(PointPositionGeometry&& other) = delete;
 
 
   // Essential data
@@ -73,7 +74,7 @@ public:
   PointData<std::vector<Vector2>> tangentCoordinates;
   void requireTangentCoordinates();
   void unrequireTangentCoordinates();
-  
+
   // Rotations to align tangent space
   // tangentTransport[i][j] holds the rotation which maps a vector in the tangent space of i to that of j.
   PointData<std::vector<Vector2>> tangentTransport;
@@ -128,7 +129,7 @@ protected:
 
   DependentQuantityD<PointData<std::vector<Vector2>>> tangentCoordinatesQ;
   virtual void computeTangentCoordinates();
-  
+
   DependentQuantityD<PointData<std::vector<Vector2>>> tangentTransportQ;
   virtual void computeTangentTransport();
 
@@ -150,6 +151,13 @@ protected:
   // Gradient
   DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> gradientQ;
   virtual void computeGradient();
+
+
+  // === Helpers
+
+  // Compute the rotation such that v_source * r = v_target in the respective tangent bases. Requires normals and
+  // tangent bases have been computed.
+  Vector2 transportBetween(Point pSource, Point pTarget);
 };
 
 

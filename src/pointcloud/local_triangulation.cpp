@@ -7,7 +7,7 @@
 namespace geometrycentral {
 namespace pointcloud {
 
-PointData<std::vector<std::array<Point, 3>>> buildLocalTriangulations(PointCloud& cloud, Geometry3D& geom,
+PointData<std::vector<std::array<Point, 3>>> buildLocalTriangulations(PointCloud& cloud, PointPositionGeometry& geom,
                                                                       bool withDegeneracyHeuristic) {
 
 

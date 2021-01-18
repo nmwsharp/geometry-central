@@ -25,6 +25,7 @@ public:
   std::function<void()> evaluateFunc;
   bool computed = false;
   int requireCount = 0;
+  bool clearable = true; // if false, clearing does nothing
 
   // Compute the quantity, if we don't have it already
   void ensureHave();

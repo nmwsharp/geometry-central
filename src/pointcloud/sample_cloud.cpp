@@ -10,8 +10,7 @@ using surface::SurfacePoint;
 
 namespace pointcloud {
 
-
-std::tuple<std::unique_ptr<PointCloud>, std::unique_ptr<Geometry3D>, PointData<SurfacePoint>>
+std::tuple<std::unique_ptr<PointCloud>, PointData<Vector3>, PointData<SurfacePoint>>
 uniformlySamplePointsOnSurface(surface::SurfaceMesh& mesh, surface::EmbeddedGeometryInterface& geom, size_t nPts) {
 
 
@@ -41,7 +40,7 @@ uniformlySamplePointsOnSurface(surface::SurfaceMesh& mesh, surface::EmbeddedGeom
 
   // Store results here
   std::unique_ptr<PointCloud> cloud(new PointCloud(nPts));
-  std::unique_ptr<Geometry3D> cloudGeom(new Geometry3D(*cloud));
+  PointData<Vector3> pos(*cloud);
   PointData<SurfacePoint> cloudSources(*cloud);
 
   // Sample
@@ -60,7 +59,7 @@ uniformlySamplePointsOnSurface(surface::SurfaceMesh& mesh, surface::EmbeddedGeom
     // Interpolate to get the position of the sampled point
     Vector3 newPos = surfP.interpolate(geom.vertexPositions);
 
-    cloudGeom->positions[p] = newPos;
+    pos[p] = newPos;
     cloudSources[p] = surfP;
   }
 
@@ -68,7 +67,7 @@ uniformlySamplePointsOnSurface(surface::SurfaceMesh& mesh, surface::EmbeddedGeom
   geom.unrequireVertexPositions();
   geom.unrequireFaceAreas();
 
-  return std::make_tuple(std::move(cloud), std::move(cloudGeom), cloudSources);
+  return std::make_tuple(std::move(cloud), pos, cloudSources);
 }
 
 
