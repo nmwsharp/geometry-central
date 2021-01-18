@@ -130,7 +130,7 @@ auto FlattenedEigenMap(MeshData<E, O>& vec) -> EigenVectorMap_T<T, 1, Eigen::Col
  * @return ConstEigenVectorMap_T<T, k, Options, Alignment>    Eigen map object to the buffer
  */
 template <typename T, std::size_t k, typename E, typename O>
-auto FlattenedEigenMap(const surface::MeshData<E, O>& vec)
+auto FlattenedEigenMap(const MeshData<E, O>& vec)
     -> ConstEigenVectorMap_T<T, 1, Eigen::ColMajor, EigenTraits<E, O>::Alignment> {
   using Return_T = ConstEigenVectorMap_T<T, 1, Eigen::ColMajor, EigenTraits<E, O>::Alignment>;
   static_assert(std::is_standard_layout<T>::value && std::is_trivially_copyable<O>::value, "O must be a POD type.");
