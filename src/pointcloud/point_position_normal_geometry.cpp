@@ -4,9 +4,9 @@ namespace geometrycentral {
 namespace pointcloud {
 
 
-PointPositionNormalGeometry::PointPositionNormalGeometry(PointCloud& mesh, const PointData<Vector3>& positions_,
+PointPositionNormalGeometry::PointPositionNormalGeometry(PointCloud& cloud, const PointData<Vector3>& positions_,
                                                          const PointData<Vector3>& normals_)
-    : PointPositionGeometry(mesh, positions_) {
+    : PointPositionGeometry(cloud, positions_) {
   normals = normals_;
   normalsQ.clearable = false;
 }
