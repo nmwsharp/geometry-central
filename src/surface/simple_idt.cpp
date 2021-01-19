@@ -118,7 +118,9 @@ size_t flipToDelaunay(SurfaceMesh& mesh, EdgeData<double>& edgeLengths, FlipType
 
   auto flipEdgeIfNotDelaunay = [&](Edge e) {
     // Can't flip
-    if (e.isBoundary()) return false;
+    //if (e.isBoundary()) return false;
+    if (e.isBoundary()) throw std::runtime_error("boundary");
+    if (!e.isManifold()) throw std::runtime_error("nonmanifold");
 
     // Don't want to flip
     if (!shouldFlipEdge(e)) return false;
@@ -134,7 +136,7 @@ size_t flipToDelaunay(SurfaceMesh& mesh, EdgeData<double>& edgeLengths, FlipType
     }
 
     // Combinatorial flip
-    bool flipped = mesh.flip(e);
+    bool flipped = mesh.flip(e, false);
 
     // Should always be possible, something unusual is going on if we end up here
     if (!flipped) {
