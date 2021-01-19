@@ -24,6 +24,9 @@ PointPositionFrameGeometry::PointPositionFrameGeometry(PointCloud& cloud, const 
 void PointPositionFrameGeometry::computeNormals() {
   // do nothing; already populated
 }
+void PointPositionFrameGeometry::computeTangentBasis() {
+  // do nothing; already populated
+}
 
 } // namespace pointcloud
 } // namespace geometrycentral

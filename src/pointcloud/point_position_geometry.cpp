@@ -185,7 +185,6 @@ void PointPositionGeometry::computeTuftedTriangulation() {
   // Build the cover
   buildIntrinsicTuftedCover(*tuftedMesh, tuftedEdgeLengths);
 
-  // Flip to delaunay
   flipToDelaunay(*tuftedMesh, tuftedEdgeLengths);
 
   // Create the geometry object
@@ -247,7 +246,49 @@ void PointPositionGeometry::unrequireConnectionLaplacian() { connectionLaplacian
 
 
 // Gradient
-void PointPositionGeometry::computeGradient() {}
+void PointPositionGeometry::computeGradient() {
+  pointIndicesQ.ensureHave();
+  neighborsQ.ensureHave();
+  tangentCoordinatesQ.ensureHave();
+
+  using namespace Eigen;
+
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+
+  for (Point p : cloud.points()) {
+    size_t iPt = pointIndices[p];
+
+    std::vector<Point>& neigh = neighbors->neighbors[p];
+
+    // Build a local linear system describing the gradient
+    size_t nNeigh = neigh.size();
+    MatrixXd lhsMat = MatrixXd::Zero(nNeigh, 2);
+    MatrixXd rhsMat = MatrixXd::Zero(nNeigh, nNeigh + 1);
+
+    for (size_t iN = 0; iN < nNeigh; iN++) {
+      rhsMat(iN, 0) = -1.;
+      rhsMat(iN, iN + 1) = 1.;
+
+      lhsMat(iN, 0) = tangentCoordinates[p][iN].x;
+      lhsMat(iN, 1) = tangentCoordinates[p][iN].y;
+    }
+
+    // Solve
+    MatrixXd gradMat = lhsMat.colPivHouseholderQr().solve(rhsMat);
+
+    // Copy coefficients in to global mat
+    triplets.emplace_back(iPt, iPt, std::complex<double>{gradMat(0, 0), gradMat(1, 0)});
+    for (size_t iN = 0; iN < nNeigh; iN++) {
+      Point n = neigh[iN];
+      size_t nInd = pointIndices[n];
+      triplets.emplace_back(iPt, nInd, std::complex<double>{gradMat(0, iN + 1), gradMat(1, iN + 1)});
+    }
+  }
+
+  // Build the matrix
+  gradient = SparseMatrix<std::complex<double>>(cloud.nPoints(), cloud.nPoints());
+  gradient.setFromTriplets(triplets.begin(), triplets.end());
+}
 void PointPositionGeometry::requireGradient() { gradientQ.require(); }
 void PointPositionGeometry::unrequireGradient() { gradientQ.unrequire(); }
 
@@ -258,7 +299,7 @@ Vector2 PointPositionGeometry::transportBetween(Point pSource, Point pTarget) {
 
   Vector3 sourceN = normals[pSource];
   Vector3 sourceBasisX = tangentBasis[pSource][0];
-  //Vector3 sourceBasisY = tangentBasis[pSource][1];
+  // Vector3 sourceBasisY = tangentBasis[pSource][1];
   Vector3 targetN = normals[pTarget];
   Vector3 targetBasisX = tangentBasis[pTarget][0];
   Vector3 targetBasisY = tangentBasis[pTarget][1];
