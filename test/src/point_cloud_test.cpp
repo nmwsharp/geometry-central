@@ -1,5 +1,6 @@
 #include "geometrycentral/pointcloud/point_cloud.h"
 #include "geometrycentral/pointcloud/point_cloud_heat_solver.h"
+#include "geometrycentral/pointcloud/point_cloud_io.h"
 #include "geometrycentral/pointcloud/point_position_frame_geometry.h"
 #include "geometrycentral/pointcloud/point_position_geometry.h"
 #include "geometrycentral/pointcloud/point_position_normal_geometry.h"
@@ -328,9 +329,9 @@ TEST_F(PointCloudSuite, GeometryQuantity_Gradient) {
   PointPositionGeometry geom(*cloud, pos);
 
   geom.requireGradient();
-  
+
   checkFinite(geom.gradient);
- 
+
   // Make sure constant vector is in the kernel
   Vector<std::complex<double>> ones = Vector<std::complex<double>>::Ones(N);
   Vector<std::complex<double>> gradOne = geom.gradient * ones;
@@ -342,3 +343,57 @@ TEST_F(PointCloudSuite, GeometryQuantity_Gradient) {
 // ============================================================
 // =============== Utility tests
 // ============================================================
+
+TEST_F(PointCloudSuite, ReadWrite_ply) {
+  // Make the geometry
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  // Write it out
+  std::string filename = "test_cloud.ply";
+  writePointCloud(*cloud, geom, filename);
+
+  // Read it back in
+  std::unique_ptr<PointCloud> newCloud;
+  std::unique_ptr<PointPositionGeometry> newGeom;
+  std::tie(newCloud, newGeom) = readPointCloud(filename);
+
+  // Make sure we got what we expected
+  ASSERT_EQ(cloud->nPoints(), newCloud->nPoints());
+
+  for (size_t iP = 0; iP < N; iP++) {
+    ASSERT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
+    ASSERT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
+    ASSERT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
+  }
+}
+
+TEST_F(PointCloudSuite, ReadWrite_obj) {
+  // Make the geometry
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  // Write it out
+  std::string filename = "test_cloud.obj";
+  writePointCloud(*cloud, geom, filename);
+
+  // Read it back in
+  std::unique_ptr<PointCloud> newCloud;
+  std::unique_ptr<PointPositionGeometry> newGeom;
+  std::tie(newCloud, newGeom) = readPointCloud(filename);
+
+  // Make sure we got what we expected
+  ASSERT_EQ(cloud->nPoints(), newCloud->nPoints());
+
+  for (size_t iP = 0; iP < N; iP++) {
+    ASSERT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
+    ASSERT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
+    ASSERT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
+  }
+}
