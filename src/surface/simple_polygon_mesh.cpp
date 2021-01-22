@@ -582,6 +582,8 @@ void SimplePolygonMesh::writeMesh(std::ostream& out, std::string type) {
 
 void SimplePolygonMesh::writeMeshObj(std::ostream& out) {
 
+  // Make sure we write out at full precision
+  out << std::setprecision(std::numeric_limits<double>::max_digits10);
 
   // Write header
   out << "# Mesh exported from geometry-central" << std::endl;
