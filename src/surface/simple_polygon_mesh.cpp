@@ -356,7 +356,7 @@ void SimplePolygonMesh::readMeshFromStlFile(std::istream& in) {
   in.read(buffer.data(), 5);
   // Conver to lower case for string comparison
   std::transform(begin(buffer), end(buffer), begin(buffer), 
-    [](unsigned char c)->char {return std::tolower(c);});
+    [](char c)->char {return std::tolower(c);});
   // In both cases, go ahead and rewind the file
   // to the beginning.  We will handle the STL
   // header in each of the specialized read functions.
