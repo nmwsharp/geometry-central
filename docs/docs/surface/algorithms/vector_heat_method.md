@@ -24,7 +24,7 @@ The stateful class `VectorHeatSolver` shares precomputation for all of the routi
 
 ## Scalar Extension
 
-Given scalar data defined at isolated source locations on a surface, extend it to the entire domain. Each point on the domain will take the value of the nearest source point.
+Given scalar data defined at isolated source locations on a surface, extend it to the entire domain. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
 
 ![bean scalar extension](/media/bean_scalar.jpg)
 
@@ -62,8 +62,7 @@ VertexData<double> scalarExtension = vhmSolver->extendScalar(points);
 
 ![bean vector extension](/media/bean_vector.jpg)
 
-Given tangent vectors defined at one or more isolated source locations on a surface, extend transport the vectors across the entire domain according to parallel transport. Each point on the domain will take the value of the nearest source point.
-
+Given tangent vectors defined at one or more isolated source locations on a surface, extend transport the vectors across the entire domain according to parallel transport. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
 
 ??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::transportTangentVectors(Vertex sourceVert, Vector2 sourceVec)`"
     
