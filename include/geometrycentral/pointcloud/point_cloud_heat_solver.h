@@ -1,8 +1,8 @@
 #pragma once
 
 #include "geometrycentral/numerical/linear_solvers.h"
-#include "geometrycentral/pointcloud/point_position_geometry.h"
 #include "geometrycentral/pointcloud/point_cloud.h"
+#include "geometrycentral/pointcloud/point_position_geometry.h"
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/heat_method_distance.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
@@ -21,14 +21,16 @@ public:
 
   // === Methods
 
-  // Solve for distance from a single vertex (or collection of vertices)
+  // Solve for distance from a single vertex (or collection of points)
   PointData<double> computeDistance(const Point& sourcePoint);
   PointData<double> computeDistance(const std::vector<Point>& sourcePoints);
 
-  // Compute parallel transport along shortest geodesics from sources at vertices
-  PointData<Vector2> computeParallelTransport(const Point& sourcePoint, const Vector2& sourceVector);
-  PointData<Vector2> computeParallelTransport(const std::vector<Point>& sourcePoints,
-                                              const std::vector<Vector2>& sourceVectors);
+  // === Scalar Extension
+  PointData<double> extendScalars(const std::vector<std::tuple<Point, double>>& sources);
+
+  // Compute parallel transport along shortest geodesics from sources at points
+  PointData<Vector2> transportTangentVector(const Point& sourcePoint, const Vector2& sourceVector);
+  PointData<Vector2> transportTangentVectors(const std::vector<std::tuple<Point, Vector2>>& sources);
 
   // Compute the logarithmic map from a source point
   PointData<Vector2> computeLogMap(const Point& sourcePoint);
@@ -49,8 +51,8 @@ private:
   double shortTime; // the actual time used for heat flow computed from tCoef
 
   // Populate solvers lazily as needed
-  void ensureHaveHeatDistanceWorker(); 
-  void ensureHaveVectorHeatSolver(); 
+  void ensureHaveHeatDistanceWorker();
+  void ensureHaveVectorHeatSolver();
 
   // Lazy strategy: bootstrap off the mesh version of the solver for distance solves on the tufted mesh
   std::unique_ptr<surface::HeatMethodDistanceSolver> heatDistanceWorker;

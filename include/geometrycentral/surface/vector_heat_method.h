@@ -26,7 +26,6 @@ public:
 
 
   // === Scalar Extension
-
   VertexData<double> extendScalar(const std::vector<std::tuple<Vertex, double>>& sources);
   VertexData<double> extendScalar(const std::vector<std::tuple<SurfacePoint, double>>& sources);
 

@@ -41,7 +41,8 @@ void PointCloudHeatSolver::ensureHaveVectorHeatSolver() {
   geom.requireConnectionLaplacian();
   geom.tuftedGeom->requireVertexLumpedMassMatrix();
 
-  heatDistanceWorker.reset(new surface::HeatMethodDistanceSolver(*geom.tuftedGeom, tCoef));
+  heatDistanceWorker.reset(
+      new surface::HeatMethodDistanceSolver(*geom.tuftedGeom, tCoef, false)); // we already have the tufted IDT
 
   SparseMatrix<std::complex<double>>& Lconn = geom.connectionLaplacian;
   SparseMatrix<double>& massMat = geom.tuftedGeom->vertexLumpedMassMatrix;
@@ -71,26 +72,45 @@ PointData<double> PointCloudHeatSolver::computeDistance(const std::vector<Point>
   return PointData<double>(cloud, heatDistanceWorker->computeDistance(sourceVerts).raw());
 }
 
-// == Parallel transport
+PointData<double> PointCloudHeatSolver::extendScalars(const std::vector<std::tuple<Point, double>>& sources) {
+  ensureHaveHeatDistanceWorker();
 
-PointData<Vector2> PointCloudHeatSolver::computeParallelTransport(const Point& sourcePoint,
-                                                                  const Vector2& sourceVector) {
+  GC_SAFETY_ASSERT(sources.size() != 0, "must have at least one source");
 
-  std::vector<Point> s{sourcePoint};
-  std::vector<Vector2> v{sourceVector};
+  ensureHaveVectorHeatSolver();
 
-  return computeParallelTransport(s, v);
+  size_t N = cloud.nPoints();
+  Vector<double> rhsVals = Vector<double>::Zero(N);
+  Vector<double> rhsOnes = Vector<double>::Zero(N);
+  for (size_t i = 0; i < sources.size(); i++) {
+    size_t ind = std::get<0>(sources[i]).getIndex();
+    double val = std::get<1>(sources[i]);
+    rhsOnes(ind) = 1.;
+    rhsVals(ind) = val;
+  }
+
+  Vector<double> interpVals = heatDistanceWorker->heatSolver->solve(rhsVals);
+  Vector<double> interpOnes = heatDistanceWorker->heatSolver->solve(rhsOnes);
+  Vector<double> resultArr = (interpVals.array() / interpOnes.array());
+
+  PointData<double> result(cloud, resultArr);
+  return result;
 }
 
-PointData<Vector2> PointCloudHeatSolver::computeParallelTransport(const std::vector<Point>& sourcePoints,
-                                                                  const std::vector<Vector2>& sourceVectors) {
+// == Parallel transport
 
-  if (sourcePoints.size() != sourceVectors.size()) {
-    throw std::runtime_error("source points and vectors must be same size");
-  }
-  if (sourcePoints.size() == 0) {
-    throw std::runtime_error("must have at least one source");
-  }
+PointData<Vector2> PointCloudHeatSolver::transportTangentVector(const Point& sourcePoint, const Vector2& sourceVector) {
+
+  // std::vector<Point> s{sourcePoint};
+  // std::vector<Vector2> v{sourceVector};
+
+  return transportTangentVectors({{sourcePoint, sourceVector}});
+}
+
+PointData<Vector2>
+PointCloudHeatSolver::transportTangentVectors(const std::vector<std::tuple<Point, Vector2>>& sources) {
+
+  GC_SAFETY_ASSERT(sources.size() != 0, "must have at least one source");
 
   ensureHaveVectorHeatSolver();
 
@@ -98,14 +118,14 @@ PointData<Vector2> PointCloudHeatSolver::computeParallelTransport(const std::vec
   size_t N = cloud.nPoints();
   Vector<std::complex<double>> dirRHS = Vector<std::complex<double>>::Zero(N);
   bool normsAllSame = true;
-  double firstNorm = sourceVectors[0].norm();
-  for (size_t i = 0; i < sourcePoints.size(); i++) {
-    size_t ind = sourcePoints[i].getIndex();
-    Vector2 vec = sourceVectors[i];
+  double firstNorm = std::get<1>(sources[0]).norm();
+  for (size_t i = 0; i < sources.size(); i++) {
+    size_t ind = std::get<0>(sources[i]).getIndex();
+    Vector2 vec = std::get<1>(sources[i]);
     dirRHS(ind) += std::complex<double>(vec);
 
     // Check if all norms same
-    double thisNorm = sourceVectors[i].norm();
+    double thisNorm = vec.norm();
     if (std::abs(firstNorm - thisNorm) > std::fmax(firstNorm, thisNorm) * 1e-10) {
       normsAllSame = false;
     }
@@ -130,6 +150,12 @@ PointData<Vector2> PointCloudHeatSolver::computeParallelTransport(const std::vec
 
     Vector<double> rhsNorm = Vector<double>::Zero(N);
     Vector<double> rhsOnes = Vector<double>::Zero(N);
+    for (size_t i = 0; i < sources.size(); i++) {
+      size_t ind = std::get<0>(sources[i]).getIndex();
+      Vector2 vec = std::get<1>(sources[i]);
+      rhsOnes(ind) = 1.;
+      rhsNorm(ind) = norm(vec);
+    }
 
     Vector<double> interpNorm = heatDistanceWorker->heatSolver->solve(rhsNorm);
     Vector<double> interpOnes = heatDistanceWorker->heatSolver->solve(rhsOnes);
@@ -149,7 +175,6 @@ PointData<Vector2> PointCloudHeatSolver::computeParallelTransport(const std::vec
 
 // Compute the logarithmic map from a source point
 PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint) {
-
   ensureHaveHeatDistanceWorker();
   ensureHaveVectorHeatSolver();
   geom.requireTangentTransport();

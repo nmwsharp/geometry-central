@@ -303,7 +303,7 @@ TEST_F(PointCloudSuite, GeometryQuantity_Laplacian) {
   checkFinite(geom.laplacian);
   checkSymmetric(geom.laplacian);
 
-  ASSERT_NEAR(geom.laplacian.sum(), 0., 1e-5);
+  EXPECT_NEAR(geom.laplacian.sum(), 0., 1e-5);
 }
 
 TEST_F(PointCloudSuite, GeometryQuantity_ConnectionLaplacian) {
@@ -337,7 +337,112 @@ TEST_F(PointCloudSuite, GeometryQuantity_Gradient) {
   Vector<std::complex<double>> gradOne = geom.gradient * ones;
   double maxMag = gradOne.array().abs().maxCoeff();
 
-  ASSERT_NEAR(maxMag, 0., 1e-5);
+  EXPECT_NEAR(maxMag, 0., 1e-5);
+}
+
+// ============================================================
+// =============== Algorithm tests
+// ============================================================
+
+TEST_F(PointCloudSuite, HeatSolverDistance) {
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  Point pSource = cloud->point(7);
+
+  PointCloudHeatSolver solver(*cloud, geom);
+  PointData<double> dist = solver.computeDistance(pSource);
+  for (Point p : cloud->points()) {
+    EXPECT_TRUE(std::isfinite(dist[p]));
+    EXPECT_GE(dist[p], 0.);
+  }
+  EXPECT_EQ(dist[pSource], 0.);
+}
+
+TEST_F(PointCloudSuite, HeatSolverScalarExtend) {
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  PointCloudHeatSolver solver(*cloud, geom);
+
+  Point pSource1 = cloud->point(7);
+  Point pSource2 = cloud->point(12);
+  Point pSource3 = cloud->point(13);
+  double X1 = 1.;
+  double X2 = -12;
+  double X3 = 8;
+  PointData<double> extend = solver.extendScalars({{pSource1, X1}, {pSource2, X2}, {pSource3, X3}});
+  for (Point p : cloud->points()) {
+    EXPECT_TRUE(std::isfinite(extend[p]));
+    EXPECT_LT(std::fabs(extend[p]), 12. + 1e-3);
+  }
+
+  EXPECT_NEAR(extend[pSource1], X1, 1e-1);
+  EXPECT_NEAR(extend[pSource2], X2, 1e-1);
+  EXPECT_NEAR(extend[pSource3], X3, 1e-1);
+}
+
+TEST_F(PointCloudSuite, HeatSolverTransport) {
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  Point pSource1 = cloud->point(7);
+  Vector2 X1{1., 0};
+
+  PointCloudHeatSolver solver(*cloud, geom);
+
+
+  { // Single source
+    PointData<Vector2> transport = solver.transportTangentVector(pSource1, X1);
+    for (Point p : cloud->points()) {
+      EXPECT_TRUE(isfinite(transport[p]));
+      EXPECT_NEAR(norm(transport[p]), 1., 1e-5);
+    }
+    EXPECT_NEAR(norm(transport[pSource1] - X1), 0., 1e-5);
+  }
+
+  { // Multiple sources
+    Point pSource2 = cloud->point(12);
+    Point pSource3 = cloud->point(13);
+    Vector2 X2{2., 2.};
+    Vector2 X3{0., 4.};
+    PointData<Vector2> transport = solver.transportTangentVectors({{pSource1, X1}, {pSource2, X2}, {pSource3, X3}});
+    for (Point p : cloud->points()) {
+      EXPECT_TRUE(isfinite(transport[p]));
+      EXPECT_GT(norm(transport[p]), 0.);
+      EXPECT_LT(norm(transport[p]), 4. + 1e-3);
+    }
+
+    EXPECT_NEAR(norm(transport[pSource1] - X1), 0., 1e-1);
+    EXPECT_NEAR(norm(transport[pSource2] - X2), 0., 1e-1);
+    EXPECT_NEAR(norm(transport[pSource3] - X3), 0., 1e-1);
+  }
+}
+
+TEST_F(PointCloudSuite, HeatSolverLogmap) {
+  size_t N = 256;
+  std::unique_ptr<PointCloud> cloud;
+  PointData<Vector3> pos;
+  std::tie(cloud, pos) = generateRandomCloud(N);
+  PointPositionGeometry geom(*cloud, pos);
+
+  Point pSource = cloud->point(7);
+
+  PointCloudHeatSolver solver(*cloud, geom);
+  PointData<Vector2> logmap = solver.computeLogMap(pSource);
+  for (Point p : cloud->points()) {
+    EXPECT_TRUE(isfinite(logmap[p]));
+  }
+  EXPECT_EQ(norm(logmap[pSource]), 0.);
 }
 
 // ============================================================
@@ -362,12 +467,12 @@ TEST_F(PointCloudSuite, ReadWrite_ply) {
   std::tie(newCloud, newGeom) = readPointCloud(filename);
 
   // Make sure we got what we expected
-  ASSERT_EQ(cloud->nPoints(), newCloud->nPoints());
+  EXPECT_EQ(cloud->nPoints(), newCloud->nPoints());
 
   for (size_t iP = 0; iP < N; iP++) {
-    ASSERT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
-    ASSERT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
-    ASSERT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
   }
 }
 
@@ -389,11 +494,11 @@ TEST_F(PointCloudSuite, ReadWrite_obj) {
   std::tie(newCloud, newGeom) = readPointCloud(filename);
 
   // Make sure we got what we expected
-  ASSERT_EQ(cloud->nPoints(), newCloud->nPoints());
+  EXPECT_EQ(cloud->nPoints(), newCloud->nPoints());
 
   for (size_t iP = 0; iP < N; iP++) {
-    ASSERT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
-    ASSERT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
-    ASSERT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].x, newGeom->positions[iP].x, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].y, newGeom->positions[iP].y, 1e-8);
+    EXPECT_NEAR(geom.positions[iP].z, newGeom->positions[iP].z, 1e-8);
   }
 }

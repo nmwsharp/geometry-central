@@ -10,10 +10,9 @@ namespace pointcloud {
 class PointPositionFrameGeometry : public PointPositionGeometry {
 
 public:
-
   // Frame input should be {basisX, basisY, normal}, forming an orthonormal right-handed coordinate system.
   PointPositionFrameGeometry(PointCloud& cloud, const PointData<Vector3>& positions,
-                              const PointData<std::array<Vector3, 3>>& frames);
+                             const PointData<std::array<Vector3, 3>>& frames);
 
   // Normals & tangents are stored in the `normals` and `tangentBasis` fields already present in the parent class
 

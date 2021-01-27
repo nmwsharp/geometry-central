@@ -83,7 +83,7 @@ public:
 
   // == Debugging, etc
 
-  // Performs a sanity checks on halfedge structure; throws on fail
+  // Performs a sanity checks on the structure; throws on fail
   void validateConnectivity();
 
 protected:
