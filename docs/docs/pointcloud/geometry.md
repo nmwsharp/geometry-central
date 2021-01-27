@@ -157,7 +157,9 @@ Remember, for each quantity YYY, call `requireYYY()` to ensure it has been compu
 
     A connection Laplace matrix for the point cloud, which is similar to normal scalar Laplacian, but operates on tangent vectors at each point rather than on scalar values. See ["The Vector Heat Method"](https://nmwsharp.com/research/vector-heat-method) for a detailed introduction to connection Laplacians.
 
-    - **member:** `Eigen::SparseMatrix<std::complex<double>> PointPositionGeometry::connectionLaplacian`
+    **Note:** This connection Laplacian includes an orientation flip to handle inconsistent normals. Rather than a complex matrix, it builds a `2N x 2N` expanded real matrix, with sign flips on imaginary elements to conjugate (a necessary trick, because conjugation is not a complex-linear operation). This allows us to apply the connection even when normal orientations are inconsistent.
+
+    - **member:** `Eigen::SparseMatrix<double> PointPositionGeometry::connectionLaplacian`
     - **require:** `void PointPositionGeometry::requireConnectionLaplacian()`
 
 ??? func "gradient"

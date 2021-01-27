@@ -44,14 +44,14 @@ void PointCloudHeatSolver::ensureHaveVectorHeatSolver() {
   heatDistanceWorker.reset(
       new surface::HeatMethodDistanceSolver(*geom.tuftedGeom, tCoef, false)); // we already have the tufted IDT
 
-  SparseMatrix<std::complex<double>>& Lconn = geom.connectionLaplacian;
+  SparseMatrix<double>& Lconn = geom.connectionLaplacian;
   SparseMatrix<double>& massMat = geom.tuftedGeom->vertexLumpedMassMatrix;
 
   // Build the operator
-  SparseMatrix<std::complex<double>> vectorOp = massMat.cast<std::complex<double>>() + shortTime * Lconn;
+  SparseMatrix<double> vectorOp = complexToReal(massMat.cast<std::complex<double>>().eval()) + shortTime * Lconn;
 
   // Note: since tufted Laplacian is always Delaunay, the connection Laplacian is SPD, and we can use Cholesky
-  vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
+  vectorHeatSolver.reset(new PositiveDefiniteSolver<double>(vectorOp));
 
   geom.unrequireConnectionLaplacian();
 }
@@ -133,11 +133,14 @@ PointCloudHeatSolver::transportTangentVectors(const std::vector<std::tuple<Point
 
 
   // Transport
-  Vector<std::complex<double>> dirInterp = vectorHeatSolver->solve(dirRHS);
+  // Result is 2N packed complex
+  Vector<double> dirInterpPacked = vectorHeatSolver->solve(complexToReal(dirRHS));
 
   // Normalize
+  Vector<std::complex<double>> dirInterp = Vector<std::complex<double>>::Zero(N);
   for (size_t i = 0; i < N; i++) {
-    dirInterp(i) = normalizeCutoff(Vector2::fromComplex(dirInterp(i)));
+    Vector2 val{dirInterpPacked(2 * i), dirInterpPacked(2 * i + 1)};
+    dirInterp(i) = normalizeCutoff(val);
   }
 
   // Set scale
@@ -184,6 +187,7 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 
   { // == Get the direction component from transport of outward vectors
 
+    /* Transport angle strategy
     Vector<std::complex<double>> rhsHorizontal = Vector<std::complex<double>>::Zero(N);
     Vector<std::complex<double>> rhsOutward = Vector<std::complex<double>>::Zero(N);
 
@@ -194,16 +198,41 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
       Point neigh = neighbors[iN];
       Vector2 neighOutward = geom.tangentCoordinates[sourcePoint][iN];
       Vector2 outward = geom.tangentTransport[sourcePoint][iN] * neighOutward;
+      if(geom.tangentTransportOrientFlip[sourcePoint][iN]) {
+        outward = outward.conj();
+      }
       rhsOutward[neigh.getIndex()] = outward;
     }
 
     // Transport
-    Vector<std::complex<double>> dirHorizontal = vectorHeatSolver->solve(rhsHorizontal);
-    Vector<std::complex<double>> dirOutward = vectorHeatSolver->solve(rhsOutward);
+    Vector<std::complex<double>> dirHorizontal = realToComplex(vectorHeatSolver->solve(complexToReal(rhsHorizontal)));
+    Vector<std::complex<double>> dirOutward = realToComplex(vectorHeatSolver->solve(complexToReal(rhsOutward)));
 
     // Store directional component of logmap
     for (size_t i = 0; i < N; i++) {
       logmapResult[i] = normalizeCutoff(Vector2::fromComplex(dirOutward(i) / dirHorizontal(i)));
+    }
+    */
+
+    // Unit circle strategy
+    Vector<double> rhsX = Vector<double>::Zero(N);
+    Vector<double> rhsY = Vector<double>::Zero(N);
+
+    std::vector<Point>& neighbors = geom.neighbors->neighbors[sourcePoint];
+    for (size_t iN = 0; iN < neighbors.size(); iN++) {
+      Point neigh = neighbors[iN];
+      Vector2 neighOutward = geom.tangentCoordinates[sourcePoint][iN];
+      rhsX[neigh.getIndex()] = neighOutward.x;
+      rhsY[neigh.getIndex()] = neighOutward.y;
+    }
+
+    // Transport
+    Vector<double> dirX = heatDistanceWorker->heatSolver->solve(rhsX);
+    Vector<double> dirY = heatDistanceWorker->heatSolver->solve(rhsY);
+
+    // Store directional component of logmap
+    for (size_t i = 0; i < N; i++) {
+      logmapResult[i] = normalize(Vector2{dirX(i), dirY(i)});
     }
   }
 

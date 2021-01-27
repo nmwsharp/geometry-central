@@ -95,6 +95,8 @@ Given scalar values defined at isolated points in the cloud, extend it to a scal
 
 Given tangent vectors defined at one or more isolated source locations on a surface, extend transport the vectors across the entire domain according to parallel transport. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
 
+Despite operating on tangent-valued data, these routines work as expected even on a point cloud with inconsistent normal orientations. See [connection Laplacian](/pointcloud/geometry/#connection-laplacian) for more details.
+
 ??? func "`#!cpp PointData<Vector2> PointCloudHeatSolver::transportTangentVector(const Point& sourcePoint, const Vector2& sourceVector)`"
 
     Shorthand for the general version below when there is just one vector.
@@ -112,6 +114,8 @@ Given tangent vectors defined at one or more isolated source locations on a surf
 ## Logarithmic Map
 
 The _logarithmic map_ is a very special 2D local parameterization of a surface about a point, where for each point on the surface the magnitude of the log map gives the geodesic distance from the source, and the polar coordinate of the log map gives the direction at which a geodesic must leave the source to arrive at the point.
+
+Despite operating on tangent-valued data, this routine works as expected even on a point cloud with inconsistent normal orientations. See [connection Laplacian](/pointcloud/geometry/#connection-laplacian) for more details.
   
 ??? func "`#!cpp PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)`"
 

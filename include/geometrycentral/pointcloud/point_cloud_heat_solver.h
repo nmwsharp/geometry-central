@@ -58,7 +58,7 @@ private:
   std::unique_ptr<surface::HeatMethodDistanceSolver> heatDistanceWorker;
 
   // Solvers
-  std::unique_ptr<PositiveDefiniteSolver<std::complex<double>>> vectorHeatSolver;
+  std::unique_ptr<PositiveDefiniteSolver<double>> vectorHeatSolver;
 };
 
 } // namespace pointcloud

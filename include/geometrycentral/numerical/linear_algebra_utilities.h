@@ -34,6 +34,7 @@ SparseMatrix<T> horizontalStack(const std::vector<SparseMatrix<T>, Eigen::aligne
 // Blow up an NxM complex system to a 2N x2M real system.
 SparseMatrix<double> complexToReal(const SparseMatrix<std::complex<double>>& m);
 Vector<double> complexToReal(const Vector<std::complex<double>>& v);
+Vector<std::complex<double>> realToComplex(const Vector<double>& v);
 
 template <typename T>
 std::vector<std::vector<T>> unpackMatrixToStdVector(const DenseMatrix<T>& mat);

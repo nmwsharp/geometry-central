@@ -97,8 +97,10 @@ public:
   void unrequireLaplacian();
 
   // Connection Laplacian
-  // uses Tufted Intrinsic Laplacian as above
-  Eigen::SparseMatrix<std::complex<double>> connectionLaplacian;
+  // Uses Tufted Intrinsic Laplacian as above. Does _not_ require consistent orientation.
+  // NOTE: this is an 2Nx2N-sized real matrix rather than a complex matrix so we can conjugate to handle inverted
+  // normals. 
+  Eigen::SparseMatrix<double> connectionLaplacian;
   void requireConnectionLaplacian();
   void unrequireConnectionLaplacian();
 
@@ -145,7 +147,7 @@ protected:
   virtual void computeLaplacian();
 
   // Connection Laplacian
-  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> connectionLaplacianQ;
+  DependentQuantityD<Eigen::SparseMatrix<double>> connectionLaplacianQ;
   virtual void computeConnectionLaplacian();
 
   // Gradient
@@ -158,6 +160,7 @@ protected:
   // Compute the rotation such that v_source * r = v_target in the respective tangent bases. Requires normals and
   // tangent bases have been computed.
   Vector2 transportBetween(Point pSource, Point pTarget);
+  std::tuple<Vector2, bool> transportBetweenOriented(Point pSource, Point pTarget);
 };
 
 

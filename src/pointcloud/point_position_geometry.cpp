@@ -213,11 +213,23 @@ void PointPositionGeometry::unrequireLaplacian() { laplacianQ.unrequire(); }
 // Connection Laplacian
 void PointPositionGeometry::computeConnectionLaplacian() {
   laplacianQ.ensureHave();
+  normalsQ.ensureHave();
 
   // Build the conection Laplacian by hitting each entry of the Laplacian with a tangent rotation r_ij between the
   // corresponding vertices
 
-  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  std::vector<Eigen::Triplet<double>> triplets;
+
+  // Helper to expand complex values in to 2x2 real entries as we build the matrix
+  auto addComplexCoef = [&](size_t i, size_t j, Vector2 val, bool conj) {
+    double c = conj ? -1. : 1.;
+
+    triplets.emplace_back(2 * i + 0, 2 * j + 0, val.x);
+    triplets.emplace_back(2 * i + 0, 2 * j + 1, -val.y * c);
+    triplets.emplace_back(2 * i + 1, 2 * j + 0, val.y);
+    triplets.emplace_back(2 * i + 1, 2 * j + 1, val.x * c);
+  };
+
   for (int k = 0; k < laplacian.outerSize(); ++k) {
     for (typename SparseMatrix<double>::InnerIterator it(laplacian, k); it; ++it) {
 
@@ -230,15 +242,21 @@ void PointPositionGeometry::computeConnectionLaplacian() {
       Point pI = cloud.point(i);
       Point pJ = cloud.point(j);
 
-      Vector2 r_ij = transportBetween(pJ, pI);
+      Vector2 r_ij;
+      bool inverted;
+      std::tie(r_ij, inverted) = transportBetweenOriented(pJ, pI);
 
-      triplets.emplace_back(i, j, thisVal * r_ij);
-      triplets.emplace_back(i, i, -thisVal);
+      //bool inverted = dot(normals[pI], normals[pJ]) < 0.;
+
+      addComplexCoef(i, j, thisVal * r_ij, inverted);
+      addComplexCoef(i, i, -thisVal * Vector2{1., 0}, false);
+      // triplets.emplace_back(i, j, thisVal * r_ij);
+      // triplets.emplace_back(i, i, -thisVal);
     }
   }
 
   // Build the matrix
-  connectionLaplacian = SparseMatrix<std::complex<double>>(cloud.nPoints(), cloud.nPoints());
+  connectionLaplacian = SparseMatrix<double>(2 * cloud.nPoints(), 2 * cloud.nPoints());
   connectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
 }
 void PointPositionGeometry::requireConnectionLaplacian() { connectionLaplacianQ.require(); }
@@ -318,6 +336,39 @@ Vector2 PointPositionGeometry::transportBetween(Point pSource, Point pTarget) {
   Vector2 sourceXInTarget{dot(sourceXInTarget3, targetBasisX), dot(sourceXInTarget3, targetBasisY)};
 
   return sourceXInTarget;
+}
+
+std::tuple<Vector2, bool> PointPositionGeometry::transportBetweenOriented(Point pSource, Point pTarget) {
+
+  Vector3 sourceN = normals[pSource];
+  Vector3 sourceBasisX = tangentBasis[pSource][0];
+  // Vector3 sourceBasisY = tangentBasis[pSource][1];
+  Vector3 targetN = normals[pTarget];
+  Vector3 targetBasisX = tangentBasis[pTarget][0];
+  Vector3 targetBasisY = tangentBasis[pTarget][1];
+
+  // Flip orientation
+  bool inverted = false;
+  if (dot(sourceN, targetN) < 0.) {
+    targetN *= -1;
+    targetBasisY *= -1;
+    inverted = true;
+  }
+
+  // Find rotation that aligns normals
+  Vector3 axis = cross(targetN, sourceN);
+  if (norm(axis) > 1e-6) {
+    axis = unit(axis);
+  } else {
+    axis = sourceBasisX;
+  }
+  double angle = angleInPlane(sourceN, targetN, axis);
+
+  // Rotate the axes in to the plane of this vertex
+  Vector3 sourceXInTarget3 = sourceBasisX.rotateAround(axis, angle);
+  Vector2 sourceXInTarget{dot(sourceXInTarget3, targetBasisX), dot(sourceXInTarget3, targetBasisY)};
+
+  return {sourceXInTarget, inverted};
 }
 
 } // namespace pointcloud
