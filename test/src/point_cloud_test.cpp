@@ -407,7 +407,7 @@ TEST_F(PointCloudSuite, HeatSolverTransport) {
       EXPECT_TRUE(isfinite(transport[p]));
       EXPECT_NEAR(norm(transport[p]), 1., 1e-5);
     }
-    EXPECT_NEAR(norm(transport[pSource1] - X1), 0., 1e-5);
+    EXPECT_NEAR(norm(transport[pSource1] - X1), 0., 1e-2);
   }
 
   { // Multiple sources
