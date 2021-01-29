@@ -39,11 +39,11 @@ public:
   PointSet points();
 
   // Methods for accessing elements by index
-  // only valid when the  mesh is compressed
+  // only valid when the cloud is compressed
   Point point(size_t index);
 
-  // Methods for obtaining canonical indices for mesh elements
-  // When the mesh is compressed, these will be equivalent to `vertex.getIndex()`, etc. However, even when the mesh is
+  // Methods for obtaining canonical indices for cloud elements
+  // When the cloud is compressed, these will be equivalent to `vertex.getIndex()`, etc. However, even when the cloud is
   // not compressed they will still provide a dense enumeration. Of course in some situations, custom indices might
   // instead be needed, this is just a default dense enumeration.
   PointData<size_t> getPointIndices();
@@ -72,9 +72,9 @@ public:
   // of the new index space. Any elements with p[i] == INVALID_IND are unused in the new index space.
   std::list<std::function<void(const std::vector<size_t>&)>> pointPermuteCallbackList;
 
-  // Mesh delete callbacks
+  // Delete callbacks
   // (this unfortunately seems to be necessary; objects which have registered their callbacks above
-  // need to know not to try to de-register them if the mesh has been deleted)
+  // need to know not to try to de-register them if the cloud has been deleted)
   std::list<std::function<void()>> meshDeleteCallbackList;
 
   // Check capacity. Needed when implementing expandable containers for mutable meshes to ensure the contain can
@@ -95,8 +95,8 @@ protected:
 
   // Auxilliary arrays which cache other useful information
 
-  // Track element counts (can't rely on rawVertices.size() after deletions have made the list sparse). These are the
-  // actual number of valid elements, not the size of the buffer that holds them.
+  // Track element counts. These are the actual number of valid elements,
+  // not the size of the buffer that holds them.
   size_t nPointsCount = 0;
 
   // == Track the capacity and fill size of our buffers.
@@ -106,18 +106,18 @@ protected:
   size_t nPointsCapacityCount = 0;
 
   // These give the number of filled elements in the currently allocated buffer. This will also be the maximal index of
-  // any element (except the weirdness of boundary loop faces). As elements get marked dead, nVerticesCount decreases
-  // but nVertexFillCount does not (etc), so it denotes the end of the region in the buffer where elements have been
+  // any element (except the weirdness of boundary loop faces). As elements get marked dead, nPointsCount decreases
+  // but nPointsFillCount does not, so it denotes the end of the region in the buffer where elements have been
   // stored.
   size_t nPointsFillCount = 0;
 
-  // The mesh is _compressed_ if all of the index spaces are dense. E.g. if thare are |V| vertices, then the vertices
-  // are densely indexed from 0 ... |V|-1 (and likewise for the other elements). The mesh can become not-compressed as
-  // deletions mark elements with tombstones--this is how we support constant time deletion.
-  // Call compress() to re-index and return to usual dense indexing.
+  // The cloud is _compressed_ if all of the index spaces are dense. E.g. if thare are |N| points, then the points
+  // are densely indexed from 0 ... |N|-1. The cloud can become not-compressed as deletions mark elements with
+  // tombstones--this is how we support constant time deletion. Call compress() to re-index and return to usual dense
+  // indexing.
   bool isCompressedFlag = true;
 
-  uint64_t modificationTick = 1; // Increment every time the mesh is mutated in any way. Used to track staleness.
+  uint64_t modificationTick = 1; // Increment every time the cloud is mutated in any way. Used to track staleness.
 
   // Hide copy and move constructors, we don't wanna mess with that
   PointCloud(const PointCloud& other) = delete;
@@ -125,12 +125,13 @@ protected:
   PointCloud(PointCloud&& other) = delete;
   PointCloud& operator=(PointCloud&& other) = delete;
 
-  // Used to resize the halfedge mesh. Expands and shifts vectors as necessary.
+  // TODO although the skeleton is here, inserting/deleting points has not actually been fleshed out and tested.
+
+  // Used to resize the cloud. Expands and shifts vectors as necessary.
   Point getNewPoint();
 
   // Detect dead elements
   bool pointIsDead(size_t ind) const;
-
   void deleteElement(Point p);
 
   // Compression and other helpers
