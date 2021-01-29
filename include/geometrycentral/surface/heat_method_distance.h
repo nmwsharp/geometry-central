@@ -9,6 +9,12 @@
 #include "geometrycentral/utilities/vector3.h"
 
 namespace geometrycentral {
+
+
+namespace pointcloud {
+class PointCloudHeatSolver; // forward declare to friend below
+}
+
 namespace surface {
 
 // One-off function to compute distance from a vertex
@@ -69,6 +75,9 @@ private:
   // Return either the input mesh/geometry, or the tufted mesh/geometry, based on whether useRobustLaplacian=true
   SurfaceMesh& getMesh();
   IntrinsicGeometryInterface& getGeom();
+
+  // The point cloud version bootstraps off of this code
+  friend class pointcloud::PointCloudHeatSolver;
 };
 
 

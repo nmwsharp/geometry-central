@@ -97,6 +97,7 @@ set(TEST_SRCS
   src/halfedge_mutation_test.cpp
   src/halfedge_geometry_test.cpp
   src/surface_misc_test.cpp
+  src/point_cloud_test.cpp
   src/linear_algebra_test.cpp
   src/stl_reader_test.cpp
 )

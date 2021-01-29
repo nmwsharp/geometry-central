@@ -37,12 +37,26 @@ Vector<double> complexToReal(const Vector<std::complex<double>>& vec) {
 
   Vector<double> realVec(2 * N);
 
-  for (size_t i = 0; i < (size_t)N; i++) {
+  for (size_t i = 0; i < N; i++) {
     realVec(2 * i) = vec(i).real();
     realVec(2 * i + 1) = vec(i).imag();
   }
 
   return realVec;
+}
+
+
+Vector<std::complex<double>> realToComplex(const Vector<double>& v) {
+
+  size_t N = v.rows() / 2;
+
+  Vector<std::complex<double>> cVec(N);
+
+  for (size_t i = 0; i < N; i++) {
+    cVec(i) = std::complex<double>{v(2 * i), v(2 * i + 1)};
+  }
+
+  return cVec;
 }
 
 } // namespace geometrycentral

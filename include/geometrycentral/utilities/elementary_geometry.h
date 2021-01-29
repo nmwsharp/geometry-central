@@ -39,7 +39,16 @@ struct RaySegmentIntersectionResult2D {
 };
 RaySegmentIntersectionResult2D raySegmentIntersection(Vector2 rayStart, Vector2 rayDir, Vector2 lineStart,
                                                       Vector2 lineEnd);
+struct RayRayIntersectionResult2D {
+  double tRay1; // inf if no intersection
+  double tRay2;
+};
+RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 ray1Dir, Vector2 ray2Start, Vector2 ray2Dir);
 
+
+
+// Returns true if pTest is inside the incircle of triangle pA-pB-pC. No snazzy exact predicates or numerical epsilons are used; this is just a simple det(A) < 0 test.
+bool inCircleTest(Vector2 pA, Vector2 pB, Vector2 pC, Vector2 pTest);
 
 } // namespace geometrycentral
 

@@ -86,7 +86,6 @@ VertexData<double> VectorHeatMethodSolver::extendScalar(const std::vector<std::t
   }
 
   ensureHaveScalarHeatSolver();
-
   geom.requireVertexIndices();
 
   // === Build the RHS

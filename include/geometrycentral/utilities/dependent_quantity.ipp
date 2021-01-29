@@ -56,6 +56,12 @@ void clearBuffer(Eigen::SparseMatrix<F>* buffer) {
   *buffer = Eigen::SparseMatrix<F>();
 }
 
+// any unique_ptr<> type
+template <typename P>
+void clearBuffer(std::unique_ptr<P>* buffer) {
+  buffer->reset();
+}
+
 // Array of any otherwise clearable type
 template <typename A, size_t N>
 void clearBuffer(std::array<A*, N>* buffer) {
@@ -66,11 +72,20 @@ void clearBuffer(std::array<A*, N>* buffer) {
   }
 }
 
+// Pair of clearable types
+template <typename A, typename B>
+void clearBuffer(std::pair<A, B>* buffer) {
+  A elemA = buffer->first;
+  clearBuffer(elemA);
+  B elemB = buffer->second;
+  clearBuffer(elemB);
+}
+
 } // namespace
 
 template <typename D>
 void DependentQuantityD<D>::clearIfNotRequired() {
-  if (requireCount <= 0 && dataBuffer != nullptr && computed) {
+  if (clearable && requireCount <= 0 && dataBuffer != nullptr && computed) {
     clearBuffer(dataBuffer);
     computed = false;
   }

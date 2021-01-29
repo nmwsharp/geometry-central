@@ -81,6 +81,14 @@ nav:
       - 'Intrinsic Triangulations' : 'surface/algorithms/intrinsic_triangulations.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
+  - Point Cloud:
+    - 'Basics' : 'pointcloud/basics.md'
+    - 'Geometry' : 'pointcloud/geometry.md'
+    - Algorithms: 
+      - 'Heat distance & transport' : 'pointcloud/algorithms/heat_solver.md'
+    - Utilities: 
+      - 'IO' : 'pointcloud/utilities/io.md'
+      - 'Sampling' : 'pointcloud/utilities/sampling.md'
   - Numerical: 
     - 'Matrix Types' : 'numerical/matrix_types.md'
     - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'

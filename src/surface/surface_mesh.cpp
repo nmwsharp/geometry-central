@@ -834,7 +834,7 @@ bool SurfaceMesh::flip(Edge eFlip, bool preventSelfEdges) {
   // if the faces have different orientation, temporarily orient and try again
   if (ha1.orientation() == hb1.orientation()) { // same edge orientation means different face orientation
     invertOrientation(ha1.face());
-    bool flipResult = flip(eFlip);
+    bool flipResult = flip(eFlip, preventSelfEdges);
     invertOrientation(ha1.face());
     return flipResult;
   }
