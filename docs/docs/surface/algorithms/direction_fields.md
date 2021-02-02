@@ -98,7 +98,7 @@ These methods compute the index of a given n-direction field at every point of t
 
 ## Citation
 
-These algorithms are described in [Globally Optimal Direction Fields](https://www.cs.cmu.edu/~kmcrane/Projects/GloballyOptimalDirectionFields/paper.pdf), the appropriate citation is:
+These algorithms are described in [Globally Optimal Direction Fields](https://www.cs.cmu.edu/~kmcrane/Projects/GloballyOptimalDirectionFields/paper.pdf), the appropriate citation is below.  **Note:** these implementations do not currently exactly match what is described in the paper; they use a simpler "energy" via the vertex connection Laplacian.
 
 ```bib
 @article{knoppel2013globally,
