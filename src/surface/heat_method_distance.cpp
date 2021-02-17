@@ -62,7 +62,11 @@ HeatMethodDistanceSolver::HeatMethodDistanceSolver(IntrinsicGeometryInterface& g
   heatSolver.reset(new PositiveDefiniteSolver<double>(heatOp));
 
   // Poisson solver
-  poissonSolver.reset(new PositiveDefiniteSolver<double>(L));
+  // NOTE: In theory, it should not be necessary to shift the Laplacian: cotan-Laplace is always PSD. However, when the
+  // matrix is only positive SEMIdefinite, some solvers may not work (ie Eigen's Cholesky solver doesn't work, but
+  // Suitesparse does).
+  SparseMatrix<double> Ls = L + 1e-6 * identityMatrix<double>(mesh.nVertices());
+  poissonSolver.reset(new PositiveDefiniteSolver<double>(Ls));
 
   getGeom().unrequireEdgeLengths();
   getGeom().unrequireCotanLaplacian();
