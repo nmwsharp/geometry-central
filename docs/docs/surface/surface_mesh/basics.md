@@ -174,7 +174,7 @@ Remember, all functions from `SurfaceMesh` can also be called on `ManifoldSurfac
 
 ??? func "`#!cpp bool SurfaceMesh::isEdgeManifold()`"
 
-    Returns true if the mesh is both edge-manifold. 
+    Returns true if the mesh is edge-manifold. 
 
 ??? func "`#!cpp bool SurfaceMesh::isOriented()`"
 
