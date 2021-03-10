@@ -1,6 +1,3 @@
 [submodule "deps/happly"]
 	path = deps/happly
 	url = https://github.com/nmwsharp/happly.git
-[submodule "deps/eigen-git-mirror"]
-	path = deps/eigen-git-mirror
-	url = https://github.com/eigenteam/eigen-git-mirror.git
