@@ -6,6 +6,40 @@ Most of these routines only depend on the _intrinsic_ geometry of a surface (via
 
 `#include "geometrycentral/surface/direction_fields.h"`
 
+??? info "How to interpret our symmetric direction fields"
+
+    In geometry-central we use a "power" representation for symmetric vector fields (e.g. lines and cross fields, when `n > 1` in the below algorithms). 
+
+    For instance, in the case of cross fields `n=4`, there are four different tangent vectors at each point giving the resulting cross $v_0, v_1, v_2, v_3$. Rather than outputting any one of these vectors, we output a vector raised to the 4th power (where exponentiation is defined in the sense of complex numbers) $v = v_0^4 = v_1^4 = v_2^4 = v_3^4$.  This representation makes sense, because after raising to the 4th power maps each of these four cross vectors to the same representative vector.
+
+    **How do I get the cross/line/etc directions?**
+
+    Concretely, to get out the four tangent direction vectors for a cross fields, one could do something like:
+    
+    ```cpp
+    // Compute a cross field
+    int n = 4; 
+    VertexData<Vector2> crossValues = computeSmoothestVertexDirectionField(*geometry, n);
+
+    for(Vertex v : mesh->vertices()) {
+    
+      Vector2 representative = crossValues[v];
+      Vector2 crossDir = crossDir.pow(representative, 1. / n); // take the n'th root
+
+      // loop over the four directions
+      for(int rot = 0; rot < 4; rot++) {
+        // crossDir is one of the four cross directions, as a tangent vector
+        crossDir = crossDir.rot90();
+      }
+    }
+
+    (and the same applies when `n = 2` for line fields, etc)
+
+    ```
+    
+
+    
+
 ## Smoothest Direction Fields
 
 ![direction fields basic](/media/direction_field_basic.jpg)
