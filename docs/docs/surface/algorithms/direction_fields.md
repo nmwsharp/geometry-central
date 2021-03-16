@@ -8,6 +8,8 @@ Most of these routines only depend on the _intrinsic_ geometry of a surface (via
 
 ??? info "How to interpret our symmetric direction fields"
 
+    ##### Interpreting symmetric direction fields
+
     In geometry-central we use a "power" representation for symmetric vector fields (e.g. lines and cross fields, when `n > 1` in the below algorithms). 
 
     For instance, in the case of cross fields `n=4`, there are four different tangent vectors at each point giving the resulting cross $v_0, v_1, v_2, v_3$. Rather than outputting any one of these vectors, we output a vector raised to the 4th power (where exponentiation is defined in the sense of complex numbers) $v = v_0^4 = v_1^4 = v_2^4 = v_3^4$.  This representation makes sense, because after raising to the 4th power maps each of these four cross vectors to the same representative vector.
