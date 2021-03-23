@@ -16,6 +16,49 @@ namespace surface {
 
   // TODO no reason this should be limited to manifold
 */
+
+// Forward declare
+class MutationManager;
+
+// Parent type for all policies
+class MutationPolicy {
+public:
+  virtual ~MutationPolicy() = default;
+};
+
+class VertexRepositionPolicy : public virtual MutationPolicy {
+public:
+  virtual void beforeVertexReposition(const Vertex& v, const Vector3& vec) {}
+};
+
+class EdgeFlipPolicy : public virtual MutationPolicy {
+public:
+  virtual void beforeEdgeFlip(const Edge& e) {}
+  virtual void afterEdgeFlip(const Edge& e) {}
+};
+
+class EdgeSplitPolicy : public virtual MutationPolicy {
+public:
+  virtual void beforeEdgeSplit(const Edge& e, const double& tSplit) {}
+
+  // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex, new vertex at double tSplit
+  virtual void afterEdgeSplit(const Halfedge& he1, const Halfedge& he2, const double& tSplit) {}
+};
+
+class EdgeCollapsePolicy : public virtual MutationPolicy {
+public:
+  virtual void beforeEdgeCollapse(const Edge& e, const double& tCollapse) {}
+  virtual void afterEdgeCollapse(const Vertex& v) {}
+};
+
+class MutationPolicyHandle {
+public:
+  MutationPolicyHandle(MutationManager& manager, MutationPolicy* policy);
+  void remove();
+  MutationManager& manager;
+  MutationPolicy* policy;
+};
+
 class MutationManager {
 
 
@@ -93,7 +136,6 @@ public:
   //
   // Get called whenever mesh mutations occur. Register a callback by inserting it in to this list.
 
-
   // == Automatic interface
 
   // These help you keep buffers of data up to date while modifying a mesh. Internally, they register functions for all
@@ -103,33 +145,23 @@ public:
   // de-registers on destruction?
 
   // Update scalar values at vertices,
-  void managePointwiseScalarData(VertexData<double>& data);
+  // MutationPolicyHandle managePointwiseScalarData(VertexData<double>& data);
 
   // Update a paramterization
-  // void manageParameterization(CornerData<Vector2>& uvData);
+  // MutationPolicyHandle manageParameterization(CornerData<Vector2>& uvData);
 
   // Update integrated data at faces (scalars which have been integrated over a face, like area)
-  // void manageIntegratedScalarData(FaceData<double>& data);
+  // MutationPolicyHandle manageIntegratedScalarData(FaceData<double>& data);
 
 
   // == Manual interface: add callbacks on to these lists to do whatever you want.
 
-  // These callbacks are invoked _after_ the operation is performed.
-  // TODO possible problem. These callbacks either need to be called after the operation or before it, but neither is
-  // obviously the right solution... Offering both seems excessive.
+  // After registering a policy, geometry-central will take ownership of the memory and delete it when necessary. Call
+  // `handle.remove()` to un-register the policy.
+  MutationPolicyHandle registerPolicy(MutationPolicy* policyObject);
 
-  // Vertex v is repositioned with offset Vector3
-  std::list<std::function<void(Vertex, Vector3)>> repositionVertexCallbackList;
-
-  // edge E if flipped
-  std::list<std::function<void(Edge)>> edgeFlipCallbackList;
-
-  // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex, new vertex at double tSplit
-  // TODO be very precise here about meaning of parameters
-  std::list<std::function<void(Halfedge, Halfedge, double)>> edgeSplitCallbackList;
-
-  // old edge E is collapsed to vertex V, inserted at double tCollapse
-  std::list<std::function<void(Edge, Vertex, double)>> edgeCollapseCallbackList;
+  // Remove a previously registered policy. Alternately, call handle.remove();
+  void removePolicy(const MutationPolicyHandle& toRemove);
 
   // ======================================================
   // ======== Utilities
@@ -138,6 +170,19 @@ public:
 
 private:
   VertexData<Vector3>& pos; // an alias for geometry->inputVertexPositions, solely for notational convenience
+
+  // ======================================================
+  // ======== Callback management
+  // ======================================================
+
+  // The global list of all callback policies. Also handles memory ownership.
+  std::vector<std::unique_ptr<MutationPolicy>> allPolicies;
+
+  // The lists where callbacks are stored; these are iterated through and invoked when needed.
+  std::vector<VertexRepositionPolicy*> vertexRepositionPolicies;
+  std::vector<EdgeFlipPolicy*> edgeFlipPolicies;
+  std::vector<EdgeSplitPolicy*> edgeSplitPolicies;
+  std::vector<EdgeCollapsePolicy*> edgeCollapsePolicies;
 };
 
 } // namespace surface

@@ -17,27 +17,41 @@ MutationManager::MutationManager(ManifoldSurfaceMesh& mesh_, VertexPositionGeome
 // ======================================================
 
 void MutationManager::repositionVertex(Vertex vert, Vector3 offset) {
-  pos[vert] += offset;
 
-  // Invoke any callbacks
-  for (auto& fn : repositionVertexCallbackList) {
-    fn(vert, offset);
+  // Invoke callbacks
+  for (VertexRepositionPolicy* policy : vertexRepositionPolicies) {
+    policy->beforeVertexReposition(vert, offset);
   }
+
+  pos[vert] += offset;
 }
 
 // Flip an edge.
 bool MutationManager::flipEdge(Edge e) {
 
-  bool flipped = mesh.flip(e);
+  // First do a test flip to see if its possible
+  // TODO implement canFlip() to avoid this
+  bool canFlip = mesh.flip(e);
 
   // Might not have been flippable for connectivity reasons
-  if (!flipped) {
+  if (!canFlip) {
     return false;
   }
 
-  // Invoke any edge flip callbacks
-  for (auto& fn : edgeFlipCallbackList) {
-    fn(e);
+  // Undo the test flip
+  if (canFlip) mesh.flip(e);
+
+  // Invoke before callbacks
+  for (EdgeFlipPolicy* policy : edgeFlipPolicies) {
+    policy->beforeEdgeFlip(e);
+  }
+
+  // Do the actual flip
+  mesh.flip(e);
+
+  // Invoke after callbacks
+  for (EdgeFlipPolicy* policy : edgeFlipPolicies) {
+    policy->afterEdgeFlip(e);
   }
 
   return true;
@@ -59,14 +73,19 @@ void MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
 
 void MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition) {
 
+  // Invoke before callbacks
+  for (EdgeSplitPolicy* policy : edgeSplitPolicies) {
+    policy->beforeEdgeSplit(e, tSplit);
+  }
+
   Halfedge newHeFront = mesh.splitEdgeTriangular(e);
   Vertex newV = newHeFront.vertex();
   pos[newV] = newVertexPosition;
   Halfedge newHeBack = newHeFront.prevOrbitFace().twin().prevOrbitFace().twin();
 
-  // Invoke any callbacks
-  for (auto& fn : edgeSplitCallbackList) {
-    fn(newHeFront, newHeBack, tSplit);
+  // Invoke after callbacks
+  for (EdgeSplitPolicy* policy : edgeSplitPolicies) {
+    policy->afterEdgeSplit(newHeFront, newHeBack, tSplit);
   }
 }
 
@@ -87,13 +106,20 @@ bool MutationManager::collapseEdge(Edge e, Vector3 newVertexPosition) {
 }
 
 bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition) {
+
+  // Invoke before callbacks
+  // TODO need to handle possiblity that collapse fails -- check before calling
+  for (EdgeCollapsePolicy* policy : edgeCollapsePolicies) {
+    policy->beforeEdgeCollapse(e, tCollapse);
+  }
+
   Vertex newV = mesh.collapseEdgeTriangular(e);
   if (newV == Vertex()) return false;
   pos[newV] = newVertexPosition;
 
-  // Invoke any callbacks
-  for (auto& fn : edgeCollapseCallbackList) {
-    fn(e, newV, tCollapse);
+  // Invoke after callbacks
+  for (EdgeCollapsePolicy* policy : edgeCollapsePolicies) {
+    policy->afterEdgeCollapse(newV);
   }
 
   return true;
@@ -109,6 +135,7 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
 // ======== Callbacks
 // ======================================================
 
+/*
 void MutationManager::managePointwiseScalarData(VertexData<double>& data) {
 
   { // Reposition callback
@@ -142,6 +169,71 @@ void MutationManager::managePointwiseScalarData(VertexData<double>& data) {
     edgeCollapseCallbackList.push_back(updateOnEdgeCollapse);
   }
 }
+*/
+
+namespace {
+
+// Helper function for registerPolicy()
+template <typename T>
+void pushIfSubclass(std::vector<T*>& vec, MutationPolicy* pol) {
+  T* sub = dynamic_cast<T*>(pol);
+  if (sub != nullptr) {
+    vec.push_back(sub);
+  }
+}
+
+template <typename T, typename O>
+void removeUniquePtrFromVector(std::vector<std::unique_ptr<T>>& vec, O& obj) {
+  for(auto it = vec.begin(); it != vec.end(); it++) {
+    if(it->get() == obj) {
+      vec.erase(it);
+      return;
+    }
+  }
+}
+
+}; // namespace
+
+
+MutationPolicyHandle MutationManager::registerPolicy(MutationPolicy* policyObject) {
+
+  // Add policy to the global (memory-managed) list
+  allPolicies.emplace_back(policyObject);
+
+  // == Conditionally add policy to the various lists
+
+  // Notice that we circumvent the type hierarchy with dynamic casts, which is generally bad practice.
+  // Here, it's not too bad since it's mainly just a performance optimization---a more idiomatic approach would be to
+  // have default virtual implementations for all policies in the base MutationPolicy, but this would cause lots of
+  // wasted dynamic function dereferences to call no-op functions. Instead, we optimize here to pay the price once at
+  // registration-time by sorting the callbacks in to categories with a dynamic_cast(). These yields an identical design
+  // from the users point of view, and (hopefully) better performance.
+
+  pushIfSubclass(vertexRepositionPolicies, policyObject);
+  pushIfSubclass(edgeFlipPolicies, policyObject);
+  pushIfSubclass(edgeSplitPolicies, policyObject);
+  pushIfSubclass(edgeCollapsePolicies, policyObject);
+
+
+  // Return a handle so the user can (optionally) remove it.
+  return MutationPolicyHandle(*this, policyObject);
+}
+
+void MutationManager::removePolicy(const MutationPolicyHandle& toRemove) {
+  // Remove from all
+  removeFromVector(vertexRepositionPolicies, toRemove.policy);
+  removeFromVector(edgeFlipPolicies, toRemove.policy);
+  removeFromVector(edgeSplitPolicies, toRemove.policy);
+  removeFromVector(edgeCollapsePolicies, toRemove.policy);
+
+  // deletion happens here
+  removeUniquePtrFromVector(allPolicies, toRemove.policy);
+}
+
+
+MutationPolicyHandle::MutationPolicyHandle(MutationManager& manager_, MutationPolicy* policy_)
+    : manager(manager_), policy(policy_) {}
+void MutationPolicyHandle::remove() { manager.removePolicy(*this); }
 
 } // namespace surface
 } // namespace geometrycentral
