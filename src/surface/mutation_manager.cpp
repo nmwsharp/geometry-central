@@ -125,6 +125,37 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
   return true;
 }
 
+// Split a face (i.e. insert a vertex into the face)
+void MutationManager::splitFace(Face f, const std::vector<double>& bSplit) {
+  Vector3 newPos = Vector3::zero();
+  size_t iV = 0;
+  for (Vertex v : f.adjacentVertices()) {
+    newPos += bSplit[iV] * pos[v];
+    iV++;
+  }
+  splitFace(f, bSplit, newPos);
+}
+
+void MutationManager::splitFace(Face f, Vector3 newVertexPosition) {
+  throw std::runtime_error("Face split based on vertex position not implemented yet");
+}
+
+
+void MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition) {
+  // Invoke before callbacks
+  for (FaceSplitPolicy* policy : faceSplitPolicies) {
+    policy->beforeFaceSplit(f, bSplit);
+  }
+
+  Vertex newV = mesh.insertVertex(f);
+  pos[newV] = newVertexPosition;
+
+  // Invoke after callbacks
+  for (FaceSplitPolicy* policy : faceSplitPolicies) {
+    policy->afterFaceSplit(newV, bSplit);
+  }
+}
+
 
 // ======================================================
 // ======== High-level mutations
@@ -184,8 +215,8 @@ void pushIfSubclass(std::vector<T*>& vec, MutationPolicy* pol) {
 
 template <typename T, typename O>
 void removeUniquePtrFromVector(std::vector<std::unique_ptr<T>>& vec, O& obj) {
-  for(auto it = vec.begin(); it != vec.end(); it++) {
-    if(it->get() == obj) {
+  for (auto it = vec.begin(); it != vec.end(); it++) {
+    if (it->get() == obj) {
       vec.erase(it);
       return;
     }
@@ -213,6 +244,7 @@ MutationPolicyHandle MutationManager::registerPolicy(MutationPolicy* policyObjec
   pushIfSubclass(edgeFlipPolicies, policyObject);
   pushIfSubclass(edgeSplitPolicies, policyObject);
   pushIfSubclass(edgeCollapsePolicies, policyObject);
+  pushIfSubclass(faceSplitPolicies, policyObject);
 
 
   // Return a handle so the user can (optionally) remove it.

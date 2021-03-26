@@ -51,6 +51,15 @@ public:
   virtual void afterEdgeCollapse(const Vertex& v) {}
 };
 
+
+class FaceSplitPolicy : public virtual MutationPolicy {
+public:
+  virtual void beforeFaceSplit(const Face& f, const std::vector<double>& bSplit) {}
+
+  // new vertex with barycentric coordinates bSplit within face f
+  virtual void afterFaceSplit(const Vertex& v, const std::vector<double>& bSplit) {}
+};
+
 class MutationPolicyHandle {
 public:
   MutationPolicyHandle(MutationManager& manager, MutationPolicy* policy);
@@ -110,6 +119,11 @@ public:
   bool collapseEdge(Edge e, double tCollapse);
   bool collapseEdge(Edge e, Vector3 newVertexPosition);
   bool collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition);
+
+  // Split a face (i.e. insert a vertex into the face)
+  void splitFace(Face f, const std::vector<double>& bSplit);
+  void splitFace(Face f, Vector3 newVertexPosition);
+  void splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
 
   // ======================================================
   // ======== High-level mutations
@@ -183,6 +197,7 @@ private:
   std::vector<EdgeFlipPolicy*> edgeFlipPolicies;
   std::vector<EdgeSplitPolicy*> edgeSplitPolicies;
   std::vector<EdgeCollapsePolicy*> edgeCollapsePolicies;
+  std::vector<FaceSplitPolicy*> faceSplitPolicies;
 };
 
 } // namespace surface
