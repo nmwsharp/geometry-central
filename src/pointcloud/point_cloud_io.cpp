@@ -109,7 +109,8 @@ std::tuple<std::unique_ptr<PointCloud>, std::unique_ptr<PointPositionGeometry>> 
     throw std::runtime_error("Did not recognize point cloud file type " + type);
   }
 
-  return {nullptr, nullptr}; // unreachable
+  return std::tuple<std::unique_ptr<PointCloud>, std::unique_ptr<PointPositionGeometry>>{nullptr,
+                                                                                         nullptr}; // unreachable
 }
 
 // === Writers ===

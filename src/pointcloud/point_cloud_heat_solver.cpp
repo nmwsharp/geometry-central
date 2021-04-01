@@ -104,7 +104,7 @@ PointData<Vector2> PointCloudHeatSolver::transportTangentVector(const Point& sou
   // std::vector<Point> s{sourcePoint};
   // std::vector<Vector2> v{sourceVector};
 
-  return transportTangentVectors({{sourcePoint, sourceVector}});
+  return transportTangentVectors({std::make_tuple(sourcePoint, sourceVector)});
 }
 
 PointData<Vector2>

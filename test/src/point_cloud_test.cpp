@@ -377,7 +377,8 @@ TEST_F(PointCloudSuite, HeatSolverScalarExtend) {
   double X1 = 1.;
   double X2 = -12;
   double X3 = 8;
-  PointData<double> extend = solver.extendScalars({{pSource1, X1}, {pSource2, X2}, {pSource3, X3}});
+  PointData<double> extend = solver.extendScalars(
+      {std::make_tuple(pSource1, X1), std::make_tuple(pSource2, X2), std::make_tuple(pSource3, X3)});
   for (Point p : cloud->points()) {
     EXPECT_TRUE(std::isfinite(extend[p]));
     EXPECT_LT(std::fabs(extend[p]), 12. + 1e-3);
@@ -415,7 +416,8 @@ TEST_F(PointCloudSuite, HeatSolverTransport) {
     Point pSource3 = cloud->point(13);
     Vector2 X2{2., 2.};
     Vector2 X3{0., 4.};
-    PointData<Vector2> transport = solver.transportTangentVectors({{pSource1, X1}, {pSource2, X2}, {pSource3, X3}});
+    PointData<Vector2> transport = solver.transportTangentVectors(
+        {std::make_tuple(pSource1, X1), std::make_tuple(pSource2, X2), std::make_tuple(pSource3, X3)});
     for (Point p : cloud->points()) {
       EXPECT_TRUE(isfinite(transport[p]));
       EXPECT_GT(norm(transport[p]), 0.);

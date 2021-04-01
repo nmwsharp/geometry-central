@@ -368,7 +368,7 @@ std::tuple<Vector2, bool> PointPositionGeometry::transportBetweenOriented(Point 
   Vector3 sourceXInTarget3 = sourceBasisX.rotateAround(axis, angle);
   Vector2 sourceXInTarget{dot(sourceXInTarget3, targetBasisX), dot(sourceXInTarget3, targetBasisY)};
 
-  return {sourceXInTarget, inverted};
+  return std::make_tuple(sourceXInTarget, inverted);
 }
 
 } // namespace pointcloud

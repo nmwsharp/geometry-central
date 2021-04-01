@@ -26,7 +26,9 @@ As such, the build system uses the following strategies in order to resolve Eige
 
 For instance, if your project already has a copy of Eigen in its source tree, you can use it with (2) by setting `GC_EIGEN_LOCATION`. If not, many programmers have installed Eigen, which will be found in (3). Finally, as a last resort the build system will download a copy of Eigen as in (4).
 
-geometry-central is known to work with version 3.3 of Eigen; other versions have not been tested (but recent versions probably work).
+Set `GC_ALWAYS_DOWNLOAD_EIGEN=TRUE` to cause CMake to always prefer option (4) above, and prefer downloading a new copy of Eigen over using a system copy.
+
+geometry-central is known to work with version 3.3.8 of Eigen; other versions have not been tested (but recent versions probably work).
 
 ??? note "setting `GC_EIGEN_LOCATION`"
 

@@ -518,12 +518,12 @@ std::tuple<double, double> FlipEdgeNetwork::measureSideAngles(Halfedge hePrev, H
     }
   }
 
-  return {leftAngle, rightAngle};
+  return std::tuple<double, double>{leftAngle, rightAngle};
 }
 
 std::tuple<SegmentAngleType, double> FlipEdgeNetwork::locallyShortestTestWithType(Halfedge hePrev, Halfedge heNext) {
 
-  if (hePrev == Halfedge()) return {SegmentAngleType::Shortest, std::numeric_limits<double>::infinity()};
+  if (hePrev == Halfedge()) return std::make_tuple(SegmentAngleType::Shortest, std::numeric_limits<double>::infinity());
 
   double leftAngle, rightAngle;
   std::tie(leftAngle, rightAngle) = measureSideAngles(hePrev, heNext);
@@ -532,14 +532,14 @@ std::tuple<SegmentAngleType, double> FlipEdgeNetwork::locallyShortestTestWithTyp
   // Classify
   if (leftAngle < rightAngle) {
     if (leftAngle > (M_PI - EPS_ANGLE)) {
-      return {SegmentAngleType::Shortest, minAngle};
+      return std::make_tuple(SegmentAngleType::Shortest, minAngle);
     }
-    return {SegmentAngleType::LeftTurn, minAngle};
+    return std::make_tuple(SegmentAngleType::LeftTurn, minAngle);
   } else {
     if (rightAngle > (M_PI - EPS_ANGLE)) {
-      return {SegmentAngleType::Shortest, minAngle};
+      return std::make_tuple(SegmentAngleType::Shortest, minAngle);
     }
-    return {SegmentAngleType::RightTurn, minAngle};
+    return std::make_tuple(SegmentAngleType::RightTurn, minAngle);
   }
 }
 
@@ -869,14 +869,14 @@ void FlipEdgeNetwork::processSingleEdgeLoop(FlipPathSegment& pathSegment, Segmen
 
     edgePath.pathHeInfo.erase(id);
     popOutsideSegment(he);
-    edgePath.pathHeInfo[firstID] = {heFirst, secondID, secondID};
-    edgePath.pathHeInfo[secondID] = {heSecond, firstID, firstID};
+    edgePath.pathHeInfo[firstID] = std::make_tuple(heFirst, secondID, secondID);
+    edgePath.pathHeInfo[secondID] = std::make_tuple(heSecond, firstID, firstID);
 
-    pushOutsideSegment(heFirst.twin(), {&edgePath, firstID});
-    pushOutsideSegment(heSecond.twin(), {&edgePath, secondID});
+    pushOutsideSegment(heFirst.twin(), FlipPathSegment{&edgePath, firstID});
+    pushOutsideSegment(heSecond.twin(), FlipPathSegment{&edgePath, secondID});
 
-    addToWedgeAngleQueue({&edgePath, firstID});
-    addToWedgeAngleQueue({&edgePath, secondID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, firstID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, secondID});
 
     break;
   }
@@ -890,14 +890,14 @@ void FlipEdgeNetwork::processSingleEdgeLoop(FlipPathSegment& pathSegment, Segmen
 
     edgePath.pathHeInfo.erase(id);
     popOutsideSegment(he.twin());
-    edgePath.pathHeInfo[firstID] = {heFirst, secondID, secondID};
-    edgePath.pathHeInfo[secondID] = {heSecond, firstID, firstID};
+    edgePath.pathHeInfo[firstID] = std::make_tuple(heFirst, secondID, secondID);
+    edgePath.pathHeInfo[secondID] = std::make_tuple(heSecond, firstID, firstID);
 
-    pushOutsideSegment(heFirst, {&edgePath, firstID});
-    pushOutsideSegment(heSecond, {&edgePath, secondID});
+    pushOutsideSegment(heFirst, FlipPathSegment{&edgePath, firstID});
+    pushOutsideSegment(heSecond, FlipPathSegment{&edgePath, secondID});
 
-    addToWedgeAngleQueue({&edgePath, firstID});
-    addToWedgeAngleQueue({&edgePath, secondID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, firstID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, secondID});
 
     break;
   }
@@ -1014,7 +1014,7 @@ void FlipEdgeNetwork::addAllWedgesToAngleQueue() {
       std::tie(currHe, prevID, nextID) = it.second;
 
       if (prevID != INVALID_IND) {
-        addToWedgeAngleQueue({epPtr.get(), currID});
+        addToWedgeAngleQueue(FlipPathSegment{epPtr.get(), currID});
       }
     }
   }
