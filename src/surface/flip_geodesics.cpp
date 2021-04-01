@@ -869,14 +869,14 @@ void FlipEdgeNetwork::processSingleEdgeLoop(FlipPathSegment& pathSegment, Segmen
 
     edgePath.pathHeInfo.erase(id);
     popOutsideSegment(he);
-    edgePath.pathHeInfo[firstID] = {heFirst, secondID, secondID};
-    edgePath.pathHeInfo[secondID] = {heSecond, firstID, firstID};
+    edgePath.pathHeInfo[firstID] = std::make_tuple(heFirst, secondID, secondID);
+    edgePath.pathHeInfo[secondID] = std::make_tuple(heSecond, firstID, firstID);
 
-    pushOutsideSegment(heFirst.twin(), {&edgePath, firstID});
-    pushOutsideSegment(heSecond.twin(), {&edgePath, secondID});
+    pushOutsideSegment(heFirst.twin(), FlipPathSegment{&edgePath, firstID});
+    pushOutsideSegment(heSecond.twin(), FlipPathSegment{&edgePath, secondID});
 
-    addToWedgeAngleQueue({&edgePath, firstID});
-    addToWedgeAngleQueue({&edgePath, secondID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, firstID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, secondID});
 
     break;
   }
@@ -890,14 +890,14 @@ void FlipEdgeNetwork::processSingleEdgeLoop(FlipPathSegment& pathSegment, Segmen
 
     edgePath.pathHeInfo.erase(id);
     popOutsideSegment(he.twin());
-    edgePath.pathHeInfo[firstID] = {heFirst, secondID, secondID};
-    edgePath.pathHeInfo[secondID] = {heSecond, firstID, firstID};
+    edgePath.pathHeInfo[firstID] = std::make_tuple(heFirst, secondID, secondID);
+    edgePath.pathHeInfo[secondID] = std::make_tuple(heSecond, firstID, firstID);
 
-    pushOutsideSegment(heFirst, {&edgePath, firstID});
-    pushOutsideSegment(heSecond, {&edgePath, secondID});
+    pushOutsideSegment(heFirst, FlipPathSegment{&edgePath, firstID});
+    pushOutsideSegment(heSecond, FlipPathSegment{&edgePath, secondID});
 
-    addToWedgeAngleQueue({&edgePath, firstID});
-    addToWedgeAngleQueue({&edgePath, secondID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, firstID});
+    addToWedgeAngleQueue(FlipPathSegment{&edgePath, secondID});
 
     break;
   }
@@ -1014,7 +1014,7 @@ void FlipEdgeNetwork::addAllWedgesToAngleQueue() {
       std::tie(currHe, prevID, nextID) = it.second;
 
       if (prevID != INVALID_IND) {
-        addToWedgeAngleQueue({epPtr.get(), currID});
+        addToWedgeAngleQueue(FlipPathSegment{epPtr.get(), currID});
       }
     }
   }
