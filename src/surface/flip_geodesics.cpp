@@ -518,12 +518,12 @@ std::tuple<double, double> FlipEdgeNetwork::measureSideAngles(Halfedge hePrev, H
     }
   }
 
-  return {leftAngle, rightAngle};
+  return std::tuple<double, double>{leftAngle, rightAngle};
 }
 
 std::tuple<SegmentAngleType, double> FlipEdgeNetwork::locallyShortestTestWithType(Halfedge hePrev, Halfedge heNext) {
 
-  if (hePrev == Halfedge()) return {SegmentAngleType::Shortest, std::numeric_limits<double>::infinity()};
+  if (hePrev == Halfedge()) return std::make_tuple(SegmentAngleType::Shortest, std::numeric_limits<double>::infinity());
 
   double leftAngle, rightAngle;
   std::tie(leftAngle, rightAngle) = measureSideAngles(hePrev, heNext);
@@ -532,14 +532,14 @@ std::tuple<SegmentAngleType, double> FlipEdgeNetwork::locallyShortestTestWithTyp
   // Classify
   if (leftAngle < rightAngle) {
     if (leftAngle > (M_PI - EPS_ANGLE)) {
-      return {SegmentAngleType::Shortest, minAngle};
+      return std::make_tuple(SegmentAngleType::Shortest, minAngle);
     }
-    return {SegmentAngleType::LeftTurn, minAngle};
+    return std::make_tuple(SegmentAngleType::LeftTurn, minAngle);
   } else {
     if (rightAngle > (M_PI - EPS_ANGLE)) {
-      return {SegmentAngleType::Shortest, minAngle};
+      return std::make_tuple(SegmentAngleType::Shortest, minAngle);
     }
-    return {SegmentAngleType::RightTurn, minAngle};
+    return std::make_tuple(SegmentAngleType::RightTurn, minAngle);
   }
 }
 
