@@ -1,8 +1,8 @@
 #pragma once
 
 #include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
@@ -74,11 +74,13 @@ public:
   EdgeData<std::vector<SurfacePoint>> traceEdges();
   std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
 
-  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic triangulation
+  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic
+  // triangulation
   template <typename T>
   VertexData<T> sampleFromInput(const VertexData<T>& dataOnInput);
-  
-  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input triangulation
+
+  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input
+  // triangulation
   template <typename T>
   VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
 
@@ -136,6 +138,11 @@ public:
   // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
   // flipped.
   bool flipEdgeIfPossible(Edge e, double possibleEPS = 1e-6);
+
+  // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
+  // be flippable. Experts only.
+  void flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle, bool isOrig,
+                      bool reverseFlip = false);
 
   // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic);

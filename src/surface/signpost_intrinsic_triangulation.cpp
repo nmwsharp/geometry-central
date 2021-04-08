@@ -279,6 +279,30 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
   return true;
 }
 
+void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle,
+                                                    bool isOrig, bool reverseFlip) {
+
+  int flipCount = reverseFlip ? 3 : 1; // three flips give opposite orientaiton
+  for (int i = 0; i < flipCount; i++) {
+    bool flipped = intrinsicMesh->flip(e, false);
+    if (!flipped) throw std::runtime_error("could not perform manual flip");
+  }
+
+  intrinsicEdgeLengths[e] = newLength;
+  edgeLengths[e] = newLength;
+
+  // Update other derived geometric data
+  intrinsicHalfedgeDirections[e.halfedge()] = forwardAngle;
+  intrinsicHalfedgeDirections[e.halfedge().twin()] = reverseAngle;
+  halfedgeVectorsInVertex[e.halfedge()] = halfedgeVector(e.halfedge());
+  halfedgeVectorsInVertex[e.halfedge().twin()] = halfedgeVector(e.halfedge().twin());
+  updateFaceBasis(e.halfedge().face());
+  updateFaceBasis(e.halfedge().twin().face());
+
+  edgeIsOriginal[e] = isOrig;
+  invokeEdgeFlipCallbacks(e);
+}
+
 Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIntrinsic) {
   switch (newPositionOnIntrinsic.type) {
   case SurfacePointType::Vertex: {
