@@ -95,7 +95,8 @@ public:
 
   // Construct a network from a collection of paths
   FlipEdgeNetwork(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom,
-                  std::vector<std::vector<Halfedge>> paths, VertexData<bool> extraMarkedVerts = VertexData<bool>());
+                  const std::vector<std::vector<Halfedge>>& paths,
+                  VertexData<bool> extraMarkedVerts = VertexData<bool>());
 
   // === Static initializers
 
@@ -233,6 +234,14 @@ public:
   // Network must be a connected sequence of paths forming a curve
   void bezierSubdivide(size_t nRounds);
   void bezierSubdivideRecursive(size_t nRoundsRemaining, const Vertex firstControlCall, const Vertex lastControlCall);
+
+  // === Rewinding & updating
+  // (useful if you want to compute many paths without reinitializing this data structure each time)
+  // NOTE for now does not effect marked vertices
+  bool supportRewinding = false;
+  void rewind(); // undo the flips in the rewind record and clear all stored data
+  void reinitializePath(const std::vector<std::vector<Halfedge>>& paths);
+  std::vector<std::tuple<Edge, double, double, double, bool>> rewindRecord;
 
   // === Visualization
   VertexPositionGeometry* posGeom = nullptr; // for visualization only!
