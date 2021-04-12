@@ -138,6 +138,11 @@ VertexData<double> VectorHeatMethodSolver::extendScalar(const std::vector<std::t
   return result;
 }
 
+VertexData<Vector2> VectorHeatMethodSolver::transportTangentVector(Vertex sourceVert, Vector2 sourceVec) {
+  std::vector<std::tuple<Vertex, Vector2>> sources{{sourceVert, sourceVec}};
+  return transportTangentVectors(sources);
+}
+
 VertexData<Vector2>
 VectorHeatMethodSolver::transportTangentVectors(const std::vector<std::tuple<Vertex, Vector2>>& sources) {
   std::vector<std::tuple<SurfacePoint, Vector2>> sourcesSurf;
