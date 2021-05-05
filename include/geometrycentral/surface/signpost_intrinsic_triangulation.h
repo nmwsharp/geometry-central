@@ -1,9 +1,10 @@
 #pragma once
-
 #include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/manifold_surface_mesh.h"
+#include "geometrycentral/surface/simple_polygon_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
+#include "geometrycentral/surface/vertex_position_geometry.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
 
@@ -14,7 +15,25 @@
 namespace geometrycentral {
 namespace surface {
 
+class SignpostIntrinsicTriangulation;
 
+// A helper class to represent the common subdivision between an intrinsic triangulation and original mesh
+class SignpostCommonSubdivision {
+public:
+  SignpostCommonSubdivision(SignpostIntrinsicTriangulation& intTri, SimplePolygonMesh& polygonMesh,
+                            std::vector<SurfacePoint>& intrinsicParentPoint, std::vector<Face>& intrinsicParentFace);
+
+  // The simple data which is always populated
+  SignpostIntrinsicTriangulation& intTri;
+  SimplePolygonMesh polygonMesh;
+  std::vector<SurfacePoint> intrinsicParentPoint;
+  std::vector<Face> intrinsicParentFace;
+
+  bool isFlawless();
+};
+
+
+// The main class for signpost intrinsic triangulations
 class SignpostIntrinsicTriangulation : public IntrinsicGeometryInterface {
 
 public:
@@ -71,16 +90,20 @@ public:
 
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points
-  EdgeData<std::vector<SurfacePoint>> traceEdges();
+  EdgeData<std::vector<SurfacePoint>> traceEdges(bool trimEnds = false);
   std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
 
-  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic triangulation
+  // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic
+  // triangulation
   template <typename T>
   VertexData<T> sampleFromInput(const VertexData<T>& dataOnInput);
-  
-  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input triangulation
+
+  // Given data defined on the vertices of the intrinsic triangulation, restrict it to the vertices of the input
+  // triangulation
   template <typename T>
   VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
+
+  std::unique_ptr<SignpostCommonSubdivision> extractCommonSubdivision(VertexPositionGeometry& originalPosGeom);
 
   // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
   bool isDelaunay();
@@ -95,8 +118,9 @@ public:
   //
   // Call once to build a useful triangulation
 
-  // Flips edge in the intrinsic triangulation until is satisfies teh intrinsic Delaunay criterion
-  void flipToDelaunay();
+  // Flips edge in the intrinsic triangulation until is satisfies teh intrinsic Delaunay criterion.
+  // Returns number of flips
+  size_t flipToDelaunay();
 
   // Perform intrinsic Delaunay refinement the intrinsic triangulation until it simultaneously:
   //   - satisfies the intrinsic Delaunay criterion
@@ -242,4 +266,3 @@ private:
 
 
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.ipp"
-

@@ -134,13 +134,14 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   return result.pathPoints;
 }
 
-EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges() {
+
+EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges(bool trimEnds) {
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(mesh);
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he, false);
+    tracedEdges[e] = traceHalfedge(he, trimEnds);
   }
 
   return tracedEdges;
@@ -173,6 +174,220 @@ double SignpostIntrinsicTriangulation::minAngleDegrees() {
     minAngle = std::min(minAngle, cornerAngle(c));
   }
   return minAngle * 180. / M_PI;
+}
+
+std::unique_ptr<SignpostCommonSubdivision>
+SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry& originalPosGeom) {
+  SimplePolygonMesh soup;
+
+  VertexData<size_t> intVertInds(*intrinsicMesh);
+  std::vector<SurfacePoint> intrinsicParentPoint;
+  std::vector<Face> intrinsicParentFace;
+  for (Vertex v : intrinsicMesh->vertices()) {
+    intVertInds[v] = soup.vertexCoordinates.size();
+    soup.vertexCoordinates.push_back(vertexLocations[v].interpolate(originalPosGeom.inputVertexPositions));
+    intrinsicParentPoint.emplace_back(v);
+  }
+
+  EdgeData<std::vector<size_t>> intEdgeCrossings(*intrinsicMesh);
+  EdgeData<std::vector<SurfacePoint>> tracedEdges = traceEdges(true);
+  for (Edge e : intrinsicMesh->edges()) {
+    std::vector<SurfacePoint>& bendsAlong = tracedEdges[e];
+    for (size_t iB = 1; iB < bendsAlong.size() - 1; iB++) {
+      SurfacePoint& p = bendsAlong[iB];
+      intEdgeCrossings[e].push_back(soup.vertexCoordinates.size());
+      soup.vertexCoordinates.push_back(p.interpolate(originalPosGeom.inputVertexPositions));
+      intrinsicParentPoint.push_back(p);
+    }
+  }
+
+
+  Face currIntrinsicFace; // (nick: wtf is this stateful crap)
+  auto addFace = [&](size_t v0, size_t v1, size_t v2) {
+    if (v0 == v1 || v0 == v2 || v1 == v2) {
+      throw std::runtime_error("bad insertion!");
+    }
+    soup.polygons.push_back({v0, v1, v2});
+    intrinsicParentFace.push_back(currIntrinsicFace);
+  };
+
+
+  auto extractFace_fan = [&](Halfedge heFan, std::array<std::vector<size_t>, 3>& halfedgeCrosses) {
+    size_t indFanStart = intVertInds[heFan.vertex()];
+    size_t indFanEnd = intVertInds[heFan.next().vertex()];
+    size_t indWedge = intVertInds[heFan.next().next().vertex()];
+
+    std::vector<size_t>& bottomList = halfedgeCrosses[2];
+    std::vector<size_t>& topList = halfedgeCrosses[1];
+    std::reverse(topList.begin(), topList.end());
+
+    // This isn't really needed, but makes code look nicer
+    std::deque<size_t> fanList(halfedgeCrosses[0].begin(), halfedgeCrosses[0].end());
+    fanList.push_front(indFanStart);
+    fanList.push_back(indFanEnd);
+
+    // Extract triangles up from the bottom of the fan halfedge
+    if (bottomList.size() > 0) {
+
+      // First
+      addFace(fanList[0], fanList[1], bottomList.back());
+      fanList.pop_front();
+
+      // Middle
+      while (bottomList.size() > 1) {
+        addFace(bottomList[bottomList.size() - 2], bottomList[bottomList.size() - 1], fanList[0]);
+        addFace(bottomList[bottomList.size() - 2], fanList[0], fanList[1]);
+        bottomList.pop_back();
+        fanList.pop_front();
+      }
+
+      // Last
+      addFace(indWedge, bottomList[0], fanList.front());
+      bottomList.pop_back();
+    }
+
+    // Extract triangles down from the top of the fan halfedge
+    if (topList.size() > 0) {
+      // First
+      addFace(fanList[fanList.size() - 2], fanList[fanList.size() - 1], topList.back());
+      fanList.pop_back();
+
+      // Middle
+      while (topList.size() > 1) {
+        addFace(topList[topList.size() - 1], topList[topList.size() - 2], fanList[fanList.size() - 1]);
+        addFace(topList[topList.size() - 2], fanList[fanList.size() - 2], fanList[fanList.size() - 1]);
+        topList.pop_back();
+        fanList.pop_back();
+      }
+
+      // Last
+      addFace(indWedge, fanList.back(), topList[0]);
+      topList.pop_back();
+    }
+
+    // Middle fan
+    for (size_t i = 0; i + 1 < fanList.size(); i++) {
+      addFace(indWedge, fanList[i], fanList[i + 1]);
+    }
+  };
+
+
+  // Trivia: this case happens remarkably rarely for triangulations we work with
+  auto extractFace_triforce = [&](Halfedge he, std::array<std::vector<size_t>, 3>& halfedgeCrosses) {
+    std::array<size_t, 3> cornerVerts = {
+        {intVertInds[he.vertex()], intVertInds[he.next().vertex()], intVertInds[he.next().next().vertex()]}};
+
+    std::cout << "triforce counts: ";
+    for (int i = 0; i < 3; i++) {
+      std::cout << halfedgeCrosses[i].size() << " ";
+    }
+    std::cout << "\n";
+
+    // Deques are nice
+    std::array<std::deque<size_t>, 3> crossDeques;
+    for (int i = 0; i < 3; i++) {
+      crossDeques[i] = std::deque<size_t>(halfedgeCrosses[i].begin(), halfedgeCrosses[i].end());
+    }
+
+    // Trim corners rooted at each vertex
+    std::array<size_t, 6> hexVerts;
+    for (int iCorner = 0; iCorner < 3; iCorner++) {
+      std::deque<size_t>& rightD = crossDeques[iCorner];
+      std::deque<size_t>& oppD = crossDeques[(iCorner + 1) % 3];
+      std::deque<size_t>& leftD = crossDeques[(iCorner + 2) % 3];
+
+      bool first = true;
+      while (rightD.size() + leftD.size() > oppD.size()) {
+
+        // This can only happen if something about the crossings is wrong.
+        // Fail loudly rather than segfaulting
+        if (rightD.empty() || leftD.empty()) {
+          // throw std::runtime_error("Invalid crossings for triforce face extraction");
+          cout << "ERROR: Invalid crossings for triforce face extraction" << endl;
+          return;
+        }
+
+        if (first) {
+          addFace(cornerVerts[iCorner], rightD.front(), leftD.back());
+          first = false;
+        } else {
+          addFace(hexVerts[2 * iCorner + 1], rightD.front(), leftD.back());
+          addFace(hexVerts[2 * iCorner + 0], hexVerts[2 * iCorner + 1], leftD.back());
+        }
+
+        // Track the last ones to be popped of each side here, so we can use them to build the hex faces at the end
+        hexVerts[2 * iCorner + 0] = leftD.back();
+        hexVerts[2 * iCorner + 1] = rightD.front();
+
+        rightD.pop_front();
+        leftD.pop_back();
+      }
+    }
+
+    // Now the hexagon
+    for (int i = 1; i < 5; i++) {
+      addFace(hexVerts[0], hexVerts[i], hexVerts[i + 1]);
+    }
+  };
+
+
+  // Extract each face of the intrinsic triangulation independently
+  for (Face f : intrinsicMesh->faces()) {
+    currIntrinsicFace = f;
+
+    std::array<std::vector<size_t>, 3> halfedgeCrosses;
+    size_t i = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+
+      // Get an ordered list of the bends along this edge
+      std::vector<size_t> bendsAlong = intEdgeCrossings[he.edge()];
+
+      // Make sure the list is ordered in the direction of halfedge
+      if (he.edge().halfedge() != he) {
+        std::reverse(bendsAlong.begin(), bendsAlong.end());
+      }
+
+      halfedgeCrosses[i] = bendsAlong;
+      i++;
+    }
+
+
+    // Look for a fan edge
+    i = 0;
+    bool fanFound = false;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      if (halfedgeCrosses[i].size() >= (halfedgeCrosses[(i + 1) % 3].size() + halfedgeCrosses[(i + 2) % 3].size())) {
+        // This halfedge is a fan halfedge!
+
+        // Rotate the crossings so this hafedge is at i=0
+        std::array<std::vector<size_t>, 3> halfedgeCrossesRot;
+        for (int j = 0; j < 3; j++) {
+          halfedgeCrossesRot[j] = halfedgeCrosses[(j + i) % 3];
+        }
+
+        // Extract
+        extractFace_fan(he, halfedgeCrossesRot);
+
+        fanFound = true;
+        break;
+      }
+
+
+      i++;
+    }
+
+    // Triforce case
+    if (!fanFound) {
+      // Extract
+      extractFace_triforce(f.halfedge(), halfedgeCrosses);
+    }
+  }
+
+  // Pack it up
+  std::unique_ptr<SignpostCommonSubdivision> out(
+      new SignpostCommonSubdivision(*this, soup, intrinsicParentPoint, intrinsicParentFace));
+
+  return out;
 }
 
 // ======================================================
@@ -510,7 +725,7 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
   return insertVertex_edge(SurfacePoint(he, tSplit));
 }
 
-void SignpostIntrinsicTriangulation::flipToDelaunay() {
+size_t SignpostIntrinsicTriangulation::flipToDelaunay() {
 
   std::deque<Edge> edgesToCheck;
   EdgeData<bool> inQueue(mesh, true);
@@ -548,6 +763,8 @@ void SignpostIntrinsicTriangulation::flipToDelaunay() {
   }
 
   refreshQuantities();
+
+  return nFlips;
 }
 
 void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
@@ -1135,5 +1352,13 @@ void SignpostIntrinsicTriangulation::invokeEdgeSplitCallbacks(Edge e, Halfedge h
   }
 }
 
+
+SignpostCommonSubdivision::SignpostCommonSubdivision(SignpostIntrinsicTriangulation& intTri_,
+                                                     SimplePolygonMesh& polygonMesh_,
+                                                     std::vector<SurfacePoint>& intrinsicParentPoint_,
+                                                     std::vector<Face>& intrinsicParentFace_)
+    : intTri(intTri_), polygonMesh(polygonMesh_), intrinsicParentPoint(intrinsicParentPoint_),
+      intrinsicParentFace(intrinsicParentFace_) {}
+
 } // namespace surface
-} // namespace geometrycentral
+} // namespace surface
