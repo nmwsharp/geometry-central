@@ -103,7 +103,8 @@ public:
   template <typename T>
   VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
 
-  std::unique_ptr<SignpostCommonSubdivision> extractCommonSubdivision(VertexPositionGeometry& originalPosGeom);
+  std::unique_ptr<SignpostCommonSubdivision> extractCommonSubdivision(VertexPositionGeometry& originalPosGeom,
+                                                                      bool exceptionOnFail = false);
 
   // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
   bool isDelaunay();

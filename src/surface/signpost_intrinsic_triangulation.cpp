@@ -177,7 +177,8 @@ double SignpostIntrinsicTriangulation::minAngleDegrees() {
 }
 
 std::unique_ptr<SignpostCommonSubdivision>
-SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry& originalPosGeom) {
+SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry& originalPosGeom,
+                                                         bool exceptionOnFail) {
   SimplePolygonMesh soup;
 
   VertexData<size_t> intVertInds(*intrinsicMesh);
@@ -205,7 +206,9 @@ SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry&
   Face currIntrinsicFace; // (nick: wtf is this stateful crap)
   auto addFace = [&](size_t v0, size_t v1, size_t v2) {
     if (v0 == v1 || v0 == v2 || v1 == v2) {
-      throw std::runtime_error("bad insertion!");
+      if (exceptionOnFail) {
+        throw std::runtime_error("bad insertion!");
+      }
     }
     soup.polygons.push_back({v0, v1, v2});
     intrinsicParentFace.push_back(currIntrinsicFace);
@@ -277,12 +280,6 @@ SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry&
     std::array<size_t, 3> cornerVerts = {
         {intVertInds[he.vertex()], intVertInds[he.next().vertex()], intVertInds[he.next().next().vertex()]}};
 
-    std::cout << "triforce counts: ";
-    for (int i = 0; i < 3; i++) {
-      std::cout << halfedgeCrosses[i].size() << " ";
-    }
-    std::cout << "\n";
-
     // Deques are nice
     std::array<std::deque<size_t>, 3> crossDeques;
     for (int i = 0; i < 3; i++) {
@@ -302,8 +299,10 @@ SignpostIntrinsicTriangulation::extractCommonSubdivision(VertexPositionGeometry&
         // This can only happen if something about the crossings is wrong.
         // Fail loudly rather than segfaulting
         if (rightD.empty() || leftD.empty()) {
-          // throw std::runtime_error("Invalid crossings for triforce face extraction");
-          cout << "ERROR: Invalid crossings for triforce face extraction" << endl;
+          if (exceptionOnFail) {
+            throw std::runtime_error("Invalid crossings for triforce face extraction");
+          }
+          // cout << "ERROR: Invalid crossings for triforce face extraction" << endl;
           return;
         }
 
@@ -1361,4 +1360,4 @@ SignpostCommonSubdivision::SignpostCommonSubdivision(SignpostIntrinsicTriangulat
       intrinsicParentFace(intrinsicParentFace_) {}
 
 } // namespace surface
-} // namespace surface
+} // namespace geometrycentral
