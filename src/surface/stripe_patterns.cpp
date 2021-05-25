@@ -13,6 +13,7 @@ namespace geometrycentral {
 namespace surface {
 namespace {
 
+// Compute the 1-form \omega_{ij} such as defined in eq.7 of [Knoppel et al. 2015]
 double computeOmega(IntrinsicGeometryInterface& geometry, const VertexData<Vector2>& directionField,
                     const VertexData<double>& frequencies, const Edge& e, bool* crossesSheets = nullptr) {
 
@@ -46,6 +47,7 @@ double computeOmega(IntrinsicGeometryInterface& geometry, const VertexData<Vecto
   return omegaIJ;
 }
 
+// Build a Laplace-like matrix with double entries (necessary to represent complex conjugation)
 SparseMatrix<double> buildVertexEnergyMatrix(IntrinsicGeometryInterface& geometry,
                                              const VertexData<Vector2>& directionField,
                                              const FaceData<int>& branchIndices,
@@ -112,7 +114,7 @@ SparseMatrix<double> buildVertexEnergyMatrix(IntrinsicGeometryInterface& geometr
   return vertexEnergyMatrix;
 }
 
-// Lumped mass matrix with double entries (complex numbers represented as real matrices)
+// Build a lumped mass matrix with double entries
 SparseMatrix<double> computeRealVertexMassMatrix(IntrinsicGeometryInterface& geometry) {
 
   SurfaceMesh& mesh = geometry.mesh;
@@ -136,6 +138,33 @@ SparseMatrix<double> computeRealVertexMassMatrix(IntrinsicGeometryInterface& geo
   return realVertexMassMatrix;
 }
 
+// Solve the generalized eigenvalue problem in equation 9 [Knoppel et al. 2015]
+VertexData<Vector2> computeParameterization(IntrinsicGeometryInterface& geometry,
+                                            const VertexData<Vector2>& directionField,
+                                            const FaceData<int>& branchIndices, const VertexData<double>& frequencies) {
+
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireVertexIndices();
+
+  // Compute vertex energy matrix A and mass matrix B
+  SparseMatrix<double> energyMatrix = buildVertexEnergyMatrix(geometry, directionField, branchIndices, frequencies);
+  SparseMatrix<double> massMatrix = computeRealVertexMassMatrix(geometry);
+
+  // Find the smallest eigenvector
+  Vector<double> solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+
+  // Copy the result to a VertexData vector
+  VertexData<Vector2> toReturn(mesh);
+  for (Vertex v : mesh.vertices()) {
+    toReturn[v].x = solution(2 * geometry.vertexIndices[v]);
+    toReturn[v].y = solution(2 * geometry.vertexIndices[v] + 1);
+    toReturn[v] = toReturn[v].normalize();
+  }
+  return toReturn;
+}
+
+// extract the final texture coordinates from the parameterization
 std::tuple<CornerData<double>, FaceData<int>> computeTextureCoordinates(IntrinsicGeometryInterface& geometry,
                                                                         const VertexData<Vector2>& directionField,
                                                                         const VertexData<double>& frequencies,
@@ -199,44 +228,20 @@ std::tuple<CornerData<double>, FaceData<int>> computeTextureCoordinates(Intrinsi
   return std::tie(textureCoordinates, paramIndices);
 }
 
-VertexData<Vector2> computeParameterization(IntrinsicGeometryInterface& geometry,
-                                            const VertexData<Vector2>& directionField,
-                                            const FaceData<int>& branchIndices, const VertexData<double>& frequencies) {
-
-  SurfaceMesh& mesh = geometry.mesh;
-
-  geometry.requireVertexIndices();
-
-  // Mass matrix
-  SparseMatrix<double> massMatrix = computeRealVertexMassMatrix(geometry);
-
-  // Energy matrix
-  SparseMatrix<double> energyMatrix = buildVertexEnergyMatrix(geometry, directionField, branchIndices, frequencies);
-
-  // Find the smallest eigenvector
-  Vector<double> solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
-
-  // Copy the result to a VertexData vector
-  VertexData<Vector2> toReturn(mesh);
-  for (Vertex v : mesh.vertices()) {
-    toReturn[v].x = solution(2 * geometry.vertexIndices[v]);
-    toReturn[v].y = solution(2 * geometry.vertexIndices[v] + 1);
-    toReturn[v] = toReturn[v].normalize();
-  }
-  return toReturn;
-}
 } // namespace
 
 
 std::tuple<CornerData<double>, FaceData<int>, FaceData<int>>
 computeStripePattern(IntrinsicGeometryInterface& geometry, const VertexData<double>& frequencies,
                      const VertexData<Vector2>& directionField) {
+  // find singularities of the direction field
   FaceData<int> branchIndices = computeFaceIndex(geometry, directionField, 2);
 
-  // it's necessary to multiply by 2pi to get the right frequencies
+  // solve the eigenvalue problem (multiply by 2pi to get the right frequencies)
   VertexData<Vector2> parameterization =
       computeParameterization(geometry, directionField, branchIndices, 2 * PI * frequencies);
 
+  // compute the final corner-based values, along with singularities of the stripe pattern
   CornerData<double> textureCoordinates;
   FaceData<int> zeroIndices;
   std::tie(textureCoordinates, zeroIndices) =
