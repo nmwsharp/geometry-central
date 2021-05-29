@@ -29,7 +29,7 @@ std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<EdgeLengthGeometry> geometry;
 
 // mollify the edge lengths
-mollifyIntrinsic(*mesh, geometry->inputEdgeLengths);
+mollifyIntrinsic(*mesh, geometry->edgeLengths);
 
 // ensure that any existing quantities are updated for the new edge lengths
 geometry->refreshQuantities();

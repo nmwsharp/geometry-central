@@ -27,7 +27,7 @@ std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = readManifoldSurfaceMesh(args::get(inputFilename));
 
 polyscope::init();
-polyscope::registerSurfaceMesh("input mesh", geometry->inputVertexPositions,
+polyscope::registerSurfaceMesh("input mesh", geometry->vertexPositions,
     mesh->getFaceVertexList());
 
 // call polyscope::show(); to inspect the mesh at this point
@@ -56,8 +56,8 @@ for (Edge e : mesh->edges()) { // loop over all edges
   // gather both vertices incident on the edge, and their positions
   Vertex oldA = e.halfedge().tipVertex();
   Vertex oldB = e.halfedge().tailVertex();
-  Vector3 oldAPos = geometry->inputVertexPositions[oldA];
-  Vector3 oldBPos = geometry->inputVertexPositions[oldB];
+  Vector3 oldAPos = geometry->vertexPositions[oldA];
+  Vector3 oldBPos = geometry->vertexPositions[oldB];
 
   // split the edge
   Vertex newV = mesh->splitEdgeTriangular(e).vertex();
@@ -65,7 +65,7 @@ for (Edge e : mesh->edges()) { // loop over all edges
 
   // position the new vertex
   Vector3 newPos = 0.5 * (oldAPos + oldBPos);
-  geometry->inputVertexPositions[newV] = newPos;
+  geometry->vertexPositions[newV] = newPos;
 
   // iterate through the edges incident on the new vertex
   for (Edge e : newV.adjacentEdges()) {
@@ -93,7 +93,7 @@ we now register this new mesh with geometry-central
 ```cpp
 auto* psMesh =
     polyscope::registerSurfaceMesh("subdiv mesh", 
-      geometry->inputVertexPositions, 
+      geometry->vertexPositions, 
       mesh->getFaceVertexList());
 
 polyscope::show();

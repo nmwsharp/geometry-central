@@ -32,7 +32,7 @@ makeManifoldSurfaceMeshAndGeometry(const std::vector<std::vector<size_t>>& polyg
   std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
   for (Vertex v : mesh->vertices()) {
     // Use the low-level indexers here since we're constructing
-    (*geometry).inputVertexPositions[v] = vertexPositions[v.getIndex()];
+    (*geometry).vertexPositions[v] = vertexPositions[v.getIndex()];
   }
   std::unique_ptr<CornerData<Vector2>> parameterization(new CornerData<Vector2>(*mesh));
   if (paramCoordinates.size() == mesh->nFaces()) {
@@ -93,7 +93,7 @@ makeSurfaceMeshAndGeometry(const std::vector<std::vector<size_t>>& polygons,
   std::unique_ptr<VertexPositionGeometry> geometry(new VertexPositionGeometry(*mesh));
   for (Vertex v : mesh->vertices()) {
     // Use the low-level indexers here since we're constructing
-    (*geometry).inputVertexPositions[v] = vertexPositions[v.getIndex()];
+    (*geometry).vertexPositions[v] = vertexPositions[v.getIndex()];
   }
 
   std::unique_ptr<CornerData<Vector2>> parameterization(new CornerData<Vector2>(*mesh));

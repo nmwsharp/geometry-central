@@ -543,8 +543,6 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     Vertex positions in 3D.
 
-    *Note:* this member is distinct from the `VertexPositionGeometry::inputVertexPositions` field. In the common case of a `VertexPositionGeometry`, this member is a copy of the input vertex positions, provided for consistency and generality (one might define embedded surfaces with data other than vertex positions). If you want to update vertex positions on a mesh, you should modify `inputVertexPositions`, not this quantity.
-
     - **member:** `VertexData<Vector3> EmbeddedGeometryInterface::vertexPositions`
     - **require:** `void EmbeddedGeometryInterface::requireVertexPositions()`
 

@@ -1648,7 +1648,7 @@ std::vector<std::vector<Vector3>> FlipEdgeNetwork::pathTo3D(const std::vector<st
   for (const std::vector<SurfacePoint>& edgePath : pathPoints) {
     pathTraces3D.emplace_back();
     for (const SurfacePoint& p : edgePath) {
-      Vector3 p3d = p.interpolate(posGeom->inputVertexPositions);
+      Vector3 p3d = p.interpolate(posGeom->vertexPositions);
       pathTraces3D.back().push_back(p3d);
     }
   }
@@ -1685,7 +1685,7 @@ void FlipEdgeNetwork::savePathOBJLine(std::string filenamePrefix, bool withAll) 
     lineInds.emplace_back();
     std::vector<size_t>& lineInd = lineInds.back();
     for (SurfacePoint& p : line) {
-      Vector3 pos = p.interpolate(posGeom->inputVertexPositions);
+      Vector3 pos = p.interpolate(posGeom->vertexPositions);
 
       outFile << "v " << pos.x << " " << pos.y << " " << pos.z << "\n";
       lineInd.push_back(iP);

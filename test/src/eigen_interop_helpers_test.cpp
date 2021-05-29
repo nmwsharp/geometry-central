@@ -20,13 +20,13 @@ TEST_F(MappingUtilityTest, MappingTest) {
     VertexPositionGeometry& geom = *a.geometry;
 
     // Test Map N x 1 -> N x 3
-    auto pos1 = EigenMap<double, 3>(geom.inputVertexPositions);
-    ASSERT_EQ(geom.inputVertexPositions.size(), pos1.rows());
+    auto pos1 = EigenMap<double, 3>(geom.vertexPositions);
+    ASSERT_EQ(geom.vertexPositions.size(), pos1.rows());
     ASSERT_EQ(3, pos1.cols());
 
     // Test Flattened Map N x 1 -> 3N x 1
-    auto pos2 = FlattenedEigenMap<double, 3>(geom.inputVertexPositions);
-    ASSERT_EQ(3 * geom.inputVertexPositions.size(), pos2.rows());
+    auto pos2 = FlattenedEigenMap<double, 3>(geom.vertexPositions);
+    ASSERT_EQ(3 * geom.vertexPositions.size(), pos2.rows());
     ASSERT_EQ(1, pos2.cols());
 
     for (std::size_t i = 0; i < mesh.nVertices(); ++i) {
@@ -34,40 +34,40 @@ TEST_F(MappingUtilityTest, MappingTest) {
       std::size_t yidx = 3 * i + 1;
       std::size_t zidx = 3 * i + 2;
       // check x values
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos1(i, 0));
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos2(xidx));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos1(i, 0));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos2(xidx));
 
       // check y values
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos1(i, 1));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos2(yidx));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos1(i, 1));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos2(yidx));
 
       // check z values
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos1(i, 2));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos2(zidx));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos1(i, 2));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos2(zidx));
 
-      geom.inputVertexPositions[i][0] += 1;
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos1(i, 0));
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos2(xidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos1(i, 1));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos2(yidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos1(i, 2));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos2(zidx));
+      geom.vertexPositions[i][0] += 1;
+      ASSERT_EQ(geom.vertexPositions[i][0], pos1(i, 0));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos2(xidx));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos1(i, 1));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos2(yidx));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos1(i, 2));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos2(zidx));
 
       pos1(i, 1) -= 3.14;
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos1(i, 0));
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos2(xidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos1(i, 1));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos2(yidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos1(i, 2));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos2(zidx));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos1(i, 0));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos2(xidx));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos1(i, 1));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos2(yidx));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos1(i, 2));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos2(zidx));
 
       pos2(zidx) /= 4;
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos1(i, 0));
-      ASSERT_EQ(geom.inputVertexPositions[i][0], pos2(xidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos1(i, 1));
-      ASSERT_EQ(geom.inputVertexPositions[i][1], pos2(yidx));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos1(i, 2));
-      ASSERT_EQ(geom.inputVertexPositions[i][2], pos2(zidx));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos1(i, 0));
+      ASSERT_EQ(geom.vertexPositions[i][0], pos2(xidx));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos1(i, 1));
+      ASSERT_EQ(geom.vertexPositions[i][1], pos2(yidx));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos1(i, 2));
+      ASSERT_EQ(geom.vertexPositions[i][2], pos2(zidx));
     }
   }
 }
@@ -76,7 +76,7 @@ TEST_F(MappingUtilityTest, MappingTest) {
 TEST_F(MappingUtilityTest, MappingConstCorrectnessTest) {
   for (MeshAsset& a : allMeshes(true)) {
     SurfaceMesh& mesh = *a.mesh;
-    const VertexData<Vector3>& data((a.geometry)->inputVertexPositions);
+    const VertexData<Vector3>& data((a.geometry)->vertexPositions);
 
     const auto pos1 = EigenMap<double, 3>(data);
     ASSERT_EQ(data.size(), pos1.rows());
