@@ -7,11 +7,26 @@ namespace geometrycentral {
 namespace surface {
 
 VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_)
-    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(mesh_, Vector3{0., 0., 0})
-{}
+    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(vertexPositions) {
+
+  vertexPositions = VertexData<Vector3>(mesh_, Vector3{0., 0., 0.});
+
+  // The input vertex positions share storage with vertexPositions, incremented the required counter and make sure they
+  // never get cleared
+  requireVertexPositions();
+  vertexPositionsQ.clearable = false;
+}
 
 VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh_, const VertexData<Vector3>& inputVertexPositions_)
-    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(inputVertexPositions_) {}
+    : EmbeddedGeometryInterface(mesh_), inputVertexPositions(vertexPositions) {
+
+  vertexPositions = inputVertexPositions_;
+
+  // The input vertex positions share storage with vertexPositions, incremented the required counter and make sure they
+  // never get cleared
+  requireVertexPositions();
+  vertexPositionsQ.clearable = false;
+}
 
 
 std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::copy() { return reinterpretTo(mesh); }
@@ -22,7 +37,9 @@ std::unique_ptr<VertexPositionGeometry> VertexPositionGeometry::reinterpretTo(Su
   return newGeom;
 }
 
-void VertexPositionGeometry::computeVertexPositions() { vertexPositions = inputVertexPositions; }
+void VertexPositionGeometry::computeVertexPositions() {
+  // The input vertex positions share storage with vertexPositions, so this is a no-op
+}
 
 
 } // namespace surface

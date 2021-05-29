@@ -177,7 +177,7 @@ In addition to the quantities listed in [their own section](quantities.md), the 
 
 ### Vertex Position Geometry
 
-The usual notion of geometry for a mesh, with a position in 3D for each vertex. These positions are stored in the member `VertexPositionGeometry::inputVertexPositions`.
+The usual notion of geometry for a mesh, with a position in 3D for each vertex. These positions are stored in the member `VertexPositionGeometry::vertexPositions` (which is inherited from the `EmbeddedGeometryInterface`). 
 
 This class inherits from all of the geometry interfaces mentioned above, so all quantities will be available.
 
@@ -187,7 +187,7 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
 
     Construct a new geometry from vertex positions.
 
-    The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
+    The `positions` input is copied, and stored in the member `VertexPositionGeometry::vertexPositions`.
 
 
 ??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh)`"
@@ -199,7 +199,7 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
 
     Construct a new geometry for a mesh from known vertex positions.
 
-    The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
+    The `positions` input is copied, and stored in the member `VertexPositionGeometry::vertexPositions`.
 
 
 ??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, const Eigen::MatrixBase<T>& positions)`"
@@ -261,7 +261,7 @@ This class inherits from the `IntrinsicGeometryInterface`, so only intrinsic qua
 
     Construct a new geometry for a mesh from known edge lengths.
 
-    The `edgeLengths` input is copied, and stored in the member `EdgeLengthGeometry::inputEdgeLengths`.
+    The `edgeLengths` input is copied, and stored in the member `EdgeLengthGeometry::edgeLengths` (inherited from `IntrinsicGeometryInterface`).
 
 
 ??? func "`#!cpp std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::copy()`"
