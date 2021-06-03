@@ -250,5 +250,143 @@ computeStripePattern(IntrinsicGeometryInterface& geometry, const VertexData<doub
   return std::tie(textureCoordinates, zeroIndices, branchIndices);
 }
 
+namespace {
+
+// checks if there's k \in \mathbb{Z} such that val1 < k < val2 or val2 < k < val1
+bool crossesModulo2Pi(double val1, double val2, double& bary) {
+  if (val1 == val2) return false;
+
+  if (val1 < val2) {
+    double isoval = 2 * PI * std::ceil(val1 / (2 * PI));
+    if (val2 > isoval) {
+      bary = (isoval - val2) / (val1 - val2);
+      return true;
+    }
+  } else {
+    double isoval = 2 * PI * std::ceil(val2 / (2 * PI));
+    if (val1 > isoval) {
+      bary = (isoval - val2) / (val1 - val2);
+      return true;
+    }
+  }
+  return false;
+}
+
+} // namespace
+
+std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface& geometry,
+                                                      const CornerData<double>& stripeValues,
+                                                      const FaceData<int>& stripesIndices,
+                                                      const FaceData<int>& fieldIndices) {
+  SurfaceMesh& mesh = geometry.mesh;
+
+  geometry.requireFaceIndices();
+
+  std::vector<Isoline> isolines;
+  FaceData<bool> visited(mesh, false);
+
+  for (Face f : mesh.faces()) {
+    if (visited[f] || stripesIndices[f] != 0 || fieldIndices[f] != 0) continue;
+    visited[f] = true;
+
+    std::vector<std::vector<std::pair<Halfedge, double>>> tracePieces;
+    std::vector<Halfedge> boundaryHe;
+    bool open = true;
+
+    for (Halfedge h : f.adjacentHalfedges()) {
+      double bary;
+      Vector3 intersection;
+      if (crossesModulo2Pi(stripeValues[h.corner()], stripeValues[h.next().corner()], bary)) {
+        std::vector<std::pair<Halfedge, double>> isoPts;
+        isoPts.emplace_back(h, bary);
+
+        Face prevFace = f;
+        Face curFace = h.twin().face();
+        bool done = false;
+        while (!curFace.isBoundaryLoop() && !done && stripesIndices[curFace] == 0 && fieldIndices[curFace] == 0) {
+          visited[curFace] = true;
+          done = true;
+          for (Halfedge he : curFace.adjacentHalfedges()) {
+            Face oppFace = he.twin().face();
+            if (oppFace == prevFace) // don't examine the shared edge twice
+              continue;
+
+            if (crossesModulo2Pi(stripeValues[he.corner()], stripeValues[he.next().corner()], bary)) {
+              if (!oppFace.isBoundaryLoop() && visited[oppFace]) {
+                done = true;
+                if (oppFace == f) open = false; // went back to the original face and made a loop
+              } else {
+                if (oppFace.isBoundaryLoop() || stripesIndices[oppFace] != 0 || fieldIndices[oppFace] != 0)
+                  done = true;
+                else
+                  done = false;
+
+                if (oppFace.isBoundaryLoop()) boundaryHe.push_back(he);
+
+                isoPts.emplace_back(he, bary);
+                prevFace = curFace;
+                curFace = oppFace;
+              }
+              break;
+            }
+          }
+        }
+        tracePieces.push_back(isoPts);
+      }
+    }
+    assert(tracePieces.size() < 3);
+
+    Isoline iso;
+    iso.open = open;
+
+    if (tracePieces.size() == 1) {
+      iso.barycenters = tracePieces[0];
+    } else if (tracePieces.size() == 2) {
+      // reverse the order and orientation of the segments in traces[0]
+      for (auto it = tracePieces[0].rbegin(); it != tracePieces[0].rend(); ++it) iso.barycenters.push_back(*it);
+
+      // stitch together both traces into one isoline
+      for (auto& it : tracePieces[1]) iso.barycenters.push_back(it);
+
+      isolines.push_back(iso);
+    }
+  }
+  return isolines;
+}
+
+std::tuple<std::vector<Vector3>, std::vector<std::array<int, 2>>>
+extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const CornerData<double>& values,
+                                  const FaceData<int>& stripesIndices, const FaceData<int>& fieldIndices) {
+  auto isolines = extractIsolinesFromStripePattern(geometry, values, stripesIndices, fieldIndices);
+
+  geometry.requireVertexPositions();
+  std::vector<Vector3> points;
+  std::vector<std::array<int, 2>> edges;
+
+  int i = 0;
+  for (auto isoline : isolines) {
+    int start = i;
+    for (auto pair : isoline.barycenters) {
+      Halfedge h = pair.first;
+      double bary = pair.second;
+      points.push_back(bary * geometry.vertexPositions[h.tailVertex()] +
+                       (1 - bary) * geometry.vertexPositions[h.tipVertex()]);
+      if (i < start + isoline.barycenters.size() - 1) // make sure not to add an edge in the last iteration
+      {
+        std::array<int, 2> edge = {i, i + 1};
+        edges.push_back(edge);
+      }
+      i += 1;
+    }
+    if (!isoline.open) // close loop
+    {
+      std::array<int, 2> edge = {i - 1, start};
+      edges.push_back(edge);
+    }
+  }
+
+  return std::tie(points, edges);
+}
+
 } // namespace surface
 } // namespace geometrycentral
