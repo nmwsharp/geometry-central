@@ -371,8 +371,8 @@ extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const Cor
       double bary = pair.second;
       points.push_back(bary * geometry.vertexPositions[h.tailVertex()] +
                        (1 - bary) * geometry.vertexPositions[h.tipVertex()]);
-      if (i < start + isoline.barycenters.size() - 1) // make sure not to add an edge in the last iteration
-      {
+      // make sure not to add an edge in the last iteration
+      if (i < start + static_cast<int>(isoline.barycenters.size()) - 1) {
         std::array<int, 2> edge = {i, i + 1};
         edges.push_back(edge);
       }
