@@ -252,7 +252,7 @@ computeStripePattern(IntrinsicGeometryInterface& geometry, const VertexData<doub
 
 namespace {
 
-// checks if there's k \in \mathbb{Z} such that val1 < k < val2 or val2 < k < val1
+// checks if there's k \in \mathbb{Z} such that val1 < 2 k \pi < val2 or val2 < 2 k \pi < val1
 bool crossesModulo2Pi(double val1, double val2, double& bary) {
   if (val1 == val2) return false;
 
@@ -289,14 +289,12 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
     if (visited[f] || stripesIndices[f] != 0 || fieldIndices[f] != 0) continue;
     visited[f] = true;
 
-    std::vector<std::vector<std::pair<Halfedge, double>>> tracePieces;
-    std::vector<Halfedge> boundaryHe;
-    bool open = true;
-
+    Isoline iso;
+    int nbCrosses = 0;
     for (Halfedge h : f.adjacentHalfedges()) {
       double bary;
-      Vector3 intersection;
       if (crossesModulo2Pi(stripeValues[h.corner()], stripeValues[h.next().corner()], bary)) {
+        nbCrosses += 1;
         std::vector<std::pair<Halfedge, double>> isoPts;
         isoPts.emplace_back(h, bary);
 
@@ -314,14 +312,12 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
             if (crossesModulo2Pi(stripeValues[he.corner()], stripeValues[he.next().corner()], bary)) {
               if (!oppFace.isBoundaryLoop() && visited[oppFace]) {
                 done = true;
-                if (oppFace == f) open = false; // went back to the original face and made a loop
+                if (oppFace == f) iso.open = false; // went back to the original face and made a loop
               } else {
                 if (oppFace.isBoundaryLoop() || stripesIndices[oppFace] != 0 || fieldIndices[oppFace] != 0)
                   done = true;
                 else
                   done = false;
-
-                if (oppFace.isBoundaryLoop()) boundaryHe.push_back(he);
 
                 isoPts.emplace_back(he, bary);
                 prevFace = curFace;
@@ -331,25 +327,14 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
             }
           }
         }
-        tracePieces.push_back(isoPts);
+        if (iso.barycenters.size() == 0) // reverse the order of the elements
+          for (auto it = isoPts.rbegin(); it != isoPts.rend(); ++it) iso.barycenters.push_back(*it);
+        else // stitch together both traces into one isoline
+          for (auto& it : isoPts) iso.barycenters.push_back(it);
       }
     }
-    assert(tracePieces.size() < 3);
-
-    Isoline iso;
-    iso.open = open;
-
-    if (tracePieces.size() == 1) {
-      iso.barycenters = tracePieces[0];
-    } else if (tracePieces.size() == 2) {
-      // reverse the order and orientation of the segments in traces[0]
-      for (auto it = tracePieces[0].rbegin(); it != tracePieces[0].rend(); ++it) iso.barycenters.push_back(*it);
-
-      // stitch together both traces into one isoline
-      for (auto& it : tracePieces[1]) iso.barycenters.push_back(it);
-
-      isolines.push_back(iso);
-    }
+    if (nbCrosses > 2) // isolines stop at singularities, so they should never branch out
+      throw std::runtime_error("Isolines should only branch out on singularities");
   }
   return isolines;
 }

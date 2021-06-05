@@ -23,6 +23,7 @@ struct Isoline {
 
 // Extracts the zero (mod 2pi) level set of the function values defined on the corners
 // and returns a list of barycentric coordinates and their corresponding halfedges
+// WARNING this only works if there is no more than one isoline crossing at any edge of the geometry
 std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface& geometry,
                                                       const CornerData<double>& stripeValues,
                                                       const FaceData<int>& zeroIndices,
