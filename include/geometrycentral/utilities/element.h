@@ -2,10 +2,11 @@
 
 #include "geometrycentral/utilities/utilities.h"
 
-#include <cstddef>
+
 #include <functional>
 #include <iostream>
 #include <list>
+#include <tuple>
 
 namespace geometrycentral {
 
