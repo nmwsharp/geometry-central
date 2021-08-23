@@ -3,6 +3,7 @@
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
+#include "geometrycentral/surface/mutation_manager.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
@@ -66,6 +67,10 @@ public:
   // Is this a marked or boundary edge?
   bool isFixed(Edge e);
   bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
+
+  // The mutation manager handles mesh updates, executing callbacks to update the mesh data structures, as well as any
+  // other callbacks which might be registered by the user.
+  MutationManager mutationMananger;
 
 
   // ======================================================
@@ -178,13 +183,13 @@ public:
   //
 
   // edge E if flipped
-  std::list<std::function<void(Edge)>> edgeFlipCallbackList;
+  //std::list<std::function<void(Edge)>> edgeFlipCallbackList;
 
   // old face F is split by new vertex V
-  std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
+  //std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
 
   // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex
-  std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
+  //std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
 
 
   // ======================================================
@@ -201,9 +206,8 @@ public:
 
 
 protected:
-
   // mutation helpers
-  virtual void flipEdgeInternal(Edge e, double newLen) {};
+  virtual void flipEdgeInternal(Edge e, double newLen){};
 
 
   // Callback helpers

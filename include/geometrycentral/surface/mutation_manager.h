@@ -189,11 +189,24 @@ public:
   // ======== Helpers to expose the "simple" interface
   // ======================================================
 
-  // When using the
+  // Use these functions to quickly register callback functions, usually defined via lambda functions, which are called
+  // before (`pre`) or after (`post`) various mesh mutation operations. Optionally, a data object of any type can be
+  // passed from the return value of the `pre` function to the last argument of the `post` function.
   //
+  // For example, the following snippet defines an edge split callback, which passes a bool from the pre to the post
+  // function. It preserves the value of a hypothetical external EdgeData array called `myArr` through edge splits.
   //
-  // OR, if no data needs to be passed between the functions you should use a `void` return type from `pre()` and not
-  // includ
+  // auto funcPre = [&](Edge oldE, double tSplit) -> bool { return myArr[oldE]; };
+  // auto funcPost = [&](Halfedge newHe1, Halfedge newHe2, double tSplit, bool val) -> void {
+  //   myArr[newHe1] = val;
+  //   myArr[newHe2] = val;
+  // };
+  // mutationMananger.registerEdgeSplitHandlers(funcPre, funcPost);
+  //
+  // See the operations above for examples of what the arguments corresponding to each function should be. If no data is
+  // being passed between the functions, both pre and post should return `void`, and there will be no additional final
+  // argument for `post`.
+  //
   // TODO write tests to _at least_ instantiate all of these
 
 
@@ -203,7 +216,7 @@ public:
   void registerEdgeFlipPreHandler(Fpre pre);
   template <typename Fpost>
   void registerEdgeFlipPostHandler(Fpost post);
-  
+
   template <typename Fpre, typename Fpost>
   void registerEdgeSplitHandlers(Fpre pre, Fpost post);
   template <typename Fpre>

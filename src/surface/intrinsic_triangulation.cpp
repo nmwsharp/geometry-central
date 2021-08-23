@@ -6,7 +6,7 @@ namespace surface {
 
 IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_)
     : EdgeLengthGeometry(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
-      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
+      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)), mutationMananger(*intrinsicMesh) {
 
 
   // do this here, rather than in the constructer, since we need to call require() first
@@ -25,13 +25,14 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
   }
 
   // == Register the default callback which maintains marked edges
-  auto updateMarkedEdges = [&](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
-    if (markedEdges.size() > 0 && markedEdges[oldE]) {
-      markedEdges[newHe1.edge()] = true;
-      markedEdges[newHe2.edge()] = true;
-    }
-  };
-  edgeSplitCallbackList.push_back(updateMarkedEdges);
+  mutationMananger.registerEdgeSplitHandlers(
+      [&](Edge oldE, double tSplit) -> bool { return (markedEdges.size() > 0 && markedEdges[oldE]); },
+      [&](Halfedge newHe1, Halfedge newHe2, double tSplit, bool val) -> void {
+        if (markedEdges.size() > 0) {
+          markedEdges[newHe1.edge()] = val;
+          markedEdges[newHe2.edge()] = val;
+        }
+      });
 }
 
 // ======================================================
