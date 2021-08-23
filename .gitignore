@@ -8,6 +8,7 @@ build_debug/
 *.swp
 tags
 compile_commands.json
+.cache
 
 # Prerequisites
 *.d
