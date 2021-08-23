@@ -66,9 +66,7 @@ T clamp(T val, T low, T high);
 double regularizeAngle(double theta); // Map theta in to [0,2pi)
 
 // Missing isfinite function
-inline bool isfinite(const std::complex<double>& c) {
-  return std::isfinite(c.real()) && std::isfinite(c.imag());
-}
+inline bool isfinite(const std::complex<double>& c) { return std::isfinite(c.real()) && std::isfinite(c.imag()); }
 
 // Conjugate which does nothing to non-complex values
 template <typename T>
@@ -102,6 +100,13 @@ std::vector<T, A1> applyPermutation(const std::vector<T, A1>& sourceData, const 
     }
   }
   return retVal;
+}
+
+// erase-remove idiom
+// modifies vector in-place removing all occurences of `obj` according to == (if any)
+template <typename T, typename O>
+void removeFromVector(std::vector<T>& vec, O& obj) {
+  vec.erase(std::remove(vec.begin(), vec.end(), obj), vec.end());
 }
 
 // === Random number generation ===

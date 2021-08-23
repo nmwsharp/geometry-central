@@ -1,3 +1,6 @@
+#pragma once
+
+#include "geometrycentral/utilities/elementary_geometry.h"
 
 namespace geometrycentral {
 
@@ -76,5 +79,17 @@ inline RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 
 }
 
 
+
+inline double pointLineSegmentNeaestLocation(Vector3 p, Vector3 lineA, Vector3 lineB) {
+  double len2 = (lineA - lineB).norm2();
+  if (len2 == 0.0) return 0;                                      // degenerate line case
+  double t = clamp(dot(p - lineA, lineB - lineA) / len2, 0., 1.); // nearest point on segment
+  return t;
+}
+inline double pointLineSegmentDistance(Vector3 p, Vector3 lineA, Vector3 lineB) {
+  double t = pointLineSegmentNeaestLocation(p, lineA, lineB);
+  Vector3 proj = lineA + t * (lineB - lineA);
+  return (p - proj).norm();
+}
 
 } // namespace geometrycentral
