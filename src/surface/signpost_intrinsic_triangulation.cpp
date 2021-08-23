@@ -21,22 +21,13 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
     // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
     // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
     // probably a sign of bad design.
-    : IntrinsicGeometryInterface(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
-      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
-
-  // Make sure the input mesh is triangular
-  if (!mesh.isTriangular()) {
-    throw std::runtime_error("signpost triangulation requires triangle mesh as input");
-  }
+    : IntrinsicTriangulation(mesh_, inputGeom_) {
 
   // == Initialize geometric data
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
   inputGeom.requireVertexAngleSums();
   inputGeom.requireCornerAngles();
-
-  // Just copy lengths
-  intrinsicEdgeLengths = inputGeom.edgeLengths.reinterpretTo(mesh);
 
   // Prepare directions and angle sums
   intrinsicHalfedgeDirections = HalfedgeData<double>(mesh);
@@ -86,12 +77,6 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   edgeSplitCallbackList.push_back(updateMarkedEdges);
 }
 
-void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) {
-  markedEdges = markedEdges_;
-  markedEdges.setDefault(false);
-}
-
-
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
 
   // Optimization: don't both tracing original edges, just report them directly
@@ -134,86 +119,17 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   return result.pathPoints;
 }
 
-EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges() {
-
-  EdgeData<std::vector<SurfacePoint>> tracedEdges(mesh);
-
-  for (Edge e : mesh.edges()) {
-    Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he, false);
-  }
-
-  return tracedEdges;
-}
-
 
 // ======================================================
 // ======== Queries & Accessors
 // ======================================================
 
 
-bool SignpostIntrinsicTriangulation::isDelaunay(Edge e) {
-  if (!isFixed(e) && edgeCotanWeight(e) < -delaunayEPS) {
-    return false;
-  }
-  return true;
-}
-bool SignpostIntrinsicTriangulation::isDelaunay() {
-  for (Edge e : mesh.edges()) {
-    if (!isDelaunay(e)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-double SignpostIntrinsicTriangulation::minAngleDegrees() {
-  double minAngle = std::numeric_limits<double>::infinity();
-  for (Corner c : mesh.corners()) {
-    minAngle = std::min(minAngle, cornerAngle(c));
-  }
-  return minAngle * 180. / M_PI;
-}
-
 // ======================================================
 // ======== Mutators
 // ======================================================
 
-bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
-
-  // Can't flip
-  if (isFixed(e)) return false;
-
-  // Don't want to flip
-  double cWeight = edgeCotanWeight(e);
-  if (cWeight > -delaunayEPS) return false;
-
-  // Get geometric data
-  Halfedge he = e.halfedge();
-  std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
-
-  // Combinatorial flip
-  bool flipped = intrinsicMesh->flip(e, false);
-
-  // Should always be possible, something unusual is going on if we end up here
-  if (!flipped) {
-    return false;
-  }
-
-  // Compute the new edge length
-  double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
-
-  // If we're going to create a non-finite edge length, abort the flip
-  // (only happens if you're in a bad numerical place)
-  if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e, false);
-    return false;
-  }
-
-  // Assign the new edge lengths
-  intrinsicEdgeLengths[e] = newLength;
-  edgeLengths[e] = newLength;
-
+void SignpostIntrinsicTriangulation::flipEdgeInternal(Edge e, double newLen) {
   // Update edge angles
   updateAngleFromCWNeighor(e.halfedge());
   updateAngleFromCWNeighor(e.halfedge().twin());
@@ -221,63 +137,9 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   updateFaceBasis(e.halfedge().twin().face());
 
   edgeIsOriginal[e] = false;
-
-  invokeEdgeFlipCallbacks(e);
-  return true;
 }
 
-bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleEPS) {
 
-  // Can't flip
-  if (isFixed(e)) return false;
-
-  // Get geometric data
-  Halfedge he = e.halfedge();
-  std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
-
-  // Test if geometryically flippable flippable (both signed areas of new triangles are positive)
-  double A1 = cross(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
-  double A2 = cross(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
-  double areaEPS = possibleEPS * (A1 + A2);
-  if (A1 < areaEPS || A2 < areaEPS) {
-    return false;
-  }
-
-
-  // Combinatorial flip
-  bool flipped = intrinsicMesh->flip(e, false);
-
-  // Might not have been flippable for connectivity reasons
-  if (!flipped) {
-    return false;
-  }
-
-  // Compute the new edge length
-  double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
-
-  // If we're going to create a non-finite edge length, abort the flip
-  // (only happens if you're in a bad numerical place)
-  if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e, false);
-    return false;
-  }
-
-  // Assign the new edge lengths
-  // TODO project to satisfy triangle inequality?
-  intrinsicEdgeLengths[e] = newLength;
-  edgeLengths[e] = newLength;
-
-  // Update edge angles
-  updateAngleFromCWNeighor(e.halfedge());
-  updateAngleFromCWNeighor(e.halfedge().twin());
-  updateFaceBasis(e.halfedge().face());
-  updateFaceBasis(e.halfedge().twin().face());
-
-  edgeIsOriginal[e] = false;
-
-  invokeEdgeFlipCallbacks(e);
-  return true;
-}
 
 void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle,
                                                     bool isOrig, bool reverseFlip) {
@@ -288,7 +150,6 @@ void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, do
     if (!flipped) throw std::runtime_error("could not perform manual flip");
   }
 
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
 
   // Update other derived geometric data
@@ -334,8 +195,8 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   double backLen, frontLen, Alen, Blen;
 
   // in A
-  backLen = newP.tEdge * intrinsicEdgeLengths[insertionEdge];
-  frontLen = (1. - newP.tEdge) * intrinsicEdgeLengths[insertionEdge];
+  backLen = newP.tEdge * edgeLengths[insertionEdge];
+  frontLen = (1. - newP.tEdge) * edgeLengths[insertionEdge];
 
   int iA = halfedgeIndexInTriangle(insertionEdge.halfedge());
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(fA);
@@ -377,7 +238,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   Halfedge newHeBack;
   std::array<double, 4> newLens = {frontLen, Alen, backLen, Blen};
   for (int i = 0; i < (isOnBoundary ? 3 : 4); i++) {
-    intrinsicEdgeLengths[currHe.edge()] = newLens[i];
     edgeLengths[currHe.edge()] = newLens[i];
     if (i == 2) newHeBack = currHe;
     currHe = currHe.next().next().twin();
@@ -430,7 +290,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
     // Find the new edge which this length belongs to
     for (Halfedge heV : newV.outgoingHalfedges()) {
       if (heV.next() == origHe) {
-        intrinsicEdgeLengths[heV.edge()] = thisLen;
         edgeLengths[heV.edge()] = thisLen;
       }
     }
@@ -448,9 +307,9 @@ Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
   // === Circumcenter in barycentric coordinates
 
   Halfedge he0 = f.halfedge();
-  double a = intrinsicEdgeLengths[he0.next().edge()];
-  double b = intrinsicEdgeLengths[he0.next().next().edge()];
-  double c = intrinsicEdgeLengths[he0.edge()];
+  double a = edgeLengths[he0.next().edge()];
+  double b = edgeLengths[he0.next().next().edge()];
+  double c = edgeLengths[he0.edge()];
   double a2 = a * a;
   double b2 = b * b;
   double c2 = c * c;
@@ -689,7 +548,7 @@ void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Fac
   // Register a callback, which will be invoked to delete previously-inserted vertices whenever refinment splits an edge
   auto deleteNearbyVertices = [&](Edge e, Halfedge he1, Halfedge he2) {
     // radius of the diametral ball
-    double ballRad = std::max(intrinsicEdgeLengths[he1.edge()], intrinsicEdgeLengths[he2.edge()]);
+    double ballRad = std::max(edgeLengths[he1.edge()], edgeLengths[he2.edge()]);
     Vertex newV = he1.vertex();
 
     // Find all vertices within range.
@@ -895,7 +754,7 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
 
         // Split if angle is too sharp
         if (angleBetween > angleThresh) {
-          double thisTSplit = runningLen / intrinsicEdgeLengths[e];
+          double thisTSplit = runningLen / edgeLengths[e];
 
           if (thisTSplit > relativeLengthEPS && thisTSplit < 1. - relativeLengthEPS) {
             tSplit = thisTSplit;
@@ -923,8 +782,6 @@ void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& p
 // ======================================================
 // ======== Geometry and Helpers
 // ======================================================
-
-void SignpostIntrinsicTriangulation::computeEdgeLengths() { edgeLengths = intrinsicEdgeLengths; }
 
 void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
   halfedgeVectorsInVertex = HalfedgeData<Vector2>(mesh);
@@ -966,11 +823,11 @@ void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
 
 void SignpostIntrinsicTriangulation::updateFaceBasis(Face f) {
   Halfedge he = f.halfedge();
-  double a = intrinsicEdgeLengths[he.edge()];
+  double a = edgeLengths[he.edge()];
   he = he.next();
-  double b = intrinsicEdgeLengths[he.edge()];
+  double b = edgeLengths[he.edge()];
   he = he.next();
-  double c = intrinsicEdgeLengths[he.edge()];
+  double c = edgeLengths[he.edge()];
 
   Vector2 p0{0., 0.};
   Vector2 p1{a, 0.};
@@ -1005,9 +862,9 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   // error.
   /*
   Halfedge inputTraceHe = newV.halfedge().twin();
-  double shortestTraceHeLen = intrinsicEdgeLengths[inputTraceHe.edge()];
+  double shortestTraceHeLen = edgeLengths[inputTraceHe.edge()];
   for (Halfedge heIn : newV.incomingHalfedges()) {
-    double thisLen = intrinsicEdgeLengths[heIn.edge()];
+    double thisLen = edgeLengths[heIn.edge()];
 
     bool currVertIsOriginal = vertexLocations[inputTraceHe.vertex()].type == SurfacePointType::Vertex;
     bool newVertIsOriginal = vertexLocations[heIn.vertex()].type == SurfacePointType::Vertex;
@@ -1033,7 +890,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   for (Halfedge heIn : newV.incomingHalfedges()) {
 
     // length score
-    double thisLen = intrinsicEdgeLengths[heIn.edge()];
+    double thisLen = edgeLengths[heIn.edge()];
 
     // type score
     int numScore = 2;
@@ -1129,7 +986,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   }
 
   intrinsicHalfedgeDirections[inputTraceHe.twin()] = incomingAngle;
-  // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * intrinsicEdgeLengths[inputTraceHe.edge()];
+  // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * edgeLengths[inputTraceHe.edge()];
   halfedgeVectorsInVertex[inputTraceHe.twin()] = halfedgeVector(inputTraceHe.twin());
 
   // Custom loop to orbit CCW from InputTraceHe

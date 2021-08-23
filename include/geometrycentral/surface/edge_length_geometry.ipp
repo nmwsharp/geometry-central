@@ -1,3 +1,7 @@
+#pragma once
+
+#include "geometrycentral/surface/edge_length_geometry.h"
+
 namespace geometrycentral {
 namespace surface {
 
@@ -13,7 +17,7 @@ inline double EdgeLengthGeometry::faceArea(Face f) const {
 
   GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
 
-  // Herons formula
+  // Heron's formula
   double s = (a + b + c) / 2.0;
   double arg = s * (s - a) * (s - b) * (s - c);
   arg = std::fmax(0., arg);
@@ -95,6 +99,19 @@ inline double EdgeLengthGeometry::edgeCotanWeight(Edge e) const {
   }
   return sum;
 }
+
+inline double EdgeLengthGeometry::faceCircumradius(Face f) const {
+  Halfedge he = f.halfedge();
+  double a = edgeLengths[he.edge()];
+  he = he.next();
+  double b = edgeLengths[he.edge()];
+  he = he.next();
+  double c = edgeLengths[he.edge()];
+
+  double A = faceArea(f);
+  return a * b * c / (4. * A);
+}
+
 
 } // namespace surface
 } // namespace geometrycentral

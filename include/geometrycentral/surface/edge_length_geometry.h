@@ -37,6 +37,7 @@ public:
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
   double vertexGaussianCurvature(Vertex v) const;
+  double faceCircumradius(Face f) const;
 
 
 protected:
