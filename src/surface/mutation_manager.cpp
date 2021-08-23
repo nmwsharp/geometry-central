@@ -10,7 +10,9 @@ namespace surface {
 // ======================================================
 
 MutationManager::MutationManager(ManifoldSurfaceMesh& mesh_, VertexPositionGeometry& geometry_)
-    : mesh(mesh_), geometry(geometry_), pos(geometry.inputVertexPositions) {}
+    : mesh(mesh_), geometry(&geometry_) {}
+
+MutationManager::MutationManager(ManifoldSurfaceMesh& mesh_) : mesh(mesh_) {}
 
 // ======================================================
 // ======== Low-level mutations
@@ -23,7 +25,7 @@ void MutationManager::repositionVertex(Vertex vert, Vector3 offset) {
     policy->beforeVertexReposition(vert, offset);
   }
 
-  pos[vert] += offset;
+  geometry->vertexPositions[vert] += offset;
 }
 
 // Flip an edge.
@@ -39,7 +41,7 @@ bool MutationManager::flipEdge(Edge e) {
   }
 
   // Undo the test flip
-  if (canFlip) mesh.flip(e);
+  mesh.flip(e);
 
   // Invoke before callbacks
   for (EdgeFlipPolicy* policy : edgeFlipPolicies) {
@@ -58,15 +60,25 @@ bool MutationManager::flipEdge(Edge e) {
 }
 
 void MutationManager::splitEdge(Edge e, double tSplit) {
-  Vector3 newPos = (1. - tSplit) * pos[e.halfedge().tailVertex()] + tSplit * pos[e.halfedge().tipVertex()];
+  Vector3 newPos{0., 0., 0.};
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    newPos = (1. - tSplit) * pos[e.halfedge().tailVertex()] + tSplit * pos[e.halfedge().tipVertex()];
+  }
   splitEdge(e, tSplit, newPos);
 }
 
 void MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
-  // Find the nearest tCoord
-  Vector3 posTail = pos[e.halfedge().tailVertex()];
-  Vector3 posTip = pos[e.halfedge().tipVertex()];
-  double tSplit = pointLineSegmentNeaestLocation(newVertexPosition, posTail, posTip);
+
+  double tSplit = -1;
+  GC_SAFETY_ASSERT(geometry, "must have geometry to split by position");
+  if (geometry) {
+    // Find the nearest tCoord
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    Vector3 posTail = pos[e.halfedge().tailVertex()];
+    Vector3 posTip = pos[e.halfedge().tipVertex()];
+    tSplit = pointLineSegmentNeaestLocation(newVertexPosition, posTail, posTip);
+  }
 
   splitEdge(e, tSplit, newVertexPosition);
 }
@@ -80,7 +92,10 @@ void MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition
 
   Halfedge newHeFront = mesh.splitEdgeTriangular(e);
   Vertex newV = newHeFront.vertex();
-  pos[newV] = newVertexPosition;
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    pos[newV] = newVertexPosition;
+  }
   Halfedge newHeBack = newHeFront.prevOrbitFace().twin().prevOrbitFace().twin();
 
   // Invoke after callbacks
@@ -92,15 +107,26 @@ void MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition
 // Collapse an edge.
 // Returns true if the edge could actually be collapsed.
 bool MutationManager::collapseEdge(Edge e, double tCollapse) {
-  Vector3 newPos = (1. - tCollapse) * pos[e.halfedge().tailVertex()] + tCollapse * pos[e.halfedge().tipVertex()];
+  Vector3 newPos{0., 0., 0.};
+  if (geometry) {
+    // Find the nearest tCoord
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    newPos = (1. - tCollapse) * pos[e.halfedge().tailVertex()] + tCollapse * pos[e.halfedge().tipVertex()];
+  }
   return collapseEdge(e, tCollapse, newPos);
 }
 
 bool MutationManager::collapseEdge(Edge e, Vector3 newVertexPosition) {
-  // Find the nearest tCoord
-  Vector3 posTail = pos[e.halfedge().tailVertex()];
-  Vector3 posTip = pos[e.halfedge().tipVertex()];
-  double tCollapse = pointLineSegmentNeaestLocation(newVertexPosition, posTail, posTip);
+
+  double tCollapse = -1;
+  GC_SAFETY_ASSERT(geometry, "must have geometry to split by position");
+  if (geometry) {
+    // Find the nearest tCoord
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    Vector3 posTail = pos[e.halfedge().tailVertex()];
+    Vector3 posTip = pos[e.halfedge().tipVertex()];
+    double tCollapse = pointLineSegmentNeaestLocation(newVertexPosition, posTail, posTip);
+  }
 
   return collapseEdge(e, tCollapse, newVertexPosition);
 }
@@ -115,11 +141,15 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
 
   Vertex newV = mesh.collapseEdgeTriangular(e);
   if (newV == Vertex()) return false;
-  pos[newV] = newVertexPosition;
+
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    pos[newV] = newVertexPosition;
+  }
 
   // Invoke after callbacks
   for (EdgeCollapsePolicy* policy : edgeCollapsePolicies) {
-    policy->afterEdgeCollapse(newV);
+    policy->afterEdgeCollapse(newV, tCollapse);
   }
 
   return true;
@@ -128,15 +158,20 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
 // Split a face (i.e. insert a vertex into the face)
 void MutationManager::splitFace(Face f, const std::vector<double>& bSplit) {
   Vector3 newPos = Vector3::zero();
-  size_t iV = 0;
-  for (Vertex v : f.adjacentVertices()) {
-    newPos += bSplit[iV] * pos[v];
-    iV++;
+  if (geometry) {
+    size_t iV = 0;
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    for (Vertex v : f.adjacentVertices()) {
+      newPos += bSplit[iV] * pos[v];
+      iV++;
+    }
   }
+
   splitFace(f, bSplit, newPos);
 }
 
 void MutationManager::splitFace(Face f, Vector3 newVertexPosition) {
+  // TODO
   throw std::runtime_error("Face split based on vertex position not implemented yet");
 }
 
@@ -148,7 +183,10 @@ void MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vecto
   }
 
   Vertex newV = mesh.insertVertex(f);
-  pos[newV] = newVertexPosition;
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    pos[newV] = newVertexPosition;
+  }
 
   // Invoke after callbacks
   for (FaceSplitPolicy* policy : faceSplitPolicies) {
@@ -238,7 +276,7 @@ MutationPolicyHandle MutationManager::registerPolicy(MutationPolicy* policyObjec
   // have default virtual implementations for all policies in the base MutationPolicy, but this would cause lots of
   // wasted dynamic function dereferences to call no-op functions. Instead, we optimize here to pay the price once at
   // registration-time by sorting the callbacks in to categories with a dynamic_cast(). These yields an identical design
-  // from the users point of view, and (hopefully) better performance.
+  // from the user's point of view, and (hopefully) better performance.
 
   pushIfSubclass(vertexRepositionPolicies, policyObject);
   pushIfSubclass(edgeFlipPolicies, policyObject);
@@ -252,7 +290,7 @@ MutationPolicyHandle MutationManager::registerPolicy(MutationPolicy* policyObjec
 }
 
 void MutationManager::removePolicy(const MutationPolicyHandle& toRemove) {
-  // Remove from all
+  // Remove from all lists 
   removeFromVector(vertexRepositionPolicies, toRemove.policy);
   removeFromVector(edgeFlipPolicies, toRemove.policy);
   removeFromVector(edgeSplitPolicies, toRemove.policy);

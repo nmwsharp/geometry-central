@@ -9,16 +9,25 @@ namespace geometrycentral {
 namespace surface {
 
 /*
-  This class provides a wide variety of functionality to
+  This class provides a wide variety of functionality to modify a surface mesh with low-level operations like edge
+  flips, splits, face splits, edge collapses, etc., as well as high-level operations like subdivisions and remeshing.
+  Callbacks can be registered
 
   Unlike much of geometry-central, which abstractly separates the idea of a mesh's connectivity and geometry, this class
   explicitly handles the common case of a manifold triangle mesh with 3D vertex positions.
+
+
 
   // TODO no reason this should be limited to manifold
 */
 
 // Forward declare
 class MutationManager;
+
+
+// ======================================================
+// ======== Callback classes (general case)
+// ======================================================
 
 // Parent type for all policies
 class MutationPolicy {
@@ -48,7 +57,7 @@ public:
 class EdgeCollapsePolicy : public virtual MutationPolicy {
 public:
   virtual void beforeEdgeCollapse(const Edge& e, const double& tCollapse) {}
-  virtual void afterEdgeCollapse(const Vertex& v) {}
+  virtual void afterEdgeCollapse(const Vertex& v, const double& tCollapse) {}
 };
 
 
@@ -68,6 +77,12 @@ public:
   MutationPolicy* policy;
 };
 
+
+// ======================================================
+// ======== The Mutation Manager
+// ======================================================
+
+
 class MutationManager {
 
 
@@ -79,7 +94,7 @@ public:
   // Core members which define the class.
 
   ManifoldSurfaceMesh& mesh;
-  VertexPositionGeometry& geometry;
+  VertexPositionGeometry* geometry = nullptr; // if the mutation-manager is connectivity-only, this field will be null
 
   // ======================================================
   // ======== Construtors
@@ -88,10 +103,13 @@ public:
   // Create a new mutation manager, which modifies the mesh and geometry in-place.
   MutationManager(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry);
 
+  // Create a connectivity-only mutation manager, which does not touch any geometry by default
+  MutationManager(ManifoldSurfaceMesh& mesh);
+
+
   // ======================================================
   // ======== Low-level mutations
-  // ======================================================
-  //
+  // ====================================================== //
   // Low-level routines which modify the mesh, updating connectivity as well as geometry and invoking any relevant
   // callbacks.
   //
@@ -167,6 +185,46 @@ public:
   // Update integrated data at faces (scalars which have been integrated over a face, like area)
   // MutationPolicyHandle manageIntegratedScalarData(FaceData<double>& data);
 
+  // ======================================================
+  // ======== Helpers to expose the "simple" interface
+  // ======================================================
+
+  // When using the
+  //
+  //
+  // OR, if no data needs to be passed between the functions you should use a `void` return type from `pre()` and not
+  // includ
+  // TODO write tests to _at least_ instantiate all of these
+
+
+  template <typename Fpre, typename Fpost>
+  void registerEdgeFlipHandlers(Fpre pre, Fpost post);
+  template <typename Fpre>
+  void registerEdgeFlipPreHandler(Fpre pre);
+  template <typename Fpost>
+  void registerEdgeFlipPostHandler(Fpost post);
+  
+  template <typename Fpre, typename Fpost>
+  void registerEdgeSplitHandlers(Fpre pre, Fpost post);
+  template <typename Fpre>
+  void registerEdgeSplitPreHandler(Fpre pre);
+  template <typename Fpost>
+  void registerEdgeSplitPostHandler(Fpost post);
+
+  template <typename Fpre, typename Fpost>
+  void registerFaceSplitHandlers(Fpre pre, Fpost post);
+  template <typename Fpre>
+  void registerFaceSplitPreHandler(Fpre pre);
+  template <typename Fpost>
+  void registerFaceSplitPostHandler(Fpost post);
+
+  template <typename Fpre, typename Fpost>
+  void registerEdgeCollapseHandlers(Fpre pre, Fpost post);
+  template <typename Fpre>
+  void registerEdgeCollapsePreHandler(Fpre pre);
+  template <typename Fpost>
+  void registerEdgeCollapsePostHandler(Fpost post);
+
 
   // == Manual interface: add callbacks on to these lists to do whatever you want.
 
@@ -183,8 +241,6 @@ public:
 
 
 private:
-  VertexData<Vector3>& pos; // an alias for geometry->inputVertexPositions, solely for notational convenience
-
   // ======================================================
   // ======== Callback management
   // ======================================================
@@ -202,3 +258,5 @@ private:
 
 } // namespace surface
 } // namespace geometrycentral
+
+#include "geometrycentral/surface/mutation_manager.ipp"
