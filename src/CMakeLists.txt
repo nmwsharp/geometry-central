@@ -27,10 +27,12 @@ SET(SRCS
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
   surface/trace_geodesic.cpp
+  surface/normal_coordinates.cpp
   surface/surface_centers.cpp
   surface/simple_idt.cpp
   surface/intrinsic_triangulation.cpp
   surface/signpost_intrinsic_triangulation.cpp
+  surface/integer_coordinates_intrinsic_triangulation.cpp
   surface/mesh_graph_algorithms.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp
