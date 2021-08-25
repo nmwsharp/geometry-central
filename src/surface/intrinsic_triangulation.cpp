@@ -297,6 +297,8 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     double ballRad = std::max(edgeLengths[he1.edge()], edgeLengths[he2.edge()]);
     Vertex newV = he1.vertex();
 
+    // TODO flip to Delaunay, to ensure that the Dijkstra search below actually has a stretch factor of 2
+
     // Find all vertices within range.
     // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on
     // polyhedral shortest paths which is bad for performance and robustness. Using a Dijsktra ball instead seems to
@@ -432,8 +434,8 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
   } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty() || recheckCount < MAX_RECHECK_COUNT);
 
+  // Cleanup work: recompute any geometric data, and remove the special callbacks we added
   refreshQuantities();
-
   edgeSplitCallbackList.erase(splitCallbackHandle);
   edgeFlipCallbackList.erase(flipCallbackHandle);
 }
