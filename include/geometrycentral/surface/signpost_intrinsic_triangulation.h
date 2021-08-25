@@ -55,7 +55,7 @@ public:
 
   // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
   // flipped.
-  bool flipEdgeIfPossible(Edge e, double possibleEPS = 1e-6) override;
+  bool flipEdgeIfPossible(Edge e) override;
 
   // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
   // be flippable. Experts only.
@@ -65,12 +65,6 @@ public:
   // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) override;
 
-  // Insert the circumcenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
-  Vertex insertCircumcenter(Face f) override;
-
-  // Insert the barycenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
-  Vertex insertBarycenter(Face f) override;
-
   // Remove an (inserted) vertex from the triangulation.
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   Face removeInsertedVertex(Vertex v) override;
@@ -79,9 +73,6 @@ public:
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
 protected:
-  
-  // mutation helpers
-  void flipEdgeInternal(Edge e, double newLen) override;
 
 private:
   // ======================================================

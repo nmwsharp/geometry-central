@@ -3,7 +3,6 @@
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
-#include "geometrycentral/surface/mutation_manager.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
@@ -68,9 +67,8 @@ public:
   bool isFixed(Edge e);
   bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
 
-  // The mutation manager handles mesh updates, executing callbacks to update the mesh data structures, as well as any
-  // other callbacks which might be registered by the user.
-  MutationManager mutationMananger;
+  // Parameters
+  double triangleTestEPS = 1e-6; // used for numerical checks in mesh operations
 
 
   // ======================================================
@@ -100,8 +98,8 @@ public:
   VertexData<T> restrictToInput(const VertexData<T>& dataOnIntrinsic);
 
   // Returns true if the intrinsic triangulation (or edge) satisifies the intrinsic Delaunay criterion
-  bool isDelaunay(double delaunayEPS = 1e-4);
-  bool isDelaunay(Edge e, double delaunayEPS = 1e-4);
+  bool isDelaunay();
+  bool isDelaunay(Edge e);
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
   double minAngleDegrees();
@@ -132,13 +130,6 @@ public:
   void delaunayRefine(const std::function<bool(Face)>& shouldRefine, size_t maxInsertions = INVALID_IND);
 
 
-  // Split edges which bend along an underlying surface.
-  //   - angleThreshDeg: threshold at which to split (interpret as angle between normals), 0 would mean never split
-  //   - relaiveL
-  void splitBentEdges(EmbeddedGeometryInterface& posGeom, double angleThreshDeg = 30, double relativeLengthEPS = 1e-4,
-                      size_t maxInsertions = INVALID_IND);
-
-
   // ======================================================
   // ======== Low-Level Mutators
   // ======================================================
@@ -152,7 +143,7 @@ public:
 
   // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
   // flipped.
-  virtual bool flipEdgeIfPossible(Edge e, double possibleEPS = 1e-6) = 0;
+  virtual bool flipEdgeIfPossible(Edge e) = 0;
 
   // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
   // be flippable. Experts only.
@@ -163,10 +154,10 @@ public:
   virtual Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) = 0;
 
   // Insert the circumcenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
-  virtual Vertex insertCircumcenter(Face f) = 0;
+  Vertex insertCircumcenter(Face f);
 
   // Insert the barycenter of a face in to the triangulation. Returns the newly created intrinsic vertex.
-  virtual Vertex insertBarycenter(Face f) = 0;
+  Vertex insertBarycenter(Face f);
 
   // Remove an (inserted) vertex from the triangulation.
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
@@ -183,13 +174,13 @@ public:
   //
 
   // edge E if flipped
-  //std::list<std::function<void(Edge)>> edgeFlipCallbackList;
+   std::list<std::function<void(Edge)>> edgeFlipCallbackList;
 
   // old face F is split by new vertex V
-  //std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
+   std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
 
   // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex
-  //std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
+   std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
 
 
   // ======================================================
@@ -206,9 +197,6 @@ public:
 
 
 protected:
-  // mutation helpers
-  virtual void flipEdgeInternal(Edge e, double newLen){};
-
 
   // Callback helpers
   void invokeEdgeFlipCallbacks(Edge e);
