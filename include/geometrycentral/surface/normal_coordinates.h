@@ -13,6 +13,10 @@ namespace surface {
 struct NormalCoordinatesCurve {
   std::vector<std::pair<int, Halfedge>> crossings;
 };
+struct NormalCoordinatesCompoundCurve {
+  std::vector<NormalCoordinatesCurve> components;
+};
+
 
 // A set of normal coordinates atop a triangulation. Represents general
 // non-crossing curves which may terminate at vertices.
@@ -22,9 +26,6 @@ public:
 
   // Initializes an empty set of normal coords
   NormalCoordinates(ManifoldSurfaceMesh& mesh);
-
-  // Construct normal coordinates representing the edges of the mesh
-  static std::unique_ptr<NormalCoordinates> constructFromEdges(ManifoldSurfaceMesh& mesh);
 
   // == Accessors
   int operator[](Edge e) const;   // gives normal coodinates across the edge
@@ -48,6 +49,9 @@ public:
 
   // Count of edges emanating from each corner (nonnegative)
   VertexData<int> roundaboutDegrees;
+  
+  // === Initialization
+  void setCurvesFromEdges(ManifoldSurfaceMesh& mesh);
 
   // === General routines
 

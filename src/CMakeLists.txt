@@ -23,6 +23,7 @@ SET(SRCS
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
   surface/mutation_manager.cpp
+  surface/mesh_graph_algorithms.cpp
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
@@ -33,7 +34,7 @@ SET(SRCS
   surface/intrinsic_triangulation.cpp
   surface/signpost_intrinsic_triangulation.cpp
   surface/integer_coordinates_intrinsic_triangulation.cpp
-  surface/mesh_graph_algorithms.cpp
+  surface/common_subdivision.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp
   surface/uniformize.cpp

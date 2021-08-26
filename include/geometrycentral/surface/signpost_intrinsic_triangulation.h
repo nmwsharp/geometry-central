@@ -27,10 +27,13 @@ public:
   // ======== Core Members
   // ======================================================
 
-  // The geometry of the signpost intrinsic triangulation
-  HalfedgeData<double> intrinsicHalfedgeDirections; // direction of each halfedge, in radians from [0, angleSum]
-  VertexData<double> intrinsicVertexAngleSums;      // vertex cone angle sum
-  EdgeData<bool> edgeIsOriginal; // did this edge come from the original triangulation? used mainly for optimizations.
+  // Direction of each halfedge, in radians from [0, angleSum]. Importantly, this is different from
+  // IntrinsicGeometryInterface's `halfedgeVectorsInVertex`, because it is an _angle only_ measured in radians, and it
+  // is _not_ rescaled according to the vertex curvature.
+  HalfedgeData<double> signpostAngle;
+
+  // did this edge come from the original triangulation? used mainly for optimizations.
+  EdgeData<bool> edgeIsOriginal;
 
   // ======================================================
   // ======== Queries & Accessors
@@ -42,9 +45,11 @@ public:
   // Given a point on the intrinsic triangulation, returns the corresponding point on the input triangulation
   SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
 
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he,
-                                          bool trimEnd = true) override; // trace a single intrinsic halfedge
 
+  std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;             // trace a single intrinsic halfedge
+  std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
+
+  std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
 
   // ======================================================
   // ======== Low-Level Mutators
@@ -73,7 +78,6 @@ public:
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
 protected:
-
 private:
   // ======================================================
   // ======== Geometry Interface
@@ -109,13 +113,9 @@ private:
   // Scale factor to take Euclidean data to cone data
   double vertexAngleScaling(Vertex v) const;
 
-  // Repopulate the member halfedgeVectorInFace
-  void updateFaceBasis(Face f);
-
   // Is this a marked or boundary edge?
   bool isFixed(Edge e);
   bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
-
 };
 
 

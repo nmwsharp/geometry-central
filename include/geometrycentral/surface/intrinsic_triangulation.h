@@ -2,6 +2,7 @@
 
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/embedded_geometry_interface.h"
+#include "geometrycentral/surface/common_subdivision.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
@@ -64,8 +65,8 @@ public:
   EdgeData<bool> markedEdges;
   void setMarkedEdges(const EdgeData<bool>& markedEdges);
   // Is this a marked or boundary edge?
-  bool isFixed(Edge e);
-  bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
+  bool isFixed(Edge e) const;
+  bool isOnFixedEdge(Vertex v) const; // boundary vertex or on fixed edge
 
   // Parameters
   double triangleTestEPS = 1e-6; // used for numerical checks in mesh operations
@@ -75,17 +76,19 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
+  // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
+  // Each path is ordered along edge.halfedge(), and includes both the start and end points
+  EdgeData<std::vector<SurfacePoint>> traceEdges();
+  virtual std::vector<SurfacePoint> traceHalfedge(Halfedge he) = 0; // trace a single intrinsic halfedge
+  
+  // Construct the common subdivision
+  virtual std::unique_ptr<CommonSubdivision> extractCommonSubdivision() = 0;
+
   // Given a point on the input triangulation, returns the corresponding point on the intrinsic triangulation
   virtual SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) = 0;
 
   // Given a point on the intrinsic triangulation, returns the corresponding point on the input triangulation
   virtual SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) = 0;
-
-  // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
-  // Each path is ordered along edge.halfedge(), and includes both the start and end points
-  EdgeData<std::vector<SurfacePoint>> traceEdges();
-  virtual std::vector<SurfacePoint> traceHalfedge(Halfedge he,
-                                                  bool trimEnd = true) = 0; // trace a single intrinsic halfedge
 
   // Given data defined on the vertices of the input triangulation, samples it to the vertices of the intrinsic
   // triangulation
@@ -102,7 +105,8 @@ public:
   bool isDelaunay(Edge e);
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
-  double minAngleDegrees();
+  double minAngleDegrees() const;
+  double minAngleDegreesAtValidFaces(double minAngleSum) const;
 
   // ======================================================
   // ======== High-Level Mutators
@@ -174,13 +178,13 @@ public:
   //
 
   // edge E if flipped
-   std::list<std::function<void(Edge)>> edgeFlipCallbackList;
+  std::list<std::function<void(Edge)>> edgeFlipCallbackList;
 
   // old face F is split by new vertex V
-   std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
+  std::list<std::function<void(Face, Vertex)>> faceInsertionCallbackList;
 
   // old edge E is split to halfedge HE1,HE2 both with he.vertex() as split vertex
-   std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
+  std::list<std::function<void(Edge, Halfedge, Halfedge)>> edgeSplitCallbackList;
 
 
   // ======================================================
@@ -195,9 +199,11 @@ public:
   std::array<Vector2, 4> layoutDiamond(Halfedge he);
   std::array<Vector2, 3> vertexCoordinatesInTriangle(Face face);
 
+  // Repopulate the member halfedgeVectorInFace
+  void updateFaceBasis(Face f); // assumes edgeLengths are valid
+
 
 protected:
-
   // Callback helpers
   void invokeEdgeFlipCallbacks(Edge e);
   void invokeFaceInsertionCallbacks(Face f, Vertex v);

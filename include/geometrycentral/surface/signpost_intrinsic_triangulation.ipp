@@ -10,18 +10,18 @@ inline double SignpostIntrinsicTriangulation::standardizeAngle(Vertex vert, doub
     // can't wrap around at vertices
     return angle;
   }
-  return std::fmod(angle, intrinsicVertexAngleSums[vert]);
+  return std::fmod(angle, vertexAngleSums[vert]);
 }
 
 inline Vector2 SignpostIntrinsicTriangulation::halfedgeVector(Halfedge he) const {
-  double edgeAngle = intrinsicHalfedgeDirections[he];
+  double edgeAngle = signpostAngle[he];
   double scaleFac = 1.0 / vertexAngleScaling(he.vertex());
   Vector2 traceVec = Vector2::fromAngle(edgeAngle * scaleFac) * edgeLengths[he.edge()];
   return traceVec;
 }
 
 inline double SignpostIntrinsicTriangulation::vertexAngleScaling(Vertex v) const {
-  return intrinsicVertexAngleSums[v] / (v.isBoundary() ? M_PI : 2. * M_PI);
+  return vertexAngleSums[v] / (v.isBoundary() ? M_PI : 2. * M_PI);
 }
 
 

@@ -13,57 +13,40 @@ namespace surface {
 
 SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_,
                                                                IntrinsicGeometryInterface& inputGeom_)
-    // Note: this initializer list does something slightly wacky: it creates the new mesh on the heap, then loses track
-    // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
-    // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
-    // probably a sign of bad design.
     : IntrinsicTriangulation(mesh_, inputGeom_) {
 
   // == Initialize geometric data
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
   inputGeom.requireVertexAngleSums();
-  inputGeom.requireCornerAngles();
 
   // Prepare directions and angle sums
-  intrinsicHalfedgeDirections = HalfedgeData<double>(mesh);
-  intrinsicVertexAngleSums = VertexData<double>(mesh);
+  signpostAngle = HalfedgeData<double>(mesh);
 
   // Walk around the vertex, constructing angular directions
-  requireCornerAngles();
   for (Vertex v : mesh.vertices()) {
     double runningAngle = 0.;
     Halfedge firstHe = v.halfedge();
     Halfedge currHe = firstHe;
     do {
-      double cornerAngle = cornerAngles[currHe.corner()];
-      intrinsicHalfedgeDirections[currHe] = runningAngle;
-      runningAngle += cornerAngle;
+      double cornerAngleVal = cornerAngle(currHe.corner());
+      signpostAngle[currHe] = runningAngle;
+      runningAngle += cornerAngleVal;
 
       if (!currHe.isInterior()) {
         break;
       }
       currHe = currHe.next().next().twin();
     } while (currHe != firstHe);
-
-    intrinsicVertexAngleSums[v] = runningAngle;
-  }
-
-  // Initialize vertex locations
-  vertexLocations = VertexData<SurfacePoint>(mesh);
-  for (size_t iV = 0; iV < mesh.nVertices(); iV++) {
-    vertexLocations[iV] = SurfacePoint(inputMesh.vertex(iV));
   }
 
   // Initialize all edges as original, but new ones should be false
   edgeIsOriginal = EdgeData<bool>(mesh, false);
   edgeIsOriginal.fill(true);
 
-  requireHalfedgeVectorsInVertex();
-  requireHalfedgeVectorsInFace();
-  requireVertexAngleSums();
-
 }
+
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) { return traceHalfedge(he, true); }
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
 
@@ -129,7 +112,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   // Get geometric data
   Halfedge he = e.halfedge();
   std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
-  
+
   // Compute the new edge length
   double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
 
@@ -224,8 +207,8 @@ void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, do
   edgeLengths[e] = newLength;
 
   // Update other derived geometric data
-  intrinsicHalfedgeDirections[e.halfedge()] = forwardAngle;
-  intrinsicHalfedgeDirections[e.halfedge().twin()] = reverseAngle;
+  signpostAngle[e.halfedge()] = forwardAngle;
+  signpostAngle[e.halfedge().twin()] = reverseAngle;
   halfedgeVectorsInVertex[e.halfedge()] = halfedgeVector(e.halfedge());
   halfedgeVectorsInVertex[e.halfedge().twin()] = halfedgeVector(e.halfedge().twin());
   updateFaceBasis(e.halfedge().face());
@@ -297,10 +280,8 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
 
   // = Update data arrays for the new vertex
   if (isOnBoundary) {
-    intrinsicVertexAngleSums[newV] = M_PI;
     vertexAngleSums[newV] = M_PI;
   } else {
-    intrinsicVertexAngleSums[newV] = 2. * M_PI;
     vertexAngleSums[newV] = 2. * M_PI;
   }
 
@@ -348,7 +329,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
   Vertex newV = intrinsicMesh->insertVertex(insertionFace);
 
   // = Update data arrays for the new vertex
-  intrinsicVertexAngleSums[newV] = 2. * M_PI;
   vertexAngleSums[newV] = 2. * M_PI;
 
 
@@ -421,8 +401,6 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
 }
 
 
-
-
 // ======================================================
 // ======== Geometry and Helpers
 // ======================================================
@@ -442,47 +420,27 @@ void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
   // NOTE: This makes sense because we preserve the invariant that intrinsic boundary vertices are always located along
   // the boundary of the original mesh, which has the convention that v.halfedge() begins a ccw arc along the interior.
   if (!he.isInterior()) {
-    intrinsicHalfedgeDirections[he] = intrinsicVertexAngleSums[he.vertex()]; // last angle in boundary wedge
+    signpostAngle[he] = vertexAngleSums[he.vertex()]; // last angle in boundary wedge
     halfedgeVectorsInVertex[he] = halfedgeVector(he);
     return;
   }
   if (!he.twin().isInterior()) {
-    intrinsicHalfedgeDirections[he] = 0.; // first angle in boundary wedge
+    signpostAngle[he] = 0.; // first angle in boundary wedge
     halfedgeVectorsInVertex[he] = halfedgeVector(he);
     return;
   }
 
   // Get neighbor angle
   Halfedge cwHe = he.twin().next();
-  double neighAngle = intrinsicHalfedgeDirections[cwHe];
+  double neighAngle = signpostAngle[cwHe];
 
   // Compute corner angle in between
   double cAngle = cornerAngle(cwHe.corner());
 
   // Set the updated angle
   double updatedAngle = standardizeAngle(he.vertex(), neighAngle + cAngle);
-  intrinsicHalfedgeDirections[he] = updatedAngle;
+  signpostAngle[he] = updatedAngle;
   halfedgeVectorsInVertex[he] = halfedgeVector(he);
-}
-
-void SignpostIntrinsicTriangulation::updateFaceBasis(Face f) {
-  Halfedge he = f.halfedge();
-  double a = edgeLengths[he.edge()];
-  he = he.next();
-  double b = edgeLengths[he.edge()];
-  he = he.next();
-  double c = edgeLengths[he.edge()];
-
-  Vector2 p0{0., 0.};
-  Vector2 p1{a, 0.};
-  Vector2 p2 = layoutTriangleVertex(p0, p1, b, c);
-
-  he = f.halfedge();
-  halfedgeVectorsInFace[he] = p1 - p0;
-  he = he.next();
-  halfedgeVectorsInFace[he] = p2 - p1;
-  he = he.next();
-  halfedgeVectorsInFace[he] = p0 - p2;
 }
 
 
@@ -629,7 +587,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     incomingAngle = 0;
   }
 
-  intrinsicHalfedgeDirections[inputTraceHe.twin()] = incomingAngle;
+  signpostAngle[inputTraceHe.twin()] = incomingAngle;
   // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * edgeLengths[inputTraceHe.edge()];
   halfedgeVectorsInVertex[inputTraceHe.twin()] = halfedgeVector(inputTraceHe.twin());
 
@@ -641,6 +599,18 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     if (!currHe.isInterior()) break;
     currHe = currHe.next().next().twin();
   } while (currHe != firstHe);
+}
+
+std::unique_ptr<CommonSubdivision> SignpostIntrinsicTriangulation::extractCommonSubdivision() {
+
+  intrinsicMesh->compress();
+
+  // Create the common subdivision object that we will return
+  std::unique_ptr<CommonSubdivision> csPtr{new CommonSubdivision(inputMesh, *intrinsicMesh)};
+  CommonSubdivision& cs = *csPtr;
+
+  // TODO
+  throw std::runtime_error("not implemented");
 }
 
 

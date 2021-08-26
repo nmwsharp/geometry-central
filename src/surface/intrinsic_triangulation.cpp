@@ -40,6 +40,11 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     }
   };
   edgeSplitCallbackList.push_back(updateMarkedEdges);
+  
+  // All subclasses must always keep these buffers updated as we perform operations.
+  requireHalfedgeVectorsInVertex();
+  requireHalfedgeVectorsInFace();
+  requireVertexAngleSums();
 }
 
 // ======================================================
@@ -53,7 +58,7 @@ EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceEdges() {
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he, false);
+    tracedEdges[e] = traceHalfedge(he);
   }
 
   return tracedEdges;
@@ -75,10 +80,10 @@ bool IntrinsicTriangulation::isDelaunay(Edge e) {
   return true;
 }
 
-double IntrinsicTriangulation::minAngleDegrees() {
+double IntrinsicTriangulation::minAngleDegrees() const {
   double minAngle = std::numeric_limits<double>::infinity();
   for (Corner c : mesh.corners()) {
-    minAngle = std::min(minAngle, cornerAngle(c));
+    minAngle = std::fmin(minAngle, cornerAngle(c));
   }
   return minAngle * 180. / M_PI;
 }
@@ -438,6 +443,27 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   refreshQuantities();
   edgeSplitCallbackList.erase(splitCallbackHandle);
   edgeFlipCallbackList.erase(flipCallbackHandle);
+}
+
+
+void IntrinsicTriangulation::updateFaceBasis(Face f) {
+  Halfedge he = f.halfedge();
+  double a = edgeLengths[he.edge()];
+  he = he.next();
+  double b = edgeLengths[he.edge()];
+  he = he.next();
+  double c = edgeLengths[he.edge()];
+
+  Vector2 p0{0., 0.};
+  Vector2 p1{a, 0.};
+  Vector2 p2 = layoutTriangleVertex(p0, p1, b, c);
+
+  he = f.halfedge();
+  halfedgeVectorsInFace[he] = p1 - p0;
+  he = he.next();
+  halfedgeVectorsInFace[he] = p2 - p1;
+  he = he.next();
+  halfedgeVectorsInFace[he] = p0 - p2;
 }
 
 

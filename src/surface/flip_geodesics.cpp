@@ -488,10 +488,10 @@ double FlipEdgeNetwork::minAngleIsotopy() {
 
 std::tuple<double, double> FlipEdgeNetwork::measureSideAngles(Halfedge hePrev, Halfedge heNext) {
   Vertex v = heNext.vertex();
-  double s = tri->intrinsicVertexAngleSums[v];
+  double s = tri->vertexAngleSums[v];
 
-  double angleIn = tri->intrinsicHalfedgeDirections[hePrev.twin()];
-  double angleOut = tri->intrinsicHalfedgeDirections[heNext];
+  double angleIn = tri->signpostAngle[hePrev.twin()];
+  double angleOut = tri->signpostAngle[heNext];
   bool isBoundary = v.isBoundary();
 
   // Compute right angle
@@ -793,8 +793,8 @@ void FlipEdgeNetwork::locallyShortenAt(FlipPathSegment& pathSegment, SegmentAngl
       // Gather values for the edge to be flipped
       Edge currEdge = sCurr.edge();
       double oldLen = tri->edgeLengths[currEdge]; // old values are used for rewinding
-      double oldAngleA = tri->intrinsicHalfedgeDirections[currEdge.halfedge()];
-      double oldAngleB = tri->intrinsicHalfedgeDirections[currEdge.halfedge().twin()];
+      double oldAngleA = tri->signpostAngle[currEdge.halfedge()];
+      double oldAngleB = tri->signpostAngle[currEdge.halfedge().twin()];
       bool oldIsOrig = tri->edgeIsOriginal[currEdge];
 
       // Try to flip the edge. Note that flipping will only be possible iff \beta < \pi as in the formal algorithm

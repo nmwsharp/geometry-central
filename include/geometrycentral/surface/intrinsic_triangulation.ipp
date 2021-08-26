@@ -5,13 +5,13 @@
 namespace geometrycentral {
 namespace surface {
 
-inline bool IntrinsicTriangulation::isFixed(Edge e) {
+inline bool IntrinsicTriangulation::isFixed(Edge e) const {
   if (e.isBoundary()) return true;
   if (markedEdges.size() > 0 && markedEdges[e]) return true;
   return false;
 }
 
-inline bool IntrinsicTriangulation::isOnFixedEdge(Vertex v) {
+inline bool IntrinsicTriangulation::isOnFixedEdge(Vertex v) const {
   for (Edge e : v.adjacentEdges()) {
     if (isFixed(e)) return true;
   }

@@ -28,22 +28,21 @@ NormalCoordinates::NormalCoordinates(ManifoldSurfaceMesh& mesh_) : mesh(mesh_) {
   roundaboutDegrees = VertexData<int>(mesh, 0);
 }
 
-std::unique_ptr<NormalCoordinates> NormalCoordinates::constructFromEdges(ManifoldSurfaceMesh& mesh) {
-  std::unique_ptr<NormalCoordinates> nc{new NormalCoordinates(mesh)};
+void NormalCoordinates::setCurvesFromEdges(ManifoldSurfaceMesh& mesh) {
 
   for (Edge e : mesh.edges()) {
-    nc->edgeCoords[e] = -1;
+    edgeCoords[e] = -1;
   }
 
   for (Vertex v : mesh.vertices()) {
     size_t iHe = 0;
     size_t D = v.degree();
-    nc->roundaboutDegrees[v] = D;
+    roundaboutDegrees[v] = D;
 
     // Explicitly loop over halfedges in counterclockwise order
     Halfedge he = v.halfedge();
     do {
-      nc->roundabouts[he] = iHe;
+      roundabouts[he] = iHe;
 
       // If we have reached a boundary, we're done
       // (Assumes that for boundary vertices, vertex.halfedge() is the one
@@ -55,8 +54,6 @@ std::unique_ptr<NormalCoordinates> NormalCoordinates::constructFromEdges(Manifol
       he = he.next().next().twin();
     } while (he != v.halfedge());
   }
-
-  return nc;
 }
 
 //==============================================================================
