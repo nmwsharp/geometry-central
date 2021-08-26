@@ -19,7 +19,7 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
 
   // do this here, rather than in the constructer, since we need to call require() first
   inputGeom.requireEdgeLengths();
-  edgeLengths = inputGeom.edgeLengths;
+  edgeLengths = inputGeom.edgeLengths.reinterpretTo(mesh);
 
   // Make sure the input mesh is triangular
   if (!mesh.isTriangular()) {
@@ -40,12 +40,14 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     }
   };
   edgeSplitCallbackList.push_back(updateMarkedEdges);
-  
+
   // All subclasses must always keep these buffers updated as we perform operations.
   requireHalfedgeVectorsInVertex();
   requireHalfedgeVectorsInFace();
   requireVertexAngleSums();
 }
+
+IntrinsicTriangulation::~IntrinsicTriangulation() {}
 
 // ======================================================
 // ======== Queries & Accessors

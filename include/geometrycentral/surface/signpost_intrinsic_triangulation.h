@@ -74,7 +74,7 @@ public:
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   Face removeInsertedVertex(Vertex v) override;
 
-  // Split a halfedge
+  // Split an edge
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
 protected:
@@ -84,9 +84,6 @@ private:
   // ======================================================
   //
   // Satisfy the requirements of the IntrinsicGeometryInterface
-
-  // Override the compute edge lengths method from intrinsic geometry.
-  virtual void computeEdgeLengths() override;
 
   // Override the halfedge vectors method from intrinsic geometry
   virtual void computeHalfedgeVectorsInVertex() override;
@@ -112,10 +109,6 @@ private:
 
   // Scale factor to take Euclidean data to cone data
   double vertexAngleScaling(Vertex v) const;
-
-  // Is this a marked or boundary edge?
-  bool isFixed(Edge e);
-  bool isOnFixedEdge(Vertex v); // boundary vertex or on fixed edge
 };
 
 

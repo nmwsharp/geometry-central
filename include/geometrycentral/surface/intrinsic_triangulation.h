@@ -32,6 +32,7 @@ public:
   // Construct an intrinsic triangulation which sits atop this input mesh. Initially, the input triangulation will
   // just be a copy of the input mesh.
   IntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom);
+  virtual ~IntrinsicTriangulation();
 
   // ======================================================
   // ======== Core Members
@@ -167,7 +168,7 @@ public:
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   virtual Face removeInsertedVertex(Vertex v) = 0;
 
-  // Split a halfedge
+  // Split an edge
   virtual Halfedge splitEdge(Halfedge he, double tSplit) = 0;
 
   // ======================================================

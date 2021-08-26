@@ -34,7 +34,7 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
   normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
 
   // TODO document/expose this somehow, rather than just doing it silently
-  mollifyIntrinsic(*intrinsicMesh, intrinsicEdgeLengths, 1e-5);
+  mollifyIntrinsic(*intrinsicMesh, edgeLengths, 1e-5);
 
   vertexLocations = VertexData<SurfacePoint>(*intrinsicMesh);
   for (size_t iV = 0; iV < intrinsicMesh->nVertices(); iV++) {
@@ -47,6 +47,24 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
 // ======================================================
 //                 Queries & Accesses
 // ======================================================
+
+std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceHalfedge(Halfedge he) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return std::vector<SurfacePoint>{};
+}
+
+SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return SurfacePoint(Vertex());
+}
+
+SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return SurfacePoint(Vertex());
+}
 
 std::unique_ptr<CommonSubdivision> IntegerCoordinatesIntrinsicTriangulation::extractCommonSubdivision() {
 
@@ -278,13 +296,12 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 
   // Assign the new edge lengths
   // TODO project to satisfy triangle inequality?
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
   normalCoordinates.applyFlippedData(e, nUpdate);
 
   // === Update various quantities
 
-  // depends on intrinsicEdgeLengths
+  // depends on edgeLengths
   updateFaceBasis(e.halfedge().face());
   updateFaceBasis(e.halfedge().twin().face());
 
@@ -347,13 +364,12 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
   // Assign the new edge lengths
   // TODO project to satisfy triangle inequality?
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
   normalCoordinates.applyFlippedData(e, nUpdate);
 
   // === Update various quantities
 
-  // depends on intrinsicEdgeLengths
+  // depends on edgeLengths
   updateFaceBasis(e.halfedge().face());
   updateFaceBasis(e.halfedge().twin().face());
 
@@ -374,6 +390,14 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
   invokeEdgeFlipCallbacks(e);
 
   return true;
+}
+
+
+void IntegerCoordinatesIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, double forwardAngle,
+                                                              double reverseAngle, bool isOrig, bool reverseFlip) {
+
+  // TODO
+  throw std::runtime_error("not implemented");
 }
 
 double IntegerCoordinatesIntrinsicTriangulation::checkFlip(Edge e) {
@@ -412,9 +436,9 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::insertCircumcenterOrSplitSegmen
   // === Circumcenter in barycentric coordinates
 
   Halfedge he0 = f.halfedge();
-  double a = intrinsicEdgeLengths[he0.next().edge()];
-  double b = intrinsicEdgeLengths[he0.next().next().edge()];
-  double c = intrinsicEdgeLengths[he0.edge()];
+  double a = edgeLengths[he0.next().edge()];
+  double b = edgeLengths[he0.next().next().edge()];
+  double c = edgeLengths[he0.edge()];
   double a2 = a * a;
   double b2 = b * b;
   double c2 = c * c;
@@ -534,9 +558,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInFace(f);
   Vector2 newPCoord = (bary.x * vertCoords[0] + bary.y * vertCoords[1] + bary.z * vertCoords[2]);
 
-  Vector3 fEdgeLengths{intrinsicEdgeLengths[f.halfedge().next().edge()],
-                       intrinsicEdgeLengths[f.halfedge().next().next().edge()],
-                       intrinsicEdgeLengths[f.halfedge().edge()]};
+  Vector3 fEdgeLengths{edgeLengths[f.halfedge().next().edge()], edgeLengths[f.halfedge().next().next().edge()],
+                       edgeLengths[f.halfedge().edge()]};
 
   std::array<double, 3> newEdgeLengths;
   newEdgeLengths[0] = displacementLength(bary - Vector3{1, 0, 0}, fEdgeLengths);
@@ -1073,7 +1096,6 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   for (Halfedge he : newVertex.outgoingHalfedges()) {
     Edge e = he.edge();
     edgeLengths[e] = newEdgeLengths[iE];
-    intrinsicEdgeLengths[e] = newEdgeLengths[iE];
 
     normalCoordinates.setRoundaboutFromPrevRoundabout(he.twin());
     normalCoordinates.roundabouts[he] = 0;
@@ -1086,7 +1108,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   // refreshQuantities();
 
   for (Face f : newVertex.adjacentFaces()) {
-    // depends on intrinsicEdgeLengths, faceAreas
+    // depends on edgeLengths, faceAreas
     updateFaceBasis(f);
   }
 
@@ -1101,6 +1123,12 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   invokeFaceInsertionCallbacks(f, newVertex);
 
   return newVertex;
+}
+
+Halfedge IntegerCoordinatesIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
+  // FIXME need to  return correct halfedge, so can't just call function below
+  throw std::runtime_error("not implemented");
+  return Halfedge();
 }
 
 Vertex IntegerCoordinatesIntrinsicTriangulation::splitEdge(Edge e, double bary, bool verbose) {
@@ -1140,8 +1168,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Edge e, doubl
   };
   auto faceEdgeLengths = [&](Face f) -> Vector3 {
     // lengths[i] is the length of the edge opposite the i'th vertex
-    return Vector3{intrinsicEdgeLengths[f.halfedge().next().edge()],
-                   intrinsicEdgeLengths[f.halfedge().next().next().edge()], intrinsicEdgeLengths[f.halfedge().edge()]};
+    return Vector3{edgeLengths[f.halfedge().next().edge()], edgeLengths[f.halfedge().next().next().edge()],
+                   edgeLengths[f.halfedge().edge()]};
   };
 
   if (normalCoordinates[e] >= 0) {
@@ -1225,7 +1253,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Edge e, doubl
     std::array<int, 3> newNormalCoordinates = normalCoordinates.computeBoundaryEdgeSplitDataGeodesic(*this, e, bary);
 
     // Compute new edge lengths
-    double oldLen = intrinsicEdgeLengths[e];
+    double oldLen = edgeLengths[e];
     std::array<double, 3> newEdgeLengths{(1 - bary) * oldLen, 0, bary * oldLen};
     newEdgeLengths[1] = displacementLength(heBary(e.halfedge(), bary) - heBary(e.halfedge().next(), 1),
                                            faceEdgeLengths(e.halfedge().face()));
@@ -1249,15 +1277,14 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Edge e, doubl
     while (true) {
       Edge e = he.edge();
       edgeLengths[e] = newEdgeLengths[iE];
-      intrinsicEdgeLengths[e] = newEdgeLengths[iE];
       normalCoordinates.edgeCoords[e] = newNormalCoordinates[iE];
 
       // nsharp: don't need, because we keep this updated with an edge split callback
-      //if (!isFixed(e) && newEdgeFixed[iE]) {
-        //isFixed[e] = true;
-        //// fixedEdges.push_back(e);
+      // if (!isFixed(e) && newEdgeFixed[iE]) {
+      // isFixed[e] = true;
+      //// fixedEdges.push_back(e);
       //} else if (isFixed(e) && !newEdgeFixed[iE]) {
-        //throw std::runtime_error("Need to remove e from the fixed list");
+      // throw std::runtime_error("Need to remove e from the fixed list");
       //}
 
       if (!he.isInterior()) break;
@@ -1275,8 +1302,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Edge e, doubl
     // Update quantities
 
     for (Face f : newVertex.adjacentFaces()) {
-      // depends on intrinsicEdgeLengths, faceAreas
-      updateHalfedgeVectorsInFace(f);
+      // depends on edgeLengths, faceAreas
+      updateFaceBasis(f);
     }
 
     for (Vertex v : newVertex.adjacentVertices()) {
@@ -1326,8 +1353,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
   };
   auto faceEdgeLengths = [&](Face f) -> Vector3 {
     // lengths[i] is the length of the edge opposite the i'th vertex
-    return Vector3{intrinsicEdgeLengths[f.halfedge().next().edge()],
-                   intrinsicEdgeLengths[f.halfedge().next().next().edge()], intrinsicEdgeLengths[f.halfedge().edge()]};
+    return Vector3{edgeLengths[f.halfedge().next().edge()], edgeLengths[f.halfedge().next().next().edge()],
+                   edgeLengths[f.halfedge().edge()]};
   };
 
   if (normalCoordinates[e] >= 0) {
@@ -1352,9 +1379,9 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
 
     // Update is-fixed array
     // nsharp: don't need, we keep updated with edge split callback
-    //if (fixedBefore) {
-      //isFixed[newHalfedge.edge()] = true;
-      //isFixed[otherNewHalfedge.edge()] = true;
+    // if (fixedBefore) {
+    // isFixed[newHalfedge.edge()] = true;
+    // isFixed[otherNewHalfedge.edge()] = true;
     //}
 
     invokeEdgeSplitCallbacks(e, newHalfedge, otherNewHalfedge);
@@ -1386,7 +1413,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
     std::array<int, 4> newNormalCoordinates = normalCoordinates.computeInteriorEdgeSplitDataGeodesic(*this, e, bary);
 
     // Compute new edge lengths
-    double oldLen = intrinsicEdgeLengths[e];
+    double oldLen = edgeLengths[e];
     std::array<double, 4> newEdgeLengths{0, (1 - bary) * oldLen, 0, bary * oldLen};
     newEdgeLengths[0] =
         displacementLength(heBary(e.halfedge().twin(), 1 - bary) - heBary(e.halfedge().twin().next(), 1),
@@ -1409,15 +1436,14 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
       Edge e = he.edge();
 
       edgeLengths[e] = newEdgeLengths[iE];
-      intrinsicEdgeLengths[e] = newEdgeLengths[iE];
       normalCoordinates.edgeCoords[e] = newNormalCoordinates[iE];
 
       // nsharp: don't need this, managed by callback
-      //if (!isFixed[e] && newEdgeFixed[iE]) {
-        //isFixed[e] = true;
-        //// fixedEdges.push_back(e);
+      // if (!isFixed[e] && newEdgeFixed[iE]) {
+      // isFixed[e] = true;
+      //// fixedEdges.push_back(e);
       //} else if (isFixed[e] && !newEdgeFixed[iE]) {
-        //throw std::runtime_error("Need to remove e from the fixed list");
+      // throw std::runtime_error("Need to remove e from the fixed list");
       //}
 
       // indexing goes counterclockwise, but loop goes clockwise
@@ -1435,8 +1461,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
 
     for (Face f : newVertex.adjacentFaces()) {
 
-      // depends on intrinsicEdgeLengths, faceAreas
-      updateHalfedgeVectorsInFace(f);
+      // depends on edgeLengths, faceAreas
+      updateFaceBasis(f);
     }
 
     for (Vertex v : newVertex.adjacentVertices()) {
@@ -1556,7 +1582,7 @@ Face IntegerCoordinatesIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
 
   // ==== Update cached data
   // Edge lengths, normal coordinates, and roundabouts should be okay
-  updateHalfedgeVectorsInFace(newF);
+  updateFaceBasis(newF);
   for (Halfedge he : newF.adjacentHalfedges()) {
     updateHalfedgeVectorsInVertex(he.vertex());
   }
@@ -1861,9 +1887,9 @@ std::array<Vector2, 3> IntegerCoordinatesIntrinsicTriangulation::vertexCoordinat
   Halfedge heCA = heBC.next();
   GC_SAFETY_ASSERT(heCA.next() == heAB, "faces must be triangular");
 
-  double lAB = intrinsicEdgeLengths[heAB.edge()];
-  double lBC = intrinsicEdgeLengths[heBC.edge()];
-  double lCA = intrinsicEdgeLengths[heCA.edge()];
+  double lAB = edgeLengths[heAB.edge()];
+  double lBC = edgeLengths[heBC.edge()];
+  double lCA = edgeLengths[heCA.edge()];
 
   // Assign positions to all three vertices
   Vector2 pA{0., 0.}; // used implicitly

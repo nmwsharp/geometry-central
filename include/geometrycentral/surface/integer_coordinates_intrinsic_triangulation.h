@@ -27,9 +27,6 @@ public:
   //                   Core Members
   // ======================================================
 
-  EdgeData<double> intrinsicEdgeLengths; // length of each edge
-
-
   // The actual normal coordinates (and roundabouts) encoding the triangulation. These normal coordinates are defined on
   // top of the _intrinsic_ mesh---for each intrinsic edge, the encode how many original edges cross it.
   NormalCoordinates normalCoordinates;
@@ -38,6 +35,13 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
+  std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;
+  
+  std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
+
+  SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
+
+  SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
 
   // ======================================================
   // ======== Low-Level Mutators
@@ -62,28 +66,9 @@ public:
   // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   Face removeInsertedVertex(Vertex v) override;
 
-  // Split a halfedge
+  // Split an edge
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
-  // TODO BEGIN OLD STUFF
-
-  // ======================================================
-  //                 Queries & Accessors
-  // ======================================================
-
-  std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
-
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;
-
-  SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
-
-  SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
-
-
-  // ======================================================
-  //                Low-Level Mutators
-  // ======================================================
-  //
   // Basic operations to modify the intrinsic triangulation
   // NOTE: The individual operations do not call refreshQuantities(), so you
   // should call it if you want quantities updated.
@@ -109,9 +94,6 @@ public:
 
   // Assumes cornerAngles, vertexAngleSums exist and are up to date
   void updateHalfedgeVectorsInVertex(Vertex v);
-
-  // Assumes intrinsicEdgeLengths, faceAreas exist and are up to date
-  void updateHalfedgeVectorsInFace(Face f);
 
   // ======================================================
   //                Low-Level Queries

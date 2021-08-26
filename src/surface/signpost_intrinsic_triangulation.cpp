@@ -43,7 +43,6 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   // Initialize all edges as original, but new ones should be false
   edgeIsOriginal = EdgeData<bool>(mesh, false);
   edgeIsOriginal.fill(true);
-
 }
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) { return traceHalfedge(he, true); }
@@ -88,6 +87,18 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   }
 
   return result.pathPoints;
+}
+
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return SurfacePoint(Vertex());
+}
+
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return SurfacePoint(Vertex());
 }
 
 
