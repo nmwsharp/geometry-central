@@ -107,7 +107,15 @@ public:
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
   double minAngleDegrees() const;
+
+  // Returns the smallest angle in the intrinsic triangulation, in degrees, among faces whose vertices
+  // all have angle sum at least minAngleSum, and which are not contained in an original face incident
+  // on a vertex with small angle sum
   double minAngleDegreesAtValidFaces(double minAngleSum) const;
+
+  // If f is entirely contained in some face of the input mesh, return that
+  // face Otherwise return Face()
+  Face getParentFace(Face f) const;
 
   // ======================================================
   // ======== High-Level Mutators

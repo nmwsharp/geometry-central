@@ -90,6 +90,109 @@ double IntrinsicTriangulation::minAngleDegrees() const {
   return minAngle * 180. / M_PI;
 }
 
+// If f is entirely contained in some face of the input mesh, return that
+// face Otherwise return Face()
+Face IntrinsicTriangulation::getParentFace(Face f) const {
+  auto containsVertex = [](Face f, Vertex v) -> bool {
+    for (Vertex vF : f.adjacentVertices()) {
+      if (vF == v) return true;
+    }
+    return false;
+  };
+
+  auto containsEdge = [](Face f, Edge e) -> bool {
+    for (Edge eF : f.adjacentEdges()) {
+      if (eF == e) return true;
+    }
+    return false;
+  };
+
+  auto compatible = [&](const SurfacePoint& pt, Face f) -> bool {
+    switch (pt.type) {
+    case SurfacePointType::Vertex:
+      return containsVertex(f, pt.vertex);
+    case SurfacePointType::Edge:
+      return containsEdge(f, pt.edge);
+    case SurfacePointType::Face:
+      return pt.face == f;
+    }
+  };
+
+  // Look for a FacePoint
+  for (Vertex v : f.adjacentVertices()) {
+    SurfacePoint vP = vertexLocations[v];
+    if (vP.type == SurfacePointType::Face) {
+      Face parentFace = vP.face;
+
+      // Check if this works for everyone else
+      for (Vertex w : f.adjacentVertices()) {
+        if (!compatible(vertexLocations[w], parentFace)) {
+          return Face();
+        }
+      }
+
+      return parentFace;
+    }
+  }
+
+  // Look for an EdgePoint
+  for (Vertex v : f.adjacentVertices()) {
+    if (vertexLocations[v].type == SurfacePointType::Edge) {
+      Edge e = vertexLocations[v].edge;
+      Face f1 = e.halfedge().face();
+      Face f2 = e.halfedge().twin().face();
+
+      bool f1Okay = e.halfedge().isInterior();
+      bool f2Okay = e.halfedge().twin().isInterior();
+
+      for (Vertex w : f.adjacentVertices()) {
+        f1Okay = f1Okay && compatible(vertexLocations[w], f1);
+        f2Okay = f2Okay && compatible(vertexLocations[w], f2);
+      }
+
+      return (f1Okay) ? f1 : (f2Okay) ? f2 : Face();
+    }
+  }
+
+  // Give up
+  return Face();
+}
+
+double IntrinsicTriangulation::minAngleDegreesAtValidFaces(double minAngleSum) const {
+  auto faceHasLargeAngleSums = [&](Face f) -> bool {
+    for (Vertex v : f.adjacentVertices()) {
+      if (vertexAngleSums[v] * 180 < M_PI * minAngleSum) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto parentFaceHasLargeAngleSums = [&](Face f) -> bool {
+    Face fInput = getParentFace(f);
+    if (fInput == Face()) return true;
+
+    inputGeom.requireVertexAngleSums();
+    for (Vertex v : fInput.adjacentVertices()) {
+      if (inputGeom.vertexAngleSums[v] * 180 < M_PI * minAngleSum) {
+        return false;
+      }
+    }
+    inputGeom.unrequireVertexAngleSums();
+    return true;
+  };
+
+  double minCornerAngle = 10;
+  for (Face f : intrinsicMesh->faces()) {
+    if (!faceHasLargeAngleSums(f)) continue;
+    if (!parentFaceHasLargeAngleSums(f)) continue;
+    for (Corner c : f.adjacentCorners()) {
+      minCornerAngle = fmin(minCornerAngle, cornerAngles[c]);
+    }
+  }
+  return minCornerAngle * 180 / M_PI;
+}
+
 // ======================================================
 // ======== Mutators
 // ======================================================
