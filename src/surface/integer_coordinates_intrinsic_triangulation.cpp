@@ -528,10 +528,10 @@ void IntegerCoordinatesIntrinsicTriangulation::updateHalfedgeVectorsInVertex(Ver
   Halfedge currHe = firstHe;
   do {
     halfedgeVectorsInVertex[currHe] = Vector2::fromAngle(coordSum) * edgeLengths[currHe.edge()];
-    coordSum += cornerScaledAngle(currHe.corner());
     if (!currHe.isInterior()) break;
+    coordSum += cornerScaledAngle(currHe.corner());
     currHe = currHe.next().next().twin();
-  } while (currHe != firstHe && currHe.isInterior());
+  } while (currHe != firstHe);
 }
 
 // ======================================================
