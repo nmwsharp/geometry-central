@@ -35,8 +35,10 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
+  EdgeData<std::vector<SurfacePoint>> traceEdges() override;
+
   std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;
-  
+
   std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
 
   SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;

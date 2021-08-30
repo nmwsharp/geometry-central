@@ -48,6 +48,21 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
 //                 Queries & Accesses
 // ======================================================
 
+EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceEdges() {
+  // TODO: can this be done more efficiently without computing full common subdivision?
+
+  std::unique_ptr<CommonSubdivision> cs = extractCommonSubdivision();
+
+  EdgeData<std::vector<SurfacePoint>> tracedEdges(*intrinsicMesh);
+  for (Edge e : intrinsicMesh->edges()) {
+    for (CommonSubdivisionPoint* pt : cs->pointsAlongB[e]) {
+      tracedEdges[e].push_back(pt->posA);
+    }
+  }
+
+  return tracedEdges;
+}
+
 std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceHalfedge(Halfedge he) {
   // TODO
   throw std::runtime_error("not implemented");
