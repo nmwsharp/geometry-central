@@ -308,7 +308,6 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   if (!flipped) {
     return false;
   }
-  GC_SAFETY_ASSERT(intrinsicMesh->isTriangular(), "mesh not triangular?!");
 
   // Assign the new edge lengths
   // TODO project to satisfy triangle inequality?
@@ -328,16 +327,8 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   std::array<Vertex, 4> incidentVertices{e.halfedge().vertex(), e.halfedge().next().vertex(),
                                          e.halfedge().next().next().vertex(),
                                          e.halfedge().twin().next().next().vertex()};
-  GC_SAFETY_ASSERT(intrinsicMesh->isTriangular(), "mesh not triangular?!");
   for (Vertex v : incidentVertices) {
     // depends on vertexAngleSums
-    for (Corner c : v.adjacentCorners()) {
-      GC_SAFETY_ASSERT(c.face().isTriangle(), "mesh not triangular?!");
-      if (!c.face().isTriangle()) {
-        std::cerr << ">:(" << std::endl;
-        exit(1);
-      }
-    }
     updateHalfedgeVectorsInVertex(v);
   }
 
