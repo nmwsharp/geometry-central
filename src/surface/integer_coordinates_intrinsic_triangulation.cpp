@@ -568,7 +568,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::insertVertex(SurfacePoint pt) {
 }
 
 Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary, bool verbose) {
-  std::clock_t tStart = std::clock();
+  // std::clock_t tStart = std::clock();
 
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInFace(f);
   Vector2 newPCoord = (bary.x * vertCoords[0] + bary.y * vertCoords[1] + bary.z * vertCoords[2]);
@@ -779,7 +779,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
       iHe++;
     }
 
-    tStart = std::clock();
+    // tStart = std::clock();
 
     // TODO apply some sanity policies, like that the crossings should be
     // correctly ordered
