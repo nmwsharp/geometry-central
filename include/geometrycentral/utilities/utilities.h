@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm> // std::remove
 #include <cmath>
 #include <complex>
 #include <iostream>
