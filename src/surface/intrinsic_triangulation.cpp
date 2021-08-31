@@ -292,13 +292,30 @@ void IntrinsicTriangulation::flipToDelaunay() {
 void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
                                             size_t maxInsertions) {
 
-
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
 
   // Build a function to test if a face violates the circumradius ratio condition
   auto needsCircumcenterRefinement = [&](Face f) {
+    size_t nNeedle = 0;
+    for (Vertex v : f.adjacentVertices()) {
+      if (vertexAngleSums[v] < M_PI / 3.) nNeedle++;
+    }
+    if (nNeedle == 1) return false;
+
+    Face inputFace = getParentFace(f);
+    if (inputFace != Face()) {
+      inputGeom.requireVertexAngleSums();
+      for (Vertex v : inputFace.adjacentVertices()) {
+        if (inputGeom.vertexAngleSums[v] < M_PI / 3.) {
+          inputGeom.unrequireVertexAngleSums();
+          return false;
+        }
+      }
+      inputGeom.unrequireVertexAngleSums();
+    }
+
     double c = faceCircumradius(f);
     double l = shortestEdge(f);
 
@@ -491,6 +508,10 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
         // std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
+        if (newVert == Vertex()) {
+          // vertex insertion failed (probably due to a tracing error)
+          continue;
+        }
         nInsertions++;
 
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
