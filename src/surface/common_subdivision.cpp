@@ -189,15 +189,15 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
 // future, that might not be the case and we'll have to think harder
 void CommonSubdivision::constructMesh() {
   // Compute element counts to reserve space
-  size_t nV, nE, nF;
-  std::tie(nV, nE, nF) = elementCounts();
+  // size_t nV, nE, nF;
+  // std::tie(nV, nE, nF) = elementCounts();
 
   // Id of subdivision points in the parents list
   // TODO: if CommonSubdivisionPoint was hashable, we could just plug it
   // into the hashmap
   std::map<CommonSubdivisionPoint*, size_t> subdivisionPointsId;
   std::vector<CommonSubdivisionPoint*> parents;
-  parents.reserve(nE + meshB.nVertices());
+  // parents.reserve(nE + meshB.nVertices());
 
   for (CommonSubdivisionPoint& p : subdivisionPoints) {
     if (p.intersectionType != CSIntersectionType::EDGE_PARALLEL) {
@@ -212,7 +212,7 @@ void CommonSubdivision::constructMesh() {
   EdgeData<std::vector<size_t>> crossingVtxIds(meshB);
 
   for (Edge eB : meshB.edges()) {
-    crossingVtxIds[eB].reserve(intersectionsB(eB) + 2);
+    // crossingVtxIds[eB].reserve(intersectionsB(eB) + 2);
 
     // Source
     crossingVtxIds[eB].push_back(subdivisionPointsId[pointsAlongB[eB][0]]);
@@ -235,12 +235,12 @@ void CommonSubdivision::constructMesh() {
   }
 
   std::vector<std::vector<size_t>> faces;
-  faces.reserve(nF);
+  // faces.reserve(nF);
 
   // Loop over faces of mesh B and cut along edges of mesh A which cross
   // them std::vector<Face> sourceFaceB_vec;
   sourceFaceB_vec.clear();
-  sourceFaceB_vec.reserve(nF);
+  // sourceFaceB_vec.reserve(nF);
 
   bool complained = false;
   for (Face f : meshB.faces()) {
