@@ -2,6 +2,7 @@
 
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
+#include "geometrycentral/surface/normal_coordinates.h"
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
@@ -83,6 +84,18 @@ public:
   VertexData<T> interpolateAcrossA(const VertexData<T>& dataA) const;
   template <typename T>
   VertexData<T> interpolateAcrossB(const VertexData<T>& dataB) const;
+
+  // Number of elements in common subdivision
+  // Warning: not constant time: requires mesh traversal to compute
+  // TODO: assumes mesh B is finer than mesh A
+  size_t nVertices() const;
+  size_t nEdges() const;
+  size_t nFaces() const;
+  // compute (nVertices, nEdges, nFaces) all at once
+  std::tuple<size_t, size_t, size_t> elementCounts() const;
+
+  size_t intersectionsA(Edge eA) const; // count intersections along edge eA of meshA
+  size_t intersectionsB(Edge eB) const; // count intersections along edge eB of meshB
 
   // === Mutators
 
