@@ -517,13 +517,6 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
         if (nInsertions % 10000 == 0) {
           std::cout << "   ...inserted " << nInsertions << " points" << std::endl;
-          std::cout << "\t...tracing time: " << tri.tracingTime << std::endl;
-          std::cout << "\t...insertion time: " << tri.insertionTime << std::endl;
-          std::cout << "\t...edge splits: " << tri.edgeSplits << std::endl;
-          std::cout << "\t...face splits: " << tri.faceSplits << std::endl;
-          std::cout << "\t...easy insertions (1): " << tri.easyInsertions1 << std::endl;
-          std::cout << "\t...easy insertions (2): " << tri.easyInsertions2 << std::endl;
-          std::cout << "\t...hard insertions: " << tri.hardInsertions << std::endl;
         }
 
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
