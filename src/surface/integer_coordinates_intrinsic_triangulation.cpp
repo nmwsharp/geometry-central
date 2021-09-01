@@ -476,9 +476,9 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::insertCircumcenterOrSplitSegmen
 
   // Data we need from the intrinsic trace
   TraceOptions options;
-  // if (markedEdges.size() > 0) { // TODO: what is this?
-  //     options.barrierEdges = &markedEdges;
-  // }
+  if (markedEdges.size() > 0) {
+    options.barrierEdges = &markedEdges;
+  }
   TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, options);
   SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint;
   if (newPositionOnIntrinsic.type == SurfacePointType::Vertex && newPositionOnIntrinsic.vertex == Vertex()) {
