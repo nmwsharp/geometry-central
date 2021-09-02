@@ -90,6 +90,109 @@ double IntrinsicTriangulation::minAngleDegrees() const {
   return minAngle * 180. / M_PI;
 }
 
+// If f is entirely contained in some face of the input mesh, return that
+// face Otherwise return Face()
+Face IntrinsicTriangulation::getParentFace(Face f) const {
+  auto containsVertex = [](Face f, Vertex v) -> bool {
+    for (Vertex vF : f.adjacentVertices()) {
+      if (vF == v) return true;
+    }
+    return false;
+  };
+
+  auto containsEdge = [](Face f, Edge e) -> bool {
+    for (Edge eF : f.adjacentEdges()) {
+      if (eF == e) return true;
+    }
+    return false;
+  };
+
+  auto compatible = [&](const SurfacePoint& pt, Face f) -> bool {
+    switch (pt.type) {
+    case SurfacePointType::Vertex:
+      return containsVertex(f, pt.vertex);
+    case SurfacePointType::Edge:
+      return containsEdge(f, pt.edge);
+    case SurfacePointType::Face:
+      return pt.face == f;
+    }
+  };
+
+  // Look for a FacePoint
+  for (Vertex v : f.adjacentVertices()) {
+    SurfacePoint vP = vertexLocations[v];
+    if (vP.type == SurfacePointType::Face) {
+      Face parentFace = vP.face;
+
+      // Check if this works for everyone else
+      for (Vertex w : f.adjacentVertices()) {
+        if (!compatible(vertexLocations[w], parentFace)) {
+          return Face();
+        }
+      }
+
+      return parentFace;
+    }
+  }
+
+  // Look for an EdgePoint
+  for (Vertex v : f.adjacentVertices()) {
+    if (vertexLocations[v].type == SurfacePointType::Edge) {
+      Edge e = vertexLocations[v].edge;
+      Face f1 = e.halfedge().face();
+      Face f2 = e.halfedge().twin().face();
+
+      bool f1Okay = e.halfedge().isInterior();
+      bool f2Okay = e.halfedge().twin().isInterior();
+
+      for (Vertex w : f.adjacentVertices()) {
+        f1Okay = f1Okay && compatible(vertexLocations[w], f1);
+        f2Okay = f2Okay && compatible(vertexLocations[w], f2);
+      }
+
+      return (f1Okay) ? f1 : (f2Okay) ? f2 : Face();
+    }
+  }
+
+  // Give up
+  return Face();
+}
+
+double IntrinsicTriangulation::minAngleDegreesAtValidFaces(double minAngleSum) const {
+  auto faceHasLargeAngleSums = [&](Face f) -> bool {
+    for (Vertex v : f.adjacentVertices()) {
+      if (vertexAngleSums[v] * 180 < M_PI * minAngleSum) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto parentFaceHasLargeAngleSums = [&](Face f) -> bool {
+    Face fInput = getParentFace(f);
+    if (fInput == Face()) return true;
+
+    inputGeom.requireVertexAngleSums();
+    for (Vertex v : fInput.adjacentVertices()) {
+      if (inputGeom.vertexAngleSums[v] * 180 < M_PI * minAngleSum) {
+        return false;
+      }
+    }
+    inputGeom.unrequireVertexAngleSums();
+    return true;
+  };
+
+  double minCornerAngle = 10;
+  for (Face f : intrinsicMesh->faces()) {
+    if (!faceHasLargeAngleSums(f)) continue;
+    if (!parentFaceHasLargeAngleSums(f)) continue;
+    for (Corner c : f.adjacentCorners()) {
+      minCornerAngle = fmin(minCornerAngle, cornerAngles[c]);
+    }
+  }
+  return minCornerAngle * 180 / M_PI;
+}
+
 // ======================================================
 // ======== Mutators
 // ======================================================
@@ -189,13 +292,30 @@ void IntrinsicTriangulation::flipToDelaunay() {
 void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
                                             size_t maxInsertions) {
 
-
   // Relationship between angles and circumradius-to-edge
   double angleThreshRad = angleThreshDegrees * M_PI / 180.;
   double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
 
   // Build a function to test if a face violates the circumradius ratio condition
   auto needsCircumcenterRefinement = [&](Face f) {
+    size_t nNeedle = 0;
+    for (Vertex v : f.adjacentVertices()) {
+      if (vertexAngleSums[v] < M_PI / 3.) nNeedle++;
+    }
+    if (nNeedle == 1) return false;
+
+    Face inputFace = getParentFace(f);
+    if (inputFace != Face()) {
+      inputGeom.requireVertexAngleSums();
+      for (Vertex v : inputFace.adjacentVertices()) {
+        if (inputGeom.vertexAngleSums[v] < M_PI / 3.) {
+          inputGeom.unrequireVertexAngleSums();
+          return false;
+        }
+      }
+      inputGeom.unrequireVertexAngleSums();
+    }
+
     double c = faceCircumradius(f);
     double l = shortestEdge(f);
 
@@ -260,11 +380,11 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   };
 
   // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
-  typedef std::pair<double, Face> AreaFace;
+  typedef std::tuple<double, double, Face> AreaFace;
   std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>> circumradiusCheckQueue;
   for (Face f : mesh.faces()) {
     if (shouldRefine(f)) {
-      circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
+      circumradiusCheckQueue.push(std::make_tuple(areaWeight(f), faceArea(f), f));
     }
   }
 
@@ -279,7 +399,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
     for (Face nF : neighFaces) {
       if (shouldRefine(nF)) {
-        circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
+        circumradiusCheckQueue.push(std::make_tuple(areaWeight(nF), faceArea(nF), nF));
       }
     }
 
@@ -335,7 +455,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
           // Add face for refine check
           if (shouldRefine(fReplace)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(fReplace), fReplace));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(fReplace), faceArea(fReplace), fReplace));
           }
         }
       }
@@ -375,8 +495,8 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     if (!circumradiusCheckQueue.empty()) {
 
       // Get the biggest face
-      Face f = circumradiusCheckQueue.top().second;
-      double A = circumradiusCheckQueue.top().first;
+      Face f = std::get<2>(circumradiusCheckQueue.top());
+      double A = std::get<1>(circumradiusCheckQueue.top());
       circumradiusCheckQueue.pop();
       if (f.isDead()) continue;
 
@@ -384,10 +504,13 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
       //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
       //    re-add it, because it must have been placed in the queue when its area was changed
       //   - This face might have been flipped to no longer violate constraint
-      if (A == areaWeight(f) && shouldRefine(f)) {
+      if (A == faceArea(f) && shouldRefine(f)) {
 
-        // std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
+        if (newVert == Vertex()) {
+          // vertex insertion failed (probably due to a tracing error)
+          continue;
+        }
         nInsertions++;
 
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
@@ -395,7 +518,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
           // Check circumradius constraint
           if (shouldRefine(nF)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(nF), faceArea(nF), nF));
           }
 
           // Check delaunay constraint
@@ -420,7 +543,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
       if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
         for (Face f : mesh.faces()) {
           if (shouldRefine(f)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(f), faceArea(f), f));
             anyFound = true;
           }
         }

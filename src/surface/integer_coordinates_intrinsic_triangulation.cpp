@@ -50,6 +50,21 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
 //                 Queries & Accesses
 // ======================================================
 
+EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceEdges() {
+  // TODO: can this be done more efficiently without computing full common subdivision?
+
+  std::unique_ptr<CommonSubdivision> cs = extractCommonSubdivision();
+
+  EdgeData<std::vector<SurfacePoint>> tracedEdges(*intrinsicMesh);
+  for (Edge e : intrinsicMesh->edges()) {
+    for (CommonSubdivisionPoint* pt : cs->pointsAlongB[e]) {
+      tracedEdges[e].push_back(pt->posA);
+    }
+  }
+
+  return tracedEdges;
+}
+
 std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceHalfedge(Halfedge he) {
   // TODO
   throw std::runtime_error("not implemented");
@@ -63,9 +78,16 @@ SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnIntrinsi
 }
 
 SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return SurfacePoint(Vertex());
+  switch (pointOnIntrinsic.type) {
+  case SurfacePointType::Vertex:
+    return vertexLocations[pointOnIntrinsic.vertex];
+  case SurfacePointType::Edge: {
+    SurfacePoint facePoint = pointOnIntrinsic.inSomeFace();
+    return computeFaceSplitData(facePoint.face, facePoint.faceCoords).first;
+  }
+  case SurfacePointType::Face:
+    return computeFaceSplitData(pointOnIntrinsic.face, pointOnIntrinsic.faceCoords).first;
+  }
 }
 
 std::unique_ptr<CommonSubdivision> IntegerCoordinatesIntrinsicTriangulation::extractCommonSubdivision() {
@@ -456,9 +478,9 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::insertCircumcenterOrSplitSegmen
 
   // Data we need from the intrinsic trace
   TraceOptions options;
-  // if (markedEdges.size() > 0) { // TODO: what is this?
-  //     options.barrierEdges = &markedEdges;
-  // }
+  if (markedEdges.size() > 0) {
+    options.barrierEdges = &markedEdges;
+  }
   TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, options);
   SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint;
   if (newPositionOnIntrinsic.type == SurfacePointType::Vertex && newPositionOnIntrinsic.vertex == Vertex()) {
@@ -506,8 +528,8 @@ void IntegerCoordinatesIntrinsicTriangulation::updateHalfedgeVectorsInVertex(Ver
   Halfedge currHe = firstHe;
   do {
     halfedgeVectorsInVertex[currHe] = Vector2::fromAngle(coordSum) * edgeLengths[currHe.edge()];
-    coordSum += cornerScaledAngle(currHe.corner());
     if (!currHe.isInterior()) break;
+    coordSum += cornerScaledAngle(currHe.corner());
     currHe = currHe.next().next().twin();
   } while (currHe != firstHe);
 }
@@ -537,37 +559,8 @@ Halfedge IntegerCoordinatesIntrinsicTriangulation::getSharedInputEdge(Halfedge h
   return inputHe;
 }
 
-Vertex IntegerCoordinatesIntrinsicTriangulation::insertVertex(SurfacePoint pt) {
-  Vertex newVertex;
-  switch (pt.type) {
-  case SurfacePointType::Vertex:
-    newVertex = pt.vertex;
-    break;
-  case SurfacePointType::Edge:
-    newVertex = splitEdge(pt.edge, pt.tEdge, false);
-    break;
-  case SurfacePointType::Face:
-    newVertex = splitFace(pt.face, pt.faceCoords, false);
-    break;
-  }
-
-  return newVertex;
-}
-
-Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary, bool verbose) {
-  std::clock_t tStart = std::clock();
-
-  std::array<Vector2, 3> vertCoords = vertexCoordinatesInFace(f);
-  Vector2 newPCoord = (bary.x * vertCoords[0] + bary.y * vertCoords[1] + bary.z * vertCoords[2]);
-
-  Vector3 fEdgeLengths{edgeLengths[f.halfedge().next().edge()], edgeLengths[f.halfedge().next().next().edge()],
-                       edgeLengths[f.halfedge().edge()]};
-
-  std::array<double, 3> newEdgeLengths;
-  newEdgeLengths[0] = displacementLength(bary - Vector3{1, 0, 0}, fEdgeLengths);
-  newEdgeLengths[1] = displacementLength(bary - Vector3{0, 1, 0}, fEdgeLengths);
-  newEdgeLengths[2] = displacementLength(bary - Vector3{0, 0, 1}, fEdgeLengths);
-
+std::pair<SurfacePoint, std::array<int, 3>>
+IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 bary, bool verbose) {
   Face insertionFace;
   Vector3 insertionBary;
   std::array<int, 3> counts;
@@ -766,7 +759,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
       iHe++;
     }
 
-    tStart = std::clock();
+    // tStart = std::clock();
 
     // TODO apply some sanity policies, like that the crossings should be
     // correctly ordered
@@ -1083,6 +1076,45 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
     insertionFace = inputFace;
   }
 
+  return {SurfacePoint(insertionFace, insertionBary), counts};
+}
+
+Vertex IntegerCoordinatesIntrinsicTriangulation::insertVertex(SurfacePoint pt) {
+  Vertex newVertex;
+  switch (pt.type) {
+  case SurfacePointType::Vertex:
+    newVertex = pt.vertex;
+    break;
+  case SurfacePointType::Edge:
+    newVertex = splitEdge(pt.edge, pt.tEdge, false);
+    break;
+  case SurfacePointType::Face:
+    newVertex = splitFace(pt.face, pt.faceCoords, false);
+    break;
+  }
+
+  return newVertex;
+}
+
+Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary, bool verbose) {
+  // std::clock_t tStart = std::clock();
+
+  std::array<Vector2, 3> vertCoords = vertexCoordinatesInFace(f);
+  Vector2 newPCoord = (bary.x * vertCoords[0] + bary.y * vertCoords[1] + bary.z * vertCoords[2]);
+
+  Vector3 fEdgeLengths{edgeLengths[f.halfedge().next().edge()], edgeLengths[f.halfedge().next().next().edge()],
+                       edgeLengths[f.halfedge().edge()]};
+
+  std::array<double, 3> newEdgeLengths;
+  newEdgeLengths[0] = displacementLength(bary - Vector3{1, 0, 0}, fEdgeLengths);
+  newEdgeLengths[1] = displacementLength(bary - Vector3{0, 1, 0}, fEdgeLengths);
+  newEdgeLengths[2] = displacementLength(bary - Vector3{0, 0, 1}, fEdgeLengths);
+
+  SurfacePoint inputMeshPosition;
+  std::array<int, 3> counts;
+  std::tie(inputMeshPosition, counts) = computeFaceSplitData(f, bary);
+
+
   // reorder to fit order of edges incident on newVertex
   std::swap(newEdgeLengths[1], newEdgeLengths[2]);
 
@@ -1091,8 +1123,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitFace(Face f, Vector3 bary,
   Vertex newVertex = intrinsicMesh->insertVertex(f);
   normalCoordinates.applyVertexInsertionData(newVertex, data);
 
-  SurfacePoint inputPosition(insertionFace, insertionBary);
-  vertexLocations[newVertex] = inputPosition;
+  vertexLocations[newVertex] = inputMeshPosition;
 
   size_t iE = 0;
   for (Halfedge he : newVertex.outgoingHalfedges()) {

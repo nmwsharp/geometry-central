@@ -1,8 +1,8 @@
 #pragma once
 
+#include "geometrycentral/surface/common_subdivision.h"
 #include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/embedded_geometry_interface.h"
-#include "geometrycentral/surface/common_subdivision.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
@@ -79,9 +79,9 @@ public:
 
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points
-  EdgeData<std::vector<SurfacePoint>> traceEdges();
+  virtual EdgeData<std::vector<SurfacePoint>> traceEdges();
   virtual std::vector<SurfacePoint> traceHalfedge(Halfedge he) = 0; // trace a single intrinsic halfedge
-  
+
   // Construct the common subdivision
   virtual std::unique_ptr<CommonSubdivision> extractCommonSubdivision() = 0;
 
@@ -107,7 +107,15 @@ public:
 
   // Returns the smallest angle in the intrinsic triangulation, in degrees
   double minAngleDegrees() const;
+
+  // Returns the smallest angle in the intrinsic triangulation, in degrees, among faces whose vertices
+  // all have angle sum at least minAngleSum, and which are not contained in an original face incident
+  // on a vertex with small angle sum
   double minAngleDegreesAtValidFaces(double minAngleSum) const;
+
+  // If f is entirely contained in some face of the input mesh, return that
+  // face Otherwise return Face()
+  Face getParentFace(Face f) const;
 
   // ======================================================
   // ======== High-Level Mutators

@@ -35,8 +35,10 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
+  EdgeData<std::vector<SurfacePoint>> traceEdges() override;
+
   std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;
-  
+
   std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
 
   SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
@@ -104,6 +106,11 @@ public:
   // returns the halfedge in the input mesh pointing in the same direction
   // e.vertex() must live in both meshes
   Halfedge getSharedInputEdge(Halfedge e) const;
+
+  // Takes in an intrinsic point, represented as an intrinsic face and barycentric coordinate,
+  // and computes the corresponding point on the input mesh, as well as the normal coordinates of
+  // the edges connecting this new point to f's vertices.
+  std::pair<SurfacePoint, std::array<int, 3>> computeFaceSplitData(Face f, Vector3 bary, bool verbose = false);
 
   // Compute the number of vertices in the common subdivision
   // i.e. intrinsicMesh->nVertices() plus the sum of the normal coordinates

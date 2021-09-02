@@ -97,6 +97,64 @@ int CommonSubdivision::getIndex(const CommonSubdivisionPoint* p) {
   return -1;
 }
 
+size_t CommonSubdivision::nVertices() const {
+  size_t nV = meshB.nVertices();
+  for (Edge eB : meshB.edges()) nV += intersectionsB(eB);
+  return nV;
+}
+
+size_t CommonSubdivision::nEdges() const { return std::get<1>(elementCounts()); }
+
+size_t CommonSubdivision::nFaces() const { return std::get<2>(elementCounts()); }
+
+std::tuple<size_t, size_t, size_t> CommonSubdivision::elementCounts() const {
+  size_t nV = meshB.nVertices();
+  size_t nE = 0;
+  size_t nF = 0;
+
+  for (Edge eB : meshB.edges()) {
+    size_t n = intersectionsB(eB);
+    nV += n;
+    nE += n + 1;
+  }
+
+  for (Face fB : meshB.faces()) {
+    size_t nij = intersectionsB(fB.halfedge().edge());
+    size_t njk = intersectionsB(fB.halfedge().next().edge());
+    size_t nki = intersectionsB(fB.halfedge().next().next().edge());
+
+    size_t ci = strictCornerCoord(njk, nki, nij);
+    size_t cj = strictCornerCoord(nki, nij, njk);
+    size_t ck = strictCornerCoord(nij, njk, nki);
+
+    size_t ei = strictDegree(njk, nki, nij);
+    size_t ej = strictDegree(nki, nij, njk);
+    size_t ek = strictDegree(nij, njk, nki);
+
+    nE += ci + cj + ck + ei + ej + ek;
+    nF += ci + cj + ck + ei + ej + ek + 1;
+  }
+
+
+  return {nV, nE, nF};
+}
+
+size_t CommonSubdivision::intersectionsA(Edge eA) const {
+  if (pointsAlongA[eA].size() == 3 && pointsAlongA[eA][1]->intersectionType == CSIntersectionType::EDGE_PARALLEL) {
+    return 0; // shared edge;
+  } else {
+    return pointsAlongA[eA].size() - 2; // trim off endpoints
+  }
+}
+
+size_t CommonSubdivision::intersectionsB(Edge eB) const {
+  if (pointsAlongB[eB].size() == 3 && pointsAlongB[eB][1]->intersectionType == CSIntersectionType::EDGE_PARALLEL) {
+    return 0; // shared edge;
+  } else {
+    return pointsAlongB[eB].size() - 2; // trim off endpoints
+  }
+}
+
 std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathAonB(Halfedge heA) {
   std::vector<SurfacePoint> result;
 
@@ -130,11 +188,16 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
 // TODO: right now, this assumes that mesh B is finer than mesh A. In the
 // future, that might not be the case and we'll have to think harder
 void CommonSubdivision::constructMesh() {
+  // Compute element counts to reserve space
+  // size_t nV, nE, nF;
+  // std::tie(nV, nE, nF) = elementCounts();
+
   // Id of subdivision points in the parents list
   // TODO: if CommonSubdivisionPoint was hashable, we could just plug it
   // into the hashmap
   std::map<CommonSubdivisionPoint*, size_t> subdivisionPointsId;
   std::vector<CommonSubdivisionPoint*> parents;
+  // parents.reserve(nE + meshB.nVertices());
 
   for (CommonSubdivisionPoint& p : subdivisionPoints) {
     if (p.intersectionType != CSIntersectionType::EDGE_PARALLEL) {
@@ -149,6 +212,8 @@ void CommonSubdivision::constructMesh() {
   EdgeData<std::vector<size_t>> crossingVtxIds(meshB);
 
   for (Edge eB : meshB.edges()) {
+    // crossingVtxIds[eB].reserve(intersectionsB(eB) + 2);
+
     // Source
     crossingVtxIds[eB].push_back(subdivisionPointsId[pointsAlongB[eB][0]]);
     // cout << subdivisionPointsId[getIndex(pointsAlongB[eB][0])] <<
@@ -170,10 +235,12 @@ void CommonSubdivision::constructMesh() {
   }
 
   std::vector<std::vector<size_t>> faces;
+  // faces.reserve(nF);
 
   // Loop over faces of mesh B and cut along edges of mesh A which cross
   // them std::vector<Face> sourceFaceB_vec;
   sourceFaceB_vec.clear();
+  // sourceFaceB_vec.reserve(nF);
 
   bool complained = false;
   for (Face f : meshB.faces()) {
