@@ -380,11 +380,11 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   };
 
   // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
-  typedef std::pair<double, Face> AreaFace;
+  typedef std::tuple<double, double, Face> AreaFace;
   std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>> circumradiusCheckQueue;
   for (Face f : mesh.faces()) {
     if (shouldRefine(f)) {
-      circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
+      circumradiusCheckQueue.push(std::make_tuple(areaWeight(f), faceArea(f), f));
     }
   }
 
@@ -399,7 +399,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
     for (Face nF : neighFaces) {
       if (shouldRefine(nF)) {
-        circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
+        circumradiusCheckQueue.push(std::make_tuple(areaWeight(nF), faceArea(nF), nF));
       }
     }
 
@@ -455,7 +455,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
 
           // Add face for refine check
           if (shouldRefine(fReplace)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(fReplace), fReplace));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(fReplace), faceArea(fReplace), fReplace));
           }
         }
       }
@@ -495,8 +495,8 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     if (!circumradiusCheckQueue.empty()) {
 
       // Get the biggest face
-      Face f = circumradiusCheckQueue.top().second;
-      double A = circumradiusCheckQueue.top().first;
+      Face f = std::get<2>(circumradiusCheckQueue.top());
+      double A = std::get<1>(circumradiusCheckQueue.top());
       circumradiusCheckQueue.pop();
       if (f.isDead()) continue;
 
@@ -504,9 +504,8 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
       //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
       //    re-add it, because it must have been placed in the queue when its area was changed
       //   - This face might have been flipped to no longer violate constraint
-      if (A == areaWeight(f) && shouldRefine(f)) {
+      if (A == faceArea(f) && shouldRefine(f)) {
 
-        // std::cout << "  refining face " << f << std::endl;
         Vertex newVert = insertCircumcenter(f);
         if (newVert == Vertex()) {
           // vertex insertion failed (probably due to a tracing error)
@@ -514,17 +513,12 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
         }
         nInsertions++;
 
-
-        if (nInsertions % 10000 == 0) {
-          std::cout << "   ...inserted " << nInsertions << " points" << std::endl;
-        }
-
         // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
         for (Face nF : newVert.adjacentFaces()) {
 
           // Check circumradius constraint
           if (shouldRefine(nF)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(nF), faceArea(nF), nF));
           }
 
           // Check delaunay constraint
@@ -549,7 +543,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
       if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
         for (Face f : mesh.faces()) {
           if (shouldRefine(f)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
+            circumradiusCheckQueue.push(std::make_tuple(areaWeight(f), faceArea(f), f));
             anyFound = true;
           }
         }
