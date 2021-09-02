@@ -13,7 +13,7 @@ class EdgeLengthGeometry : public IntrinsicGeometryInterface {
 
 public:
   EdgeLengthGeometry(SurfaceMesh& mesh_);
-  EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths);
+  EdgeLengthGeometry(SurfaceMesh& mesh_, const EdgeData<double>& inputEdgeLengths);
   virtual ~EdgeLengthGeometry() {}
 
   // Construct a new geometry which is exactly the same as this one, on the same mesh.

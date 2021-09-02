@@ -17,7 +17,7 @@ EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh_)
   edgeLengthsQ.clearable = false;
 }
 
-EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths_)
+EdgeLengthGeometry::EdgeLengthGeometry(SurfaceMesh& mesh_, const EdgeData<double>& inputEdgeLengths_)
     : IntrinsicGeometryInterface(mesh_), inputEdgeLengths(edgeLengths) {
 
   edgeLengths = inputEdgeLengths_;

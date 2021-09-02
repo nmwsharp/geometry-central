@@ -1,10 +1,13 @@
 #pragma once
 
+#include "geometrycentral/surface/barycentric_coordinate_helpers.h"
+#include "geometrycentral/surface/edge_length_geometry.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/normal_coordinates.h"
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
+#include "geometrycentral/surface/vertex_position_geometry.h"
 #include "geometrycentral/utilities/elementary_geometry.h"
 
 #include <deque>
@@ -59,8 +62,7 @@ public:
 
   std::unique_ptr<ManifoldSurfaceMesh> mesh;        // optional: mesh connectivity
   std::unique_ptr<SimplePolygonMesh> simpleMesh;    // fallback if manifold mesh construction fails
-  VertexData<CommonSubdivisionPoint*> sourcePoints; // for each vertex in mesh, what source point did it come
-                                                    // from
+  VertexData<CommonSubdivisionPoint*> sourcePoints; // for each vertex in mesh, what source point did it come from
 
   FaceData<Face> sourceFaceA;
   FaceData<Face> sourceFaceB;
@@ -85,6 +87,19 @@ public:
   template <typename T>
   VertexData<T> interpolateAcrossB(const VertexData<T>& dataB) const;
 
+  // Interpolation matrices
+  SparseMatrix<double> interpolationMatrixA();
+  SparseMatrix<double> interpolationMatrixB();
+
+  EdgeData<double> interpolateEdgeLengthsA(const EdgeData<double>& lengthA);
+  EdgeData<double> interpolateEdgeLengthsB(const EdgeData<double>& lengthB);
+
+  // Warning: triangulates common subdivision mesh
+  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsA(const VertexData<Vector3>& positionsA);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsB(const VertexData<Vector3>& positionsB);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsA(const EdgeData<double>& lengthsA);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsB(const EdgeData<double>& lengthsB);
+
   // Number of elements in common subdivision
   // Warning: not constant time: requires mesh traversal to compute
   // TODO: assumes mesh B is finer than mesh A
@@ -102,6 +117,8 @@ public:
   // TODO: right now, this assumes that mesh B is finer than mesh A. In the
   // future, that might not be the case and we'll have to think harder
   void constructMesh();
+
+  void triangulateMesh();
 
   // Write mesh A and common subdivision to obj files
   // Vertex positions should be for mesh A

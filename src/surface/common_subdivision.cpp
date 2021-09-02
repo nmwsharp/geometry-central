@@ -97,6 +97,168 @@ int CommonSubdivision::getIndex(const CommonSubdivisionPoint* p) {
   return -1;
 }
 
+SparseMatrix<double> CommonSubdivision::interpolationMatrixA() {
+  // TODO: could do without constructing mesh
+  if (!mesh) constructMesh();
+
+  VertexData<size_t> csVertInd = mesh->getVertexIndices();
+
+  SparseMatrix<double> P_A(mesh->nVertices(), meshA.nVertices());
+  std::vector<Eigen::Triplet<double>> tripletList;
+  VertexData<size_t> AVertInd = meshA.getVertexIndices();
+
+  for (Vertex v : mesh->vertices()) {
+
+    CommonSubdivisionPoint& p = *sourcePoints[v];
+    size_t iP = csVertInd[v];
+
+    switch (p.posA.type) {
+    case SurfacePointType::Vertex: {
+      tripletList.emplace_back(iP, AVertInd[p.posA.vertex], 1.);
+      break;
+    }
+    case SurfacePointType::Edge: {
+      Halfedge he = p.posA.edge.halfedge();
+      tripletList.emplace_back(iP, AVertInd[he.tailVertex()], 1. - p.posA.tEdge);
+      tripletList.emplace_back(iP, AVertInd[he.tipVertex()], p.posA.tEdge);
+      break;
+    }
+    case SurfacePointType::Face: {
+      Halfedge he = p.posA.face.halfedge();
+      tripletList.emplace_back(iP, AVertInd[he.vertex()], p.posA.faceCoords[0]);
+      he = he.next();
+      tripletList.emplace_back(iP, AVertInd[he.vertex()], p.posA.faceCoords[1]);
+      he = he.next();
+      tripletList.emplace_back(iP, AVertInd[he.vertex()], p.posA.faceCoords[2]);
+      break;
+    }
+    }
+  }
+
+  P_A.setFromTriplets(tripletList.begin(), tripletList.end());
+  return P_A;
+}
+
+SparseMatrix<double> CommonSubdivision::interpolationMatrixB() {
+  // TODO: could do without constructing mesh
+  if (!mesh) constructMesh();
+
+  VertexData<size_t> csVertInd = mesh->getVertexIndices();
+
+  SparseMatrix<double> P_B(mesh->nVertices(), meshB.nVertices());
+  std::vector<Eigen::Triplet<double>> tripletList;
+  VertexData<size_t> BVertInd = meshB.getVertexIndices();
+
+  for (Vertex v : mesh->vertices()) {
+
+    CommonSubdivisionPoint& p = *sourcePoints[v];
+    size_t iP = csVertInd[v];
+
+    switch (p.posB.type) {
+    case SurfacePointType::Vertex: {
+      tripletList.emplace_back(iP, BVertInd[p.posB.vertex], 1.);
+      break;
+    }
+    case SurfacePointType::Edge: {
+      Halfedge he = p.posB.edge.halfedge();
+      tripletList.emplace_back(iP, BVertInd[he.tailVertex()], 1. - p.posB.tEdge);
+      tripletList.emplace_back(iP, BVertInd[he.tipVertex()], p.posB.tEdge);
+      break;
+    }
+    case SurfacePointType::Face: {
+      Halfedge he = p.posB.face.halfedge();
+      tripletList.emplace_back(iP, BVertInd[he.vertex()], p.posB.faceCoords[0]);
+      he = he.next();
+      tripletList.emplace_back(iP, BVertInd[he.vertex()], p.posB.faceCoords[1]);
+      he = he.next();
+      tripletList.emplace_back(iP, BVertInd[he.vertex()], p.posB.faceCoords[2]);
+      break;
+    }
+    }
+  }
+
+  P_B.setFromTriplets(tripletList.begin(), tripletList.end());
+  return P_B;
+}
+
+EdgeData<double> CommonSubdivision::interpolateEdgeLengthsA(const EdgeData<double>& lengthA) {
+  if (!mesh) constructMesh();
+
+  auto fEdgeLengths = [&](Face f) -> Vector3 { // Gather face's edge lengths
+    return Vector3{lengthA[f.halfedge().next().edge()], lengthA[f.halfedge().next().next().edge()],
+                   lengthA[f.halfedge().edge()]};
+  };
+
+  EdgeData<double> lengthCS(*mesh);
+  for (Edge e : mesh->edges()) {
+    SurfacePoint tail = sourcePoints[e.halfedge().tailVertex()]->posA;
+    SurfacePoint tip = sourcePoints[e.halfedge().tipVertex()]->posA;
+    Face f = sharedFace(tail, tip);
+    GC_SAFETY_ASSERT(f != Face(), "common subdivision edges must be contained in a face");
+    tail = tail.inFace(f);
+    tip = tip.inFace(f);
+
+    lengthCS[e] = displacementLength(tip.faceCoords - tail.faceCoords, fEdgeLengths(f));
+  }
+
+  return lengthCS;
+}
+
+EdgeData<double> CommonSubdivision::interpolateEdgeLengthsB(const EdgeData<double>& lengthB) {
+  if (!mesh) constructMesh();
+
+  auto fEdgeLengths = [&](Face f) -> Vector3 { // Gather face's edge lengths
+    return Vector3{lengthB[f.halfedge().next().edge()], lengthB[f.halfedge().next().next().edge()],
+                   lengthB[f.halfedge().edge()]};
+  };
+
+  EdgeData<double> lengthCS(*mesh);
+  for (Edge e : mesh->edges()) {
+    SurfacePoint tail = sourcePoints[e.halfedge().tailVertex()]->posB;
+    SurfacePoint tip = sourcePoints[e.halfedge().tipVertex()]->posB;
+    Face f = sharedFace(tail, tip);
+    GC_SAFETY_ASSERT(f != Face(), "common subdivision edges must be contained in a face");
+    tail = tail.inFace(f);
+    tip = tip.inFace(f);
+
+    lengthCS[e] = displacementLength(tip.faceCoords - tail.faceCoords, fEdgeLengths(f));
+  }
+
+  return lengthCS;
+}
+
+SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromPositionsA(const VertexData<Vector3>& positionsA) {
+  if (!mesh) constructMesh();
+  triangulateMesh();
+  VertexPositionGeometry geo(*mesh, interpolateAcrossA(positionsA));
+  geo.requireVertexGalerkinMassMatrix();
+  return geo.vertexGalerkinMassMatrix;
+}
+
+SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromPositionsB(const VertexData<Vector3>& positionsB) {
+  if (!mesh) constructMesh();
+  triangulateMesh();
+  VertexPositionGeometry geo(*mesh, interpolateAcrossB(positionsB));
+  geo.requireVertexGalerkinMassMatrix();
+  return geo.vertexGalerkinMassMatrix;
+}
+
+SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromLengthsA(const EdgeData<double>& lengthsA) {
+  if (!mesh) constructMesh();
+  triangulateMesh();
+  EdgeLengthGeometry geo(*mesh, interpolateEdgeLengthsA(lengthsA));
+  geo.requireVertexGalerkinMassMatrix();
+  return geo.vertexGalerkinMassMatrix;
+}
+
+SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromLengthsB(const EdgeData<double>& lengthsB) {
+  if (!mesh) constructMesh();
+  triangulateMesh();
+  EdgeLengthGeometry geo(*mesh, interpolateEdgeLengthsB(lengthsB));
+  geo.requireVertexGalerkinMassMatrix();
+  return geo.vertexGalerkinMassMatrix;
+}
+
 size_t CommonSubdivision::nVertices() const {
   size_t nV = meshB.nVertices();
   for (Edge eB : meshB.edges()) nV += intersectionsB(eB);
@@ -283,6 +445,11 @@ void CommonSubdivision::constructMesh() {
     simpleMesh.reset(new SimplePolygonMesh(faces, dumb));
     std::cerr << "Error: manifold mesh construction failed: " << e.what() << std::endl;
   }
+}
+
+void CommonSubdivision::triangulateMesh() {
+  if (!mesh) constructMesh();
+  for (Face f : mesh->faces()) mesh->triangulate(f);
 }
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,
