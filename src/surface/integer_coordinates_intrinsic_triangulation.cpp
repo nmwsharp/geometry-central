@@ -1,5 +1,7 @@
 #include "geometrycentral/surface/integer_coordinates_intrinsic_triangulation.h"
 
+#include <ctime>
+
 namespace geometrycentral {
 namespace surface {
 

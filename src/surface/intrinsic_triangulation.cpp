@@ -418,29 +418,45 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   };
   auto flipCallbackHandle = edgeFlipCallbackList.insert(std::end(edgeFlipCallbackList), checkNeighborsAfterFlip);
 
+  // Flip the triangulation back to being Delaunay.
+  // This helper is different from the member function flipToDelaunay() because it uses the carefully-maintained queue
+  // above to only examine those faces which have changed; the member function always starts from scratch and costs at
+  // least O(n).
+  auto flipToDelaunayFromQueue = [&]() {
+    while (!delaunayCheckQueue.empty()) {
+
+      // Get the top element from the queue of possibily non-Delaunay edges
+      Edge e = delaunayCheckQueue.front();
+      delaunayCheckQueue.pop_front();
+      if (e.isDead()) continue;
+      inDelaunayQueue[e] = false;
+
+      flipEdgeIfNotDelaunay(e);
+
+      // Remember that up we registered a callback up above which checks neighbors for subsequent processing after a
+      // flip.
+    }
+  };
+
   // Register a callback, which will be invoked to delete previously-inserted vertices whenever refinment splits an edge
   auto deleteNearbyVertices = [&](Edge e, Halfedge he1, Halfedge he2) {
     // radius of the diametral ball
     double ballRad = std::max(edgeLengths[he1.edge()], edgeLengths[he2.edge()]);
     Vertex newV = he1.vertex();
 
-    // TODO flip to Delaunay, to ensure that the Dijkstra search below actually has a stretch factor of 2
+    // Flip to Delaunay, to ensure that the Dijkstra search below actually has a stretch factor of 2
+    flipToDelaunayFromQueue();
 
     // Find all vertices within range.
-    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on
-    // polyhedral shortest paths which is bad for performance and robustness. Using a Dijsktra ball instead seems to
-    // work fine in practice, and I think you could argue that the factor of 2 makes it provably correct, due to the
-    // stretch factor of a Delaunay triangulation (recalling that deleting extra interior inserted vertices does not
-    // affect correctness).
+    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on polyhedral shortest paths which is bad for performance and robustness. 
     //
-    // std::unordered_map<Vertex, double> nearbyVerts = vertexGeodesicDistanceWithinRadius(*this, newV, ballRad);
+    // Fortunately, on a Delaunay triangulation, the Dijkstra distance is at most 2x the geodesic distance (see Intrinsic Triangulations Course, the underlying reference is Ge Xia 2013. "The Stretch Factor of the Delaunay Triangulation Is Less than 1.998"). So instead, we delete all previously-inserted vertices within 2x the Dikstra radius instead. This may delete some extra verts, but that does not effect convergence.
     std::unordered_map<Vertex, double> nearbyVerts = vertexDijkstraDistanceWithinRadius(*this, newV, 2. * ballRad);
 
     // remove inserted vertices
     for (auto p : nearbyVerts) {
       Vertex v = p.first;
       if (v != newV && !isOnFixedEdge(v) && vertexLocations[v].type != SurfacePointType::Vertex) {
-        // std::cout << "  removing inserted vertex " << v << std::endl;
         Face fReplace = removeInsertedVertex(v);
 
         if (fReplace != Face()) {
@@ -470,19 +486,7 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
   do {
 
     // == First, flip to delaunay
-    while (!delaunayCheckQueue.empty()) {
-
-      // Get the top element from the queue of possibily non-Delaunay edges
-      Edge e = delaunayCheckQueue.front();
-      delaunayCheckQueue.pop_front();
-      if (e.isDead()) continue;
-      inDelaunayQueue[e] = false;
-
-      flipEdgeIfNotDelaunay(e);
-
-      // Remember that up we registered a callback up above which checks neighbors for subsequent processing after a
-      // flip.
-    }
+    flipToDelaunayFromQueue();
 
     // == Second, insert one circumcenter
 
