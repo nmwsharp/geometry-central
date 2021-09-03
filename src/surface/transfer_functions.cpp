@@ -1,5 +1,7 @@
 #include "geometrycentral/surface/transfer_functions.h"
 
+namespace geometrycentral {
+namespace surface {
 
 AttributeTransfer::AttributeTransfer(CommonSubdivision& cs_, VertexPositionGeometry& geomA) : cs(cs_) {
   // Make sure the common subdivision has full mesh connectivity
@@ -12,7 +14,7 @@ AttributeTransfer::AttributeTransfer(CommonSubdivision& cs_, VertexPositionGeome
   M_CS_Galerkin = cs.vertexGalerkinMassMatrixFromPositionsA(geomA.vertexPositions);
 }
 
-AttributeTransfer::AttributeTransfer(CommonSubdivision& cs_, IntrinsicTriangulation& intTri) : cs(cs_) {
+AttributeTransfer::AttributeTransfer(IntrinsicTriangulation& intTri) : cs(intTri.getCommonSubdivision()) {
   // Make sure the common subdivision has full mesh connectivity
   // (this is lazy and expensive; we could actually get away without it)
   if (!cs.mesh) cs.constructMesh();
@@ -103,25 +105,29 @@ VertexData<double> AttributeTransfer::transferBtoA_L2(const VertexData<double>& 
   return VertexData<double>(cs.meshA, result);
 }
 
-VertexData transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnA,
-                        TransferMethod method) {
+VertexData<double> transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA,
+                                const VertexData<double>& valuesOnA, TransferMethod method) {
   AttributeTransfer transfer(cs, geomA);
   return transfer.transferAtoB(valuesOnA, method);
 }
 
-VertexData transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA, TransferMethod method) {
-  std::unique_ptr<CommonSubdivision> cs = intTri.extractCommonSubdivision();
-  AttributeTransfer transfer(*cs, intTri);
+VertexData<double> transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA,
+                                TransferMethod method) {
+  AttributeTransfer transfer(intTri);
   return transfer.transferAtoB(valuesOnA, method);
 }
 
-VertexData transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnB,
-                        TransferMethod method) {
+VertexData<double> transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA,
+                                const VertexData<double>& valuesOnB, TransferMethod method) {
   AttributeTransfer transfer(cs, geomA);
   return transfer.transferBtoA(valuesOnB, method);
 }
 
-VertexData transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB, TransferMethod method) {
-  AttributeTransfer transfer(*cs, intTri);
+VertexData<double> transferBtoA(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnB,
+                                TransferMethod method) {
+  AttributeTransfer transfer(intTri);
   return transfer.transferBtoA(valuesOnB, method);
 }
+
+} // namespace surface
+} // namespace geometrycentral

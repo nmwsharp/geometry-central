@@ -11,8 +11,8 @@
 
 #include <deque>
 
-using namespace geometrycentral;
-using namespace geometrycentral::surface;
+namespace geometrycentral {
+namespace surface {
 
 enum class TransferMethod { Pointwise = 0, L2 };
 
@@ -52,10 +52,16 @@ public:
 
 
 // One-off functions
-VertexData transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnA,
-                        TransferMethod method);
-VertexData transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA, TransferMethod method);
+VertexData<double> transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA,
+                                const VertexData<double>& valuesOnA, TransferMethod method);
+VertexData<double> transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA,
+                                TransferMethod method);
 
-VertexData transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnB,
-                        TransferMethod method);
-VertexData transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB, TransferMethod method);
+VertexData<double> transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA,
+                                const VertexData<double>& valuesOnB, TransferMethod method);
+VertexData<double> transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB,
+                                TransferMethod method);
+
+
+} // namespace surface
+} // namespace geometrycentral
