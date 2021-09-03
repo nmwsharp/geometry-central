@@ -21,7 +21,7 @@ class AttributeTransfer {
 public:
   // Constructor
   AttributeTransfer(CommonSubdivision& cs, VertexPositionGeometry& geomA);
-  AttributeTransfer(CommonSubdivision& cs, IntrinsicTriangulation& intTri);
+  AttributeTransfer(IntrinsicTriangulation& intTri);
 
   // Members
   CommonSubdivision& cs;
@@ -49,3 +49,13 @@ public:
 
   // Prepare data
 };
+
+
+// One-off functions
+VertexData transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnA,
+                        TransferMethod method);
+VertexData transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA, TransferMethod method);
+
+VertexData transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnB,
+                        TransferMethod method);
+VertexData transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB, TransferMethod method);

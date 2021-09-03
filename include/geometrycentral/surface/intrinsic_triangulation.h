@@ -123,7 +123,7 @@ public:
   //
   // Call once to build a useful triangulation
 
-  // Flips edge in the intrinsic triangulation until is satisfies teh intrinsic Delaunay criterion
+  // Flips edges in the intrinsic triangulation until is satisfies the intrinsic Delaunay criterion
   void flipToDelaunay();
 
   // Perform intrinsic Delaunay refinement the intrinsic triangulation until it simultaneously:

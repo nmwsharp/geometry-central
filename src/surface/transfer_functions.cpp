@@ -102,3 +102,26 @@ VertexData<double> AttributeTransfer::transferBtoA_L2(const VertexData<double>& 
   Vector<double> result = BtoA_L2_Solver->solve(vec);
   return VertexData<double>(cs.meshA, result);
 }
+
+VertexData transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnA,
+                        TransferMethod method) {
+  AttributeTransfer transfer(cs, geomA);
+  return transfer.transferAtoB(valuesOnA, method);
+}
+
+VertexData transferAtoB(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnA, TransferMethod method) {
+  std::unique_ptr<CommonSubdivision> cs = intTri.extractCommonSubdivision();
+  AttributeTransfer transfer(*cs, intTri);
+  return transfer.transferAtoB(valuesOnA, method);
+}
+
+VertexData transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA, const VertexData<double>& valuesOnB,
+                        TransferMethod method) {
+  AttributeTransfer transfer(cs, geomA);
+  return transfer.transferBtoA(valuesOnB, method);
+}
+
+VertexData transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB, TransferMethod method) {
+  AttributeTransfer transfer(*cs, intTri);
+  return transfer.transferBtoA(valuesOnB, method);
+}
