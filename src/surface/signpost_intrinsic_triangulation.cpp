@@ -45,9 +45,11 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
   edgeIsOriginal.fill(true);
 }
 
-std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he) { return traceHalfedge(he, true); }
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he) {
+  return traceIntrinsicHalfedgeAlongInput(he, true);
+}
 
-std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he, bool trimEnd) {
 
   // Optimization: don't bother tracing original edges, just report them directly
   if (edgeIsOriginal[he.edge()]) {
@@ -87,6 +89,20 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   }
 
   return result.pathPoints;
+}
+
+
+EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
+  // TODO
+  EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
+  throw std::runtime_error("not implemented");
+  return tracedEdges;
+}
+
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return std::vector<SurfacePoint>{};
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
@@ -152,6 +168,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 
   edgeIsOriginal[e] = false;
 
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
   return true;
 }
@@ -202,6 +219,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
   edgeIsOriginal[e] = false;
 
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
   return true;
 }
@@ -226,6 +244,7 @@ void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, do
   updateFaceBasis(e.halfedge().twin().face());
 
   edgeIsOriginal[e] = isOrig;
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
 }
 
@@ -310,6 +329,7 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   // === (4) Now that we have edge lengths, sort out tangent spaces and position on supporting.
   resolveNewVertex(newV, newP);
 
+  triangulationChanged();
   invokeEdgeSplitCallbacks(insertionEdge, newHeFront, newHeBack);
 
   return newHeFront;
@@ -361,6 +381,7 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
   // === (4) Now that we have edge lengths, sort out tangent spaces and position on supporting.
   resolveNewVertex(newV, newP);
 
+  triangulationChanged();
   invokeFaceInsertionCallbacks(insertionFace, newV);
   return newV;
 }
@@ -404,6 +425,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   // Remove the vertex
   Face newF = intrinsicMesh->removeVertex(v);
   updateFaceBasis(newF);
+  triangulationChanged();
   return newF;
 }
 
@@ -469,28 +491,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   }
 
   // == (3) Find the insertion point on the input mesh, use it to align tangent spaces
-
-  // Heuristic: we have to choose some edge to trace from to resolve the vertex. Use the shortest one, as it will often
-  // involve the fewest crossings. Furthermore, use an original vertex if possible to reduce accumulating numerical
-  // error.
-  /*
-  Halfedge inputTraceHe = newV.halfedge().twin();
-  double shortestTraceHeLen = edgeLengths[inputTraceHe.edge()];
-  for (Halfedge heIn : newV.incomingHalfedges()) {
-    double thisLen = edgeLengths[heIn.edge()];
-
-    bool currVertIsOriginal = vertexLocations[inputTraceHe.vertex()].type == SurfacePointType::Vertex;
-    bool newVertIsOriginal = vertexLocations[heIn.vertex()].type == SurfacePointType::Vertex;
-
-    if (currVertIsOriginal && !newVertIsOriginal) continue;
-
-    if ((newVertIsOriginal && !currVertIsOriginal) || thisLen < shortestTraceHeLen) {
-      shortestTraceHeLen = thisLen;
-      inputTraceHe = heIn;
-    }
-  }
-  */
-
 
   // We have to choose some edge to trace from to resolve the vertex. Choose from neighbors according to the following
   // priority:
@@ -612,7 +612,8 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   } while (currHe != firstHe);
 }
 
-std::unique_ptr<CommonSubdivision> SignpostIntrinsicTriangulation::extractCommonSubdivision() {
+
+void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
 
   intrinsicMesh->compress();
 

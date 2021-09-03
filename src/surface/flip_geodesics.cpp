@@ -1578,7 +1578,7 @@ std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::getPathPolyline(bool& wa
     result.emplace_back();
     std::vector<SurfacePoint>& thisResult = result.back();
     for (Halfedge he : heList) {
-      std::vector<SurfacePoint> thisTrace = tri->traceHalfedge(he, true);
+      std::vector<SurfacePoint> thisTrace = tri->traceIntrinsicHalfedgeAlongInput(he);
 
       // Check success
       SurfacePoint& lastP = thisTrace.back();
@@ -1608,7 +1608,7 @@ std::vector<std::vector<SurfacePoint>> FlipEdgeNetwork::getAllEdgePolyline() {
     // Trace out the halfedge
     result.emplace_back();
     std::vector<SurfacePoint>& thisResult = result.back();
-    std::vector<SurfacePoint> thisTrace = tri->traceHalfedge(e.halfedge(), true);
+    std::vector<SurfacePoint> thisTrace = tri->traceIntrinsicHalfedgeAlongInput(e.halfedge());
 
     // Add the points to the list
     thisResult.insert(std::end(thisResult), std::begin(thisTrace), std::end(thisTrace));

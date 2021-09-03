@@ -35,40 +35,35 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
-  EdgeData<std::vector<SurfacePoint>> traceEdges() override;
-
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;
-
-  std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
+  // See intrinsic_triangulation.h for docs.
 
   SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
 
   SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
 
+  EdgeData<std::vector<SurfacePoint>> traceAllIntrinsicEdgesAlongInput() override;
+  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) override;
+
+  EdgeData<std::vector<SurfacePoint>> traceAllInputEdgesAlongIntrinsic() override;
+  std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) override;
+
   // ======================================================
   // ======== Low-Level Mutators
   // ======================================================
 
-  // If the edge is not Delaunay, flip it. Returns true if flipped.
+  // See intrinsic_triangulation.h for docs.
+
   bool flipEdgeIfNotDelaunay(Edge e) override;
 
-  // If the edge can be flipped, flip it (must be combinatorially flippable and inside a convex quad). Returns true if
-  // flipped.
   bool flipEdgeIfPossible(Edge e) override;
 
-  // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
-  // be flippable. Experts only.
   void flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle, bool isOrig,
                       bool reverseFlip = false) override;
 
-  // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) override;
 
-  // Remove an (inserted) vertex from the triangulation.
-  // Note: if something goes terribly (numerically?) wrong, will exit without removing the vertex.
   Face removeInsertedVertex(Vertex v) override;
 
-  // Split an edge
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
   // Basic operations to modify the intrinsic triangulation
@@ -141,6 +136,10 @@ public:
 
 private:
   // Implementation details
+
+  // Construct the common subdivision for the current triangulation.
+  void constructCommonSubdivision() override;
+
 };
 
 // Compute the cotan weight of halfedge ij in terms of the lengths of its
