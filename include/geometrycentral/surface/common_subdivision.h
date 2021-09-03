@@ -66,7 +66,6 @@ public:
   // Includes endpoints.
   std::vector<SurfacePoint> getHalfedgePathAonB(Halfedge heA);
   std::vector<SurfacePoint> getHalfedgePathBonA(Halfedge heB);
-
   // Number of elements in common subdivision
   // Warning: not constant time: requires mesh traversal to compute
   size_t nVertices() const;
@@ -178,7 +177,7 @@ public:
 
   // Helper routine abstracting common logic for mesh creation.
   void constructMeshData(std::vector<std::vector<size_t>>& faces_out, std::vector<CommonSubdivisionPoint*>& parents_out,
-                         std::vector<Face>& sourceFaceB_out);
+                         std::vector<Face>& sourceFaceA_out, std::vector<Face>& sourceFaceB_out);
 };
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,

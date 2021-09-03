@@ -347,11 +347,13 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
 void CommonSubdivision::constructMesh(bool triangulate) {
   std::vector<std::vector<size_t>> faces;
   std::vector<CommonSubdivisionPoint*> parents;
+  std::vector<Face> sourceFaceA_vec;
   std::vector<Face> sourceFaceB_vec;
-  constructMeshData(faces, parents, sourceFaceB_vec);
+  constructMeshData(faces, parents, sourceFaceA_vec, sourceFaceB_vec);
 
   mesh.reset(new ManifoldSurfaceMesh(faces));
   sourcePoints = fromStdVector<Vertex>(*mesh, parents);
+  sourceFaceA = fromStdVector<Face>(*mesh, sourceFaceA_vec);
   sourceFaceB = fromStdVector<Face>(*mesh, sourceFaceB_vec);
 
   if (triangulate) {
@@ -368,8 +370,9 @@ void CommonSubdivision::checkMeshConstructed() const {
 void CommonSubdivision::constructSimpleMesh() {
   std::vector<std::vector<size_t>> faces;
   std::vector<CommonSubdivisionPoint*> parents;
+  std::vector<Face> sourceFaceA_vec;
   std::vector<Face> sourceFaceB_vec;
-  constructMeshData(faces, parents, sourceFaceB_vec);
+  constructMeshData(faces, parents, sourceFaceA_vec, sourceFaceB_vec);
 
   std::vector<Vector3> dummyPositions(parents.size(), Vector3::zero());
   simpleMesh.reset(new SimplePolygonMesh(faces, dummyPositions));
@@ -378,7 +381,7 @@ void CommonSubdivision::constructSimpleMesh() {
 
 void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& faces_out,
                                           std::vector<CommonSubdivisionPoint*>& parents_out,
-                                          std::vector<Face>& sourceFaceB_out) {
+                                          std::vector<Face>& sourceFaceA_out, std::vector<Face>& sourceFaceB_out) {
 
   // TODO: fill in sourceFaceA
 
@@ -449,15 +452,81 @@ void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& face
     for (const auto& newF : newFaces) {
       // GC_SAFETY_ASSERT(newF.size() > 2,
       //                  "No bigons allowed in common subdivision.");
-      if (newF.size() > 2) {
-        faces_out.push_back(newF);
-        sourceFaceB_out.push_back(f);
-      } else {
+      if (newF.size() <= 2) {
         if (!complained) {
           complained = true;
           std::cerr << "Error: degree-2 face in common refinement" << std::endl;
         }
+        continue;
       }
+
+      faces_out.push_back(newF);
+      sourceFaceB_out.push_back(f);
+
+      // Reconstruct the source faces on A. This uses a search around the nearby faces, which is not necessarily an
+      // ideal strategy, but should work fine. ONEDAY we might want to to track some extra data about the intersections
+      // to immediately recover this relationship.
+
+      // Pick a point, which we will loop over all the neighbors of to identify the shared face.
+      // Prefer a face/edge point, because they have 1/2 neighbors to test, vs. a vertex which has many.
+      SurfacePoint pSearch;
+      std::vector<SurfacePoint> pOthers;
+      pOthers.resize(newF.size() - 1);
+      for (size_t i = 0; i < newF.size(); i++) {
+        SurfacePoint p = parents_out[newF[i]]->posA;
+        if (i == 0) {
+          pSearch = p;
+        } else {
+          pOthers[i - 1] = p;
+        }
+
+        if (pOthers.back().type == SurfacePointType::Edge && pSearch.type == SurfacePointType::Vertex) {
+          std::swap(pOthers.back(), pSearch);
+        }
+        if (pOthers.back().type == SurfacePointType::Face && pSearch.type != SurfacePointType::Face) {
+          std::swap(pOthers.back(), pSearch);
+        }
+      }
+
+
+      // Search over the neighboring faces to the point, looking for a shared face
+      Face sharedFace;
+
+      // Assemble a list of neighbors to test
+      std::vector<Face> testFaces;
+      switch (pSearch.type) {
+      case SurfacePointType::Vertex:
+        for (Face f : pSearch.vertex.adjacentFaces()) {
+          testFaces.push_back(f);
+        }
+        break;
+      case SurfacePointType::Edge:
+        testFaces.push_back(pSearch.edge.halfedge().face());
+        testFaces.push_back(pSearch.edge.halfedge().twin().face());
+        break;
+      case SurfacePointType::Face:
+        testFaces.push_back(pSearch.face);
+        break;
+      }
+
+      // Test the neibhbors to see if any works
+      for (Face f : testFaces) {
+        bool isGood = true;
+        SurfacePoint testPt(f, Vector3::zero());
+        for (SurfacePoint& pO : pOthers) {
+          if (!checkAdjacent(testPt, pO)) {
+            isGood = false;
+            break;
+          }
+        }
+        if (isGood) {
+          sharedFace = f;
+          break;
+        }
+      }
+
+      GC_SAFETY_ASSERT(sharedFace != Face(), "could not identify source face on mesh A")
+      sourceFaceA_out.push_back(sharedFace);
     }
   }
 }
@@ -470,10 +539,11 @@ void CommonSubdivision::triangulateMesh() {
 
     // fix up data arrays
     for (Face newFace : newFaces) {
+      sourceFaceA[newFace] = sourceFaceA[oldFace];
       sourceFaceB[newFace] = sourceFaceB[oldFace];
     }
   }
-  
+
   mesh->compress();
 }
 
