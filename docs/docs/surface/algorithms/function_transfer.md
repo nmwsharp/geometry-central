@@ -78,8 +78,7 @@ SignpostIntrinsicTriangulation intTri(*mesh, *geometry);
 intTri.delaunayRefine();
 
 // Create the AttributeTransfer object
-std::unique_ptr<CommonSubdivision> cs = intTri.extractCommonSubdivision();
-AttributeTransfer transfer(*cs, intTri);
+AttributeTransfer transfer(intTri);
 
 // Compute several functions on the intrinsic triangulation
 std::vector<VertexData<double>> intrinsicFunctions = /* some functions */

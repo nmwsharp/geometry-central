@@ -149,19 +149,33 @@ Note that some additional functions and members can be found in the `IntrinsicTr
 
 ### Queries and Accessors
 
-??? func "`#!cpp EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceEdges()`"
+??? func "`#!cpp EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllIntrinsicEdgesAlongInput()`"
   
     Traces out the path that each intrinsic edge takes along the surface, as a sequence of [SurfacePoint](/surface/utilities/surface_point)s beginning with the vertex at the tail of the halfedge and ending with the vertex at the tip of the halfedge.
     
-??? func "`#!cpp std::vector<SurfacePoint> IntrinsicTriangulation::traceHalfedge(Halfedge he)`"
+??? func "`#!cpp std::vector<SurfacePoint> IntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe)`"
 
     Traces out the path that an intrinsic edge takes along the surface, as a sequence of [SurfacePoint](/surface/utilities/surface_point)s beginning with the vertex at the tail of the halfedge and ending with the vertex at the tip of the halfedge.
     
     Nore: When using an `IntegerCoordinatesIntrinsicTriangulation`, calling `traceEdges()` is significantly more efficient than calling `traceHalfedge(he)` on each edge.
-
-??? func "`#!cpp std::unique_ptr<CommonSubdivision> IntrinsicTriangulation::extractCommonSubdivision()`"
+    
+??? func "`#!cpp EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic()`"
   
-    Construct the [common subdivison](/surface/intrinsic_triangulations/common_subdivision) of the input and intrisnic meshes.
+    Traces out the path that each input edge takes along the surface, as a sequence of [SurfacePoint](/surface/utilities/surface_point)s beginning with the vertex at the tail of the halfedge and ending with the vertex at the tip of the halfedge.
+    
+??? func "`#!cpp std::vector<SurfacePoint> IntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe)`"
+
+    Traces out the path that an input edge takes along the surface, as a sequence of [SurfacePoint](/surface/utilities/surface_point)s beginning with the vertex at the tail of the halfedge and ending with the vertex at the tip of the halfedge.
+
+??? func "`#!cpp CommonSubdivision& IntrinsicTriangulation::getCommonSubdivision()`"
+  
+    Returns the [common subdivison](/surface/intrinsic_triangulations/common_subdivision) of the input and intrisnic meshes. May construct it from scratch if this is the first time it is needed. The intrinsic triangulation manages the lifetime of the subdivision---it will be deallocated if
+    
+    (a) this object is deleted, or
+    
+    (b) the triangulation is mutated, invalidating the common subdivision.
+    
+    Be sure to copy it if you want to retain it through those operations.
     
 ??? func "`#!cpp SurfacePoint IntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput)`"
   
