@@ -99,7 +99,7 @@ int CommonSubdivision::getIndex(const CommonSubdivisionPoint* p) {
 
 SparseMatrix<double> CommonSubdivision::interpolationMatrixA() {
   // TODO: could do without constructing mesh
-  if (!mesh) constructMesh();
+  checkMeshConstructed();
 
   VertexData<size_t> csVertInd = mesh->getVertexIndices();
 
@@ -141,7 +141,7 @@ SparseMatrix<double> CommonSubdivision::interpolationMatrixA() {
 
 SparseMatrix<double> CommonSubdivision::interpolationMatrixB() {
   // TODO: could do without constructing mesh
-  if (!mesh) constructMesh();
+  checkMeshConstructed();
 
   VertexData<size_t> csVertInd = mesh->getVertexIndices();
 
@@ -182,7 +182,7 @@ SparseMatrix<double> CommonSubdivision::interpolationMatrixB() {
 }
 
 EdgeData<double> CommonSubdivision::interpolateEdgeLengthsA(const EdgeData<double>& lengthA) {
-  if (!mesh) constructMesh();
+  checkMeshConstructed();
 
   auto fEdgeLengths = [&](Face f) -> Vector3 { // Gather face's edge lengths
     return Vector3{lengthA[f.halfedge().next().edge()], lengthA[f.halfedge().next().next().edge()],
@@ -205,7 +205,7 @@ EdgeData<double> CommonSubdivision::interpolateEdgeLengthsA(const EdgeData<doubl
 }
 
 EdgeData<double> CommonSubdivision::interpolateEdgeLengthsB(const EdgeData<double>& lengthB) {
-  if (!mesh) constructMesh();
+  checkMeshConstructed();
 
   auto fEdgeLengths = [&](Face f) -> Vector3 { // Gather face's edge lengths
     return Vector3{lengthB[f.halfedge().next().edge()], lengthB[f.halfedge().next().next().edge()],
@@ -228,32 +228,28 @@ EdgeData<double> CommonSubdivision::interpolateEdgeLengthsB(const EdgeData<doubl
 }
 
 SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromPositionsA(const VertexData<Vector3>& positionsA) {
-  if (!mesh) constructMesh();
-  triangulateMesh();
+  checkMeshConstructed();
   VertexPositionGeometry geo(*mesh, interpolateAcrossA(positionsA));
   geo.requireVertexGalerkinMassMatrix();
   return geo.vertexGalerkinMassMatrix;
 }
 
 SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromPositionsB(const VertexData<Vector3>& positionsB) {
-  if (!mesh) constructMesh();
-  triangulateMesh();
+  checkMeshConstructed();
   VertexPositionGeometry geo(*mesh, interpolateAcrossB(positionsB));
   geo.requireVertexGalerkinMassMatrix();
   return geo.vertexGalerkinMassMatrix;
 }
 
 SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromLengthsA(const EdgeData<double>& lengthsA) {
-  if (!mesh) constructMesh();
-  triangulateMesh();
+  checkMeshConstructed();
   EdgeLengthGeometry geo(*mesh, interpolateEdgeLengthsA(lengthsA));
   geo.requireVertexGalerkinMassMatrix();
   return geo.vertexGalerkinMassMatrix;
 }
 
 SparseMatrix<double> CommonSubdivision::vertexGalerkinMassMatrixFromLengthsB(const EdgeData<double>& lengthsB) {
-  if (!mesh) constructMesh();
-  triangulateMesh();
+  checkMeshConstructed();
   EdgeLengthGeometry geo(*mesh, interpolateEdgeLengthsB(lengthsB));
   geo.requireVertexGalerkinMassMatrix();
   return geo.vertexGalerkinMassMatrix;
@@ -347,9 +343,45 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
   return result;
 }
 
-// TODO: right now, this assumes that mesh B is finer than mesh A. In the
-// future, that might not be the case and we'll have to think harder
-void CommonSubdivision::constructMesh() {
+
+void CommonSubdivision::constructMesh(bool triangulate) {
+  std::vector<std::vector<size_t>> faces;
+  std::vector<CommonSubdivisionPoint*> parents;
+  std::vector<Face> sourceFaceB_vec;
+  constructMeshData(faces, parents, sourceFaceB_vec);
+
+  mesh.reset(new ManifoldSurfaceMesh(faces));
+  sourcePoints = fromStdVector<Vertex>(*mesh, parents);
+  sourceFaceB = fromStdVector<Face>(*mesh, sourceFaceB_vec);
+
+  if (triangulate) {
+    triangulateMesh();
+  }
+}
+
+void CommonSubdivision::checkMeshConstructed() const {
+  if (!mesh) {
+    throw std::runtime_error("common subdivision mesh has not been constructed, call constructMesh()");
+  }
+}
+
+void CommonSubdivision::constructSimpleMesh() {
+  std::vector<std::vector<size_t>> faces;
+  std::vector<CommonSubdivisionPoint*> parents;
+  std::vector<Face> sourceFaceB_vec;
+  constructMeshData(faces, parents, sourceFaceB_vec);
+
+  std::vector<Vector3> dummyPositions(parents.size(), Vector3::zero());
+  simpleMesh.reset(new SimplePolygonMesh(faces, dummyPositions));
+}
+
+
+void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& faces_out,
+                                          std::vector<CommonSubdivisionPoint*>& parents_out,
+                                          std::vector<Face>& sourceFaceB_out) {
+
+  // TODO: fill in sourceFaceA
+
   // Compute element counts to reserve space
   // size_t nV, nE, nF;
   // std::tie(nV, nE, nF) = elementCounts();
@@ -358,13 +390,12 @@ void CommonSubdivision::constructMesh() {
   // TODO: if CommonSubdivisionPoint was hashable, we could just plug it
   // into the hashmap
   std::map<CommonSubdivisionPoint*, size_t> subdivisionPointsId;
-  std::vector<CommonSubdivisionPoint*> parents;
-  // parents.reserve(nE + meshB.nVertices());
+  // parents_out.reserve(nE + meshB.nVertices());
 
   for (CommonSubdivisionPoint& p : subdivisionPoints) {
     if (p.intersectionType != CSIntersectionType::EDGE_PARALLEL) {
-      subdivisionPointsId[&p] = parents.size();
-      parents.push_back(&p);
+      subdivisionPointsId[&p] = parents_out.size();
+      parents_out.push_back(&p);
     }
   }
 
@@ -378,8 +409,6 @@ void CommonSubdivision::constructMesh() {
 
     // Source
     crossingVtxIds[eB].push_back(subdivisionPointsId[pointsAlongB[eB][0]]);
-    // cout << subdivisionPointsId[getIndex(pointsAlongB[eB][0])] <<
-    // endl;
 
     // Middle points
     for (size_t iC = 1; iC + 1 < pointsAlongB[eB].size(); ++iC) {
@@ -396,13 +425,10 @@ void CommonSubdivision::constructMesh() {
     crossingVtxIds[eB].push_back(subdivisionPointsId[pointsAlongB[eB][pointsAlongB[eB].size() - 1]]);
   }
 
-  std::vector<std::vector<size_t>> faces;
-  // faces.reserve(nF);
 
+  // faces.reserve(nF);
   // Loop over faces of mesh B and cut along edges of mesh A which cross
-  // them std::vector<Face> sourceFaceB_vec;
-  sourceFaceB_vec.clear();
-  // sourceFaceB_vec.reserve(nF);
+  // sourceFaceB_out.reserve(nF);
 
   bool complained = false;
   for (Face f : meshB.faces()) {
@@ -424,8 +450,8 @@ void CommonSubdivision::constructMesh() {
       // GC_SAFETY_ASSERT(newF.size() > 2,
       //                  "No bigons allowed in common subdivision.");
       if (newF.size() > 2) {
-        faces.push_back(newF);
-        sourceFaceB_vec.push_back(f);
+        faces_out.push_back(newF);
+        sourceFaceB_out.push_back(f);
       } else {
         if (!complained) {
           complained = true;
@@ -434,23 +460,21 @@ void CommonSubdivision::constructMesh() {
       }
     }
   }
-
-  try {
-    mesh.reset(new ManifoldSurfaceMesh(faces));
-    sourcePoints = fromStdVector<Vertex>(*mesh, parents);
-    // TODO: fill in sourceFaceA
-    sourceFaceB = fromStdVector<Face>(*mesh, sourceFaceB_vec);
-  } catch (std::exception& e) {
-    // TODO FIXME is this the behavior we want?
-    std::vector<Vector3> dumb(subdivisionPoints.size(), Vector3::zero());
-    simpleMesh.reset(new SimplePolygonMesh(faces, dumb));
-    std::cerr << "Error: manifold mesh construction failed: " << e.what() << std::endl;
-  }
 }
 
+
 void CommonSubdivision::triangulateMesh() {
-  if (!mesh) constructMesh();
-  for (Face f : mesh->faces()) mesh->triangulate(f);
+  checkMeshConstructed();
+  for (Face oldFace : mesh->faces()) {
+    std::vector<Face> newFaces = mesh->triangulate(oldFace);
+
+    // fix up data arrays
+    for (Face newFace : newFaces) {
+      sourceFaceB[newFace] = sourceFaceB[oldFace];
+    }
+  }
+  
+  mesh->compress();
 }
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,
@@ -556,7 +580,8 @@ std::vector<std::vector<size_t>> sliceNicelyOrderedFace(const std::vector<size_t
 // Write mesh A and common subdivision to obj files
 // Vertex positions should be for mesh A
 void CommonSubdivision::writeToFile(std::string filename, const VertexData<Vector3>& vertexPositions, int kColors) {
-  if (!mesh) constructMesh();
+  checkMeshConstructed();
+
   VertexData<Vector3> subdivisionPositions = interpolateAcrossA(vertexPositions);
 
   FaceData<double> faceColors = niceColors(meshB, kColors);
@@ -580,7 +605,7 @@ FaceData<double> niceColors(ManifoldSurfaceMesh& mesh, int kColors) {
   size_t timestamp = 0;
 
 
-  FaceData<double> faceColor(mesh);
+  FaceData<double> faceColor(mesh, -1.);
   for (Face f : mesh.faces()) {
 
     int bestColor = -1;
