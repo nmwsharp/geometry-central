@@ -60,49 +60,15 @@ public:
   EdgeData<std::vector<CommonSubdivisionPoint*>> pointsAlongA;
   EdgeData<std::vector<CommonSubdivisionPoint*>> pointsAlongB;
 
-  std::unique_ptr<ManifoldSurfaceMesh> mesh;        // optional: mesh connectivity
-  std::unique_ptr<SimplePolygonMesh> simpleMesh;    // fallback if manifold mesh construction fails
-  VertexData<CommonSubdivisionPoint*> sourcePoints; // for each vertex in mesh, what source point did it come from
-
-  FaceData<Face> sourceFaceA;
-  FaceData<Face> sourceFaceB;
-  std::vector<Face> sourceFaceB_vec;
-
   // === Accessors
-  // precondition: must lie along e
-  // must not be a face point
-  int getOrderAlongEdgeA(const CommonSubdivisionPoint& p, Edge eA);
-  int getOrderAlongEdgeB(const CommonSubdivisionPoint& p, Edge eB);
 
+  // For any halfedge of A, return its sequence of points on B (and vice versa)
+  // Includes endpoints.
   std::vector<SurfacePoint> getHalfedgePathAonB(Halfedge heA);
   std::vector<SurfacePoint> getHalfedgePathBonA(Halfedge heB);
 
-  // Global index
-  int getIndex(const CommonSubdivisionPoint& p);
-  int getIndex(const CommonSubdivisionPoint* p);
-
-  // Interpolate data from one of the meshes to the common subdivision
-  template <typename T>
-  VertexData<T> interpolateAcrossA(const VertexData<T>& dataA) const;
-  template <typename T>
-  VertexData<T> interpolateAcrossB(const VertexData<T>& dataB) const;
-
-  // Interpolation matrices
-  SparseMatrix<double> interpolationMatrixA();
-  SparseMatrix<double> interpolationMatrixB();
-
-  EdgeData<double> interpolateEdgeLengthsA(const EdgeData<double>& lengthA);
-  EdgeData<double> interpolateEdgeLengthsB(const EdgeData<double>& lengthB);
-
-  // Warning: triangulates common subdivision mesh
-  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsA(const VertexData<Vector3>& positionsA);
-  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsB(const VertexData<Vector3>& positionsB);
-  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsA(const EdgeData<double>& lengthsA);
-  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsB(const EdgeData<double>& lengthsB);
-
   // Number of elements in common subdivision
   // Warning: not constant time: requires mesh traversal to compute
-  // TODO: assumes mesh B is finer than mesh A
   size_t nVertices() const;
   size_t nEdges() const;
   size_t nFaces() const;
@@ -112,17 +78,107 @@ public:
   size_t intersectionsA(Edge eA) const; // count intersections along edge eA of meshA
   size_t intersectionsB(Edge eB) const; // count intersections along edge eB of meshB
 
-  // === Mutators
+  // Note that in cases where there are some errors in intersection data defining the common subvidision...
+  std::unique_ptr<SimplePolygonMesh> simpleMesh;
+  void constructSimpleMesh();
 
-  // TODO: right now, this assumes that mesh B is finer than mesh A. In the
-  // future, that might not be the case and we'll have to think harder
-  void constructMesh();
+  // ===============================================
+  // ==== Common subdivision mesh connectivity
+  // ===============================================
+  //
+  // Optionally, the raw intersections stored in the common subdivision can be used to explicitly construct a
+  // SurfaceMesh (with all the usual halfedge connectivity) of the common subdivision; this mesh can then be used for
+  // many higher-level geometric operations.
+  //
+  // **The routines and members in this section all require that constructMesh() has been called first.**
+  //
+  // Note that in cases where there are some errors in intersection data defining the common subdivision, it may not be
+  // possible to construct a manifold mesh of the common subdivision. `constructMesh()` will fail with an exception in
+  // this case. Note that `constructSimpleMesh()` above can be used to build a plane old vertex-face adjacency list
+  // representation of the mesh, although it cannot be used for the various routines in this section.
 
+  // === Members
+
+  // The mesh connectivity for the common subdivision.
+  std::unique_ptr<ManifoldSurfaceMesh> mesh;
+
+  // For each vertex in mesh, what source point did it come from
+  VertexData<CommonSubdivisionPoint*> sourcePoints;
+
+  // For each face in the common subdivision, which face in meshA is it a sub-face of?
+  FaceData<Face> sourceFaceA; // FIXME not populated right now
+
+  // For each face in the common subdivision, which face in meshB is it a sub-face of?
+  FaceData<Face> sourceFaceB;
+
+
+  // === Methods
+
+  // Construct `mesh` and auxiliary data. Throws on failure (see note above)
+  void constructMesh(bool triangulate = true);
   void triangulateMesh();
+  void checkMeshConstructed() const;
+
+  // Interpolate data at vertices from one of the meshes to the common subdivision. The return value is defined
+  // per-vertex of the commonm subdivision mesh.
+  template <typename T>
+  VertexData<T> interpolateAcrossA(const VertexData<T>& dataA) const;
+  template <typename T>
+  VertexData<T> interpolateAcrossB(const VertexData<T>& dataB) const;
+
+  // Copy data at faces from one of the meshes to the common subdivision. Each face of the common subdivision gets
+  // the value from the face which contains it. The return value is defined per-face of the commonm subdivision mesh.
+  template <typename T>
+  FaceData<T> copyFromA(const FaceData<T>& dataA) const;
+  template <typename T>
+  FaceData<T> copyFromB(const FaceData<T>& dataB) const;
+
+  // Interpolation matrices
+  // Gives a |V_c| x |V_a| sparse matrix (where |V_c| is number of vertice subdivision) such that
+  // multplying by a vector of values at the vertices of A gives interpolated values at the vertices of the subdivision.
+  SparseMatrix<double> interpolationMatrixA();
+  SparseMatrix<double> interpolationMatrixB(); // And respectively for B.
+
+  // Use edge lengths on either of the source triangulations to get edge lengths
+  // for the common subdivision.
+  // Note that in the standard case of an intrinsic triangulation with Euclidean metric-preserving edge flips, calling
+  // either of these methods with the edge lengths from the respective triangultion will produce identical outputs (up
+  // to floating-point error).
+  EdgeData<double> interpolateEdgeLengthsA(const EdgeData<double>& lengthA);
+  EdgeData<double> interpolateEdgeLengthsB(const EdgeData<double>& lengthB);
+
+  // Warning: triangulates common subdivision mesh
+  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsA(const VertexData<Vector3>& positionsA);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromPositionsB(const VertexData<Vector3>& positionsB);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsA(const EdgeData<double>& lengthsA);
+  SparseMatrix<double> vertexGalerkinMassMatrixFromLengthsB(const EdgeData<double>& lengthsB);
+
 
   // Write mesh A and common subdivision to obj files
   // Vertex positions should be for mesh A
   void writeToFile(std::string filename, const VertexData<Vector3>& vertexPositions, int kColors = 7);
+
+
+  // ===============================================
+  // ==== Debugging routines, etc
+  // ===============================================
+
+  // Global index
+  // Exhaustive search, very expensive!
+  // TODO delete?
+  int getIndex(const CommonSubdivisionPoint& p);
+  int getIndex(const CommonSubdivisionPoint* p);
+
+  // If p is the i'th point along edge e, returns i
+  // Uses an simple search along the edge; generally this function is not needed.
+  // TODO delete?
+  // precondition: must lie along e, must not be a face point
+  int getOrderAlongEdgeA(const CommonSubdivisionPoint& p, Edge eA);
+  int getOrderAlongEdgeB(const CommonSubdivisionPoint& p, Edge eB);
+
+  // Helper routine abstracting common logic for mesh creation.
+  void constructMeshData(std::vector<std::vector<size_t>>& faces_out, std::vector<CommonSubdivisionPoint*>& parents_out,
+                         std::vector<Face>& sourceFaceB_out);
 };
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,
