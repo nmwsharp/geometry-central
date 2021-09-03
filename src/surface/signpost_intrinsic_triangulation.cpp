@@ -92,13 +92,6 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedge
 }
 
 
-EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
-  // TODO
-  EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
-  throw std::runtime_error("not implemented");
-  return tracedEdges;
-}
-
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
   // TODO
   throw std::runtime_error("not implemented");

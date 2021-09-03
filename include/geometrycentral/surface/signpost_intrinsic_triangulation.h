@@ -43,11 +43,9 @@ public:
 
   SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
   
-  EdgeData<std::vector<SurfacePoint>> traceAllIntrinsicEdgesAlongInput() override;
   std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) override; 
   std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe, bool trimEnd); 
   
-  EdgeData<std::vector<SurfacePoint>> traceAllInputEdgesAlongIntrinsic() override;
   std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) override;
 
   // ======================================================
