@@ -169,7 +169,8 @@ TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
 
     tri.delaunayRefine();
     CommonSubdivision& cs = tri.getCommonSubdivision();
-    cs.constructMesh();
+    bool triangulate = false;
+    cs.constructMesh(triangulate);
 
     EXPECT_GT(cs.mesh->nVertices(), tri.inputMesh.nVertices());
     EXPECT_GT(cs.mesh->nVertices(), tri.mesh.nVertices());
@@ -222,5 +223,39 @@ TEST_F(IntrinsicTriangulationSuite, FunctionTransfer) {
     std::tie(lhs, rhs) = transfer.constructBtoAMatrices();
     Vector<double> residual = lhs * data_A_L2.toVector() - rhs * data_B.toVector();
     EXPECT_LE(residual.norm(), 1e-6);
+  }
+}
+
+TEST_F(IntrinsicTriangulationSuite, CommonSubdivisionGeometry) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    IntegerCoordinatesIntrinsicTriangulation tri(mesh, origGeometry);
+
+    tri.delaunayRefine();
+    CommonSubdivision& cs = tri.getCommonSubdivision();
+    cs.constructMesh();
+
+    // == Edge lengths
+    // Lengths from extrinsic vertex positions
+    const VertexData<Vector3>& posCS = cs.interpolateAcrossA(origGeometry.vertexPositions);
+    VertexPositionGeometry csGeo(*cs.mesh, posCS);
+    csGeo.requireEdgeLengths();
+    EdgeData<double> lengthsFromPosA = csGeo.edgeLengths;
+    csGeo.unrequireEdgeLengths();
+
+    // Lengths from extrinsic edge lengths
+    origGeometry.requireEdgeLengths();
+    const EdgeData<double>& lengthsA = origGeometry.edgeLengths;
+    EdgeData<double> lengthsFromLenA = cs.interpolateEdgeLengthsA(lengthsA);
+
+    // Lengths from intrinsic edge lengths
+    EdgeData<double> lengthsFromLenB = cs.interpolateEdgeLengthsB(tri.edgeLengths);
+
+    EXPECT_NEAR((lengthsFromPosA.toVector() - lengthsFromLenA.toVector()).norm(), 0, 1e-5);
+    EXPECT_NEAR((lengthsFromPosA.toVector() - lengthsFromLenB.toVector()).norm(), 0, 1e-5);
+    EXPECT_NEAR((lengthsFromLenA.toVector() - lengthsFromLenB.toVector()).norm(), 0, 1e-5);
   }
 }
