@@ -98,7 +98,48 @@ TEST_F(IntrinsicTriangulationSuite, IntegerTrace) {
 
     EdgeData<std::vector<SurfacePoint>> out = tri.traceAllIntrinsicEdgesAlongInput();
     for (Edge e : tri.inputMesh.edges()) {
-      EXPECT_GE(out[e].size(), 2);
+      EXPECT_EQ(out[e].size(), std::max(0, tri.normalCoordinates[e]) + 2);
+    }
+  }
+}
+
+TEST_F(IntrinsicTriangulationSuite, IntegerEdgeTraceAgreesWithBulk) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    IntegerCoordinatesIntrinsicTriangulation tri(mesh, origGeometry);
+
+    tri.flipToDelaunay();
+
+    // Traced individually
+    EdgeData<std::vector<SurfacePoint>> out1(tri.inputMesh);
+    for (Edge e : tri.inputMesh.edges()) {
+      out1[e] = tri.traceInputHalfedgeAlongIntrinsic(e.halfedge());
+    }
+
+    // Traced via common subdivision
+    EdgeData<std::vector<SurfacePoint>> out2 = tri.traceAllInputEdgesAlongIntrinsic();
+
+    for (Edge e : tri.inputMesh.edges()) {
+      EXPECT_EQ(out1[e].size(), out2[e].size());
+      for (size_t iP = 0; iP < out1[e].size(); iP++) {
+        EXPECT_EQ(out1[e][iP].type, out2[e][iP].type);
+        switch (out1[e][iP].type) {
+        case SurfacePointType::Vertex:
+          EXPECT_EQ(out1[e][iP].vertex, out2[e][iP].vertex);
+          break;
+        case SurfacePointType::Edge:
+          EXPECT_EQ(out1[e][iP].edge, out2[e][iP].edge);
+          EXPECT_NEAR(out1[e][iP].tEdge, out2[e][iP].tEdge, 1e-5);
+          break;
+        case SurfacePointType::Face:
+          EXPECT_EQ(out1[e][iP].face, out2[e][iP].face);
+          EXPECT_NEAR((out1[e][iP].faceCoords - out2[e][iP].faceCoords).norm(), 0, 1e-5);
+          break;
+        }
+      }
     }
   }
 }

@@ -115,6 +115,7 @@ public:
   // he} where n is the number of arcs parallel to he.edge() Trace an edge
   // of the input mesh over the intrinsic triangulation
   NormalCoordinatesCompoundCurve traceInputEdge(Edge e, bool verbose = false) const;
+  NormalCoordinatesCompoundCurve traceInputHalfedge(Halfedge inputHe, bool verbose = false) const;
 
   std::pair<bool, NormalCoordinatesCurve> traceNextCurve(const NormalCoordinatesCurve& oldCurve,
                                                          bool verbose = false) const;
@@ -139,7 +140,6 @@ private:
 
   // Construct the common subdivision for the current triangulation.
   void constructCommonSubdivision() override;
-
 };
 
 // Compute the cotan weight of halfedge ij in terms of the lengths of its

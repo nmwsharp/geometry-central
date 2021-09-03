@@ -55,9 +55,9 @@ EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::tr
   CommonSubdivision& cs = getCommonSubdivision();
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(*intrinsicMesh);
-  for (Edge e : intrinsicMesh->edges()) {
-    for (CommonSubdivisionPoint* pt : cs.pointsAlongB[e]) {
-      tracedEdges[e].push_back(pt->posA);
+  for (Edge eB : intrinsicMesh->edges()) {
+    for (CommonSubdivisionPoint* pt : cs.pointsAlongB[eB]) {
+      if (pt->intersectionType != CSIntersectionType::EDGE_PARALLEL) tracedEdges[eB].push_back(pt->posA);
     }
   }
 
@@ -66,22 +66,100 @@ EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::tr
 
 std::vector<SurfacePoint>
 IntegerCoordinatesIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return std::vector<SurfacePoint>{};
+  CommonSubdivision& cs = getCommonSubdivision();
+
+  std::vector<SurfacePoint> trajectory;
+  if (intrinsicHe == intrinsicHe.edge().halfedge()) {
+    // Halfedge points in same direction as edge, so points are already in correct order
+    for (CommonSubdivisionPoint* pt : cs.pointsAlongB[intrinsicHe.edge()]) {
+      if (pt->intersectionType != CSIntersectionType::EDGE_PARALLEL) trajectory.push_back(pt->posA);
+    }
+  } else {
+    // Halfedge points in opposite direction as edge, so order must be reversed
+    const std::vector<CommonSubdivisionPoint*>& pts = cs.pointsAlongB[intrinsicHe.edge()];
+    for (auto rit = pts.rbegin(); rit != pts.rend(); ++rit) { // loop backwards
+      if ((*rit)->intersectionType != CSIntersectionType::EDGE_PARALLEL) trajectory.push_back((*rit)->posA);
+    }
+  }
+
+  return trajectory;
 }
 
 EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
-  // TODO
+  // Might as well compute full common subdivision
+  CommonSubdivision& cs = getCommonSubdivision();
+
   EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
-  throw std::runtime_error("not implemented");
+  for (Edge eA : inputMesh.edges()) {
+    for (CommonSubdivisionPoint* pt : cs.pointsAlongA[eA]) {
+      if (pt->intersectionType != CSIntersectionType::EDGE_PARALLEL) tracedEdges[eA].push_back(pt->posB);
+    }
+  }
   return tracedEdges;
 }
 
 std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return std::vector<SurfacePoint>{};
+  if (commonSubdivision) {
+    // If the common subdivision has already been computed, just read off values
+
+    CommonSubdivision& cs = getCommonSubdivision();
+
+    std::vector<SurfacePoint> trajectory;
+    if (inputHe == inputHe.edge().halfedge()) {
+      // Halfedge points in same direction as edge, so points are already in correct order
+      for (CommonSubdivisionPoint* pt : cs.pointsAlongA[inputHe.edge()]) {
+        if (pt->intersectionType != CSIntersectionType::EDGE_PARALLEL) trajectory.push_back(pt->posB);
+      }
+    } else {
+      // Halfedge points in opposite direction as edge, so order must be reversed
+      const std::vector<CommonSubdivisionPoint*>& pts = cs.pointsAlongA[inputHe.edge()];
+      for (auto rit = pts.rbegin(); rit != pts.rend(); ++rit) { // loop backwards
+        if ((*rit)->intersectionType != CSIntersectionType::EDGE_PARALLEL) trajectory.push_back((*rit)->posB);
+      }
+    }
+
+    return trajectory;
+
+  } else {
+    // Otherwise do the tracing manually
+    std::vector<SurfacePoint> trajectory;
+
+    NormalCoordinatesCompoundCurve ncCurves = traceInputHalfedge(inputHe);
+
+    for (size_t iC = 0; iC < ncCurves.components.size(); iC++) {
+      const NormalCoordinatesCurve& curve = ncCurves.components[iC];
+      if (iC == 0) {
+        // Assumes that the vertices of inputMesh all appear in intrinsicMesh with the same indices
+        Vertex intrinsicTail = intrinsicMesh->vertex(inputHe.tailVertex().getIndex());
+        trajectory.push_back(SurfacePoint(intrinsicTail));
+      }
+
+
+      auto& path = curve.crossings;
+      if (path.size() == 1 && std::get<0>(path[0]) < 0) { // shared edge
+        Halfedge heB = std::get<1>(path[0]);
+        trajectory.push_back(SurfacePoint(heB.tipVertex()));
+      } else { // transverse crossings
+        std::vector<std::pair<SurfacePoint, double>> geodesicPath =
+            generateFullSingleGeodesicGeometry(*intrinsicMesh, *this, curve);
+
+        Halfedge hB;
+        for (size_t iC = 0; iC < path.size(); ++iC) {
+          hB = std::get<1>(path[iC]);
+          // geodesicPath stores the start and end point, which
+          // path doesn't do, so we offset by 1 here
+          SurfacePoint ptB = std::get<0>(geodesicPath[iC + 1]);
+          trajectory.push_back(ptB);
+        }
+
+        Vertex bDst = hB.twin().next().tipVertex();
+        trajectory.push_back(SurfacePoint(bDst));
+        //
+      }
+    }
+
+    return trajectory;
+  }
 }
 
 SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
@@ -1674,7 +1752,11 @@ size_t IntegerCoordinatesIntrinsicTriangulation::nSubdividedVertices() const {
 // he} where n is the number of arcs parallel to he.edge() Trace an edge
 // of the input mesh over the intrinsic triangulation
 NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceInputEdge(Edge e, bool verbose) const {
+  return traceInputHalfedge(e.halfedge(), verbose);
+}
 
+NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceInputHalfedge(Halfedge inputHe,
+                                                                                            bool verbose) const {
   // verbose = verbose || e.getIndex() == 18027;
 
   auto vertexHalfedge = [&](Vertex v, size_t iH) {
@@ -1701,7 +1783,7 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
 
   auto directPath = [&](Halfedge he) { return NormalCoordinatesCurve{{std::make_pair(-1, he)}}; };
 
-  Vertex vTrace = src(e);
+  Vertex vTrace = inputHe.tailVertex();
 
   // TODO: Allow different vertex sets
   Vertex v = intrinsicMesh->vertex(vTrace.getIndex());
@@ -1727,11 +1809,11 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
     // corner
     for (size_t iH = 0; iH < width; ++iH) {
       Halfedge heTrace = vertexHalfedge(vTrace, iStart + iH);
-      if (heTrace != e.halfedge()) continue;
+      if (heTrace != inputHe) continue;
 
       if (verbose) {
         std::cout << "Tracing from vertex " << v << std::endl;
-        std::cout << "Found edge " << e << std::endl;
+        std::cout << "Found edge " << inputHe.edge() << " (halfedge " << inputHe << ")" << std::endl;
         std::cout << "\t iH = " << iH << " of " << width << " = " << startInd << " + " << em << " + " << endInd
                   << std::endl;
         std::cout << "\t\t index is " << iStart + iH << " from source vertex " << vTrace << std::endl;
