@@ -72,7 +72,7 @@ VertexData<double> AttributeTransfer::transferAtoB_Pointwise(const VertexData<do
 VertexData<double> AttributeTransfer::transferAtoB_L2(const VertexData<double>& valuesOnA) {
   if (!AtoB_L2_Solver) {
     SparseMatrix<double> mat = P_B.transpose() * M_CS_Galerkin * P_B;
-    AtoB_L2_Solver.reset(new Solver<double>(mat));
+    AtoB_L2_Solver.reset(new SquareSolver<double>(mat));
   }
   Vector<double> vec = P_B.transpose() * M_CS_Galerkin * P_A * valuesOnA.toVector();
   Vector<double> result = AtoB_L2_Solver->solve(vec);
@@ -97,12 +97,23 @@ VertexData<double> AttributeTransfer::transferBtoA_Pointwise(const VertexData<do
 VertexData<double> AttributeTransfer::transferBtoA_L2(const VertexData<double>& valuesOnB) {
   if (!BtoA_L2_Solver) {
     SparseMatrix<double> mat = P_A.transpose() * M_CS_Galerkin * P_A;
-    BtoA_L2_Solver.reset(new Solver<double>(mat));
+    BtoA_L2_Solver.reset(new SquareSolver<double>(mat));
   }
   Vector<double> vec = P_A.transpose() * M_CS_Galerkin * P_B * valuesOnB.toVector();
-
   Vector<double> result = BtoA_L2_Solver->solve(vec);
   return VertexData<double>(cs.meshA, result);
+}
+
+std::pair<SparseMatrix<double>, SparseMatrix<double>> AttributeTransfer::constructAtoBMatrices() const {
+  SparseMatrix<double> lhs = P_B.transpose() * M_CS_Galerkin * P_B;
+  SparseMatrix<double> rhs = P_B.transpose() * M_CS_Galerkin * P_A;
+  return {lhs, rhs};
+}
+
+std::pair<SparseMatrix<double>, SparseMatrix<double>> AttributeTransfer::constructBtoAMatrices() const {
+  SparseMatrix<double> lhs = P_A.transpose() * M_CS_Galerkin * P_A;
+  SparseMatrix<double> rhs = P_A.transpose() * M_CS_Galerkin * P_B;
+  return {lhs, rhs};
 }
 
 VertexData<double> transferAtoB(CommonSubdivision& cs, VertexPositionGeometry& geomA,

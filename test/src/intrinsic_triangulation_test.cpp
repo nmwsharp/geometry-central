@@ -217,5 +217,10 @@ TEST_F(IntrinsicTriangulationSuite, FunctionTransfer) {
     double L2Err = (L2A - truth).dot(transfer.M_CS_Galerkin * (L2A - truth));
 
     EXPECT_LE(L2Err, pointwiseErr);
+
+    SparseMatrix<double> lhs, rhs;
+    std::tie(lhs, rhs) = transfer.constructBtoAMatrices();
+    Vector<double> residual = lhs * data_A_L2.toVector() - rhs * data_B.toVector();
+    EXPECT_LE(residual.norm(), 1e-6);
   }
 }
