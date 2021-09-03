@@ -54,13 +54,29 @@ IntrinsicTriangulation::~IntrinsicTriangulation() {}
 // ======================================================
 
 
-EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceEdges() {
+EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllIntrinsicEdgesAlongInput() {
+
+  // Naively call the one-off function for each edge. Subclasses can override with better strategies.
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(mesh);
 
   for (Edge e : mesh.edges()) {
     Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he);
+    tracedEdges[e] = traceIntrinsicHalfedgeAlongInput(he);
+  }
+
+  return tracedEdges;
+}
+
+EdgeData<std::vector<SurfacePoint>> IntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
+
+  // Naively call the one-off function for each edge. Subclasses can override with better strategies.
+
+  EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
+
+  for (Edge e : inputMesh.edges()) {
+    Halfedge he = e.halfedge();
+    tracedEdges[e] = traceInputHalfedgeAlongIntrinsic(he);
   }
 
   return tracedEdges;
@@ -448,9 +464,13 @@ void IntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& sho
     flipToDelaunayFromQueue();
 
     // Find all vertices within range.
-    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on polyhedral shortest paths which is bad for performance and robustness. 
+    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on
+    // polyhedral shortest paths which is bad for performance and robustness.
     //
-    // Fortunately, on a Delaunay triangulation, the Dijkstra distance is at most 2x the geodesic distance (see Intrinsic Triangulations Course, the underlying reference is Ge Xia 2013. "The Stretch Factor of the Delaunay Triangulation Is Less than 1.998"). So instead, we delete all previously-inserted vertices within 2x the Dikstra radius instead. This may delete some extra verts, but that does not effect convergence.
+    // Fortunately, on a Delaunay triangulation, the Dijkstra distance is at most 2x the geodesic distance (see
+    // Intrinsic Triangulations Course, the underlying reference is Ge Xia 2013. "The Stretch Factor of the Delaunay
+    // Triangulation Is Less than 1.998"). So instead, we delete all previously-inserted vertices within 2x the Dikstra
+    // radius instead. This may delete some extra verts, but that does not effect convergence.
     std::unordered_map<Vertex, double> nearbyVerts = vertexDijkstraDistanceWithinRadius(*this, newV, 2. * ballRad);
 
     // remove inserted vertices
@@ -595,6 +615,15 @@ void IntrinsicTriangulation::updateFaceBasis(Face f) {
   halfedgeVectorsInFace[he] = p0 - p2;
 }
 
+CommonSubdivision& IntrinsicTriangulation::getCommonSubdivision() {
+  if (!commonSubdivision) {
+    constructCommonSubdivision();
+  }
+  return *commonSubdivision;
+}
+
+
+void IntrinsicTriangulation::triangulationChanged() { commonSubdivision.reset(); }
 
 void IntrinsicTriangulation::invokeEdgeFlipCallbacks(Edge e) {
   for (auto& fn : edgeFlipCallbackList) {

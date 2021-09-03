@@ -79,11 +79,21 @@ public:
 
   // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
   // Each path is ordered along edge.halfedge(), and includes both the start and end points
-  virtual EdgeData<std::vector<SurfacePoint>> traceEdges();
-  virtual std::vector<SurfacePoint> traceHalfedge(Halfedge he) = 0; // trace a single intrinsic halfedge
+  virtual EdgeData<std::vector<SurfacePoint>> traceAllIntrinsicEdgesAlongInput();
+  // Trace just one halfedge, ordered in the direction the halfedge points.
+  virtual std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) = 0;
 
-  // Construct the common subdivision
-  virtual std::unique_ptr<CommonSubdivision> extractCommonSubdivision() = 0;
+  // Trace out the edges of the intrinsic triangulation along the surface of the input mesh.
+  // Each path is ordered along edge.halfedge(), and includes both the start and end points
+  virtual EdgeData<std::vector<SurfacePoint>> traceAllInputEdgesAlongIntrinsic();
+  // Trace just one halfedge, ordered in the direction the halfedge points.
+  virtual std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) = 0;
+
+  // Get a reference to the common subdivision. May construct it from scratch if this is the first time
+  // it is needed. The intrinsic triangulation manages the lifetime of the subdivision---it will be deallocated if (a)
+  // this object is deleted, or (b) the triangulation is mutated, invalidating the common subdivision. Be sure to copy
+  // it if you want to retain it through those operations.
+  CommonSubdivision& getCommonSubdivision();
 
   // Given a point on the input triangulation, returns the corresponding point on the intrinsic triangulation
   virtual SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) = 0;
@@ -213,6 +223,15 @@ public:
 
 
 protected:
+  // The current common subdivision. This member will only be populated if the subdivision is valid.
+  // Implementations must sure to call triangulationChanged() below after any modifications, which handles clearing out
+  // the common subdivision.
+  std::unique_ptr<CommonSubdivision> commonSubdivision;
+  virtual void constructCommonSubdivision() = 0; // ensure commonSubdivision is populated
+
+  // Must be called any time the intrinsic triangulation is modified.
+  void triangulationChanged();
+
   // Callback helpers
   void invokeEdgeFlipCallbacks(Edge e);
   void invokeFaceInsertionCallbacks(Face f, Vertex v);

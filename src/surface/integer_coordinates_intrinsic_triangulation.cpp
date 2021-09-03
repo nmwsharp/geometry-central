@@ -50,14 +50,13 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
 //                 Queries & Accesses
 // ======================================================
 
-EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceEdges() {
-  // TODO: can this be done more efficiently without computing full common subdivision?
+EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceAllIntrinsicEdgesAlongInput() {
 
-  std::unique_ptr<CommonSubdivision> cs = extractCommonSubdivision();
+  CommonSubdivision& cs = getCommonSubdivision();
 
   EdgeData<std::vector<SurfacePoint>> tracedEdges(*intrinsicMesh);
   for (Edge e : intrinsicMesh->edges()) {
-    for (CommonSubdivisionPoint* pt : cs->pointsAlongB[e]) {
+    for (CommonSubdivisionPoint* pt : cs.pointsAlongB[e]) {
       tracedEdges[e].push_back(pt->posA);
     }
   }
@@ -65,7 +64,21 @@ EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::tr
   return tracedEdges;
 }
 
-std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceHalfedge(Halfedge he) {
+std::vector<SurfacePoint>
+IntegerCoordinatesIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) {
+  // TODO
+  throw std::runtime_error("not implemented");
+  return std::vector<SurfacePoint>{};
+}
+
+EdgeData<std::vector<SurfacePoint>> IntegerCoordinatesIntrinsicTriangulation::traceAllInputEdgesAlongIntrinsic() {
+  // TODO
+  EdgeData<std::vector<SurfacePoint>> tracedEdges(inputMesh);
+  throw std::runtime_error("not implemented");
+  return tracedEdges;
+}
+
+std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
   // TODO
   throw std::runtime_error("not implemented");
   return std::vector<SurfacePoint>{};
@@ -90,17 +103,14 @@ SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnInput(co
   }
 }
 
-std::unique_ptr<CommonSubdivision> IntegerCoordinatesIntrinsicTriangulation::extractCommonSubdivision() {
 
-  GC_SAFETY_ASSERT(inputMesh.nVertices() <= intrinsicMesh->nVertices(), "tracing simplified edges not implemented");
+void IntegerCoordinatesIntrinsicTriangulation::constructCommonSubdivision() {
 
   intrinsicMesh->compress();
 
-  // Create the common subdivision object that we will return
-  std::unique_ptr<CommonSubdivision> csPtr{new CommonSubdivision(inputMesh, *intrinsicMesh)};
-  CommonSubdivision& cs = *csPtr;
-
-  // TODO: Don't require meshB's vertices to be a superset of meshA's
+  // Create the new common subdivision object
+  commonSubdivision.reset(new CommonSubdivision(inputMesh, *intrinsicMesh));
+  CommonSubdivision& cs = *commonSubdivision;
 
   // Construct CommonSubdivisionPoints corresponding to shared vertices
   VertexData<CommonSubdivisionPoint*> aVtx(inputMesh);
@@ -279,8 +289,6 @@ std::unique_ptr<CommonSubdivision> IntegerCoordinatesIntrinsicTriangulation::ext
       }
     }
   }
-
-  return csPtr;
 }
 
 // ======================================================
@@ -342,6 +350,7 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
   }
 
   // Do callbacks
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
 
   return true;
@@ -411,6 +420,7 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
 
   // Do callbacks
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
 
   return true;
@@ -1347,6 +1357,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitBoundaryEdge(Edge e, doubl
     vertexAngleSums[newVertex] = 2 * M_PI;
     updateHalfedgeVectorsInVertex(newVertex);
 
+    triangulationChanged();
     invokeEdgeSplitCallbacks(e, newHalfedge, newHalfedge.next().next().twin().next().next().twin());
 
     return newVertex;
@@ -1417,6 +1428,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
     // isFixed[otherNewHalfedge.edge()] = true;
     //}
 
+    triangulationChanged();
     invokeEdgeSplitCallbacks(e, newHalfedge, otherNewHalfedge);
 
     return newVertex;
@@ -1506,6 +1518,7 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::splitInteriorEdge(Edge e, doubl
     vertexAngleSums[newVertex] = 2 * M_PI;
     updateHalfedgeVectorsInVertex(newVertex);
 
+    triangulationChanged();
     invokeEdgeSplitCallbacks(e, newHalfedge, newHalfedge.next().next().twin().next().next().twin());
 
     return newVertex;
@@ -1620,6 +1633,8 @@ Face IntegerCoordinatesIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
     updateHalfedgeVectorsInVertex(he.vertex());
   }
 
+  triangulationChanged();
+
   return newF;
 }
 
@@ -1641,6 +1656,8 @@ Vertex IntegerCoordinatesIntrinsicTriangulation::moveVertex(Vertex v, Vector2 ve
 
   // Delete the old vertex
   removeInsertedVertex(v);
+
+  triangulationChanged();
 
   return newV;
 }

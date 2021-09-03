@@ -441,6 +441,7 @@ void CommonSubdivision::constructMesh() {
     // TODO: fill in sourceFaceA
     sourceFaceB = fromStdVector<Face>(*mesh, sourceFaceB_vec);
   } catch (std::exception& e) {
+    // TODO FIXME is this the behavior we want?
     std::vector<Vector3> dumb(subdivisionPoints.size(), Vector3::zero());
     simpleMesh.reset(new SimplePolygonMesh(faces, dumb));
     std::cerr << "Error: manifold mesh construction failed: " << e.what() << std::endl;

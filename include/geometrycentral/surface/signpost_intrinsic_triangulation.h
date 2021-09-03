@@ -39,17 +39,14 @@ public:
   // ======== Queries & Accessors
   // ======================================================
 
-  // Given a point on the input triangulation, returns the corresponding point on the intrinsic triangulation
   SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
 
-  // Given a point on the intrinsic triangulation, returns the corresponding point on the input triangulation
   SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
-
-
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he) override;             // trace a single intrinsic halfedge
-  std::vector<SurfacePoint> traceHalfedge(Halfedge he, bool trimEnd = true); // trace a single intrinsic halfedge
-
-  std::unique_ptr<CommonSubdivision> extractCommonSubdivision() override;
+  
+  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) override; 
+  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe, bool trimEnd); 
+  
+  std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) override;
 
   // ======================================================
   // ======== Low-Level Mutators
@@ -109,6 +106,9 @@ private:
 
   // Scale factor to take Euclidean data to cone data
   double vertexAngleScaling(Vertex v) const;
+
+  // Construct the common subdivision for the current triangulation.
+  void constructCommonSubdivision() override;
 };
 
 
