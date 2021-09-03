@@ -30,8 +30,8 @@ public:
   SparseMatrix<double> P_B;           // maps scalars at vertices to CS
   SparseMatrix<double> M_CS_Galerkin; // galerkin mass matrix on common subdivision
 
-  std::unique_ptr<Solver<double>> AtoB_L2_Solver;
-  std::unique_ptr<Solver<double>> BtoA_L2_Solver;
+  std::unique_ptr<SquareSolver<double>> AtoB_L2_Solver;
+  std::unique_ptr<SquareSolver<double>> BtoA_L2_Solver;
 
 
   // Methods
@@ -48,6 +48,8 @@ public:
   VertexData<double> transferBtoA_L2(const VertexData<double>& valuesOnB);
 
   // Prepare data
+  std::pair<SparseMatrix<double>, SparseMatrix<double>> constructAtoBMatrices() const;
+  std::pair<SparseMatrix<double>, SparseMatrix<double>> constructBtoAMatrices() const;
 };
 
 
