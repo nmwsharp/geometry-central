@@ -47,6 +47,26 @@ TEST_F(IntrinsicTriangulationSuite, IntegerFlip) {
   }
 }
 
+TEST_F(IntrinsicTriangulationSuite, DelaunayTriangulationsAgree) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    IntegerCoordinatesIntrinsicTriangulation tri_int(mesh, origGeometry);
+    SignpostIntrinsicTriangulation tri_sign(mesh, origGeometry);
+
+    tri_int.flipToDelaunay();
+    tri_sign.flipToDelaunay();
+
+    for (size_t iE = 0; iE < tri_int.intrinsicMesh->nEdges(); iE++) {
+      double l_int = tri_int.edgeLengths[tri_int.intrinsicMesh->edge(iE)];
+      double l_sign = tri_sign.edgeLengths[tri_sign.intrinsicMesh->edge(iE)];
+      EXPECT_NEAR(l_int, l_sign, 1e-5);
+    }
+  }
+}
+
 
 TEST_F(IntrinsicTriangulationSuite, SignpostTrace) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
