@@ -3,6 +3,7 @@
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
+#include "geometrycentral/surface/transfer_functions.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
 #include "load_test_meshes.h"
@@ -191,3 +192,30 @@ TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
 }
 
 // TODO test signpost and integer against each other to verify they give same results
+
+// TODO: also test with signposts?
+TEST_F(IntrinsicTriangulationSuite, FunctionTransfer) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    IntegerCoordinatesIntrinsicTriangulation tri(mesh, origGeometry);
+
+    tri.delaunayRefine();
+    CommonSubdivision& cs = tri.getCommonSubdivision();
+
+    AttributeTransfer transfer(cs, origGeometry);
+    VertexData<double> data_B(*tri.intrinsicMesh, Vector<double>::Random(tri.intrinsicMesh->nVertices()));
+    VertexData<double> data_A_Pointwise = transfer.transferBtoA(data_B, TransferMethod::Pointwise);
+    VertexData<double> data_A_L2 = transfer.transferBtoA(data_B, TransferMethod::L2);
+    Vector<double> truth = transfer.P_B * data_B.toVector();
+    Vector<double> pointwiseA = transfer.P_A * data_A_Pointwise.toVector();
+    Vector<double> L2A = transfer.P_A * data_A_L2.toVector();
+
+    double pointwiseErr = (pointwiseA - truth).dot(transfer.M_CS_Galerkin * (pointwiseA - truth));
+    double L2Err = (L2A - truth).dot(transfer.M_CS_Galerkin * (L2A - truth));
+
+    EXPECT_LE(L2Err, pointwiseErr);
+  }
+}
