@@ -154,7 +154,6 @@ std::vector<SurfacePoint> IntegerCoordinatesIntrinsicTriangulation::traceInputHa
 
         Vertex bDst = hB.twin().next().tipVertex();
         trajectory.push_back(SurfacePoint(bDst));
-        //
       }
     }
 
