@@ -132,6 +132,7 @@ Face IntrinsicTriangulation::getParentFace(Face f) const {
     case SurfacePointType::Face:
       return pt.face == f;
     }
+    return false; // unreachable
   };
 
   // Look for a FacePoint

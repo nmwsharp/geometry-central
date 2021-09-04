@@ -179,6 +179,7 @@ SurfacePoint IntegerCoordinatesIntrinsicTriangulation::equivalentPointOnInput(co
   case SurfacePointType::Face:
     return computeFaceSplitData(pointOnIntrinsic.face, pointOnIntrinsic.faceCoords).first;
   }
+  return SurfacePoint(); // unreachable
 }
 
 
@@ -721,6 +722,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
         case SurfacePointType::Face:
           return pt.face == f;
         }
+        return false; // unreachable
       };
 
       for (Vertex v : f.adjacentVertices()) {
@@ -2076,6 +2078,7 @@ Face IntegerCoordinatesIntrinsicTriangulation::getParentFace(Face f) const {
     case SurfacePointType::Face:
       return pt.face == f;
     }
+    return false; // unreachable
   };
 
   // Look for a FacePoint
