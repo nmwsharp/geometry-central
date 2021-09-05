@@ -346,7 +346,7 @@ std::vector<SurfacePoint> CommonSubdivision::getHalfedgePathBonA(Halfedge heB) {
 
 void CommonSubdivision::constructMesh(bool triangulate, bool skipIfAlreadyConstructed) {
 
-  if(mesh && skipIfAlreadyConstructed) {
+  if (mesh && skipIfAlreadyConstructed) {
     return;
   }
 
@@ -372,7 +372,7 @@ void CommonSubdivision::checkMeshConstructed() const {
   }
 }
 
-std::unique_ptr<SimplePolygonMesh> CommonSubdivision::buildSimpleMesh() const {
+std::unique_ptr<SimplePolygonMesh> CommonSubdivision::buildSimpleMesh() {
   std::vector<std::vector<size_t>> faces;
   std::vector<CommonSubdivisionPoint*> parents;
   std::vector<Face> sourceFaceA_vec;
@@ -387,8 +387,6 @@ std::unique_ptr<SimplePolygonMesh> CommonSubdivision::buildSimpleMesh() const {
 void CommonSubdivision::constructMeshData(std::vector<std::vector<size_t>>& faces_out,
                                           std::vector<CommonSubdivisionPoint*>& parents_out,
                                           std::vector<Face>& sourceFaceA_out, std::vector<Face>& sourceFaceB_out) {
-
-  // TODO: fill in sourceFaceA
 
   // Compute element counts to reserve space
   // size_t nV, nE, nF;

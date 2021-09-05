@@ -80,7 +80,7 @@ public:
   // Construct and return a SimplePolygonMesh of the common subdivision.
   // In cases where there are some errors in intersection data defining the common subvidision, it may not be possible
   // to construct the `ManifoldSurfaceMesh` with `constructMesh()`, and this is the only option.
-  std::unique_ptr<SimplePolygonMesh> buildSimpleMesh() const;
+  std::unique_ptr<SimplePolygonMesh> buildSimpleMesh();
 
   // ===============================================
   // ==== Common subdivision mesh connectivity
@@ -106,7 +106,7 @@ public:
   VertexData<CommonSubdivisionPoint*> sourcePoints;
 
   // For each face in the common subdivision, which face in meshA is it a sub-face of?
-  FaceData<Face> sourceFaceA; 
+  FaceData<Face> sourceFaceA;
 
   // For each face in the common subdivision, which face in meshB is it a sub-face of?
   FaceData<Face> sourceFaceB;
