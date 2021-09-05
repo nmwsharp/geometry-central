@@ -70,11 +70,9 @@ public:
   // NOTE: The individual operations do not call refreshQuantities(), so you
   // should call it if you want quantities updated.
 
-  // If the edge is not Delaunay, flip it. Returns true if flipped.
   double checkFlip(Edge e);
 
-  // Insert circumcenter or split segment, from NIT, geometrycentral
-  // TODO: do edge encroachment properly?
+  // Insert circumcenter or split segment
   Vertex insertCircumcenterOrSplitSegment(Face f, bool verbose = false);
 
   Vertex splitFace(Face f, Vector3 bary, bool verbose = false);

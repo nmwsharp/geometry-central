@@ -7,6 +7,18 @@ For more details, see [Integer Coordinates for Intrinsic Geometry Processing](ht
 
 The `IntegerCoordinatesIntrinsicTriangulation` is one concrete implementation (subclass) of [intrinsic triangulations](../basics). **Most of its functionality is documented there.**
 
+### Tradeoffs
+
+The signpost intrinsic triangulation is one of the two main intrinsic triangulation representations currently available in geometry-central, the other being [signposts](../signposts). For many tasks, either reprentation will be highly effective, but there are some tradeoffs.
+
+**Pros:**
+
+- **Robustness.** Integer coordinates are guaranteed to always maintain a topologically valid representation of the common subdivision, through any sequence of operations.
+
+**Cons:**
+
+- **Performance.** Integer coordinates may be moderately more expensive in terms of runtime than signposts (although both are often on the order of milliseconds). Some operations, such as tracing out a single edge of the intrinsic triangulation, are only implemented by first extracting the entire common subdivision, which has some overhead.
+
 ### Constructors
 
 ??? func "`#!cpp IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom)`"
