@@ -100,7 +100,7 @@ std::vector<std::vector<T>> unpackMatrixToStdVector(const DenseMatrix<T>& mat) {
   for (size_t i = 0; i < N; i++) {
     vectors[i].resize(M);
     for (size_t j = 0; j < M; j++) {
-      vectors[i][j] = mat(i,j);
+      vectors[i][j] = mat(i, j);
     }
   }
 
@@ -366,4 +366,184 @@ Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>&
   }
 
   return vecOut;
+}
+
+template <typename T>
+void saveSparseMatrix(std::string filename, SparseMatrix<T>& matrix) {
+  // WARNING: this follows matlab convention and thus is 1-indexed
+
+  std::ofstream outFile(filename);
+  if (!outFile) {
+    throw std::runtime_error("failed to open output file " + filename);
+  }
+  saveSparseMatrix(outFile, matrix);
+  outFile.close();
+}
+
+template <typename T>
+void saveSparseMatrix(std::ostream& out, SparseMatrix<T>& matrix) {
+  // Write a comment on the first line giving the dimensions
+  out << "# sparse " << matrix.rows() << " " << matrix.cols() << std::endl;
+
+  out << std::setprecision(16);
+
+  for (int k = 0; k < matrix.outerSize(); ++k) {
+    for (typename SparseMatrix<T>::InnerIterator it(matrix, k); it; ++it) {
+      T val = it.value();
+      size_t iRow = it.row();
+      size_t iCol = it.col();
+
+      out << (iRow + 1) << " " << (iCol + 1) << " " << val << std::endl;
+    }
+  }
+}
+
+template <typename T>
+void saveDenseMatrix(std::string filename, DenseMatrix<T>& matrix) {
+  std::ofstream outFile(filename);
+  if (!outFile) {
+    throw std::runtime_error("failed to open output file " + filename);
+  }
+
+  saveDenseMatrix(outFile, matrix);
+  outFile.close();
+}
+
+template <typename T>
+void saveDenseMatrix(std::ostream& out, DenseMatrix<T>& matrix) {
+  // Write a comment on the first line giving the dimensions
+  out << "# dense " << matrix.rows() << " " << matrix.cols() << std::endl;
+
+  out << std::setprecision(16);
+
+  for (size_t iRow = 0; iRow < (size_t)matrix.rows(); iRow++) {
+    for (size_t iCol = 0; iCol < (size_t)matrix.cols(); iCol++) {
+      T val = matrix(iRow, iCol);
+      out << val;
+      if (iCol + 1 != (size_t)matrix.cols()) {
+        out << " ";
+      }
+    }
+    out << std::endl;
+  }
+}
+
+
+template <typename T>
+SparseMatrix<T> loadSparseMatrix(std::string filename) {
+  std::ifstream inFile(filename);
+  if (!inFile) {
+    throw std::runtime_error("failed to open input file " + filename);
+  }
+
+  SparseMatrix<T> M;
+  try {
+    M = loadSparseMatrix<T>(inFile);
+  } catch (const std::runtime_error& e) {
+    throw std::runtime_error("failed to parse sparse matrix " + filename);
+  }
+
+  inFile.close();
+  return M;
+}
+
+template <typename T>
+SparseMatrix<T> loadSparseMatrix(std::istream& in) {
+  std::string line;
+  std::vector<Eigen::Triplet<T>> triplets;
+
+  // Read fields from comment, if present
+  int cols = -1;
+  int rows = -1;
+
+  // Also keep track of max triplet entries in case comment is absent
+  int maxCol = -1;
+  int maxRow = -1;
+
+  while (getline(in, line)) {
+    std::stringstream ss(line);
+    std::string token;
+    ss >> token;
+    if (token == "#") {
+      // Parse comment of the form (# sparse rows cols)
+      ss >> token >> rows >> cols;
+    } else {
+      // Read triplet
+      int iRow = std::stoi(token);
+      int iCol;
+      T val;
+      ss >> iCol >> val;
+      // Shift from 1-indexed to 0-indexed
+      iRow -= 1;
+      iCol -= 1;
+      triplets.emplace_back(iRow, iCol, val);
+      maxCol = std::max(maxCol, iCol);
+      maxRow = std::max(maxRow, iRow);
+    }
+  }
+
+  if (cols > 0 && (maxCol >= cols || maxRow >= rows)) {
+    std::cout << "Error: stated cols (" << cols << ") and rows (" << rows << ") are insufficient to fit all entries."
+              << std::endl;
+    std::cout << "       triplets are present with iRow=" << maxRow << " or iCol=" << maxCol << std::endl;
+    throw std::runtime_error("failed to parse matrix");
+  }
+  if (cols < 0) {
+    cols = maxCol + 1;
+    rows = maxRow + 1;
+  }
+
+  SparseMatrix<T> M(rows, cols);
+  M.setFromTriplets(triplets.begin(), triplets.end());
+  return M;
+}
+
+template <typename T>
+DenseMatrix<T> loadDenseMatrix(std::string filename) {
+  std::ifstream inFile(filename);
+  if (!inFile) {
+    throw std::runtime_error("failed to open input file " + filename);
+  }
+
+  DenseMatrix<T> M;
+  try {
+    M = loadDenseMatrix<T>(inFile);
+  } catch (const std::runtime_error& e) {
+    throw std::runtime_error("failed to parse dense matrix " + filename);
+  }
+  inFile.close();
+  return M;
+}
+
+template <typename T>
+DenseMatrix<T> loadDenseMatrix(std::istream& in) {
+  std::string line;
+  // Parse first line separately - it should be a comment of the form # dense rows cols
+  getline(in, line);
+  std::stringstream ss(line);
+  std::string token, matrixType;
+  int rows, cols;
+  ss >> token >> matrixType >> rows >> cols;
+  if (token != "#" || matrixType != "dense" || rows < 0 || cols < 0) {
+    std::cout << "Error: first line of file must be of the form # dense cols rows." << std::endl;
+    std::cout << "       instead, it was " << line << std::endl;
+    throw std::runtime_error("failed to parse matrix");
+  }
+
+  DenseMatrix<T> M(rows, cols);
+
+  int iRow = 0;
+  // Parse matrix entries
+  while (getline(in, line)) {
+    std::stringstream ss(line);
+    // Read entries
+    T val;
+    for (int iCol = 0; iCol < cols; iCol++) {
+      ss >> val;
+      M(iRow, iCol) = val;
+    }
+    iRow++;
+  }
+
+  return M;
 }

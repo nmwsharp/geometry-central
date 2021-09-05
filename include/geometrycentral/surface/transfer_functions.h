@@ -61,7 +61,7 @@ VertexData<double> transferAtoB(IntrinsicTriangulation& intTri, const VertexData
 
 VertexData<double> transferBtoA(CommonSubdivision& cs, VertexPositionGeometry& geomA,
                                 const VertexData<double>& valuesOnB, TransferMethod method);
-VertexData<double> transferBtoA(IntrinsicTriangulation& geomA, const VertexData<double>& valuesOnB,
+VertexData<double> transferBtoA(IntrinsicTriangulation& intTri, const VertexData<double>& valuesOnB,
                                 TransferMethod method);
 
 
