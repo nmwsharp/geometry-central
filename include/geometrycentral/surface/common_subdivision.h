@@ -77,9 +77,10 @@ public:
   size_t intersectionsA(Edge eA) const; // count intersections along edge eA of meshA
   size_t intersectionsB(Edge eB) const; // count intersections along edge eB of meshB
 
-  // Note that in cases where there are some errors in intersection data defining the common subvidision...
-  std::unique_ptr<SimplePolygonMesh> simpleMesh;
-  void constructSimpleMesh();
+  // Construct and return a SimplePolygonMesh of the common subdivision.
+  // In cases where there are some errors in intersection data defining the common subvidision, it may not be possible
+  // to construct the `ManifoldSurfaceMesh` with `constructMesh()`, and this is the only option.
+  std::unique_ptr<SimplePolygonMesh> buildSimpleMesh() const;
 
   // ===============================================
   // ==== Common subdivision mesh connectivity
@@ -93,7 +94,7 @@ public:
   //
   // Note that in cases where there are some errors in intersection data defining the common subdivision, it may not be
   // possible to construct a manifold mesh of the common subdivision. `constructMesh()` will fail with an exception in
-  // this case. Note that `constructSimpleMesh()` above can be used to build a plane old vertex-face adjacency list
+  // this case. Note that `buildSimpleMesh()` above can be used to build a plain old vertex-face adjacency list
   // representation of the mesh, although it cannot be used for the various routines in this section.
 
   // === Members
@@ -105,7 +106,7 @@ public:
   VertexData<CommonSubdivisionPoint*> sourcePoints;
 
   // For each face in the common subdivision, which face in meshA is it a sub-face of?
-  FaceData<Face> sourceFaceA; // FIXME not populated right now
+  FaceData<Face> sourceFaceA; 
 
   // For each face in the common subdivision, which face in meshB is it a sub-face of?
   FaceData<Face> sourceFaceB;
@@ -114,9 +115,8 @@ public:
   // === Methods
 
   // Construct `mesh` and auxiliary data. Throws on failure (see note above)
-  void constructMesh(bool triangulate = true);
+  void constructMesh(bool triangulate = true, bool skipIfAlreadyConstructed = true);
   void triangulateMesh();
-  void checkMeshConstructed() const;
 
   // Interpolate data at vertices from one of the meshes to the common subdivision. The return value is defined
   // per-vertex of the commonm subdivision mesh.
@@ -126,7 +126,7 @@ public:
   VertexData<T> interpolateAcrossB(const VertexData<T>& dataB) const;
 
   // Copy data at faces from one of the meshes to the common subdivision. Each face of the common subdivision gets
-  // the value from the face which contains it. The return value is defined per-face of the commonm subdivision mesh.
+  // the value from the face which contains it. The return value is defined per-face of the common subdivision mesh.
   template <typename T>
   FaceData<T> copyFromA(const FaceData<T>& dataA) const;
   template <typename T>
@@ -141,7 +141,7 @@ public:
   // Use edge lengths on either of the source triangulations to get edge lengths
   // for the common subdivision.
   // Note that in the standard case of an intrinsic triangulation with Euclidean metric-preserving edge flips, calling
-  // either of these methods with the edge lengths from the respective triangultion will produce identical outputs (up
+  // either of these methods with the edge lengths from the respective triangulation will produce identical outputs (up
   // to floating-point error).
   EdgeData<double> interpolateEdgeLengthsA(const EdgeData<double>& lengthA);
   EdgeData<double> interpolateEdgeLengthsB(const EdgeData<double>& lengthB);
@@ -164,13 +164,11 @@ public:
 
   // Global index
   // Exhaustive search, very expensive!
-  // TODO delete?
   int getIndex(const CommonSubdivisionPoint& p);
   int getIndex(const CommonSubdivisionPoint* p);
 
   // If p is the i'th point along edge e, returns i
   // Uses an simple search along the edge; generally this function is not needed.
-  // TODO delete?
   // precondition: must lie along e, must not be a face point
   int getOrderAlongEdgeA(const CommonSubdivisionPoint& p, Edge eA);
   int getOrderAlongEdgeB(const CommonSubdivisionPoint& p, Edge eB);
@@ -178,6 +176,9 @@ public:
   // Helper routine abstracting common logic for mesh creation.
   void constructMeshData(std::vector<std::vector<size_t>>& faces_out, std::vector<CommonSubdivisionPoint*>& parents_out,
                          std::vector<Face>& sourceFaceA_out, std::vector<Face>& sourceFaceB_out);
+
+  // Throws an error if the mesh has not yet been constructed.
+  void checkMeshConstructed() const;
 };
 
 std::vector<std::vector<size_t>> sliceFace(const std::vector<size_t>& pij, const std::vector<size_t>& pjk,

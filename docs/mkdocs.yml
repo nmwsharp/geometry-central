@@ -84,6 +84,8 @@ nav:
     - Intrinsic Triangulations:
       - 'Basics' : 'surface/intrinsic_triangulations/basics.md'
       - 'Common Subdivision' : 'surface/intrinsic_triangulations/common_subdivision.md'
+      - 'Signposts' : 'surface/intrinsic_triangulations/signposts.md'
+      - 'Integer Coordinates' : 'surface/intrinsic_triangulations/integer_coordinates.md'
   - Point Cloud:
     - 'Basics' : 'pointcloud/basics.md'
     - 'Geometry' : 'pointcloud/geometry.md'

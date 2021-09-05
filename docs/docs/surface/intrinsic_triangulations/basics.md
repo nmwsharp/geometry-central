@@ -87,38 +87,6 @@ SparseMatrix<double> L = intTri.cotanLaplacian; // an Eigen sparse matrix
 ```
 
 
-## Signpost Intrinsic Triangulation
-
-![signpost example](/media/signposts.svg){: style="max-width: 25em; display: block; margin-left: auto; margin-right: auto;"}
-
-The signpost data structure encodes an intrinsic triangulation by storing "signposts" at mesh vertices. Explicitly, for each intrinsic edge it stores the edge's length and direction at the two incident vertices. This information fully specifies how the intrinsic triangulation sits above the input mesh. For more details, see [Navigating Intrinsic Triangulations](http://www.cs.cmu.edu/~kmcrane/Projects/NavigatingIntrinsicTriangulations/paper.pdf).
-
-
-### Constructors
-
-??? func "`#!cpp SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom)`"
-
-    Initialize an intrinsic triangulation sitting on top of `mesh`. Recall that `IntrinsicGeometryInterface` can be almost any geometry object, including a `VertexPositionGeometry`.
-
-    Initially, the intrinsic triangulation will be identical to the input mesh; it can be modified with the routines below.
-    
-## Integer Coordinates Intrinsic Triangulation
-
-![integer coordinates example](/media/integer_coordinates.png){: style="max-width: 20em; display: block; margin-left: auto; margin-right: auto;"}
-
-The integer coordinates data structure encodes an intrinsic triangulation using _normal coordinates_ and _roundabuts_, which are integer values stored on edges. Since it avoids floating point data, this data structure is more robust than signposts, but operations such as vertex insertion can take longer.
-For more details, see [Integer Coordinates for Intrinsic Geometry Processing](https://arxiv.org/pdf/2106.00220.pdf).
-
-### Constructors
-
-??? func "`#!cpp IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom)`"
-
-    Initialize an intrinsic triangulation sitting on top of `mesh`. Recall that `IntrinsicGeometryInterface` can be almost any geometry object, including a `VertexPositionGeometry`.
-
-    Initially, the intrinsic triangulation will be identical to the input mesh; it can be modified with the routines below.
-    
-    Performs [mollification](/surface/algorithms/robust_geometry/#intrinsic-mollification) on the intrinsic trianglulation, using a relative factor of `1e-5`.
-    
 ## Basic API
 Note that some additional functions and members can be found in the `IntrinsicTriangulation` class at 
 `geometrycentral/surface/intrinsic_triangulation.h`.
@@ -318,9 +286,21 @@ Additionally, callbacks can be registered by inserting them in to the following 
     auto callbackRef = intTri->edgeSplitCallbackList.insert(std::end(intTri->edgeSplitCallbackList), updateOnSplit);
     ```
 
-## Citation
+## Citations
 
-For the signpost data structure and most of the algorithms presented above, please cite
+The above data structures are described in the following works:
+
+```bib
+@article{Sharp:2021:GPI,
+  author = {Sharp, Nicholas and Gillespie, Mark and Crane, Keenan},
+  title = {Geometry Processing with Intrinsic Triangulations},
+  booktitle = {ACM SIGGRAPH 2021 courses},
+  series = {SIGGRAPH '21},
+  year = {2021},
+  publisher = {ACM},
+  address = {New York, NY, USA},
+}
+```
 
 ```bib
 @article{sharp2019navigating,
@@ -332,5 +312,14 @@ For the signpost data structure and most of the algorithms presented above, plea
   pages={55},
   year={2019},
   publisher={ACM}
+}
+```
+
+```bib
+@article{gillespie2021integer,
+  title={Integer Coordinates for Intrinsic Geometry Processing},
+  author={Gillespie, Mark and Sharp, Nicholas and Crane, Keenan},
+  journal={arXiv preprint arXiv:2106.00220},
+  year={2021}
 }
 ```
