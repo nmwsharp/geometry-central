@@ -369,19 +369,19 @@ Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>&
 }
 
 template <typename T>
-void saveMatrix(std::string filename, SparseMatrix<T>& matrix) {
+void saveSparseMatrix(std::string filename, SparseMatrix<T>& matrix) {
   // WARNING: this follows matlab convention and thus is 1-indexed
 
   std::ofstream outFile(filename);
   if (!outFile) {
     throw std::runtime_error("failed to open output file " + filename);
   }
-  saveMatrix(outFile, matrix);
+  saveSparseMatrix(outFile, matrix);
   outFile.close();
 }
 
 template <typename T>
-void saveMatrix(std::ostream& out, SparseMatrix<T>& matrix) {
+void saveSparseMatrix(std::ostream& out, SparseMatrix<T>& matrix) {
   // Write a comment on the first line giving the dimensions
   out << "# sparse " << matrix.rows() << " " << matrix.cols() << std::endl;
 
@@ -399,18 +399,18 @@ void saveMatrix(std::ostream& out, SparseMatrix<T>& matrix) {
 }
 
 template <typename T>
-void saveMatrix(std::string filename, DenseMatrix<T>& matrix) {
+void saveDenseMatrix(std::string filename, DenseMatrix<T>& matrix) {
   std::ofstream outFile(filename);
   if (!outFile) {
     throw std::runtime_error("failed to open output file " + filename);
   }
 
-  saveMatrix(outFile, matrix);
+  saveDenseMatrix(outFile, matrix);
   outFile.close();
 }
 
 template <typename T>
-void saveMatrix(std::ostream& out, DenseMatrix<T>& matrix) {
+void saveDenseMatrix(std::ostream& out, DenseMatrix<T>& matrix) {
   // Write a comment on the first line giving the dimensions
   out << "# dense " << matrix.rows() << " " << matrix.cols() << std::endl;
 

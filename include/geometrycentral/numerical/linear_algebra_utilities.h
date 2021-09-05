@@ -99,15 +99,17 @@ template <typename T>
 Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vecA, const Vector<T>& vecB);
 
 // === IO
+
+// WARNING: this follows matlab convention and thus is 1-indexed
 template <typename T>
-void saveMatrix(std::string filename, SparseMatrix<T>& matrix);
+void saveSparseMatrix(std::string filename, SparseMatrix<T>& matrix);
 template <typename T>
-void saveMatrix(std::ostream& out, SparseMatrix<T>& matrix);
+void saveSparseMatrix(std::ostream& out, SparseMatrix<T>& matrix);
 
 template <typename T>
-void saveMatrix(std::string filename, DenseMatrix<T>& matrix);
+void saveDenseMatrix(std::string filename, DenseMatrix<T>& matrix);
 template <typename T>
-void saveMatrix(std::ostream& out, DenseMatrix<T>& matrix);
+void saveDenseMatrix(std::ostream& out, DenseMatrix<T>& matrix);
 
 template <typename T>
 SparseMatrix<T> loadSparseMatrix(std::string filename);
