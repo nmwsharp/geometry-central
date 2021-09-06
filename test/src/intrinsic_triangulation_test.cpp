@@ -14,7 +14,6 @@
 #include <string>
 #include <unordered_set>
 
-
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
 
@@ -183,6 +182,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerRefine) {
   }
 }
 
+/* TODO not implemented
 TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
     a.printThyName();
@@ -199,6 +199,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
     EXPECT_GT(cs.mesh->nVertices(), tri.mesh.nVertices());
   }
 }
+*/
 
 TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
