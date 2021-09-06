@@ -21,13 +21,13 @@ The signpost intrinsic triangulation is one of the two main intrinsic triangulat
 
 ### Constructors
 
-??? func "`#!cpp IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom)`"
+??? func "`#!cpp IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom, double mollifyEPS=1e-5)`"
 
     Initialize an intrinsic triangulation sitting on top of `mesh`. Recall that `IntrinsicGeometryInterface` can be almost any geometry object, including a `VertexPositionGeometry`.
 
     Initially, the intrinsic triangulation will be identical to the input mesh; it can be modified with the routines below.
-    
-    Performs [mollification](/surface/algorithms/robust_geometry/#intrinsic-mollification) on the intrinsic trianglulation, using a relative factor of `2e-5`.
+   
+    The `mollifyEPS` parameter performs initial [mollification](/surface/algorithms/robust_geometry/#intrinsic-mollification) on the intrinsic triangulation, which greatly improves floating-point robustness while generally, while having a negligible impact on accuracy. Set `mollifyEPS=0` to disable.
 
 
 ## Citation
