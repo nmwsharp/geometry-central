@@ -79,7 +79,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostTrace) {
     tri.flipToDelaunay();
 
     EdgeData<std::vector<SurfacePoint>> out = tri.traceAllIntrinsicEdgesAlongInput();
-    for (Edge e : tri.inputMesh.edges()) {
+    for (Edge e : tri.mesh.edges()) {
       EXPECT_GE(out[e].size(), 2);
     }
   }
@@ -96,7 +96,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerTrace) {
     tri.flipToDelaunay();
 
     EdgeData<std::vector<SurfacePoint>> out = tri.traceAllIntrinsicEdgesAlongInput();
-    for (Edge e : tri.inputMesh.edges()) {
+    for (Edge e : tri.mesh.edges()) {
       EXPECT_EQ(out[e].size(), std::max(0, tri.normalCoordinates[e]) + 2);
     }
   }
