@@ -227,9 +227,6 @@ public:
   void delaunayRefine(double areaThresh = std::numeric_limits<double>::infinity(), size_t maxInsertions = INVALID_IND,
                       double angleBound = 25.);
 
-  // Split bent edges in the underlying triangulation. Useful for viz.
-  void splitBentEdges(double angleDeg, size_t maxInsertions = INVALID_IND);
-
   // Perform one round of De Casteljau Bezier subdivision
   // Network must be a connected sequence of paths forming a curve
   void bezierSubdivide(size_t nRounds);

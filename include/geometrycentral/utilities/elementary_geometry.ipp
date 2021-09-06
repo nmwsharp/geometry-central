@@ -1,3 +1,6 @@
+#pragma once
+
+#include "geometrycentral/utilities/elementary_geometry.h"
 
 namespace geometrycentral {
 
@@ -13,12 +16,9 @@ inline Vector2 layoutTriangleVertex(const Vector2& pA, const Vector2& pB, const 
   const double lAB = norm(pB - pA);
   double tArea = triangleArea(lAB, lBC, lCA);
 
-  // Compute width and height of right triangle formed via altitude from C
+  // Compute (signed) width and height of right triangle formed via altitude from C
   double h = 2. * tArea / lAB;
-  double w = std::sqrt(std::max(0., lCA * lCA - h * h));
-
-  // Take the closer of the positive and negative solutions
-  if (lBC * lBC > (lAB * lAB + lCA * lCA)) w *= -1.0;
+  double w = (lAB*lAB - lBC*lBC + lCA*lCA) / (2. * lAB);
 
   // Project some vectors to get the actual position
   Vector2 vABn = (pB - pA) / lAB;
@@ -79,5 +79,17 @@ inline RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 
 }
 
 
+
+inline double pointLineSegmentNeaestLocation(Vector3 p, Vector3 lineA, Vector3 lineB) {
+  double len2 = (lineA - lineB).norm2();
+  if (len2 == 0.0) return 0;                                      // degenerate line case
+  double t = clamp(dot(p - lineA, lineB - lineA) / len2, 0., 1.); // nearest point on segment
+  return t;
+}
+inline double pointLineSegmentDistance(Vector3 p, Vector3 lineA, Vector3 lineB) {
+  double t = pointLineSegmentNeaestLocation(p, lineA, lineB);
+  Vector3 proj = lineA + t * (lineB - lineA);
+  return (p - proj).norm();
+}
 
 } // namespace geometrycentral

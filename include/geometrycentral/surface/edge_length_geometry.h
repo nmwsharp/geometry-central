@@ -13,7 +13,7 @@ class EdgeLengthGeometry : public IntrinsicGeometryInterface {
 
 public:
   EdgeLengthGeometry(SurfaceMesh& mesh_);
-  EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths);
+  EdgeLengthGeometry(SurfaceMesh& mesh_, const EdgeData<double>& inputEdgeLengths);
   virtual ~EdgeLengthGeometry() {}
 
   // Construct a new geometry which is exactly the same as this one, on the same mesh.
@@ -37,6 +37,7 @@ public:
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
   double vertexGaussianCurvature(Vertex v) const;
+  double faceCircumradius(Face f) const;
 
 
 protected:

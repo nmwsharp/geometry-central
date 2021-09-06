@@ -100,6 +100,7 @@ set(TEST_SRCS
   src/point_cloud_test.cpp
   src/linear_algebra_test.cpp
   src/stl_reader_test.cpp
+  src/intrinsic_triangulation_test.cpp
 )
 
 add_executable(geometry-central-test "${TEST_SRCS}")

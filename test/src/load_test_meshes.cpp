@@ -85,6 +85,7 @@ void MeshAssetSuite::SetUpTestSuite() {
   allMeshAssets.emplace_back("lego.ply", true);
   allMeshAssets.emplace_back("dodecahedron_poly.obj", true);
   allMeshAssets.emplace_back("platonic_shelf.obj", true);
+  allMeshAssets.emplace_back("fox.ply", true);
 
   // Load general surface mesh variants
   allMeshAssets.emplace_back("tet.obj", false);

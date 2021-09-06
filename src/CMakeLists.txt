@@ -22,14 +22,19 @@ SET(SRCS
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
+  surface/mutation_manager.cpp
+  surface/mesh_graph_algorithms.cpp
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
   surface/trace_geodesic.cpp
+  surface/normal_coordinates.cpp
   surface/surface_centers.cpp
-  surface/signpost_intrinsic_triangulation.cpp
   surface/simple_idt.cpp
-  surface/mesh_graph_algorithms.cpp
+  surface/intrinsic_triangulation.cpp
+  surface/signpost_intrinsic_triangulation.cpp
+  surface/integer_coordinates_intrinsic_triangulation.cpp
+  surface/common_subdivision.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp
   surface/uniformize.cpp
@@ -40,6 +45,7 @@ SET(SRCS
   surface/intrinsic_mollification.cpp
   surface/tufted_laplacian.cpp
   surface/flip_geodesics.cpp
+  surface/transfer_functions.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   
@@ -113,6 +119,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/surface_point.ipp
   ${INCLUDE_ROOT}/surface/surgery.h
   ${INCLUDE_ROOT}/surface/trace_geodesic.h
+  ${INCLUDE_ROOT}/surface/transfer_functions.h
   ${INCLUDE_ROOT}/surface/uniformize.h
   ${INCLUDE_ROOT}/surface/vector_heat_method.h
   ${INCLUDE_ROOT}/surface/vertex_position_geometry.h
