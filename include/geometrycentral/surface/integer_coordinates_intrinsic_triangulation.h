@@ -21,7 +21,8 @@ class IntegerCoordinatesIntrinsicTriangulation : public IntrinsicTriangulation {
 public:
   // Construct an intrinsic triangulation which sits atop this input mesh.
   // Initially, the input triangulation will just be a copy of the input mesh.
-  IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom);
+  IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom,
+                                           double mollifyEPS = 1e-5);
 
   // ======================================================
   //                   Core Members
@@ -57,19 +58,13 @@ public:
 
   bool flipEdgeIfPossible(Edge e) override;
 
-  void flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle, bool isOrig,
-                      bool reverseFlip = false) override;
-
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) override;
 
   Face removeInsertedVertex(Vertex v) override;
 
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
-  // Basic operations to modify the intrinsic triangulation
-  // NOTE: The individual operations do not call refreshQuantities(), so you
-  // should call it if you want quantities updated.
-
+  // Check if an edge can be flipped geometrically, as defined by the (relative) signed areas of the resulting triangles; positive values mean flippable.
   double checkFlip(Edge e);
 
   // Insert circumcenter or split segment

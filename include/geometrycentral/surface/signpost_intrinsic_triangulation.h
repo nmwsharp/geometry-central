@@ -62,7 +62,7 @@ public:
   // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
   // be flippable. Experts only.
   void flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle, bool isOrig,
-                      bool reverseFlip = false) override;
+                      bool reverseFlip = false);
 
   // Insert a new vertex in to the intrinsic triangulation
   Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) override;

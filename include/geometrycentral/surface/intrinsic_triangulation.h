@@ -168,11 +168,6 @@ public:
   // flipped.
   virtual bool flipEdgeIfPossible(Edge e) = 0;
 
-  // Flip an edge, where the caller specifies geometric data for the updated edge, rather than it being computed. Must
-  // be flippable. Experts only.
-  virtual void flipEdgeManual(Edge e, double newLength, double forwardAngle, double reverseAngle, bool isOrig,
-                              bool reverseFlip = false) = 0;
-
   // Insert a new vertex in to the intrinsic triangulation
   virtual Vertex insertVertex(SurfacePoint newPositionOnIntrinsic) = 0;
 

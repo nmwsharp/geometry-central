@@ -30,13 +30,15 @@ inline Vector3 rotate(const Vector3& v) { return {v.y, v.z, v.x}; }
 } // namespace
 
 IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(
-    ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_)
+    ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& inputGeom_, double mollifyEPS)
     : IntrinsicTriangulation(mesh_, inputGeom_), normalCoordinates(*intrinsicMesh) {
 
   normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
 
   // TODO document/expose this somehow, rather than just doing it silently
-  mollifyIntrinsic(*intrinsicMesh, edgeLengths, 1e-5);
+  if(mollifyEPS > 0) {
+    mollifyIntrinsic(*intrinsicMesh, edgeLengths, mollifyEPS);
+  }
 
   vertexLocations = VertexData<SurfacePoint>(*intrinsicMesh);
   for (size_t iV = 0; iV < intrinsicMesh->nVertices(); iV++) {
@@ -505,12 +507,6 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 }
 
 
-void IntegerCoordinatesIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, double forwardAngle,
-                                                              double reverseAngle, bool isOrig, bool reverseFlip) {
-
-  // TODO
-  throw std::runtime_error("not implemented");
-}
 
 double IntegerCoordinatesIntrinsicTriangulation::checkFlip(Edge e) {
   // Can't flip
