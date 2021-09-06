@@ -294,7 +294,7 @@ std::tuple<size_t, size_t, size_t> CommonSubdivision::elementCounts() const {
   }
 
 
-  return {nV, nE, nF};
+  return std::tuple<size_t, size_t, size_t>{nV, nE, nF};
 }
 
 size_t CommonSubdivision::intersectionsA(Edge eA) const {
