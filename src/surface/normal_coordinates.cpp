@@ -375,7 +375,7 @@ std::tuple<NormalCoordinatesCurve, int> NormalCoordinates::topologicalTraceBidir
     backwardTrace.crossings.push_back(forwardTrace.crossings[i]);
   }
 
-  return {backwardTrace, origIndex};
+  return std::tuple<NormalCoordinatesCurve, int>{backwardTrace, origIndex};
 }
 
 // HACK: represents arcs parallel to a mesh edge with a single pair {-n, he}
