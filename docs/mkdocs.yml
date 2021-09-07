@@ -80,12 +80,12 @@ nav:
       - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
-      - 'Function Transfer' : 'surface/algorithms/function_transfer.md'
     - Intrinsic Triangulations:
       - 'Basics' : 'surface/intrinsic_triangulations/basics.md'
       - 'Common Subdivision' : 'surface/intrinsic_triangulations/common_subdivision.md'
       - 'Signposts' : 'surface/intrinsic_triangulations/signposts.md'
       - 'Integer Coordinates' : 'surface/intrinsic_triangulations/integer_coordinates.md'
+      - 'Function Transfer' : 'surface/intrinsic_triangulations/function_transfer.md'
   - Point Cloud:
     - 'Basics' : 'pointcloud/basics.md'
     - 'Geometry' : 'pointcloud/geometry.md'
