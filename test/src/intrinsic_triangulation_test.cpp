@@ -194,6 +194,45 @@ TEST_F(IntrinsicTriangulationSuite, IntegerEdgeTraceAgreesWithBulk) {
   }
 }
 
+TEST_F(IntrinsicTriangulationSuite, TraceInputEdgeAlongIntrinsicSignpostVsInteger) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    SignpostIntrinsicTriangulation tri_signpost(mesh, origGeometry);
+    IntegerCoordinatesIntrinsicTriangulation tri_integer(mesh, origGeometry);
+
+    tri_signpost.flipToDelaunay();
+    tri_integer.flipToDelaunay();
+
+    for (Halfedge he : mesh.halfedges()) {
+      std::vector<SurfacePoint> trace_signpost = tri_signpost.traceInputHalfedgeAlongIntrinsic(he);
+      std::vector<SurfacePoint> trace_integer = tri_integer.traceInputHalfedgeAlongIntrinsic(he);
+
+      EXPECT_EQ(trace_signpost.size(), trace_integer.size());
+      for (size_t iP = 0; iP < trace_signpost.size(); iP++) {
+        SurfacePoint& p_signpost = trace_signpost[iP];
+        SurfacePoint& p_integer = trace_integer[iP];
+        EXPECT_EQ(p_signpost.type, p_integer.type);
+        switch (p_signpost.type) {
+        case SurfacePointType::Vertex:
+          EXPECT_EQ(p_signpost.vertex, p_integer.vertex);
+          break;
+        case SurfacePointType::Edge:
+          EXPECT_EQ(p_signpost.edge, p_integer.edge);
+          EXPECT_NEAR(p_signpost.tEdge, p_integer.tEdge, 1e-5);
+          break;
+        case SurfacePointType::Face:
+          EXPECT_EQ(p_signpost.face, p_integer.face);
+          EXPECT_NEAR((p_signpost.faceCoords - p_integer.faceCoords).norm(), 0, 1e-5);
+          break;
+        }
+      }
+    }
+  }
+}
+
 
 TEST_F(IntrinsicTriangulationSuite, SignpostRefine) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
