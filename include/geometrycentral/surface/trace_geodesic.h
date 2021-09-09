@@ -21,8 +21,6 @@ struct TraceOptions {
   bool includePath = false;
   bool errorOnProblem = false;
   EdgeData<bool>* barrierEdges = nullptr; // if set, traces will stop when they hit barrier edges
-  //bool allowEndOnEdge = false;            // can the trace end on an edge? if so, uses epsilon below
-  //double allowEndOnEdgeEps = 1e-5;        // in absolute length
   size_t maxIters = INVALID_IND;
 };
 extern const TraceOptions defaultTraceOptions;
