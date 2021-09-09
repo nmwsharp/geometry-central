@@ -95,17 +95,62 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedge
 
 
 std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return std::vector<SurfacePoint>{};
+  return traceInputHalfedgeAlongIntrinsic(inputHe, true);
+}
+
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe,
+                                                                                           bool trimEnd) {
+
+  // Optimization: don't bother tracing original edges, just report them directly
+  // Here we need to check if the corresponding intrinsic edge is original
+  Halfedge origHe = intrinsicMesh->halfedge(inputHe.getIndex()); // as usual, safe by dense construction
+  if (edgeIsOriginal[origHe.edge()]) {
+    Vertex vA = inputHe.tailVertex();
+    Vertex vB = inputHe.tipVertex();
+    std::vector<SurfacePoint> result{SurfacePoint(vA), SurfacePoint(vB)};
+    return result;
+  }
+
+
+  Vertex vTail = inputHe.tailVertex();
+  Vertex vTip = inputHe.tipVertex();
+
+  // Get the corresponding tail vertex on the intrinsic triangulation
+  Vertex vTailIntrinsic = intrinsicMesh->vertex(vTail.getIndex()); // as usual, safe by dense construction
+
+  // Gather values to trace
+  SurfacePoint startP = SurfacePoint(vTailIntrinsic);
+  Vector2 traceVec = inputGeom.halfedgeVectorsInVertex[inputHe];
+
+  // Do the actual tracing
+  TraceOptions options;
+  options.includePath = true;
+  options.maxIters = inputMesh.nFaces() * 10;
+  TraceGeodesicResult result = traceGeodesic(*this, startP, traceVec, options);
+
+  // Trim off end crumbs if applicable
+  Vertex vTipIntrinsic = intrinsicMesh->vertex(vTip.getIndex()); // as usual, safe by dense construction
+  if (trimEnd) {
+    bool success = trimTraceResult(result, vTipIntrinsic);
+    if (success) {
+      // Append the endpoint
+      result.pathPoints.push_back(SurfacePoint(vTipIntrinsic));
+    } else {
+      // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
+      // initially
+      result = traceGeodesic(*this, startP, traceVec, options);
+    }
+  }
+
+  return result.pathPoints;
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
-  
+
   // If it's a vertex, just return the matching vertex
   if (pointOnInput.type == SurfacePointType::Vertex) {
-    // Get the corresponding point on the intrinsic triangulation. The getIndex() is safe in this case: these vertices will
-    // always be densely enumerated by construction.
+    // Get the corresponding point on the intrinsic triangulation. The getIndex() is safe in this case: these vertices
+    // will always be densely enumerated by construction.
     Vertex intrinsicVertex = intrinsicMesh->vertex(pointOnInput.vertex.getIndex());
     return SurfacePoint(intrinsicVertex);
   }
@@ -119,7 +164,7 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const Su
   // some adjacent vertex.
   SurfacePoint inputFacePoint = pointOnInput.inSomeFace();
   Vector3 bary = inputFacePoint.faceCoords;
-  
+
   // Pick a vertex to trace from
   int traceI = 0;
   Halfedge traceHe;
@@ -146,7 +191,7 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const Su
   Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
   Vector2 vec = pointPos - vertPos;
   double relativeAngle = angle(vec, inputGeom.halfedgeVectorsInFace[traceHe]);
-  double relativeScaledAngle = relativeAngle * (2*M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  double relativeScaledAngle = relativeAngle * (2 * M_PI / inputGeom.vertexAngleSums[traceVertex]);
   Vector2 vertexDir = unit(inputGeom.halfedgeVectorsInVertex[traceHe]) * Vector2::fromAngle(relativeScaledAngle);
   double len = norm(vec);
   Vector2 traceVec = vertexDir * len;

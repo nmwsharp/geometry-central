@@ -42,11 +42,12 @@ public:
   SurfacePoint equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) override;
 
   SurfacePoint equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) override;
-  
-  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) override; 
-  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe, bool trimEnd); 
-  
+
+  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe) override;
+  std::vector<SurfacePoint> traceIntrinsicHalfedgeAlongInput(Halfedge intrinsicHe, bool trimEnd);
+
   std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) override;
+  std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe, bool trimEnd);
 
   // ======================================================
   // ======== Low-Level Mutators
