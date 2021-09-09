@@ -51,6 +51,7 @@ public:
   // EdgeData<double> edgeLengths, which we inherit from the IntrinsicGeometryInterface/EdgeLengthGeometry class
 
   // Vertex locations for the intrinsic triangulation
+  // (i.e., for each vertex in the intrinsic triangulation, what is its location on the input surface)
   VertexData<SurfacePoint> vertexLocations;
 
   // NOTE: To enable use to make efficient use of the surface tracers, this class always automatically updates the

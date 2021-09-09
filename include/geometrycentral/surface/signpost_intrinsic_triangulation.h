@@ -101,8 +101,9 @@ private:
   // Map angle to range [0, angleSum)
   double standardizeAngle(Vertex vert, double angle) const;
 
-  // Get vector in rescaled vertex coordinates
+  // Get vector in rescaled vertex coordinates (either halfedge or arbitrary vector)
   Vector2 halfedgeVector(Halfedge he) const;
+  Vector2 rescaledVertexVector(Vertex v, double angle, double len) const;
 
   // Scale factor to take Euclidean data to cone data
   double vertexAngleScaling(Vertex v) const;

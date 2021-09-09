@@ -102,6 +102,57 @@ TEST_F(IntrinsicTriangulationSuite, IntegerTrace) {
   }
 }
 
+TEST_F(IntrinsicTriangulationSuite, SignpostEquivalentPoint) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+    a.printThyName();
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    SignpostIntrinsicTriangulation tri(mesh, origGeometry);
+
+    tri.flipToDelaunay();
+
+    auto roundtripTest = [&](SurfacePoint origPoint) {
+      Vector3 origPos = origPoint.interpolate(origGeometry.vertexPositions);
+
+      // Map to the intrinsic surface
+      SurfacePoint intPoint = tri.equivalentPointOnIntrinsic(origPoint);
+
+      // Map back to the input surface
+      SurfacePoint returnPoint = tri.equivalentPointOnInput(intPoint);
+
+      // Check that the result is close to where we started
+      Vector3 returnPos = returnPoint.interpolate(origGeometry.vertexPositions);
+
+      EXPECT_LT((origPos - returnPos).norm(), 1e-5);
+    };
+
+
+    // Pick a bunch of face points and map them back and forth; verify we get get very similar locations
+    std::mt19937 mt(42);
+    auto randBary = [&]() {
+      std::uniform_real_distribution<double> dist(0.0, 1.0);
+      double r1 = dist(mt);
+      double r2 = dist(mt);
+      Vector3 bary{1 - std::sqrt(r1), std::sqrt(r1) * (1 - r2), std::sqrt(r1) * r2};
+      return bary;
+    };
+    for (Face f : mesh.faces()) {
+      SurfacePoint origPoint(f, randBary());
+      roundtripTest(origPoint);
+    }
+
+    // Test a few vertex points & edge points
+    roundtripTest(SurfacePoint(mesh.vertex(12)));
+    roundtripTest(SurfacePoint(mesh.vertex(42)));
+    roundtripTest(SurfacePoint(mesh.vertex(55)));
+    roundtripTest(SurfacePoint(mesh.edge(55), 0.4));
+    roundtripTest(SurfacePoint(mesh.edge(55), 0.0));
+    roundtripTest(SurfacePoint(mesh.edge(55), 1.0));
+    roundtripTest(SurfacePoint(mesh.edge(11), 1.0));
+  }
+}
+
 TEST_F(IntrinsicTriangulationSuite, IntegerEdgeTraceAgreesWithBulk) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
     a.printThyName();

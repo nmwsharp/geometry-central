@@ -16,6 +16,10 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
     : EdgeLengthGeometry(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
       intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
 
+  if (!inputMesh.isCompressed()) {
+    throw std::runtime_error(
+        "mesh should be compressed before constructing an intrinsic triangulation. Call mesh.compress().");
+  }
 
   // do this here, rather than in the constructer, since we need to call require() first
   inputGeom.requireEdgeLengths();

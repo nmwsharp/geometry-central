@@ -20,6 +20,12 @@ inline Vector2 SignpostIntrinsicTriangulation::halfedgeVector(Halfedge he) const
   return traceVec;
 }
 
+inline Vector2 SignpostIntrinsicTriangulation::rescaledVertexVector(Vertex v, double angle, double len) const {
+  double scaleFac = 1.0 / vertexAngleScaling(v);
+  Vector2 traceVec = Vector2::fromAngle(angle * scaleFac) * len;
+  return traceVec;
+}
+
 inline double SignpostIntrinsicTriangulation::vertexAngleScaling(Vertex v) const {
   return vertexAngleSums[v] / (v.isBoundary() ? M_PI : 2. * M_PI);
 }

@@ -16,8 +16,10 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
     : IntrinsicTriangulation(mesh_, inputGeom_) {
 
   // == Initialize geometric data
+  // TODO do we really need all these?
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
+  inputGeom.requireHalfedgeVectorsInFace();
   inputGeom.requireVertexAngleSums();
 
   // Prepare directions and angle sums
@@ -99,15 +101,115 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlon
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return SurfacePoint(Vertex());
+  
+  // If it's a vertex, just return the matching vertex
+  if (pointOnInput.type == SurfacePointType::Vertex) {
+    // Get the corresponding point on the intrinsic triangulation. The getIndex() is safe in this case: these vertices will
+    // always be densely enumerated by construction.
+    Vertex intrinsicVertex = intrinsicMesh->vertex(pointOnInput.vertex.getIndex());
+    return SurfacePoint(intrinsicVertex);
+  }
+
+
+  // TODO: could be smarter here and explicitly return edge points for shared edges.
+  // Currently the code below will generally return some extremely-nearby point inside of some face.
+
+
+  // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
+  // some adjacent vertex.
+  SurfacePoint inputFacePoint = pointOnInput.inSomeFace();
+  Vector3 bary = inputFacePoint.faceCoords;
+  
+  // Pick a vertex to trace from
+  int traceI = 0;
+  Halfedge traceHe;
+  double smallestBary = 999;
+  Halfedge testHe = inputFacePoint.face.halfedge();
+  for (size_t iV = 0; iV < 3; iV++) {
+    // Don't trace from a vertex if we are nearly on top of it, because it will mess up
+    // the angle calculations below. Smallest bary coord is a good choice.
+    if (bary[iV] < smallestBary) {
+      smallestBary = bary[iV];
+      traceI = iV;
+      traceHe = testHe;
+    }
+    testHe = testHe.next();
+  }
+  Vertex traceVertex = traceHe.vertex();
+  SurfacePoint traceVertexLoc =
+      SurfacePoint(intrinsicMesh->vertex(traceVertex.getIndex())); // (see note abouve about getIndex())
+
+  // Compute the direction and length of the vector pointing towards the vertex
+  std::array<Vector2, 3> coords = {Vector2{0., 0.}, inputGeom.halfedgeVectorsInFace[inputFacePoint.face.halfedge()],
+                                   -inputGeom.halfedgeVectorsInFace[inputFacePoint.face.halfedge().next().next()]};
+  Vector2 vertPos = coords[traceI];
+  Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
+  Vector2 vec = pointPos - vertPos;
+  double relativeAngle = angle(vec, inputGeom.halfedgeVectorsInFace[traceHe]);
+  double relativeScaledAngle = relativeAngle * (2*M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  Vector2 vertexDir = unit(inputGeom.halfedgeVectorsInVertex[traceHe]) * Vector2::fromAngle(relativeScaledAngle);
+  double len = norm(vec);
+  Vector2 traceVec = vertexDir * len;
+
+  // Trace out the vector along the original surface
+  TraceOptions options;
+  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, traceVertexLoc, traceVec, options);
+  SurfacePoint intrinsicPos = intrinsicTraceResult.endPoint;
+
+  return intrinsicPos;
 }
 
 SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
-  // TODO
-  throw std::runtime_error("not implemented");
-  return SurfacePoint(Vertex());
+
+  // If it's a vertex, just return the vertex location
+  if (pointOnIntrinsic.type == SurfacePointType::Vertex) {
+    return vertexLocations[pointOnIntrinsic.vertex];
+  }
+
+  // TODO: could be smarter here and explicitly return edge points for shared edges.
+  // Currently the code below will generally return some extremely-nearby point inside of some face.
+
+
+  // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
+  // some adjacent vertex.
+  SurfacePoint intrinsicFacePoint = pointOnIntrinsic.inSomeFace();
+  Vector3 bary = intrinsicFacePoint.faceCoords;
+
+  // Pick a vertex to trace from
+  int traceI = 0;
+  Halfedge traceHe;
+  double smallestBary = 999;
+  Halfedge testHe = intrinsicFacePoint.face.halfedge();
+  for (size_t iV = 0; iV < 3; iV++) {
+    // Don't trace from a vertex if we are nearly on top of it, because it will mess up
+    // the angle calculations below. Smallest bary coord is a good choice.
+    if (bary[iV] < smallestBary) {
+      smallestBary = bary[iV];
+      traceI = iV;
+      traceHe = testHe;
+    }
+    testHe = testHe.next();
+  }
+  Vertex traceVertex = traceHe.vertex();
+
+  // Compute the direction and length of the vector pointing towards the vertex
+  std::array<Vector2, 3> coords = vertexCoordinatesInTriangle(intrinsicFacePoint.face);
+  Vector2 vertPos = coords[traceI];
+  Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
+  Vector2 vec = pointPos - vertPos;
+  double relativeAngle = angle(vec, halfedgeVectorsInFace[traceHe]);
+  if (relativeAngle < 0) relativeAngle += 2 * M_PI;
+  double vertexAngle = signpostAngle[traceHe] + relativeAngle;
+  vertexAngle = standardizeAngle(traceVertex, vertexAngle);
+  double len = norm(vec);
+  Vector2 traceVec = rescaledVertexVector(traceVertex, vertexAngle, len);
+
+  // Trace out the vector along the original surface
+  TraceOptions options;
+  TraceGeodesicResult inputTraceResult = traceGeodesic(inputGeom, vertexLocations[traceVertex], traceVec, options);
+  SurfacePoint inputPos = inputTraceResult.endPoint;
+
+  return inputPos;
 }
 
 
