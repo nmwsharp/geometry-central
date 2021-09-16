@@ -10,7 +10,6 @@
 namespace geometrycentral {
 namespace surface {
 
-
 SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_,
                                                                IntrinsicGeometryInterface& inputGeom_)
     : IntrinsicTriangulation(mesh_, inputGeom_) {
@@ -752,17 +751,179 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   } while (currHe != firstHe);
 }
 
+std::vector<double> SignpostIntrinsicTriangulation::recoverTraceTValues(const std::vector<SurfacePoint>& edgeTrace) {
+  std::vector<double> tVals(edgeTrace.size());
+
+  // Walk along the curve, measuring the length of each segment from its barcentric coordinates and the geometry of the
+  // underlying triangulation
+  tVals[0] = 0.;
+  for (size_t iP = 1; iP + 1 < edgeTrace.size(); iP++) {
+    SurfacePoint prev = edgeTrace[iP - 1];
+    SurfacePoint next = edgeTrace[iP];
+    Face f = sharedFace(prev, next);
+    prev = prev.inFace(f);
+    next = next.inFace(f);
+    Vector3 triangleLengths{inputGeom.edgeLengths[f.halfedge().edge()],
+                            inputGeom.edgeLengths[f.halfedge().next().edge()],
+                            inputGeom.edgeLengths[f.halfedge().next().next().edge()]};
+    Vector3 disp = next.faceCoords - prev.faceCoords;
+    double len = displacementLength(disp, triangleLengths);
+    tVals[iP] = tVals[iP - 1] + len;
+  }
+
+  // normalize to [0,1]
+  double totalLen = tVals.back();
+  for (double& t : tVals) {
+    t /= totalLen;
+  }
+
+  return tVals;
+}
 
 void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
 
   intrinsicMesh->compress();
 
-  // Create the common subdivision object that we will return
-  std::unique_ptr<CommonSubdivision> csPtr{new CommonSubdivision(inputMesh, *intrinsicMesh)};
-  CommonSubdivision& cs = *csPtr;
+  // Do all the tracing
+  EdgeData<std::vector<SurfacePoint>> traces = traceAllIntrinsicEdgesAlongInput();
 
-  // TODO
-  throw std::runtime_error("not implemented");
+  // Create the new common subdivision object
+  commonSubdivision.reset(new CommonSubdivision(inputMesh, *intrinsicMesh));
+  CommonSubdivision& cs = *commonSubdivision;
+
+  // Construct CommonSubdivisionPoints corresponding to shared vertices
+  VertexData<CommonSubdivisionPoint*> aVtx(inputMesh);
+  VertexData<CommonSubdivisionPoint*> bVtx(*intrinsicMesh);
+
+  for (size_t iV = 0; iV < intrinsicMesh->nVertices(); iV++) {
+    Vertex vB = intrinsicMesh->vertex(iV);
+    SurfacePoint pA = vertexLocations[vB];
+
+    switch (pA.type) {
+    case SurfacePointType::Vertex: {
+      Vertex vA = pA.vertex;
+
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::VERTEX_VERTEX, pA, SurfacePoint(vB), true});
+
+      aVtx[vA] = &cs.subdivisionPoints[cs.subdivisionPoints.size() - 1];
+      break;
+    }
+    case SurfacePointType::Edge:
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::EDGE_VERTEX, pA, SurfacePoint(vB), true});
+
+      // also add the point to the edge that it crosses
+      cs.pointsAlongA[pA.edge].push_back(&cs.subdivisionPoints.back());
+
+      break;
+    case SurfacePointType::Face:
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::FACE_VERTEX, pA, SurfacePoint(vB), true});
+      break;
+    }
+
+    bVtx[vB] = &cs.subdivisionPoints.back();
+  }
+
+  // For any input mesh edges which got edge points along them above (aka there have been vertices along the edge), sort
+
+
+  for (Edge e : intrinsicMesh->edges()) {
+    std::vector<SurfacePoint>& edgeTrace = traces[e];
+
+    // First point
+    cs.pointsAlongB[e].push_back(bVtx[e.halfedge().tailVertex()]);
+
+    if (edgeIsOriginal[e] || edgeTrace.size() == 2) {
+      // For edges which are coincident, don't do anything right now. We will recover these points below.
+    } else {
+      // General case: record all intersections
+
+      // We don't pass back these from the trace routine, so reconstruct them from the geometry
+      std::vector<double> tVals = recoverTraceTValues(edgeTrace);
+
+      for (size_t iP = 1; iP + 1 < edgeTrace.size(); iP++) {
+        SurfacePoint& point = edgeTrace[iP];
+
+        if (point.type != SurfacePointType::Edge) {
+          throw std::runtime_error(
+              "signpost common subdivision construction failure: edge traces should contain only edge crossings");
+        }
+
+        // Create new intersection records
+        cs.subdivisionPoints.emplace_back();
+        CommonSubdivisionPoint& csPoint = cs.subdivisionPoints.back();
+
+        csPoint.posA = point;
+        csPoint.posB = SurfacePoint(e, tVals[iP]);
+        csPoint.intersectionType = CSIntersectionType::EDGE_TRANSVERSE;
+        csPoint.orientation = false; // TODO not properly populated. We don't propagate this info.
+
+        // Store the the pont along the intrinsic edge
+        cs.pointsAlongB[e].push_back(&csPoint);
+
+        // Also store them for the input mesh. These will be out of order now, but we will sort them below.
+        cs.pointsAlongA[point.edge].push_back(&csPoint);
+      }
+    }
+
+    // Last point
+    cs.pointsAlongB[e].push_back(bVtx[e.halfedge().tipVertex()]);
+  }
+
+  // Get all the intersections right along the input mesh edges
+  for (Edge e : inputMesh.edges()) {
+    std::vector<CommonSubdivisionPoint*>& vec = cs.pointsAlongA[e];
+
+    // Sort the existing points
+    std::sort(vec.begin(), vec.end(), [](CommonSubdivisionPoint*& a, CommonSubdivisionPoint*& b) -> bool {
+      return a->posA.tEdge < b->posA.tEdge;
+    });
+
+    // Prepend the first vertex point to the front
+    CommonSubdivisionPoint* firstP = aVtx[e.halfedge().tailVertex()];
+    vec.insert(vec.begin(), firstP);
+
+    // Append the last vertex point to the back
+    CommonSubdivisionPoint* lastP = aVtx[e.halfedge().tipVertex()];
+    vec.push_back(lastP);
+
+    // Walk along the edge, any time we see two consecutive vertex points, there must be a
+    // parallel edge there.
+    for (size_t iP = 1; iP + 1 < vec.size(); iP++) {
+
+      if (vec[iP - 1]->posB.type == SurfacePointType::Vertex && vec[iP]->posB.type == SurfacePointType::Vertex) {
+
+        // Create a new edge-parallel intersection
+        cs.subdivisionPoints.emplace_back();
+        CommonSubdivisionPoint& csPoint = cs.subdivisionPoints.back();
+
+        csPoint.posA = SurfacePoint(e, 0.5);
+        csPoint.intersectionType = CSIntersectionType::EDGE_PARALLEL;
+        csPoint.orientation = false; // TODO not properly populated. We don't propagate this info.
+
+        // Find the matching edge on meshB
+        // Note: I'm 90% sure that this is fine, and this search should always find exactly one matching edge.
+        // The reasoning why is that the common subdivision is always a simplicial complex, and this segment is
+        // and edge of the common subdivision, so it must be unique between its endpoints.
+        for (Halfedge he : vec[iP - 1]->posB.vertex.outgoingHalfedges()) {
+          if (he.tipVertex() == vec[iP - 1]->posB.vertex) {
+            csPoint.posB = SurfacePoint(he.edge(), 0.5);
+            break;
+          }
+        }
+
+        // Add the new point to both lists
+        // this list, meshA
+        vec.insert(vec.begin() + iP, &csPoint);
+        // meshB
+        Edge meshBEdge = csPoint.posB.edge;
+        GC_SAFETY_ASSERT(cs.pointsAlongB[meshBEdge].size() == 2, "should be exactly two points (endpoints)");
+        cs.pointsAlongB[e].insert(cs.pointsAlongB[meshBEdge].begin() + 1, &csPoint);
+      }
+    }
+  }
 }
 
 
