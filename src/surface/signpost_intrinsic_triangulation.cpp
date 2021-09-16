@@ -30,13 +30,15 @@ SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMe
     Halfedge firstHe = v.halfedge();
     Halfedge currHe = firstHe;
     do {
-      double cornerAngleVal = cornerAngle(currHe.corner());
       signpostAngle[currHe] = runningAngle;
-      runningAngle += cornerAngleVal;
 
       if (!currHe.isInterior()) {
         break;
       }
+
+      double cornerAngleVal = cornerAngle(currHe.corner());
+      runningAngle += cornerAngleVal;
+
       currHe = currHe.next().next().twin();
     } while (currHe != firstHe);
   }
@@ -190,7 +192,13 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const Su
   Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
   Vector2 vec = pointPos - vertPos;
   double relativeAngle = angle(vec, inputGeom.halfedgeVectorsInFace[traceHe]);
-  double relativeScaledAngle = relativeAngle * (2 * M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  double relativeScaledAngle;
+  if (traceVertex.isBoundary()) {
+    // follow convention that boundary verts are normalized to PI rather than 2PI
+    relativeScaledAngle = relativeAngle * (M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  } else {
+    relativeScaledAngle = relativeAngle * (2 * M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  }
   Vector2 vertexDir = unit(inputGeom.halfedgeVectorsInVertex[traceHe]) * Vector2::fromAngle(relativeScaledAngle);
   double len = norm(vec);
   Vector2 traceVec = vertexDir * len;
@@ -907,12 +915,15 @@ void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
         // Note: I'm 90% sure that this is fine, and this search should always find exactly one matching edge.
         // The reasoning why is that the common subdivision is always a simplicial complex, and this segment is
         // and edge of the common subdivision, so it must be unique between its endpoints.
+        bool found = false;
         for (Halfedge he : vec[iP - 1]->posB.vertex.outgoingHalfedges()) {
-          if (he.tipVertex() == vec[iP - 1]->posB.vertex) {
+          if (he.tipVertex() == vec[iP]->posB.vertex) {
             csPoint.posB = SurfacePoint(he.edge(), 0.5);
+            found = true;
             break;
           }
         }
+        GC_SAFETY_ASSERT(found, "could not align shared edges in common subdivision");
 
         // Add the new point to both lists
         // this list, meshA
@@ -920,7 +931,7 @@ void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
         // meshB
         Edge meshBEdge = csPoint.posB.edge;
         GC_SAFETY_ASSERT(cs.pointsAlongB[meshBEdge].size() == 2, "should be exactly two points (endpoints)");
-        cs.pointsAlongB[e].insert(cs.pointsAlongB[meshBEdge].begin() + 1, &csPoint);
+        cs.pointsAlongB[meshBEdge].insert(cs.pointsAlongB[meshBEdge].begin() + 1, &csPoint);
       }
     }
   }
