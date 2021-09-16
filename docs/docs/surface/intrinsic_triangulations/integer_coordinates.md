@@ -19,6 +19,11 @@ The signpost intrinsic triangulation is one of the two main intrinsic triangulat
 
 - **Performance.** Integer coordinates may be moderately more expensive in terms of runtime than signposts (although both are often on the order of milliseconds). Some operations, such as tracing out a single edge of the intrinsic triangulation, are only implemented by first extracting the entire common subdivision, which has some overhead.
 
+!!! warning "Not yet implemented"
+
+    The methods `equivalentPointOnIntrinsic()` and `splitEdge()` from `IntrinsicTriangulation` are not yet implemented for the integer coordinates representation. For `splitEdge()`, an alternate version is provided which returns a vertex instead.
+
+
 ### Constructors
 
 ??? func "`#!cpp IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulation(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& inputGeom, double mollifyEPS=1e-5)`"
@@ -28,7 +33,6 @@ The signpost intrinsic triangulation is one of the two main intrinsic triangulat
     Initially, the intrinsic triangulation will be identical to the input mesh; it can be modified with the routines below.
    
     The `mollifyEPS` parameter performs initial [mollification](/surface/algorithms/robust_geometry/#intrinsic-mollification) on the intrinsic triangulation, which greatly improves floating-point robustness while generally, while having a negligible impact on accuracy. Set `mollifyEPS=0` to disable.
-
 
 ## Citation
 
