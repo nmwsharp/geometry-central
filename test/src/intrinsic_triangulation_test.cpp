@@ -272,7 +272,6 @@ TEST_F(IntrinsicTriangulationSuite, IntegerRefine) {
   }
 }
 
-/* TODO not implemented
 TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
     a.printThyName();
@@ -289,7 +288,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
     EXPECT_GT(cs.mesh->nVertices(), tri.mesh.nVertices());
   }
 }
-*/
+
 
 TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
@@ -325,6 +324,50 @@ TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
 }
 
 // TODO test signpost and integer against each other to verify they give same results
+
+TEST_F(IntrinsicTriangulationSuite, CommonSubdivisionCompareIntegerSignpost) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    // Construct a common subdivision with both data structures
+
+    IntegerCoordinatesIntrinsicTriangulation tri_int(mesh, origGeometry);
+    SignpostIntrinsicTriangulation tri_sign(mesh, origGeometry);
+
+    // Refinement gives a slightly different mesh, which is a little annoying but probably
+    // not worth fixing.
+    //tri_int.delaunayRefine();
+    //tri_sign.delaunayRefine();
+    tri_int.flipToDelaunay();
+    tri_sign.flipToDelaunay();
+    EXPECT_EQ(tri_int.intrinsicMesh->nVertices(), tri_sign.intrinsicMesh->nVertices());
+
+    CommonSubdivision& cs_int = tri_int.getCommonSubdivision();
+    CommonSubdivision& cs_sign = tri_sign.getCommonSubdivision();
+    cs_int.constructMesh();
+    cs_sign.constructMesh();
+
+    // Check that the element counts of the commont subdivision are the same
+    EXPECT_EQ(cs_int.mesh->nVertices(), cs_sign.mesh->nVertices());
+    EXPECT_EQ(cs_int.mesh->nEdges(), cs_sign.mesh->nEdges());
+    EXPECT_EQ(cs_int.mesh->nFaces(), cs_sign.mesh->nFaces());
+
+    // Check that all faces have very similar area
+    // (technically we could generate two correct subdivisions with the faces not
+    // in correspondence, but in the current implementation they will be, so we'll 
+    // just test that)
+    origGeometry.requireEdgeLengths();
+    EdgeData<double> len_int = cs_int.interpolateEdgeLengthsA(origGeometry.edgeLengths);
+    EdgeData<double> len_sign = cs_sign.interpolateEdgeLengthsA(origGeometry.edgeLengths);
+    for(size_t iF = 0; iF < cs_int.mesh->nFaces(); iF++) {
+      EXPECT_NEAR(len_int[iF], len_sign[iF], 1e-5);
+    }
+  }
+}
+
+
 
 // TODO: also test with signposts?
 TEST_F(IntrinsicTriangulationSuite, FunctionTransfer) {

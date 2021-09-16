@@ -33,7 +33,7 @@ struct CommonSubdivisionPoint {
   CSIntersectionType intersectionType;
   SurfacePoint posA;
   SurfacePoint posB;
-  bool orientation;
+  bool orientation; // WARNING: some constructors (e.g. signposts) do not properly populate this
 };
 std::ostream& operator<<(std::ostream& out, const CSIntersectionType& type);
 std::ostream& operator<<(std::ostream& out, const CommonSubdivisionPoint& pt);

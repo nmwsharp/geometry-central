@@ -109,7 +109,13 @@ private:
   // Scale factor to take Euclidean data to cone data
   double vertexAngleScaling(Vertex v) const;
 
+  // Recover t-values after tracing
+  // Note that really we ought to just report these back from the tracing routine itself, which computes them internally. We don't have a nice API for passing that data around, so this lazily recovers it
+  std::vector<double> recoverTraceTValues(const std::vector<SurfacePoint>& edgeTrace);
+
   // Construct the common subdivision for the current triangulation.
+  // WARNING: this signpost implementation does not properly populate some fields
+  // of the common subdivision, in particular the `orientation` field for intersections.
   void constructCommonSubdivision() override;
 };
 
