@@ -20,7 +20,7 @@ using namespace geometrycentral::surface;
 class IntrinsicTriangulationSuite : public MeshAssetSuite {};
 
 TEST_F(IntrinsicTriangulationSuite, SignpostFlip) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -34,7 +34,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostFlip) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, IntegerFlip) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -48,7 +48,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerFlip) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, DelaunayTriangulationsAgree) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -69,7 +69,7 @@ TEST_F(IntrinsicTriangulationSuite, DelaunayTriangulationsAgree) {
 
 
 TEST_F(IntrinsicTriangulationSuite, SignpostTrace) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -86,7 +86,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostTrace) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, IntegerTrace) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -103,7 +103,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerTrace) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, SignpostEquivalentPoint) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -154,7 +154,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostEquivalentPoint) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, IntegerEdgeTraceAgreesWithBulk) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -195,7 +195,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerEdgeTraceAgreesWithBulk) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, TraceInputEdgeAlongIntrinsicSignpostVsInteger) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -235,7 +235,7 @@ TEST_F(IntrinsicTriangulationSuite, TraceInputEdgeAlongIntrinsicSignpostVsIntege
 
 
 TEST_F(IntrinsicTriangulationSuite, SignpostRefine) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -254,7 +254,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostRefine) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, IntegerRefine) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -273,7 +273,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerRefine) {
 }
 
 TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -291,7 +291,7 @@ TEST_F(IntrinsicTriangulationSuite, SignpostCommonSubdivision) {
 
 
 TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
     a.printThyName();
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
@@ -326,7 +326,7 @@ TEST_F(IntrinsicTriangulationSuite, IntegerCommonSubdivision) {
 // TODO test signpost and integer against each other to verify they give same results
 
 TEST_F(IntrinsicTriangulationSuite, CommonSubdivisionCompareIntegerSignpost) {
-  for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
+  for (const MeshAsset& a : {getAsset("fox.ply", true), getAsset("cat_head.obj", true)}) {
 
     ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
     VertexPositionGeometry& origGeometry = *a.geometry;
