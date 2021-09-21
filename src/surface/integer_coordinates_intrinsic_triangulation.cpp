@@ -36,7 +36,7 @@ IntegerCoordinatesIntrinsicTriangulation::IntegerCoordinatesIntrinsicTriangulati
   normalCoordinates.setCurvesFromEdges(*intrinsicMesh);
 
   // TODO document/expose this somehow, rather than just doing it silently
-  if(mollifyEPS > 0) {
+  if (mollifyEPS > 0) {
     mollifyIntrinsic(*intrinsicMesh, edgeLengths, mollifyEPS);
   }
 
@@ -505,7 +505,6 @@ bool IntegerCoordinatesIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
   return true;
 }
-
 
 
 double IntegerCoordinatesIntrinsicTriangulation::checkFlip(Edge e) {
@@ -1754,16 +1753,14 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
 
 NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceInputHalfedge(Halfedge inputHe,
                                                                                             bool verbose) const {
-  // verbose = verbose || e.getIndex() == 18027;
-
-  auto vertexHalfedge = [&](Vertex v, size_t iH) {
-    Halfedge he = v.halfedge();
-
-    // Iterate counterclockwise
-    for (size_t i = 0; i < iH; ++i) {
-      he = he.next().next().twin();
+  auto halfedgeLocalIndex = [&](Halfedge he) -> size_t {
+    Halfedge curr = he.vertex().halfedge();
+    size_t iH = 0;
+    while (curr != he) {
+      curr = curr.next().next().twin();
+      iH++;
     }
-    return he;
+    return iH;
   };
 
   auto traceFollowingComponents = [&](const NormalCoordinatesCurve& firstComponent) -> NormalCoordinatesCompoundCurve {
@@ -1785,68 +1782,48 @@ NormalCoordinatesCompoundCurve IntegerCoordinatesIntrinsicTriangulation::traceIn
   // TODO: Allow different vertex sets
   Vertex v = intrinsicMesh->vertex(vTrace.getIndex());
 
-  Halfedge he = v.halfedge();
+  size_t k = halfedgeLocalIndex(inputHe);
 
+  Halfedge heBest;
+  int rdbtBest = -1;
 
-  // Loop over all halfedges of intrinsicMesh coming out of v until we
-  // find the one whose corner contains the halfedge e.halfedge() of
-  // inputMesh
-  // TODO: this could be optimized. Calling vertexHalfedge repeatedly
-  // repeats a lot of work
-  do {
-    size_t iStart = normalCoordinates.roundabouts[he];
+  for (Halfedge he : v.outgoingHalfedges()) {
+    int r = normalCoordinates.roundabouts[he];
+    if (r <= (int)k && r > rdbtBest) {
+      rdbtBest = r;
+      heBest = he;
+    }
+  }
 
-    size_t em = normalCoordinates.strictDegree(he.corner());
-    size_t startInd = -negativePart(normalCoordinates[he.edge()]);
-    size_t endInd = -negativePart(normalCoordinates[he.next().next().edge()]);
-
-    size_t width = em + startInd + endInd;
-
-    // Loop over all halfedges of inputMesh coming out of this
-    // corner
-    for (size_t iH = 0; iH < width; ++iH) {
-      Halfedge heTrace = vertexHalfedge(vTrace, iStart + iH);
-      if (heTrace != inputHe) continue;
-
-      if (verbose) {
-        std::cout << "Tracing from vertex " << v << std::endl;
-        std::cout << "Found edge " << inputHe.edge() << " (halfedge " << inputHe << ")" << std::endl;
-        std::cout << "\t iH = " << iH << " of " << width << " = " << startInd << " + " << em << " + " << endInd
-                  << std::endl;
-        std::cout << "\t\t index is " << iStart + iH << " from source vertex " << vTrace << std::endl;
-        std::cout << "\t\t past halfedge  " << he << " / edge " << he.edge() << std::endl;
-        std::cout << "\t ALL HEDGES: " << std::endl;
-        Halfedge he = v.halfedge();
-
-        // Iterate counterclockwise
-        for (size_t i = 0; i < v.degree(); ++i) {
-          std::cout << "\t\t " << he << "\t (" << he.edge() << ") : " << normalCoordinates.roundabouts[he]
-                    << " | edge coord: " << normalCoordinates.edgeCoords[he.edge()]
-                    << " | corner deg: " << normalCoordinates.strictDegree(he.corner()) << std::endl;
-
-          he = he.next().next().twin();
-        }
-      }
-
-      if (iH >= width - endInd) {
-        Halfedge pathHe = he.next().next().twin();
-        return traceFollowingComponents(directPath(pathHe));
-      } else if (iH < startInd) {
-        return traceFollowingComponents(directPath(he));
-      } else {
-        size_t idx = iH - startInd;
-
-        return traceFollowingComponents(
-            normalCoordinates.topologicalTrace(he.next(), positivePart(normalCoordinates[he.edge()]) + idx));
+  if (heBest == Halfedge()) {
+    // roundabouts wrap; take biggest roundabout
+    for (Halfedge he : v.outgoingHalfedges()) {
+      int r = normalCoordinates.roundabouts[he];
+      if (r > rdbtBest) {
+        rdbtBest = r;
+        heBest = he;
       }
     }
-    // orbit counterclockwise
-    he = he.next().next().twin();
-  } while (he != v.halfedge());
+  }
 
+  if (normalCoordinates.roundabouts[heBest] == (int)k && normalCoordinates[heBest.edge()] < 0) {
+    return traceFollowingComponents(directPath(heBest));
+  } else {
+    while (heBest.next().next().twin().isInterior() &&
+           normalCoordinates.roundabouts[heBest.next().next().twin()] == normalCoordinates.roundabouts[heBest]) {
+      heBest = heBest.next().next().twin();
+    }
+
+    int r = normalCoordinates.roundabouts[heBest];
+    if (r > (int)k) {
+      k += normalCoordinates.roundaboutDegrees[v];
+    }
+    int p = k + normalCoordinates[heBest.edge()] - normalCoordinates.roundabouts[heBest];
+    return traceFollowingComponents(normalCoordinates.topologicalTrace(heBest.next(), p));
+  }
 
   std::cerr << "Something somewhere went horribly wrong" << std::endl;
-  he = v.halfedge();
+  Halfedge he = v.halfedge();
   do {
     size_t iStart = normalCoordinates.roundabouts[he];
 
