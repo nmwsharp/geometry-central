@@ -3,12 +3,15 @@ Intrinsic triangulations begin with a simple idea: rather than representing a tr
 The general workflow with intrinsic triangulations is to start out with some initial mesh having 3D vertex positions, and construct a new intrinsic triangulation which "sits on top" of the initial mesh, and can then be modified and improved.  The benefit of working with intrinsic triangulations is that they enable a family of simple & powerful mesh operations to robustly compute with a surface while preserving its shape exactly---these operations are not possible when working directly with vertex positions. For a general introduction to intrinsic triangulations and the technique used here, [see this course](https://nmwsharp.com/media/papers/int-tri-course/int_tri_course.pdf).
 
 ![intrinsic triangulation teaser](/media/int_tri_teaser.jpg)
-The above image shows an intrinsic triangulation of a poorly-tesselated surface. The original mesh is given by the black wireframe, while the intrinsic triangulation (after Delaunay refinement) is given by the colored triangles. Computing with the intrinsic triangulation yields significant benefits, while still implicitly encoding the original shape exactly.
+The above image shows an intrinsic triangulation of a poorly-tessellated surface. The original mesh is given by the black wireframe, while the intrinsic triangulation (after Delaunay refinement) is given by the colored triangles. Computing with the intrinsic triangulation yields significant benefits, while still implicitly encoding the original shape exactly.
+
+The tricky part of working with intrinsic triangulations like this is encoding the correspondence to the original mesh. Geometry-central contains two data structures for encoding this correspondence, which allow you to e.g. transfer data between to original mesh and the intrinsic triangulation, or map a point in barycentric coordinates between the triangulations. Additionally, these data structures offer routines for standard operations such as generating a high-quality intrinsic triangulation of a given surface.
 
 The main interface for working with intrinsic triangulations is `IntrinsicTriangulation`. This interface is realized by the `SignpostIntrinsicTriangulation` and `IntegerCoordinatesIntrinsicTriangulation` classes (see [here](/surface/geometry/geometry/#geometry-hierarchy) for a brief discussion of interfaces, realization, and polymorphism in C++). The routines in this section show how to initialize a triangulation, improve its quality, and run algorithms on it. In particular, this intrinsic triangulation satisfies the [IntrinsicGeometryInterface](/surface/geometry/geometry/#intrinsic-geometry), and thus can be used directly as input to many algorithms in geometry-central.
 
 [This repository](https://github.com/nmwsharp/navigating-intrinsic-triangulations-demo) contains a simple demo application with a GUI for manipulating intrinsic triangulations, and demonstrates much of the fuctionality documented here.
 
+Headers:
 ```cpp
 #include "geometrycentral/surface/intrinsic_triangulation.h"
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
@@ -26,34 +29,34 @@ using namespace geometrycentral;
 using namespace surface;
 
 // Load a mesh
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<ManifoldSurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 
 // Construct an intrinsic triangulation
-SignpostIntrinsicTriangulation intTri(*mesh, *geometry);
+// (here, using the signpost data structure)
+std::unique_ptr<IntrinsicTriangulation> intTri(
+  new SignpostIntrinsicTriangulation(*mesh, *geometry));
 
 
 // == Improve the quality
 
 // flip edges to get the intrinsic Delaunay triangulation
-intTri.flipToDelaunay(); 
+intTri->flipToDelaunay(); 
 
 // optional: go even further and insert new vertices guarantee 
 // a minimum angle bound (default: 25 deg) in the underlying 
 // intrinsic triangulation
-intTri.delaunayRefine();
+intTri->delaunayRefine();
 
 
 // == Do some computation on the intrinsic triangulation 
 
-// (example here: compute a smooth direction field)
-VertexData<Vector2> directionsOnInt = computeSmoothestVertexDirectionField(intTri);
+// Compute a smooth direction field
+VertexData<Vector2> directionsOnInt = computeSmoothestVertexDirectionField(*intTri);
 
-// copy the result back to the vertices of the input mesh
-VertexData<Vector2> directionsOnOrig = intTri.restrictToInput(directionsOnInt);
-
-// == Compute some quantities
+// Copy the result back to the vertices of the input mesh
+VertexData<Vector2> directionsOnOrig = intTri->restrictToInput(directionsOnInt);
 ```
 
 ## Intrinsic Triangulation
@@ -64,26 +67,30 @@ This class tracks the geometry and connectivity of an intrinsic triangulation si
 
 Example: compute some quantities
 ```cpp
-SignpostIntrinsicTriangulation intTri(*mesh, *geometry);
-intTri.flipToDelaunay(); 
+// Construct an intrinsic triangulation
+// (here, using the signpost data structure)
+std::unique_ptr<IntrinsicTriangulation> intTri(
+  new SignpostIntrinsicTriangulation(*mesh, *geometry));
+
+intTri->flipToDelaunay(); 
 
 // edge lengths
-intTri.requireEdgeLengths();
+intTri->requireEdgeLengths();
 for(Edge e : intTri->intrinsicMesh.edges()) {
   // print them, as an example
-  std::cout << "Length of edge " << e << " is " << intTri.edgeLengths[e] << std::endl;
+  std::cout << "Length of edge " << e << " is " << intTri->edgeLengths[e] << std::endl;
 }
 
 // vertex dual area (mass)
-intTri.requireVertexDualAreas();
+intTri->requireVertexDualAreas();
 for(Vertex v : intTri->intrinsicMesh.vertices()) {
-  std::cout << "Area of vertex " << v << " is " << intTri.vertexDualAreas[v] << std::endl;
+  std::cout << "Area of vertex " << v << " is " << intTri->vertexDualAreas[v] << std::endl;
 }
 
 // Laplace matrix
 // (this is this intrinsic Delaunay Laplace matrix, since we flipped to Delaunay)
-intTri.requireCotanLaplacian();
-SparseMatrix<double> L = intTri.cotanLaplacian; // an Eigen sparse matrix
+intTri->requireCotanLaplacian();
+SparseMatrix<double> L = intTri->cotanLaplacian; // an Eigen sparse matrix
 ```
 
 

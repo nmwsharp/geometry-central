@@ -58,7 +58,7 @@ using namespace geometrycentral;
 using namespace surface;
 
 // Load a mesh
-std::unique_ptr<HalfedgeMesh> mesh;
+std::unique_ptr<ManifoldSurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
 std::tie(mesh, geometry) = loadMesh(filename);
 
