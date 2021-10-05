@@ -53,6 +53,11 @@ IntrinsicTriangulation::IntrinsicTriangulation(ManifoldSurfaceMesh& mesh_, Intri
 
 IntrinsicTriangulation::~IntrinsicTriangulation() {}
 
+void IntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) {
+  markedEdges = markedEdges_;
+  markedEdges.setDefault(false);
+}
+
 // ======================================================
 // ======== Queries & Accessors
 // ======================================================
