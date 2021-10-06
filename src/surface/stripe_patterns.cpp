@@ -290,11 +290,12 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
     visited[f] = true;
 
     Isoline iso;
-    int nbCrosses = 0;
+    iso.open = true;
+    int nbOfPieces = 0;
     for (Halfedge h : f.adjacentHalfedges()) {
       double bary;
       if (crossesModulo2Pi(stripeValues[h.corner()], stripeValues[h.next().corner()], bary)) {
-        nbCrosses += 1;
+        nbOfPieces += 1;
         std::vector<std::pair<Halfedge, double>> isoPts;
         isoPts.emplace_back(h, bary);
 
@@ -333,7 +334,10 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
           for (auto& it : isoPts) iso.barycenters.push_back(it);
       }
     }
-    if (nbCrosses > 2) // isolines stop at singularities, so they should never branch out
+    if (nbOfPieces > 0)
+      isolines.push_back(iso);
+
+    if (nbOfPieces > 2) // isolines stop at singularities, so they should never branch out
       throw std::runtime_error("Isolines should only branch out on singularities");
   }
   return isolines;

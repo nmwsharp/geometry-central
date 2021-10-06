@@ -25,14 +25,14 @@ struct Isoline {
 // and returns a list of barycentric coordinates and their corresponding halfedges
 // WARNING this only works if there is no more than one isoline crossing at any edge of the geometry
 std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface& geometry,
-                                                      const CornerData<double>& stripeValues,
-                                                      const FaceData<int>& zeroIndices,
+                                                      const CornerData<double>& stripesValues,
+                                                      const FaceData<int>& stripesIndices,
                                                       const FaceData<int>& fieldIndices);
 
 // Same as above, but returns a representation suitable for Polyscope rendering (requires access to explicit vertex
 // positions)
 std::tuple<std::vector<Vector3>, std::vector<std::array<int, 2>>>
-extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const CornerData<double>& values,
+extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const CornerData<double>& stripesValues,
                                   const FaceData<int>& stripesIndices, const FaceData<int>& fieldIndices);
 
 } // namespace surface
