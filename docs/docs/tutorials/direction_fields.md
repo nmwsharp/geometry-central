@@ -30,7 +30,7 @@ std::tie(mesh, geometry) = readManifoldSurfaceMesh(args::get(inputFilename));
 polyscope::init();
 auto* psMesh =
     polyscope::registerSurfaceMesh("input mesh",
-        geometry->inputVertexPositions, 
+        geometry->vertexPositions, 
         mesh->getFaceVertexList());
 ```
 

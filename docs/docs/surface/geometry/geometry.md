@@ -95,7 +95,7 @@ An exauhstive list is given in [quantities](quantities.md).
 
     For instance, face areas can be immediately computed with `double VertexPositionGeometry::faceArea(Face f)`.
 
-    **Note:** immediate computation is generally discouraged, prefer using managed quantities instead.
+    **Note:** immediate computation is generally only preferred if you are frequently changing the geometry; managed quantities are the primary method for computing geometric values.
 
 In addition, the caching system provides two methods.
 
@@ -120,16 +120,18 @@ For the full list of the managed quantities that can be computed by these interf
 
     #### Base Geometry
 
+    Class: `BaseGeometryInterface`
+
     This is a simple base class which is serves as a parent of all geometry interfaces. It does not actually correspond to any geometric data, and the only quantities it manages are convenience element indices.
 
     `#!cpp #include "geometrycentral/surface/base_geometry_interface.h"`
-
-    blah?
 
 
 ??? func "Intrinsic Geometry"
 
     #### Intrinsic Geometry
+    
+    Class: `IntrinsicGeometryInterface`
 
     Extends `BaseGeometryInterface`. These quantites depend only on the notion of lengths and angles on the surface, but not how it might sit in space.
 
@@ -144,8 +146,10 @@ For the full list of the managed quantities that can be computed by these interf
 ??? func "Extrinsic Geometry"
 
     #### Extrinsic Geometry
+    
+    Class: `ExtrinsicGeometryInterface`
 
-    Extends `IntrinsicTangentGeometry`. These quantites depend on extrinsic angles (like dihedral angles at edges), but are rotation-invariant.
+    Extends `IntrinsicGeometryInterface`. These quantites depend on extrinsic angles (like dihedral angles at edges), but are rotation-invariant.
 
     `#!cpp #include "geometrycentral/surface/extrinsic_geometry_interface.h"`
 
@@ -160,7 +164,9 @@ For the full list of the managed quantities that can be computed by these interf
 
     #### Embedded Geometry
 
-    Extends `ExtrinsicTangentGeometry`. These quantites depend explicitly on how the surface sits in 3D space.
+    Class: `EmbeddedGeometryInterface`
+
+    Extends `ExtrinsicGeometryInterface`. These quantites depend explicitly on how the surface sits in 3D space.
 
     `#!cpp #include "geometrycentral/surface/embedded_geometry_interface.h"`
 
@@ -171,13 +177,13 @@ For the full list of the managed quantities that can be computed by these interf
 
 ## Realizations
 
-*Realizations* construct a geometry object from input data. There are two widely used realizations in geometry central: [VertexPositionGeometry](#vertex-position-geometry) and [EdgeLengthGeometry](#edge-length-geometry).  Other realizations of geometry can arise in various contexts, such as the `IntrinsicTangentGeometry`, which includes both edge lengths and a choice of tangent spaces.
+*Realizations* construct a geometry object from input data. There are two widely used realizations in geometry central: [VertexPositionGeometry](#vertex-position-geometry) and [EdgeLengthGeometry](#edge-length-geometry).  Other realizations of geometry can be created as needed to make use of other kinds of data, ranging from small modifications to e.g. make use of predefined tangent spaces, to completely new geometries defined from alternate input data.
 
 In addition to the quantities listed in [their own section](quantities.md), the realizations each offer a few immediate computations and some utility functions.
 
 ### Vertex Position Geometry
 
-The usual notion of geometry for a mesh, with a position in 3D for each vertex. These positions are stored in the member `VertexPositionGeometry::inputVertexPositions`.
+The usual notion of geometry for a mesh, with a position in 3D for each vertex. These positions are stored in the member `VertexPositionGeometry::vertexPositions` (which is inherited from the `EmbeddedGeometryInterface`). 
 
 This class inherits from all of the geometry interfaces mentioned above, so all quantities will be available.
 
@@ -187,7 +193,7 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
 
     Construct a new geometry from vertex positions.
 
-    The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
+    The `positions` input is copied, and stored in the member `VertexPositionGeometry::vertexPositions`.
 
 
 ??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh)`"
@@ -199,7 +205,7 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
 
     Construct a new geometry for a mesh from known vertex positions.
 
-    The `positions` input is copied, and stored in the member `VertexPositionGeometry::inputVertexPositions`.
+    The `positions` input is copied, and stored in the member `VertexPositionGeometry::vertexPositions`.
 
 
 ??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh, const Eigen::MatrixBase<T>& positions)`"
@@ -261,7 +267,7 @@ This class inherits from the `IntrinsicGeometryInterface`, so only intrinsic qua
 
     Construct a new geometry for a mesh from known edge lengths.
 
-    The `edgeLengths` input is copied, and stored in the member `EdgeLengthGeometry::inputEdgeLengths`.
+    The `edgeLengths` input is copied, and stored in the member `EdgeLengthGeometry::edgeLengths` (inherited from `IntrinsicGeometryInterface`).
 
 
 ??? func "`#!cpp std::unique_ptr<EdgeLengthGeometry> EdgeLengthGeometry::copy()`"

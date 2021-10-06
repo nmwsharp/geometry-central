@@ -1,3 +1,7 @@
+#pragma once
+
+#include "geometrycentral/surface/edge_length_geometry.h"
+
 namespace geometrycentral {
 namespace surface {
 
@@ -5,15 +9,15 @@ namespace surface {
 inline double EdgeLengthGeometry::faceArea(Face f) const {
   // WARNING: Logic duplicated between cached and immediate version
   Halfedge he = f.halfedge();
-  double a = inputEdgeLengths[he.edge()];
+  double a = edgeLengths[he.edge()];
   he = he.next();
-  double b = inputEdgeLengths[he.edge()];
+  double b = edgeLengths[he.edge()];
   he = he.next();
-  double c = inputEdgeLengths[he.edge()];
+  double c = edgeLengths[he.edge()];
 
   GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
 
-  // Herons formula
+  // Heron's formula
   double s = (a + b + c) / 2.0;
   double arg = s * (s - a) * (s - b) * (s - c);
   arg = std::fmax(0., arg);
@@ -40,9 +44,9 @@ inline double EdgeLengthGeometry::cornerAngle(Corner c) const {
 
   GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
 
-  double lOpp = inputEdgeLengths[heOpp.edge()];
-  double lA = inputEdgeLengths[heA.edge()];
-  double lB = inputEdgeLengths[heB.edge()];
+  double lOpp = edgeLengths[heOpp.edge()];
+  double lA = edgeLengths[heA.edge()];
+  double lB = edgeLengths[heB.edge()];
 
   double q = (lA * lA + lB * lB - lOpp * lOpp) / (2. * lA * lB);
   q = clamp(q, -1.0, 1.0);
@@ -58,11 +62,11 @@ inline double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge heI) const {
 
   if (heI.isInterior()) {
     Halfedge he = heI;
-    double l_ij = inputEdgeLengths[he.edge()];
+    double l_ij = edgeLengths[he.edge()];
     he = he.next();
-    double l_jk = inputEdgeLengths[he.edge()];
+    double l_jk = edgeLengths[he.edge()];
     he = he.next();
-    double l_ki = inputEdgeLengths[he.edge()];
+    double l_ki = edgeLengths[he.edge()];
     he = he.next();
     GC_SAFETY_ASSERT(he == heI, "faces mush be triangular");
     double area = faceArea(he.face());
@@ -95,6 +99,19 @@ inline double EdgeLengthGeometry::edgeCotanWeight(Edge e) const {
   }
   return sum;
 }
+
+inline double EdgeLengthGeometry::faceCircumradius(Face f) const {
+  Halfedge he = f.halfedge();
+  double a = edgeLengths[he.edge()];
+  he = he.next();
+  double b = edgeLengths[he.edge()];
+  he = he.next();
+  double c = edgeLengths[he.edge()];
+
+  double A = faceArea(f);
+  return a * b * c / (4. * A);
+}
+
 
 } // namespace surface
 } // namespace geometrycentral

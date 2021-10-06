@@ -38,7 +38,8 @@ public:
   // == Members
 
   // The actual input data which defines the geometry
-  VertexData<Vector3> inputVertexPositions;
+  // In a previous version of the library, this was a distinct field which got copied in to `vertexPositions`. However, now they are simply aliases for the same buffer.
+  VertexData<Vector3> &inputVertexPositions;
 
   // == Immediates
   double edgeLength(Edge e) const;

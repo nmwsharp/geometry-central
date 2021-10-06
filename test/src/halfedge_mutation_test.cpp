@@ -20,8 +20,6 @@
 
 using namespace geometrycentral;
 using namespace geometrycentral::surface;
-using std::cout;
-using std::endl;
 
 class HalfedgeMutationSuite : public MeshAssetSuite {};
 

@@ -26,7 +26,7 @@ EdgeData<double> uniformizeDisk(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInte
   // A geometry for the new edge lengths, which we will update
   EdgeLengthGeometry lengthGeom(mesh, geometry.edgeLengths);
   if (withEdgeFlips) {
-    flipToDelaunay(mesh, lengthGeom.inputEdgeLengths, FlipType::Hyperbolic);
+    flipToDelaunay(mesh, lengthGeom.edgeLengths, FlipType::Hyperbolic);
   }
   lengthGeom.requireCotanLaplacian();
   lengthGeom.requireVertexGaussianCurvatures();
@@ -83,7 +83,7 @@ EdgeData<double> uniformizeDisk(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInte
       double u1 = u[e.halfedge().vertex()];
       double u2 = u[e.halfedge().twin().vertex()];
       double s = std::exp((u1 + u2) / 2.);
-      double oldLen = lengthGeom.inputEdgeLengths[e];
+      double oldLen = lengthGeom.edgeLengths[e];
       double newLen = oldLen * s;
 
       // std::cout << "u1 = " << u1 << " u2 = " << u2 << " s = " << s << " oldLen = " << oldLen << " newLen = " <<
@@ -93,21 +93,21 @@ EdgeData<double> uniformizeDisk(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInte
       double relChange = std::fabs(newLen - oldLen) / oldLen;
       maxRelChange = std::fmax(relChange, maxRelChange);
 
-      lengthGeom.inputEdgeLengths[e] = newLen;
+      lengthGeom.edgeLengths[e] = newLen;
     }
 
     // TODO convergence check?
     std::cout << " uniformize max change = " << maxRelChange << std::endl;
 
     if (withEdgeFlips) {
-      flipToDelaunay(mesh, lengthGeom.inputEdgeLengths, FlipType::Hyperbolic);
+      flipToDelaunay(mesh, lengthGeom.edgeLengths, FlipType::Hyperbolic);
     }
     lengthGeom.refreshQuantities();
   }
 
   geometry.unrequireEdgeLengths();
 
-  return lengthGeom.inputEdgeLengths;
+  return lengthGeom.edgeLengths;
 }
 
 } // namespace surface

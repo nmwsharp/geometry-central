@@ -121,7 +121,7 @@ Finally, we can easily visualize the mesh we loaded via Polyscope.
 
   // add the mesh to the gui
   polyscope::registerSurfaceMesh("my mesh", 
-      geometry->inputVertexPositions, mesh->getFaceVertexList());
+      geometry->vertexPositions, mesh->getFaceVertexList());
 
   polyscope::show(); // pass control to the gui until the user exits
 ```

@@ -1,100 +1,60 @@
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
 
 #include "geometrycentral/surface/barycentric_coordinate_helpers.h"
-#include "geometrycentral/surface/exact_polyhedral_geodesics.h"
 #include "geometrycentral/surface/mesh_graph_algorithms.h"
 #include "geometrycentral/surface/trace_geodesic.h"
 
 #include <iomanip>
 #include <queue>
 
-using std::cout;
-using std::endl;
-
 namespace geometrycentral {
 namespace surface {
 
-
 SignpostIntrinsicTriangulation::SignpostIntrinsicTriangulation(ManifoldSurfaceMesh& mesh_,
                                                                IntrinsicGeometryInterface& inputGeom_)
-    // Note: this initializer list does something slightly wacky: it creates the new mesh on the heap, then loses track
-    // of pointer while setting the BaseGeometryInterface::mesh reference to it. Later, it picks the pointer back up
-    // from the reference and wraps it in the intrinsicMesh unique_ptr<>. I believe that this is all valid, but its
-    // probably a sign of bad design.
-    : IntrinsicGeometryInterface(*mesh_.copy().release()), inputMesh(mesh_), inputGeom(inputGeom_),
-      intrinsicMesh(dynamic_cast<ManifoldSurfaceMesh*>(&mesh)) {
-
-  // Make sure the input mesh is triangular
-  if (!mesh.isTriangular()) {
-    throw std::runtime_error("signpost triangulation requires triangle mesh as input");
-  }
+    : IntrinsicTriangulation(mesh_, inputGeom_) {
 
   // == Initialize geometric data
+  // TODO do we really need all these?
   inputGeom.requireEdgeLengths();
   inputGeom.requireHalfedgeVectorsInVertex();
+  inputGeom.requireHalfedgeVectorsInFace();
   inputGeom.requireVertexAngleSums();
-  inputGeom.requireCornerAngles();
-
-  // Just copy lengths
-  intrinsicEdgeLengths = inputGeom.edgeLengths.reinterpretTo(mesh);
 
   // Prepare directions and angle sums
-  intrinsicHalfedgeDirections = HalfedgeData<double>(mesh);
-  intrinsicVertexAngleSums = VertexData<double>(mesh);
+  signpostAngle = HalfedgeData<double>(mesh);
 
   // Walk around the vertex, constructing angular directions
-  requireCornerAngles();
   for (Vertex v : mesh.vertices()) {
     double runningAngle = 0.;
     Halfedge firstHe = v.halfedge();
     Halfedge currHe = firstHe;
     do {
-      double cornerAngle = cornerAngles[currHe.corner()];
-      intrinsicHalfedgeDirections[currHe] = runningAngle;
-      runningAngle += cornerAngle;
+      signpostAngle[currHe] = runningAngle;
 
       if (!currHe.isInterior()) {
         break;
       }
+
+      double cornerAngleVal = cornerAngle(currHe.corner());
+      runningAngle += cornerAngleVal;
+
       currHe = currHe.next().next().twin();
     } while (currHe != firstHe);
-
-    intrinsicVertexAngleSums[v] = runningAngle;
-  }
-
-  // Initialize vertex locations
-  vertexLocations = VertexData<SurfacePoint>(mesh);
-  for (size_t iV = 0; iV < mesh.nVertices(); iV++) {
-    vertexLocations[iV] = SurfacePoint(inputMesh.vertex(iV));
   }
 
   // Initialize all edges as original, but new ones should be false
   edgeIsOriginal = EdgeData<bool>(mesh, false);
   edgeIsOriginal.fill(true);
-
-  requireHalfedgeVectorsInVertex();
-  requireHalfedgeVectorsInFace();
-  requireVertexAngleSums();
-
-  // == Register the default callback which maintains marked edges
-  auto updateMarkedEdges = [&](Edge oldE, Halfedge newHe1, Halfedge newHe2) {
-    if (markedEdges.size() > 0 && markedEdges[oldE]) {
-      markedEdges[newHe1.edge()] = true;
-      markedEdges[newHe2.edge()] = true;
-    }
-  };
-  edgeSplitCallbackList.push_back(updateMarkedEdges);
 }
 
-void SignpostIntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) {
-  markedEdges = markedEdges_;
-  markedEdges.setDefault(false);
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he) {
+  return traceIntrinsicHalfedgeAlongInput(he, true);
 }
 
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedgeAlongInput(Halfedge he, bool trimEnd) {
 
-std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge he, bool trimEnd) {
-
-  // Optimization: don't both tracing original edges, just report them directly
+  // Optimization: don't bother tracing original edges, just report them directly
   if (edgeIsOriginal[he.edge()]) {
     if (vertexLocations[he.vertex()].type != SurfacePointType::Vertex ||
         vertexLocations[he.twin().vertex()].type != SurfacePointType::Vertex) {
@@ -134,16 +94,174 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceHalfedge(Halfedge
   return result.pathPoints;
 }
 
-EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges() {
 
-  EdgeData<std::vector<SurfacePoint>> tracedEdges(mesh);
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) {
+  return traceInputHalfedgeAlongIntrinsic(inputHe, true);
+}
 
-  for (Edge e : mesh.edges()) {
-    Halfedge he = e.halfedge();
-    tracedEdges[e] = traceHalfedge(he, false);
+std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceInputHalfedgeAlongIntrinsic(Halfedge inputHe,
+                                                                                           bool trimEnd) {
+
+  // Optimization: don't bother tracing original edges, just report them directly
+  // Here we need to check if the corresponding intrinsic edge is original
+  Halfedge origHe = intrinsicMesh->halfedge(inputHe.getIndex()); // as usual, safe by dense construction
+  if (edgeIsOriginal[origHe.edge()]) {
+    Vertex vA = inputHe.tailVertex();
+    Vertex vB = inputHe.tipVertex();
+    std::vector<SurfacePoint> result{SurfacePoint(vA), SurfacePoint(vB)};
+    return result;
   }
 
-  return tracedEdges;
+
+  Vertex vTail = inputHe.tailVertex();
+  Vertex vTip = inputHe.tipVertex();
+
+  // Get the corresponding tail vertex on the intrinsic triangulation
+  Vertex vTailIntrinsic = intrinsicMesh->vertex(vTail.getIndex()); // as usual, safe by dense construction
+
+  // Gather values to trace
+  SurfacePoint startP = SurfacePoint(vTailIntrinsic);
+  Vector2 traceVec = inputGeom.halfedgeVectorsInVertex[inputHe];
+
+  // Do the actual tracing
+  TraceOptions options;
+  options.includePath = true;
+  options.maxIters = inputMesh.nFaces() * 10;
+  TraceGeodesicResult result = traceGeodesic(*this, startP, traceVec, options);
+
+  // Trim off end crumbs if applicable
+  Vertex vTipIntrinsic = intrinsicMesh->vertex(vTip.getIndex()); // as usual, safe by dense construction
+  if (trimEnd) {
+    bool success = trimTraceResult(result, vTipIntrinsic);
+    if (success) {
+      // Append the endpoint
+      result.pathPoints.push_back(SurfacePoint(vTipIntrinsic));
+    } else {
+      // If trimming failed (because the trace didn't even hit the 1-ring of target), just stick with whatever we go
+      // initially
+      result = traceGeodesic(*this, startP, traceVec, options);
+    }
+  }
+
+  return result.pathPoints;
+}
+
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnIntrinsic(const SurfacePoint& pointOnInput) {
+
+  // If it's a vertex, just return the matching vertex
+  if (pointOnInput.type == SurfacePointType::Vertex) {
+    // Get the corresponding point on the intrinsic triangulation. The getIndex() is safe in this case: these vertices
+    // will always be densely enumerated by construction.
+    Vertex intrinsicVertex = intrinsicMesh->vertex(pointOnInput.vertex.getIndex());
+    return SurfacePoint(intrinsicVertex);
+  }
+
+
+  // TODO: could be smarter here and explicitly return edge points for shared edges.
+  // Currently the code below will generally return some extremely-nearby point inside of some face.
+
+
+  // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
+  // some adjacent vertex.
+  SurfacePoint inputFacePoint = pointOnInput.inSomeFace();
+  Vector3 bary = inputFacePoint.faceCoords;
+
+  // Pick a vertex to trace from
+  int traceI = 0;
+  Halfedge traceHe;
+  double smallestBary = 999;
+  Halfedge testHe = inputFacePoint.face.halfedge();
+  for (size_t iV = 0; iV < 3; iV++) {
+    // Don't trace from a vertex if we are nearly on top of it, because it will mess up
+    // the angle calculations below. Smallest bary coord is a good choice.
+    if (bary[iV] < smallestBary) {
+      smallestBary = bary[iV];
+      traceI = iV;
+      traceHe = testHe;
+    }
+    testHe = testHe.next();
+  }
+  Vertex traceVertex = traceHe.vertex();
+  SurfacePoint traceVertexLoc =
+      SurfacePoint(intrinsicMesh->vertex(traceVertex.getIndex())); // (see note abouve about getIndex())
+
+  // Compute the direction and length of the vector pointing towards the vertex
+  std::array<Vector2, 3> coords = {Vector2{0., 0.}, inputGeom.halfedgeVectorsInFace[inputFacePoint.face.halfedge()],
+                                   -inputGeom.halfedgeVectorsInFace[inputFacePoint.face.halfedge().next().next()]};
+  Vector2 vertPos = coords[traceI];
+  Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
+  Vector2 vec = pointPos - vertPos;
+  double relativeAngle = angle(vec, inputGeom.halfedgeVectorsInFace[traceHe]);
+  double relativeScaledAngle;
+  if (traceVertex.isBoundary()) {
+    // follow convention that boundary verts are normalized to PI rather than 2PI
+    relativeScaledAngle = relativeAngle * (M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  } else {
+    relativeScaledAngle = relativeAngle * (2 * M_PI / inputGeom.vertexAngleSums[traceVertex]);
+  }
+  Vector2 vertexDir = unit(inputGeom.halfedgeVectorsInVertex[traceHe]) * Vector2::fromAngle(relativeScaledAngle);
+  double len = norm(vec);
+  Vector2 traceVec = vertexDir * len;
+
+  // Trace out the vector along the original surface
+  TraceOptions options;
+  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, traceVertexLoc, traceVec, options);
+  SurfacePoint intrinsicPos = intrinsicTraceResult.endPoint;
+
+  return intrinsicPos;
+}
+
+SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const SurfacePoint& pointOnIntrinsic) {
+
+  // If it's a vertex, just return the vertex location
+  if (pointOnIntrinsic.type == SurfacePointType::Vertex) {
+    return vertexLocations[pointOnIntrinsic.vertex];
+  }
+
+  // TODO: could be smarter here and explicitly return edge points for shared edges.
+  // Currently the code below will generally return some extremely-nearby point inside of some face.
+
+
+  // Handle the general case of a point inside a face or a not-necessarily-shared edge by tracing along the surface from
+  // some adjacent vertex.
+  SurfacePoint intrinsicFacePoint = pointOnIntrinsic.inSomeFace();
+  Vector3 bary = intrinsicFacePoint.faceCoords;
+
+  // Pick a vertex to trace from
+  int traceI = 0;
+  Halfedge traceHe;
+  double smallestBary = 999;
+  Halfedge testHe = intrinsicFacePoint.face.halfedge();
+  for (size_t iV = 0; iV < 3; iV++) {
+    // Don't trace from a vertex if we are nearly on top of it, because it will mess up
+    // the angle calculations below. Smallest bary coord is a good choice.
+    if (bary[iV] < smallestBary) {
+      smallestBary = bary[iV];
+      traceI = iV;
+      traceHe = testHe;
+    }
+    testHe = testHe.next();
+  }
+  Vertex traceVertex = traceHe.vertex();
+
+  // Compute the direction and length of the vector pointing towards the vertex
+  std::array<Vector2, 3> coords = vertexCoordinatesInTriangle(intrinsicFacePoint.face);
+  Vector2 vertPos = coords[traceI];
+  Vector2 pointPos = coords[0] * bary[0] + coords[1] * bary[1] + coords[2] * bary[2];
+  Vector2 vec = pointPos - vertPos;
+  double relativeAngle = angle(vec, halfedgeVectorsInFace[traceHe]);
+  if (relativeAngle < 0) relativeAngle += 2 * M_PI;
+  double vertexAngle = signpostAngle[traceHe] + relativeAngle;
+  vertexAngle = standardizeAngle(traceVertex, vertexAngle);
+  double len = norm(vec);
+  Vector2 traceVec = rescaledVertexVector(traceVertex, vertexAngle, len);
+
+  // Trace out the vector along the original surface
+  TraceOptions options;
+  TraceGeodesicResult inputTraceResult = traceGeodesic(inputGeom, vertexLocations[traceVertex], traceVec, options);
+  SurfacePoint inputPos = inputTraceResult.endPoint;
+
+  return inputPos;
 }
 
 
@@ -151,29 +269,6 @@ EdgeData<std::vector<SurfacePoint>> SignpostIntrinsicTriangulation::traceEdges()
 // ======== Queries & Accessors
 // ======================================================
 
-
-bool SignpostIntrinsicTriangulation::isDelaunay(Edge e) {
-  if (!isFixed(e) && edgeCotanWeight(e) < -delaunayEPS) {
-    return false;
-  }
-  return true;
-}
-bool SignpostIntrinsicTriangulation::isDelaunay() {
-  for (Edge e : mesh.edges()) {
-    if (!isDelaunay(e)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-double SignpostIntrinsicTriangulation::minAngleDegrees() {
-  double minAngle = std::numeric_limits<double>::infinity();
-  for (Corner c : mesh.corners()) {
-    minAngle = std::min(minAngle, cornerAngle(c));
-  }
-  return minAngle * 180. / M_PI;
-}
 
 // ======================================================
 // ======== Mutators
@@ -186,11 +281,20 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 
   // Don't want to flip
   double cWeight = edgeCotanWeight(e);
-  if (cWeight > -delaunayEPS) return false;
+  if (cWeight > -triangleTestEPS) return false;
 
   // Get geometric data
   Halfedge he = e.halfedge();
   std::array<Vector2, 4> layoutPositions = layoutDiamond(he);
+
+  // Compute the new edge length
+  double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
+
+  // If we're going to create a non-finite edge length, abort the flip
+  // (only happens if you're in a bad numerical place)
+  if (!std::isfinite(newLength)) {
+    return false;
+  }
 
   // Combinatorial flip
   bool flipped = intrinsicMesh->flip(e, false);
@@ -200,18 +304,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
     return false;
   }
 
-  // Compute the new edge length
-  double newLength = (layoutPositions[1] - layoutPositions[3]).norm();
-
-  // If we're going to create a non-finite edge length, abort the flip
-  // (only happens if you're in a bad numerical place)
-  if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e, false);
-    return false;
-  }
-
   // Assign the new edge lengths
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
 
   // Update edge angles
@@ -222,11 +315,12 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e) {
 
   edgeIsOriginal[e] = false;
 
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
   return true;
 }
 
-bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleEPS) {
+bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e) {
 
   // Can't flip
   if (isFixed(e)) return false;
@@ -238,17 +332,8 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
   // Test if geometryically flippable flippable (both signed areas of new triangles are positive)
   double A1 = cross(layoutPositions[1] - layoutPositions[0], layoutPositions[3] - layoutPositions[0]);
   double A2 = cross(layoutPositions[3] - layoutPositions[2], layoutPositions[1] - layoutPositions[2]);
-  double areaEPS = possibleEPS * (A1 + A2);
+  double areaEPS = triangleTestEPS * (A1 + A2);
   if (A1 < areaEPS || A2 < areaEPS) {
-    return false;
-  }
-
-
-  // Combinatorial flip
-  bool flipped = intrinsicMesh->flip(e, false);
-
-  // Might not have been flippable for connectivity reasons
-  if (!flipped) {
     return false;
   }
 
@@ -258,13 +343,19 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
   // If we're going to create a non-finite edge length, abort the flip
   // (only happens if you're in a bad numerical place)
   if (!std::isfinite(newLength)) {
-    intrinsicMesh->flip(e, false);
+    return false;
+  }
+
+  // Combinatorial flip
+  bool flipped = intrinsicMesh->flip(e, false);
+
+  // Might not have been flippable for connectivity reasons
+  if (!flipped) {
     return false;
   }
 
   // Assign the new edge lengths
   // TODO project to satisfy triangle inequality?
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
 
   // Update edge angles
@@ -275,6 +366,7 @@ bool SignpostIntrinsicTriangulation::flipEdgeIfPossible(Edge e, double possibleE
 
   edgeIsOriginal[e] = false;
 
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
   return true;
 }
@@ -288,20 +380,21 @@ void SignpostIntrinsicTriangulation::flipEdgeManual(Edge e, double newLength, do
     if (!flipped) throw std::runtime_error("could not perform manual flip");
   }
 
-  intrinsicEdgeLengths[e] = newLength;
   edgeLengths[e] = newLength;
 
   // Update other derived geometric data
-  intrinsicHalfedgeDirections[e.halfedge()] = forwardAngle;
-  intrinsicHalfedgeDirections[e.halfedge().twin()] = reverseAngle;
+  signpostAngle[e.halfedge()] = forwardAngle;
+  signpostAngle[e.halfedge().twin()] = reverseAngle;
   halfedgeVectorsInVertex[e.halfedge()] = halfedgeVector(e.halfedge());
   halfedgeVectorsInVertex[e.halfedge().twin()] = halfedgeVector(e.halfedge().twin());
   updateFaceBasis(e.halfedge().face());
   updateFaceBasis(e.halfedge().twin().face());
 
   edgeIsOriginal[e] = isOrig;
+  triangulationChanged();
   invokeEdgeFlipCallbacks(e);
 }
+
 
 Vertex SignpostIntrinsicTriangulation::insertVertex(SurfacePoint newPositionOnIntrinsic) {
   switch (newPositionOnIntrinsic.type) {
@@ -334,8 +427,8 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   double backLen, frontLen, Alen, Blen;
 
   // in A
-  backLen = newP.tEdge * intrinsicEdgeLengths[insertionEdge];
-  frontLen = (1. - newP.tEdge) * intrinsicEdgeLengths[insertionEdge];
+  backLen = newP.tEdge * edgeLengths[insertionEdge];
+  frontLen = (1. - newP.tEdge) * edgeLengths[insertionEdge];
 
   int iA = halfedgeIndexInTriangle(insertionEdge.halfedge());
   std::array<Vector2, 3> vertCoords = vertexCoordinatesInTriangle(fA);
@@ -364,10 +457,8 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
 
   // = Update data arrays for the new vertex
   if (isOnBoundary) {
-    intrinsicVertexAngleSums[newV] = M_PI;
     vertexAngleSums[newV] = M_PI;
   } else {
-    intrinsicVertexAngleSums[newV] = 2. * M_PI;
     vertexAngleSums[newV] = 2. * M_PI;
   }
 
@@ -377,7 +468,6 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   Halfedge newHeBack;
   std::array<double, 4> newLens = {frontLen, Alen, backLen, Blen};
   for (int i = 0; i < (isOnBoundary ? 3 : 4); i++) {
-    intrinsicEdgeLengths[currHe.edge()] = newLens[i];
     edgeLengths[currHe.edge()] = newLens[i];
     if (i == 2) newHeBack = currHe;
     currHe = currHe.next().next().twin();
@@ -386,6 +476,7 @@ Halfedge SignpostIntrinsicTriangulation::insertVertex_edge(SurfacePoint newP) {
   // === (4) Now that we have edge lengths, sort out tangent spaces and position on supporting.
   resolveNewVertex(newV, newP);
 
+  triangulationChanged();
   invokeEdgeSplitCallbacks(insertionEdge, newHeFront, newHeBack);
 
   return newHeFront;
@@ -416,7 +507,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
   Vertex newV = intrinsicMesh->insertVertex(insertionFace);
 
   // = Update data arrays for the new vertex
-  intrinsicVertexAngleSums[newV] = 2. * M_PI;
   vertexAngleSums[newV] = 2. * M_PI;
 
 
@@ -430,7 +520,6 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
     // Find the new edge which this length belongs to
     for (Halfedge heV : newV.outgoingHalfedges()) {
       if (heV.next() == origHe) {
-        intrinsicEdgeLengths[heV.edge()] = thisLen;
         edgeLengths[heV.edge()] = thisLen;
       }
     }
@@ -439,53 +528,9 @@ Vertex SignpostIntrinsicTriangulation::insertVertex_face(SurfacePoint newP) {
   // === (4) Now that we have edge lengths, sort out tangent spaces and position on supporting.
   resolveNewVertex(newV, newP);
 
+  triangulationChanged();
   invokeFaceInsertionCallbacks(insertionFace, newV);
   return newV;
-}
-
-Vertex SignpostIntrinsicTriangulation::insertCircumcenter(Face f) {
-
-  // === Circumcenter in barycentric coordinates
-
-  Halfedge he0 = f.halfedge();
-  double a = intrinsicEdgeLengths[he0.next().edge()];
-  double b = intrinsicEdgeLengths[he0.next().next().edge()];
-  double c = intrinsicEdgeLengths[he0.edge()];
-  double a2 = a * a;
-  double b2 = b * b;
-  double c2 = c * c;
-  Vector3 circumcenterLoc = {a2 * (b2 + c2 - a2), b2 * (c2 + a2 - b2), c2 * (a2 + b2 - c2)};
-  circumcenterLoc = normalizeBarycentric(circumcenterLoc);
-
-  // Trace from the barycenter (have to trace from somewhere)
-  Vector3 barycenter = Vector3::constant(1. / 3.);
-  Vector3 vecToCircumcenter = circumcenterLoc - barycenter;
-
-  // === Trace the ray to find the location of the new point on the intrinsic meshes
-
-  // Data we need from the intrinsic trace
-  TraceOptions options;
-  if (markedEdges.size() > 0) {
-    options.barrierEdges = &markedEdges;
-  }
-  TraceGeodesicResult intrinsicTraceResult = traceGeodesic(*this, f, barycenter, vecToCircumcenter, options);
-  // intrinsicTracer->snapEndToEdgeIfClose(intrinsicCrumbs); TODO
-  // SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint.inSomeFace();
-  SurfacePoint newPositionOnIntrinsic = intrinsicTraceResult.endPoint;
-
-  // If the circumcenter is blocked by an edge, insert the midpoint of that edge instead
-  // (which happens to be just want is needed for Chew's 2nd algo).
-  if (newPositionOnIntrinsic.type == SurfacePointType::Edge) {
-    newPositionOnIntrinsic.tEdge = 0.5;
-  }
-
-  // === Phase 3: Add the new vertex
-  return insertVertex(newPositionOnIntrinsic);
-}
-
-Vertex SignpostIntrinsicTriangulation::insertBarycenter(Face f) {
-  SurfacePoint barycenterOnIntrinsic(f, Vector3::constant(1. / 3.));
-  return insertVertex(barycenterOnIntrinsic);
 }
 
 Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
@@ -527,6 +572,7 @@ Face SignpostIntrinsicTriangulation::removeInsertedVertex(Vertex v) {
   // Remove the vertex
   Face newF = intrinsicMesh->removeVertex(v);
   updateFaceBasis(newF);
+  triangulationChanged();
   return newF;
 }
 
@@ -534,397 +580,10 @@ Halfedge SignpostIntrinsicTriangulation::splitEdge(Halfedge he, double tSplit) {
   return insertVertex_edge(SurfacePoint(he, tSplit));
 }
 
-void SignpostIntrinsicTriangulation::flipToDelaunay() {
-
-  std::deque<Edge> edgesToCheck;
-  EdgeData<bool> inQueue(mesh, true);
-  for (Edge e : mesh.edges()) {
-    edgesToCheck.push_back(e);
-  }
-
-  size_t nFlips = 0;
-  while (!edgesToCheck.empty()) {
-
-    // Get the top element from the queue of possibily non-Delaunay edges
-    Edge e = edgesToCheck.front();
-    edgesToCheck.pop_front();
-    inQueue[e] = false;
-
-    bool wasFlipped = flipEdgeIfNotDelaunay(e);
-
-    if (!wasFlipped) continue;
-
-    // Handle the aftermath of a flip
-    nFlips++;
-
-    // Add neighbors to queue, as they may need flipping now
-    Halfedge he = e.halfedge();
-    Halfedge heN = he.next();
-    Halfedge heT = he.twin();
-    Halfedge heTN = heT.next();
-    std::vector<Edge> neighEdges = {heN.edge(), heN.next().edge(), heTN.edge(), heTN.next().edge()};
-    for (Edge nE : neighEdges) {
-      if (!inQueue[nE]) {
-        edgesToCheck.push_back(nE);
-        inQueue[nE] = true;
-      }
-    }
-  }
-
-  refreshQuantities();
-}
-
-void SignpostIntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double circumradiusThresh,
-                                                    size_t maxInsertions) {
-
-  // Relationship between angles and circumradius-to-edge
-  double angleThreshRad = angleThreshDegrees * M_PI / 180.;
-  double circumradiusEdgeRatioThresh = 1.0 / (2.0 * std::sin(angleThreshRad));
-
-  // Build a function to test if a face violates the circumradius ratio condition
-  auto needsCircumcenterRefinement = [&](Face f) {
-    double c = circumradius(f);
-    double l = shortestEdge(f);
-
-    bool needsRefinementLength = c > circumradiusThresh;
-
-    // Explicit check allows us to skip degree one vertices (can't make those angles smaller!)
-    bool needsRefinementAngle = false;
-    for (Halfedge he : f.adjacentHalfedges()) {
-
-      double baseAngle = cornerAngle(he.corner());
-      if (baseAngle < angleThreshRad) {
-
-        // If it's already a degree one vertex, nothing we can do here
-        bool isDegreeOneVertex = he.next().next() == he.twin();
-        if (isDegreeOneVertex) {
-          continue;
-        }
-
-        // If it's a fixed corner, can't make it smaller
-        if (isFixed(he.edge()) && isFixed(he.prevOrbitFace().edge())) {
-          continue;
-        }
-
-        needsRefinementAngle = true;
-      }
-    }
-
-    return needsRefinementAngle || needsRefinementLength;
-  };
-
-  // Call the general version
-  delaunayRefine(needsCircumcenterRefinement, maxInsertions);
-}
-
-
-void SignpostIntrinsicTriangulation::delaunayRefine(const std::function<bool(Face)>& shouldRefine,
-                                                    size_t maxInsertions) {
-
-  // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
-  int recheckCount = 0;
-  const int MAX_RECHECK_COUNT = 5;
-
-  // Track statistics
-  size_t nFlips = 0;
-  size_t nInsertions = 0;
-
-  // Initialize queue of (possibly) non-delaunay edges
-  std::deque<Edge> delaunayCheckQueue;
-  EdgeData<bool> inDelaunayQueue(mesh, false);
-  for (Edge e : mesh.edges()) {
-    delaunayCheckQueue.push_back(e);
-    inDelaunayQueue[e] = true;
-  }
-
-
-  // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces on boundary first with
-  // weight inf.
-  auto areaWeight = [&](Face f) {
-    for (Edge e : f.adjacentEdges()) {
-      if (isFixed(e)) return std::numeric_limits<double>::infinity();
-    }
-    return area(f);
-  };
-
-  // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
-  typedef std::pair<double, Face> AreaFace;
-  std::priority_queue<AreaFace, std::vector<AreaFace>, std::less<AreaFace>> circumradiusCheckQueue;
-  for (Face f : mesh.faces()) {
-    if (shouldRefine(f)) {
-      circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
-    }
-  }
-
-  // Register a callback which checks the neighbors of an edge for further processing after a flip. It's useful to use a
-  // callback, rather than just checking in the loop, because other internal subroutines might perform flips. In
-  // particular, removeInsertedVertex() currently performs flips internally, which might trigger updates.
-  auto checkNeighborsAfterFlip = [&](Edge e) {
-    // std::cout << "  flipped edge " << e << std::endl;
-    nFlips++;
-
-    // Add neighboring faces, which might violate circumradius constraint
-    std::vector<Face> neighFaces = {e.halfedge().face(), e.halfedge().twin().face()};
-    for (Face nF : neighFaces) {
-      if (shouldRefine(nF)) {
-        circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
-      }
-    }
-
-    // Add neighbors to queue, as they may need flipping now
-    Halfedge he = e.halfedge();
-    Halfedge heN = he.next();
-    Halfedge heT = he.twin();
-    Halfedge heTN = heT.next();
-    std::vector<Edge> neighEdges = {heN.edge(), heN.next().edge(), heTN.edge(), heTN.next().edge()};
-    for (Edge nE : neighEdges) {
-      if (!inDelaunayQueue[nE]) {
-        delaunayCheckQueue.push_back(nE);
-        inDelaunayQueue[nE] = true;
-      }
-    }
-  };
-  auto flipCallbackHandle = edgeFlipCallbackList.insert(std::end(edgeFlipCallbackList), checkNeighborsAfterFlip);
-
-  // Register a callback, which will be invoked to delete previously-inserted vertices whenever refinment splits an edge
-  auto deleteNearbyVertices = [&](Edge e, Halfedge he1, Halfedge he2) {
-    // radius of the diametral ball
-    double ballRad = std::max(intrinsicEdgeLengths[he1.edge()], intrinsicEdgeLengths[he2.edge()]);
-    Vertex newV = he1.vertex();
-
-    // Find all vertices within range.
-    // Most properly, this should probably be a polyhedral geodesic ball search, but that creates a dependence on
-    // polyhedral shortest paths which is bad for performance and robustness. Using a Dijsktra ball instead seems to
-    // work fine in practice, and I think you could argue that the factor of 2 makes it provably correct, due to the
-    // stretch factor of a Delaunay triangulation (recalling that deleting extra interior inserted vertices does not
-    // affect correctness).
-    //
-    // std::unordered_map<Vertex, double> nearbyVerts = vertexGeodesicDistanceWithinRadius(*this, newV, ballRad);
-    std::unordered_map<Vertex, double> nearbyVerts = vertexDijkstraDistanceWithinRadius(*this, newV, 2. * ballRad);
-
-    // remove inserted vertices
-    for (auto p : nearbyVerts) {
-      Vertex v = p.first;
-      if (v != newV && !isOnFixedEdge(v) && vertexLocations[v].type != SurfacePointType::Vertex) {
-        // std::cout << "  removing inserted vertex " << v << std::endl;
-        Face fReplace = removeInsertedVertex(v);
-
-        if (fReplace != Face()) {
-
-          // Add adjacent edges for Delaunay check
-          for (Edge nE : fReplace.adjacentEdges()) {
-            if (!inDelaunayQueue[nE]) {
-              delaunayCheckQueue.push_back(nE);
-              inDelaunayQueue[nE] = true;
-            }
-          }
-
-          // Add face for refine check
-          if (shouldRefine(fReplace)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(fReplace), fReplace));
-          }
-        }
-      }
-    }
-  };
-
-  // Add our new callback at the end, so it gets invoked after any user-defined callbacks which ought to get called
-  // right after the split before we mess with the mesh.
-  auto splitCallbackHandle = edgeSplitCallbackList.insert(std::end(edgeSplitCallbackList), deleteNearbyVertices);
-
-  // === Outer iteration: flip and insert until we have a mesh that satisfies both angle and circumradius goals
-  do {
-
-    // == First, flip to delaunay
-    while (!delaunayCheckQueue.empty()) {
-
-      // Get the top element from the queue of possibily non-Delaunay edges
-      Edge e = delaunayCheckQueue.front();
-      delaunayCheckQueue.pop_front();
-      if (e.isDead()) continue;
-      inDelaunayQueue[e] = false;
-
-      flipEdgeIfNotDelaunay(e);
-
-      // Remember that up we registered a callback up above which checks neighbors for subsequent processing after a
-      // flip.
-    }
-
-    // == Second, insert one circumcenter
-
-    // If we've already inserted the max number of points, call it a day
-    if (maxInsertions != INVALID_IND && nInsertions == maxInsertions) {
-      break;
-    }
-
-    // Try to insert just one circumcenter
-    if (!circumradiusCheckQueue.empty()) {
-
-      // Get the biggest face
-      Face f = circumradiusCheckQueue.top().second;
-      double A = circumradiusCheckQueue.top().first;
-      circumradiusCheckQueue.pop();
-      if (f.isDead()) continue;
-
-      // Two things might have changed that would cause us to skip this entry:
-      //   -If the area has changed since this face was inserted in to the queue, skip it. Note that we don't need to
-      //    re-add it, because it must have been placed in the queue when its area was changed
-      //   - This face might have been flipped to no longer violate constraint
-      if (A == areaWeight(f) && shouldRefine(f)) {
-
-        // std::cout << "  refining face " << f << std::endl;
-        Vertex newVert = insertCircumcenter(f);
-        nInsertions++;
-
-        // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating the circumradius constraint
-        for (Face nF : newVert.adjacentFaces()) {
-
-          // Check circumradius constraint
-          if (shouldRefine(nF)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(nF), nF));
-          }
-
-          // Check delaunay constraint
-          for (Edge nE : nF.adjacentEdges()) {
-            if (!inDelaunayQueue[nE]) {
-              delaunayCheckQueue.push_back(nE);
-              inDelaunayQueue[nE] = true;
-            }
-          }
-        }
-      }
-
-      continue;
-    }
-
-    // If the circumradius queue is empty, make sure we didn't miss anything (can happen rarely due to numerics)
-    // (but don't do this more than a few times, to avoid getting stuck in an infinite loop when numerical ultra-badness
-    // happens)
-    if (recheckCount < MAX_RECHECK_COUNT) {
-      recheckCount++;
-      bool anyFound = false;
-      if (delaunayCheckQueue.empty() && circumradiusCheckQueue.empty()) {
-        for (Face f : mesh.faces()) {
-          if (shouldRefine(f)) {
-            circumradiusCheckQueue.push(std::make_pair(areaWeight(f), f));
-            anyFound = true;
-          }
-        }
-        for (Edge e : mesh.edges()) {
-          if (!isDelaunay(e)) {
-            delaunayCheckQueue.push_back(e);
-            inDelaunayQueue[e] = true;
-            anyFound = true;
-          }
-        }
-      }
-
-      if (!anyFound) {
-        // makes sure we don't recheck multiple times in a row
-        break;
-      }
-    }
-
-  } while (!delaunayCheckQueue.empty() || !circumradiusCheckQueue.empty() || recheckCount < MAX_RECHECK_COUNT);
-
-  refreshQuantities();
-
-  edgeSplitCallbackList.erase(splitCallbackHandle);
-  edgeFlipCallbackList.erase(flipCallbackHandle);
-}
-
-
-void SignpostIntrinsicTriangulation::splitBentEdges(EmbeddedGeometryInterface& posGeom, double angleThreshDeg,
-                                                    double relativeLengthEPS, size_t maxInsertions) {
-
-  posGeom.requireVertexPositions();
-
-  // == Process parameters
-
-  // Compute shape length scale as bounding box diagonal
-  Vector3 minP = Vector3::constant(std::numeric_limits<double>::infinity());
-  Vector3 maxP = Vector3::constant(-std::numeric_limits<double>::infinity());
-  for (Vertex v : posGeom.mesh.vertices()) {
-    Vector3 p = posGeom.vertexPositions[v];
-    minP = componentwiseMin(minP, p);
-    maxP = componentwiseMax(maxP, p);
-  }
-  double lengthScale = norm(minP - maxP);
-  double lengthEPS = lengthScale * relativeLengthEPS;
-
-  double angleThresh = angleThreshDeg * PI / 180.;
-
-
-  // === Make repeated passes through, splitting edges until no more bent edges remain
-  bool anySplit = true;
-  EdgeData<bool> edgeIsGood(mesh, false);
-  size_t nSplit = 0;
-  while (anySplit) {
-    anySplit = false;
-    for (Edge e : mesh.edges()) {
-
-      if (maxInsertions != INVALID_IND && nSplit >= maxInsertions) break;
-
-      if (edgeIsGood[e]) continue; // ONEDAY use a queue instead
-
-      // Trace the edge
-      std::vector<SurfacePoint> surfacePoints = traceHalfedge(e.halfedge(), false);
-
-      // Detect the first sharp enough bend
-      double tSplit = -1;
-      double runningLen = 0.;
-      for (size_t iP = 1; (iP + 1) < surfacePoints.size(); iP++) {
-        SurfacePoint& prevS = surfacePoints[iP - 1];
-        SurfacePoint& currS = surfacePoints[iP];
-        SurfacePoint& nextS = surfacePoints[iP + 1];
-
-        Vector3 prevP = prevS.interpolate(posGeom.vertexPositions);
-        Vector3 currP = currS.interpolate(posGeom.vertexPositions);
-        Vector3 nextP = nextS.interpolate(posGeom.vertexPositions);
-
-        double lenFirst = (prevP - currP).norm();
-        double lenSecond = (currP - nextP).norm();
-
-        runningLen += lenFirst;
-
-        // Skip if either segment is too short
-        if (lenFirst < lengthEPS || lenSecond < lengthEPS) continue;
-
-        // Measure the angle
-        double angleBetween = angle(currP - prevP, nextP - currP);
-
-        // Split if angle is too sharp
-        if (angleBetween > angleThresh) {
-          double thisTSplit = runningLen / intrinsicEdgeLengths[e];
-
-          if (thisTSplit > relativeLengthEPS && thisTSplit < 1. - relativeLengthEPS) {
-            tSplit = thisTSplit;
-            break;
-          }
-        }
-      }
-
-      // If a bend was found, split the edge
-      if (tSplit == -1) {
-        edgeIsGood[e] = true;
-      } else {
-        anySplit = true;
-        nSplit++;
-        splitEdge(e.halfedge(), tSplit);
-      }
-    }
-  }
-
-  refreshQuantities();
-
-  posGeom.unrequireVertexPositions();
-}
 
 // ======================================================
 // ======== Geometry and Helpers
 // ======================================================
-
-void SignpostIntrinsicTriangulation::computeEdgeLengths() { edgeLengths = intrinsicEdgeLengths; }
 
 void SignpostIntrinsicTriangulation::computeHalfedgeVectorsInVertex() {
   halfedgeVectorsInVertex = HalfedgeData<Vector2>(mesh);
@@ -941,47 +600,27 @@ void SignpostIntrinsicTriangulation::updateAngleFromCWNeighor(Halfedge he) {
   // NOTE: This makes sense because we preserve the invariant that intrinsic boundary vertices are always located along
   // the boundary of the original mesh, which has the convention that v.halfedge() begins a ccw arc along the interior.
   if (!he.isInterior()) {
-    intrinsicHalfedgeDirections[he] = intrinsicVertexAngleSums[he.vertex()]; // last angle in boundary wedge
+    signpostAngle[he] = vertexAngleSums[he.vertex()]; // last angle in boundary wedge
     halfedgeVectorsInVertex[he] = halfedgeVector(he);
     return;
   }
   if (!he.twin().isInterior()) {
-    intrinsicHalfedgeDirections[he] = 0.; // first angle in boundary wedge
+    signpostAngle[he] = 0.; // first angle in boundary wedge
     halfedgeVectorsInVertex[he] = halfedgeVector(he);
     return;
   }
 
   // Get neighbor angle
   Halfedge cwHe = he.twin().next();
-  double neighAngle = intrinsicHalfedgeDirections[cwHe];
+  double neighAngle = signpostAngle[cwHe];
 
   // Compute corner angle in between
   double cAngle = cornerAngle(cwHe.corner());
 
   // Set the updated angle
   double updatedAngle = standardizeAngle(he.vertex(), neighAngle + cAngle);
-  intrinsicHalfedgeDirections[he] = updatedAngle;
+  signpostAngle[he] = updatedAngle;
   halfedgeVectorsInVertex[he] = halfedgeVector(he);
-}
-
-void SignpostIntrinsicTriangulation::updateFaceBasis(Face f) {
-  Halfedge he = f.halfedge();
-  double a = intrinsicEdgeLengths[he.edge()];
-  he = he.next();
-  double b = intrinsicEdgeLengths[he.edge()];
-  he = he.next();
-  double c = intrinsicEdgeLengths[he.edge()];
-
-  Vector2 p0{0., 0.};
-  Vector2 p1{a, 0.};
-  Vector2 p2 = layoutTriangleVertex(p0, p1, b, c);
-
-  he = f.halfedge();
-  halfedgeVectorsInFace[he] = p1 - p0;
-  he = he.next();
-  halfedgeVectorsInFace[he] = p2 - p1;
-  he = he.next();
-  halfedgeVectorsInFace[he] = p0 - p2;
 }
 
 
@@ -1000,28 +639,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
 
   // == (3) Find the insertion point on the input mesh, use it to align tangent spaces
 
-  // Heuristic: we have to choose some edge to trace from to resolve the vertex. Use the shortest one, as it will often
-  // involve the fewest crossings. Furthermore, use an original vertex if possible to reduce accumulating numerical
-  // error.
-  /*
-  Halfedge inputTraceHe = newV.halfedge().twin();
-  double shortestTraceHeLen = intrinsicEdgeLengths[inputTraceHe.edge()];
-  for (Halfedge heIn : newV.incomingHalfedges()) {
-    double thisLen = intrinsicEdgeLengths[heIn.edge()];
-
-    bool currVertIsOriginal = vertexLocations[inputTraceHe.vertex()].type == SurfacePointType::Vertex;
-    bool newVertIsOriginal = vertexLocations[heIn.vertex()].type == SurfacePointType::Vertex;
-
-    if (currVertIsOriginal && !newVertIsOriginal) continue;
-
-    if ((newVertIsOriginal && !currVertIsOriginal) || thisLen < shortestTraceHeLen) {
-      shortestTraceHeLen = thisLen;
-      inputTraceHe = heIn;
-    }
-  }
-  */
-
-
   // We have to choose some edge to trace from to resolve the vertex. Choose from neighbors according to the following
   // priority:
   //  (best)    original points
@@ -1033,7 +650,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   for (Halfedge heIn : newV.incomingHalfedges()) {
 
     // length score
-    double thisLen = intrinsicEdgeLengths[heIn.edge()];
+    double thisLen = edgeLengths[heIn.edge()];
 
     // type score
     int numScore = 2;
@@ -1128,8 +745,8 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     incomingAngle = 0;
   }
 
-  intrinsicHalfedgeDirections[inputTraceHe.twin()] = incomingAngle;
-  // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * intrinsicEdgeLengths[inputTraceHe.edge()];
+  signpostAngle[inputTraceHe.twin()] = incomingAngle;
+  // halfedgeVectorsInVertex[inputTraceHe.twin()] = outgoingVec.normalize() * edgeLengths[inputTraceHe.edge()];
   halfedgeVectorsInVertex[inputTraceHe.twin()] = halfedgeVector(inputTraceHe.twin());
 
   // Custom loop to orbit CCW from InputTraceHe
@@ -1142,22 +759,184 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
   } while (currHe != firstHe);
 }
 
+std::vector<double> SignpostIntrinsicTriangulation::recoverTraceTValues(const std::vector<SurfacePoint>& edgeTrace) {
+  std::vector<double> tVals(edgeTrace.size());
 
-void SignpostIntrinsicTriangulation::invokeEdgeFlipCallbacks(Edge e) {
-  for (auto& fn : edgeFlipCallbackList) {
-    fn(e);
+  // Walk along the curve, measuring the length of each segment from its barcentric coordinates and the geometry of the
+  // underlying triangulation
+  tVals[0] = 0.;
+  for (size_t iP = 1; iP + 1 < edgeTrace.size(); iP++) {
+    SurfacePoint prev = edgeTrace[iP - 1];
+    SurfacePoint next = edgeTrace[iP];
+    Face f = sharedFace(prev, next);
+    prev = prev.inFace(f);
+    next = next.inFace(f);
+    Vector3 triangleLengths{inputGeom.edgeLengths[f.halfedge().edge()],
+                            inputGeom.edgeLengths[f.halfedge().next().edge()],
+                            inputGeom.edgeLengths[f.halfedge().next().next().edge()]};
+    Vector3 disp = next.faceCoords - prev.faceCoords;
+    double len = displacementLength(disp, triangleLengths);
+    tVals[iP] = tVals[iP - 1] + len;
+  }
+
+  // normalize to [0,1]
+  double totalLen = tVals.back();
+  for (double& t : tVals) {
+    t /= totalLen;
+  }
+
+  return tVals;
+}
+
+void SignpostIntrinsicTriangulation::constructCommonSubdivision() {
+
+  intrinsicMesh->compress();
+
+  // Do all the tracing
+  EdgeData<std::vector<SurfacePoint>> traces = traceAllIntrinsicEdgesAlongInput();
+
+  // Create the new common subdivision object
+  commonSubdivision.reset(new CommonSubdivision(inputMesh, *intrinsicMesh));
+  CommonSubdivision& cs = *commonSubdivision;
+
+  // Construct CommonSubdivisionPoints corresponding to shared vertices
+  VertexData<CommonSubdivisionPoint*> aVtx(inputMesh);
+  VertexData<CommonSubdivisionPoint*> bVtx(*intrinsicMesh);
+
+  for (size_t iV = 0; iV < intrinsicMesh->nVertices(); iV++) {
+    Vertex vB = intrinsicMesh->vertex(iV);
+    SurfacePoint pA = vertexLocations[vB];
+
+    switch (pA.type) {
+    case SurfacePointType::Vertex: {
+      Vertex vA = pA.vertex;
+
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::VERTEX_VERTEX, pA, SurfacePoint(vB), true});
+
+      aVtx[vA] = &cs.subdivisionPoints[cs.subdivisionPoints.size() - 1];
+      break;
+    }
+    case SurfacePointType::Edge:
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::EDGE_VERTEX, pA, SurfacePoint(vB), true});
+
+      // also add the point to the edge that it crosses
+      cs.pointsAlongA[pA.edge].push_back(&cs.subdivisionPoints.back());
+
+      break;
+    case SurfacePointType::Face:
+      cs.subdivisionPoints.push_back(
+          CommonSubdivisionPoint{CSIntersectionType::FACE_VERTEX, pA, SurfacePoint(vB), true});
+      break;
+    }
+
+    bVtx[vB] = &cs.subdivisionPoints.back();
+  }
+
+  // For any input mesh edges which got edge points along them above (aka there have been vertices along the edge), sort
+
+
+  for (Edge e : intrinsicMesh->edges()) {
+    std::vector<SurfacePoint>& edgeTrace = traces[e];
+
+    // First point
+    cs.pointsAlongB[e].push_back(bVtx[e.halfedge().tailVertex()]);
+
+    if (edgeIsOriginal[e] || edgeTrace.size() == 2) {
+      // For edges which are coincident, don't do anything right now. We will recover these points below.
+    } else {
+      // General case: record all intersections
+
+      // We don't pass back these from the trace routine, so reconstruct them from the geometry
+      std::vector<double> tVals = recoverTraceTValues(edgeTrace);
+
+      for (size_t iP = 1; iP + 1 < edgeTrace.size(); iP++) {
+        SurfacePoint& point = edgeTrace[iP];
+
+        if (point.type != SurfacePointType::Edge) {
+          throw std::runtime_error(
+              "signpost common subdivision construction failure: edge traces should contain only edge crossings");
+        }
+
+        // Create new intersection records
+        cs.subdivisionPoints.emplace_back();
+        CommonSubdivisionPoint& csPoint = cs.subdivisionPoints.back();
+
+        csPoint.posA = point;
+        csPoint.posB = SurfacePoint(e, tVals[iP]);
+        csPoint.intersectionType = CSIntersectionType::EDGE_TRANSVERSE;
+        csPoint.orientation = false; // TODO not properly populated. We don't propagate this info.
+
+        // Store the the pont along the intrinsic edge
+        cs.pointsAlongB[e].push_back(&csPoint);
+
+        // Also store them for the input mesh. These will be out of order now, but we will sort them below.
+        cs.pointsAlongA[point.edge].push_back(&csPoint);
+      }
+    }
+
+    // Last point
+    cs.pointsAlongB[e].push_back(bVtx[e.halfedge().tipVertex()]);
+  }
+
+  // Get all the intersections right along the input mesh edges
+  for (Edge e : inputMesh.edges()) {
+    std::vector<CommonSubdivisionPoint*>& vec = cs.pointsAlongA[e];
+
+    // Sort the existing points
+    std::sort(vec.begin(), vec.end(), [](CommonSubdivisionPoint*& a, CommonSubdivisionPoint*& b) -> bool {
+      return a->posA.tEdge < b->posA.tEdge;
+    });
+
+    // Prepend the first vertex point to the front
+    CommonSubdivisionPoint* firstP = aVtx[e.halfedge().tailVertex()];
+    vec.insert(vec.begin(), firstP);
+
+    // Append the last vertex point to the back
+    CommonSubdivisionPoint* lastP = aVtx[e.halfedge().tipVertex()];
+    vec.push_back(lastP);
+
+    // Walk along the edge, any time we see two consecutive vertex points, there must be a
+    // parallel edge there.
+    for (size_t iP = 1; iP + 1 < vec.size(); iP++) {
+
+      if (vec[iP - 1]->posB.type == SurfacePointType::Vertex && vec[iP]->posB.type == SurfacePointType::Vertex) {
+
+        // Create a new edge-parallel intersection
+        cs.subdivisionPoints.emplace_back();
+        CommonSubdivisionPoint& csPoint = cs.subdivisionPoints.back();
+
+        csPoint.posA = SurfacePoint(e, 0.5);
+        csPoint.intersectionType = CSIntersectionType::EDGE_PARALLEL;
+        csPoint.orientation = false; // TODO not properly populated. We don't propagate this info.
+
+        // Find the matching edge on meshB
+        // Note: I'm 90% sure that this is fine, and this search should always find exactly one matching edge.
+        // The reasoning why is that the common subdivision is always a simplicial complex, and this segment is
+        // and edge of the common subdivision, so it must be unique between its endpoints.
+        bool found = false;
+        for (Halfedge he : vec[iP - 1]->posB.vertex.outgoingHalfedges()) {
+          if (he.tipVertex() == vec[iP]->posB.vertex) {
+            csPoint.posB = SurfacePoint(he.edge(), 0.5);
+            found = true;
+            break;
+          }
+        }
+        GC_SAFETY_ASSERT(found, "could not align shared edges in common subdivision");
+
+        // Add the new point to both lists
+        // this list, meshA
+        vec.insert(vec.begin() + iP, &csPoint);
+        // meshB
+        Edge meshBEdge = csPoint.posB.edge;
+        GC_SAFETY_ASSERT(cs.pointsAlongB[meshBEdge].size() == 2, "should be exactly two points (endpoints)");
+        cs.pointsAlongB[meshBEdge].insert(cs.pointsAlongB[meshBEdge].begin() + 1, &csPoint);
+      }
+    }
   }
 }
-void SignpostIntrinsicTriangulation::invokeFaceInsertionCallbacks(Face f, Vertex v) {
-  for (auto& fn : faceInsertionCallbackList) {
-    fn(f, v);
-  }
-}
-void SignpostIntrinsicTriangulation::invokeEdgeSplitCallbacks(Edge e, Halfedge he1, Halfedge he2) {
-  for (auto& fn : edgeSplitCallbackList) {
-    fn(e, he1, he2);
-  }
-}
+
 
 } // namespace surface
 } // namespace geometrycentral

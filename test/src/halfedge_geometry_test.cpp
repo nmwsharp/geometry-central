@@ -8,8 +8,8 @@
 #include "geometrycentral/surface/extrinsic_geometry_interface.h"
 #include "geometrycentral/surface/geometry.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
-#include "geometrycentral/surface/surface_mesh_factories.h"
 #include "geometrycentral/surface/rich_surface_mesh_data.h"
+#include "geometrycentral/surface/surface_mesh_factories.h"
 #include "geometrycentral/surface/surface_point.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
@@ -100,8 +100,8 @@ TEST_F(HalfedgeGeometrySuite, RefreshMutationTest) {
       Vertex vA = e.halfedge().vertex();
       Vertex vB = e.halfedge().twin().vertex();
       Halfedge he = mesh.splitEdgeTriangular(e);
-      origGeometry.inputVertexPositions[he.vertex()] =
-          0.5 * (origGeometry.inputVertexPositions[vA] + origGeometry.inputVertexPositions[vB]);
+      origGeometry.vertexPositions[he.vertex()] =
+          0.5 * (origGeometry.vertexPositions[vA] + origGeometry.vertexPositions[vB]);
     }
     mesh.validateConnectivity();
     for (Face f : mesh.faces()) {
@@ -226,7 +226,7 @@ TEST_F(HalfedgeGeometrySuite, PositionMatrixConstructionTest) {
     DenseMatrix<double> vPos(mesh.nVertices(), 3);
     size_t iV = 0;
     for (Vertex v : mesh.vertices()) {
-      Vector3 p = vGeom.inputVertexPositions[v];
+      Vector3 p = vGeom.vertexPositions[v];
       vPos(iV, 0) = p.x;
       vPos(iV, 1) = p.y;
       vPos(iV, 2) = p.z;
@@ -255,7 +255,7 @@ TEST_F(HalfedgeGeometrySuite, MatrixFactoryTest) {
     DenseMatrix<double> vPos(mesh.nVertices(), 3);
     size_t iV = 0;
     for (Vertex v : mesh.vertices()) {
-      Vector3 p = vGeom.inputVertexPositions[v];
+      Vector3 p = vGeom.vertexPositions[v];
       vPos(iV, 0) = p.x;
       vPos(iV, 1) = p.y;
       vPos(iV, 2) = p.z;
@@ -1356,12 +1356,12 @@ TEST_F(HalfedgeGeometrySuite, SurfacePointVertexInSomeFaceTest) {
     // Test vertex points
     for (Vertex v : mesh.vertices()) {
       SurfacePoint p(v);
-      Vector3 posOrig = p.interpolate(geom.inputVertexPositions);
+      Vector3 posOrig = p.interpolate(geom.vertexPositions);
       p.validate();
 
       SurfacePoint pEquiv = p.inSomeFace();
       pEquiv.validate();
-      Vector3 posEquiv = pEquiv.interpolate(geom.inputVertexPositions);
+      Vector3 posEquiv = pEquiv.interpolate(geom.vertexPositions);
 
       double dist = (posOrig - posEquiv).norm();
 
@@ -1387,11 +1387,11 @@ TEST_F(HalfedgeGeometrySuite, SurfacePointEdgeInSomeFaceTest) {
 
     for (Edge e : mesh.edges()) {
       SurfacePoint p(e, unitRand());
-      Vector3 posOrig = p.interpolate(geom.inputVertexPositions);
+      Vector3 posOrig = p.interpolate(geom.vertexPositions);
       p.validate();
 
       SurfacePoint pEquiv = p.inSomeFace();
-      Vector3 posEquiv = pEquiv.interpolate(geom.inputVertexPositions);
+      Vector3 posEquiv = pEquiv.interpolate(geom.vertexPositions);
 
       double dist = (posOrig - posEquiv).norm();
       EXPECT_LT(dist, EPS);
@@ -1422,15 +1422,14 @@ TEST_F(HalfedgeGeometrySuite, SurfacePointFaceInSomeFaceTest) {
 
     for (Face f : mesh.faces()) {
       SurfacePoint p(f, unitBary());
-      Vector3 posOrig = p.interpolate(geom.inputVertexPositions);
+      Vector3 posOrig = p.interpolate(geom.vertexPositions);
       p.validate();
 
       SurfacePoint pEquiv = p.inSomeFace();
-      Vector3 posEquiv = pEquiv.interpolate(geom.inputVertexPositions);
+      Vector3 posEquiv = pEquiv.interpolate(geom.vertexPositions);
 
       double dist = (posOrig - posEquiv).norm();
       EXPECT_LT(dist, EPS);
     }
   }
 }
-

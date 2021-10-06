@@ -85,6 +85,8 @@ void MeshAssetSuite::SetUpTestSuite() {
   allMeshAssets.emplace_back("lego.ply", true);
   allMeshAssets.emplace_back("dodecahedron_poly.obj", true);
   allMeshAssets.emplace_back("platonic_shelf.obj", true);
+  allMeshAssets.emplace_back("fox.ply", true);
+  allMeshAssets.emplace_back("cat_head.obj", true);
 
   // Load general surface mesh variants
   allMeshAssets.emplace_back("tet.obj", false);
@@ -94,6 +96,8 @@ void MeshAssetSuite::SetUpTestSuite() {
   allMeshAssets.emplace_back("lego.ply", false);
   allMeshAssets.emplace_back("dodecahedron_poly.obj", false);
   allMeshAssets.emplace_back("platonic_shelf.obj", false);
+  allMeshAssets.emplace_back("fox.ply", false);
+  allMeshAssets.emplace_back("cat_head.obj", false);
 
   // Load nonmanifold models
   allMeshAssets.emplace_back("fan3.obj", false);

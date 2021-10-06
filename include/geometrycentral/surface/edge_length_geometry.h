@@ -1,7 +1,7 @@
 #pragma once
 
-#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/surface_mesh.h"
 
 #include <Eigen/SparseCore>
 
@@ -13,9 +13,9 @@ class EdgeLengthGeometry : public IntrinsicGeometryInterface {
 
 public:
   EdgeLengthGeometry(SurfaceMesh& mesh_);
-  EdgeLengthGeometry(SurfaceMesh& mesh_, EdgeData<double>& inputEdgeLengths);
+  EdgeLengthGeometry(SurfaceMesh& mesh_, const EdgeData<double>& inputEdgeLengths);
   virtual ~EdgeLengthGeometry() {}
-  
+
   // Construct a new geometry which is exactly the same as this one, on the same mesh.
   // This is a deep copy, no quantites are shared, etc. Require counts/computed quantities are not copied.
   std::unique_ptr<EdgeLengthGeometry> copy();
@@ -25,7 +25,10 @@ public:
   // The meshes must be in correspondence (have the same connectivity).
   std::unique_ptr<EdgeLengthGeometry> reinterpretTo(SurfaceMesh& targetMesh);
 
-  EdgeData<double> inputEdgeLengths;
+  // The actual input data which defines the geometry
+  // In a previous version of the library, this was a distinct field which got copied in to `edgeLengths`. However, now
+  // they are simply aliases for the same buffer.
+  EdgeData<double>& inputEdgeLengths;
 
   // == Immediates
   double faceArea(Face f) const;
@@ -34,6 +37,7 @@ public:
   double halfedgeCotanWeight(Halfedge he) const;
   double edgeCotanWeight(Edge e) const;
   double vertexGaussianCurvature(Vertex v) const;
+  double faceCircumradius(Face f) const;
 
 
 protected:

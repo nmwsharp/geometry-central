@@ -9,6 +9,8 @@
 #include <Eigen/StdVector>
 
 #include <complex>
+#include <fstream> // ofsteam, ifstream
+#include <iomanip> // setprecision
 #include <iostream>
 
 // === Various helper functions and sanity checks which are useful for linear algebra code
@@ -95,6 +97,30 @@ template <typename T>
 void decomposeVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vec, Vector<T>& vecAOut, Vector<T>& vecBOut);
 template <typename T>
 Vector<T> reassembleVector(BlockDecompositionResult<T>& decomp, const Vector<T>& vecA, const Vector<T>& vecB);
+
+// === IO
+
+// WARNING: this follows matlab convention and thus is 1-indexed
+template <typename T>
+void saveSparseMatrix(std::string filename, SparseMatrix<T>& matrix);
+template <typename T>
+void saveSparseMatrix(std::ostream& out, SparseMatrix<T>& matrix);
+
+template <typename T>
+void saveDenseMatrix(std::string filename, DenseMatrix<T>& matrix);
+template <typename T>
+void saveDenseMatrix(std::ostream& out, DenseMatrix<T>& matrix);
+
+template <typename T>
+SparseMatrix<T> loadSparseMatrix(std::string filename);
+template <typename T>
+SparseMatrix<T> loadSparseMatrix(std::istream& in);
+
+template <typename T>
+DenseMatrix<T> loadDenseMatrix(std::string filename);
+template <typename T>
+DenseMatrix<T> loadDenseMatrix(std::istream& in);
+
 
 #include "geometrycentral/numerical/linear_algebra_utilities.ipp"
 
