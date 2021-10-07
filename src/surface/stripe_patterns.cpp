@@ -152,7 +152,7 @@ VertexData<Vector2> computeParameterization(IntrinsicGeometryInterface& geometry
   SparseMatrix<double> massMatrix = computeRealVertexMassMatrix(geometry);
 
   // Find the smallest eigenvector
-  Vector<double> solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix);
+  Vector<double> solution = smallestEigenvectorPositiveDefinite(energyMatrix, massMatrix, 20);
 
   // Copy the result to a VertexData vector
   VertexData<Vector2> toReturn(mesh);
@@ -259,12 +259,16 @@ bool crossesModulo2Pi(double val1, double val2, double& bary) {
   if (val1 < val2) {
     double isoval = 2 * PI * std::ceil(val1 / (2 * PI));
     if (val2 > isoval) {
+      if(val2 > isoval + 2 * PI)
+        throw std::runtime_error("Multiple stripes passing through the same triangle: can't extract isolines");
       bary = (isoval - val2) / (val1 - val2);
       return true;
     }
   } else {
     double isoval = 2 * PI * std::ceil(val2 / (2 * PI));
     if (val1 > isoval) {
+      if(val1 > isoval + 2 * PI)
+        throw std::runtime_error("Multiple stripes passing through the same triangle: can't extract isolines");
       bary = (isoval - val2) / (val1 - val2);
       return true;
     }
@@ -337,8 +341,8 @@ std::vector<Isoline> extractIsolinesFromStripePattern(IntrinsicGeometryInterface
     if (nbOfPieces > 0)
       isolines.push_back(iso);
 
-    if (nbOfPieces > 2) // isolines stop at singularities, so they should never branch out
-      throw std::runtime_error("Isolines should only branch out on singularities");
+    if (nbOfPieces > 2)
+      throw std::runtime_error("Multiple stripes passing through the same triangle: can't extract isolines");
   }
   return isolines;
 }
