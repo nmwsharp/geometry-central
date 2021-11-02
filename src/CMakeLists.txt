@@ -27,6 +27,7 @@ SET(SRCS
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
+  surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
   surface/normal_coordinates.cpp
   surface/surface_centers.cpp
@@ -92,6 +93,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/exact_polyhedral_geodesics.h
   ${INCLUDE_ROOT}/surface/extrinsic_geometry_interface.h
   ${INCLUDE_ROOT}/surface/fast_marching_method.h
+  ${INCLUDE_ROOT}/surface/geodesic_centroidal_voronoi_tessellation.h
   ${INCLUDE_ROOT}/surface/halfedge_element_types.h
   ${INCLUDE_ROOT}/surface/halfedge_element_types.ipp
   ${INCLUDE_ROOT}/surface/halfedge_factories.h

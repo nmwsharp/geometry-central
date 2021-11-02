@@ -1,10 +1,11 @@
 #pragma once
 
 #include "geometrycentral/numerical/linear_solvers.h"
-#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/heat_method_distance.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
+#include "geometrycentral/surface/trace_geodesic.h"
 #include "geometrycentral/utilities/vector2.h"
 #include "geometrycentral/utilities/vector3.h"
 
@@ -40,11 +41,15 @@ public:
   VertexData<Vector2> computeLogMap(const Vertex& sourceVert, double vertexDistanceShift = 0.);
   VertexData<Vector2> computeLogMap(const SurfacePoint& sourceP);
 
-
   // === Options and parameters
   const double tCoef; // the time parameter used for heat flow, measured as time = tCoef * mean_edge_length^2
                       // default: 1.0
 
+  // === Low-level queries
+  VertexData<double> scalarDiffuse(const VertexData<double>& rhs); // call scalarHeatSolver on rhs
+  VertexData<std::complex<double>>
+  vectorDiffuse(const VertexData<std::complex<double>>& rhs);     // call vectorHeatSolver on rhs
+  VertexData<double> poissonSolve(const VertexData<double>& rhs); // call poissonSolver on rhs
 
 private:
   // === Members

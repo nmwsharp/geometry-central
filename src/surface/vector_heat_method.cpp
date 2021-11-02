@@ -334,6 +334,20 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVe
   return result;
 }
 
+VertexData<double> VectorHeatMethodSolver::scalarDiffuse(const VertexData<double>& rhs) {
+  ensureHaveScalarHeatSolver();
+  return VertexData<double>(mesh, scalarHeatSolver->solve(rhs.toVector()));
+}
+
+VertexData<std::complex<double>> VectorHeatMethodSolver::vectorDiffuse(const VertexData<std::complex<double>>& rhs) {
+  ensureHaveVectorHeatSolver();
+  return VertexData<std::complex<double>>(mesh, vectorHeatSolver->solve(rhs.toVector()));
+}
+
+VertexData<double> VectorHeatMethodSolver::poissonSolve(const VertexData<double>& rhs) {
+  ensureHavePoissonSolver();
+  return VertexData<double>(mesh, poissonSolver->solve(rhs.toVector()));
+}
 
 void VectorHeatMethodSolver::addVertexOutwardBall(Vertex vert, Vector<std::complex<double>>& distGradRHS) {
 
