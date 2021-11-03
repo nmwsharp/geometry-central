@@ -39,7 +39,6 @@ VoronoiResult computeGeodesicCentroidalVoronoiTessellation(ManifoldSurfaceMesh& 
   auto computeRHS = [&](const std::vector<SurfacePoint>& points) -> VertexData<double> {
     VertexData<double> rhs(mesh, 0);
     for (const SurfacePoint& point : points) {
-
       SurfacePoint facePoint = point.inSomeFace();
       Halfedge he = facePoint.face.halfedge();
 
@@ -52,10 +51,8 @@ VoronoiResult computeGeodesicCentroidalVoronoiTessellation(ManifoldSurfaceMesh& 
 
   // Set points to start
   std::vector<SurfacePoint> siteLocations = options.initialSites;
-  size_t nSites = options.nSites;
-
   if (siteLocations.empty()) {
-    for (size_t i = 0; i < nSites; i++) {
+    for (size_t i = 0; i < options.nSites; i++) {
       Face startF = mesh.face(randomIndex(mesh.nFaces()));
       double u = unitRand();
       Vector3 bCoord{u, 0.5 * (1.0 - u), 0.5 * (1.0 - u)};
@@ -63,6 +60,7 @@ VoronoiResult computeGeodesicCentroidalVoronoiTessellation(ManifoldSurfaceMesh& 
       siteLocations.push_back(fp);
     }
   }
+  size_t nSites = siteLocations.size();
 
   geom.requireVertexDualAreas();
 
