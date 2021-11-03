@@ -22,7 +22,7 @@ Options are passed in to `computeGeodesicCentroidalVoronoiTessellation` via a `V
 | `#!cpp size_t nSites;`| `10` | the number of sites to place |
 | `#!cpp std::vector<SurfacePoint> initialSites;`| `{}` | desired locations for sites. If blank, initial locations are chosen randomly |
 | `#!cpp size_t iterations;`| `50` | number of iterations to run for |
-| `#!cpp bool useDelaunay;`| `false` | solve on an [intrinsic Delaunay triangulation](/surface/intrinsic_triangulations/basics) of the input |
+| `#!cpp bool useDelaunay;`| `true` | solve on an [intrinsic Delaunay triangulation](/surface/intrinsic_triangulations/basics) of the input |
 | `#!cpp double tCoef;`| `1` | diffusion time for the [vector heat method](/surface/algorithms/vector_heat_method) |
 | `#!cpp size_t nSubIterations;`| `1` | number of iterations to use when computing [surface centers](/surface/algorithms/surface_centers) during optimization |
 

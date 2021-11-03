@@ -16,7 +16,7 @@ struct VoronoiOptions {
   std::vector<SurfacePoint> initialSites; // desired locations for sites. If blank, locations are chosen randomly
   size_t iterations = 50;                 // number of iterations to run for
   double stepSize = 1;                    // step size for steps towards cell centers
-  bool useDelaunay = false;               // solve on an intrinsic Delaunay triangulation of the input
+  bool useDelaunay = true;                // solve on an intrinsic Delaunay triangulation of the input
   bool computeDistributions = false;      // return the indicator functions for each cell (`result.siteDistributions`)
   double tCoef = 1;                       // diffusion time for vector heat method
   size_t nSubIterations = 1;              // number of iterations to use when computing Karcher means
