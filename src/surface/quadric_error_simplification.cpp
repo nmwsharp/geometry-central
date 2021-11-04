@@ -1,4 +1,4 @@
-#include "quadric_error_simplification.h"
+#include "geometrycentral/surface/quadric_error_simplification.h"
 
 namespace geometrycentral {
 namespace surface {
@@ -32,12 +32,19 @@ Quadric Quadric::operator+=(const Quadric& Q) {
 Quadric operator+(const Quadric& Q1, const Quadric& Q2) { return Quadric(Q1.A + Q2.A, Q1.b + Q2.b, Q1.c + Q2.c); }
 
 void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo, double tol) {
-  MutationManager mm(mesh);
+  MutationManager mm(mesh, geo);
   quadricErrorSimplify(mesh, geo, tol, mm);
 }
 
 void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo, double tol, MutationManager& mm) {
-  VertexData<QES::Quadric> Q(mesh, QES::Quadric());
+  auto toEigen = [](Vector3 v) -> Eigen::Vector3d {
+    Eigen::Vector3d ret;
+    ret << v.x, v.y, v.z;
+    return ret;
+  };
+  auto fromEigen = [](Eigen::Vector3d v) -> Vector3 { return Vector3{v(0), v(1), v(2)}; };
+
+  VertexData<Quadric> Q(mesh, Quadric());
 
   geo.requireFaceNormals();
 
@@ -48,7 +55,7 @@ void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo
       Eigen::Vector3d q = toEigen(geo.inputVertexPositions[v]);
       double d = -n.dot(q);
 
-      Q[v] += QES::Quadric(M, d * n, d * d);
+      Q[v] += Quadric(M, d * n, d * d);
     }
   }
 
@@ -59,7 +66,7 @@ void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo
   std::priority_queue<PotentialEdge, std::vector<PotentialEdge>, decltype(cmp)> edgesToCheck(cmp);
 
   for (Edge e : mesh.edges()) {
-    QES::Quadric Qe = Q[e.src()] + Q[e.dst()];
+    Quadric Qe = Q[e.halfedge().tailVertex()] + Q[e.halfedge().tipVertex()];
     Eigen::Vector3d q = Qe.optimalPoint();
     double cost = Qe.cost(q);
     edgesToCheck.push(std::make_tuple(cost, e));
@@ -76,29 +83,23 @@ void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo
     Edge e = std::get<1>(best);
     if (!e.isDead()) {
 
+      Vertex v1 = e.halfedge().tailVertex();
+      Vertex v2 = e.halfedge().tipVertex();
+
       // Get edge quadric
-      QES::Quadric Qe(Q[e.src()], Q[e.dst()]);
+      Quadric Qe(Q[v1], Q[v2]);
       Eigen::Vector3d q = Qe.optimalPoint();
 
       // If either vertex has been collapsed since the edge was pushed
       // onto the queue, the old cost was wrong. In that case, give up
       if (abs(cost - Qe.cost(q)) > 1e-8) continue;
 
-      Vertex v;
-      try {
-        v = mm.collapseEdge(e);
-      } catch (std::runtime_error& e) {
-      }
-
-      // v == Vertex() if collapseEdge threw an exception, or if
-      // collapseEdge failed and returned Vertex(). In either case, we
-      // give up
+      Vertex v = mm.collapseEdge(e, fromEigen(q));
       if (v == Vertex()) continue;
-      geo.vertexPositions[v] = fromEigen(q);
       Q[v] = Qe;
 
       for (Edge f : v.adjacentEdges()) {
-        QES::Quadric Qf(Q[f.src()], Q[f.dst()]);
+        Quadric Qf(Q[f.halfedge().tailVertex()], Q[f.halfedge().tipVertex()]);
         Eigen::Vector3d q = Qf.optimalPoint();
         double cost = Qf.cost(q);
         edgesToCheck.push(std::make_tuple(cost, f));

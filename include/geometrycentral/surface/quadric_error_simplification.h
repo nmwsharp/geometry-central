@@ -4,6 +4,8 @@
 #include "geometrycentral/surface/mutation_manager.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
+#include "geometrycentral/utilities/elementary_geometry.h"
+
 #include <queue>
 
 namespace geometrycentral {
@@ -29,8 +31,7 @@ protected:
 Quadric operator+(const Quadric& Q1, const Quadric& Q2);
 
 void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo, double tol = 0.05);
-void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo, double tol = 0.05,
-                          MutationManager& mm);
+void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo, double tol, MutationManager& mm);
 
 } // namespace surface
 } // namespace geometrycentral

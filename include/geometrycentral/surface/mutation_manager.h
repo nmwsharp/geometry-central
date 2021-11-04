@@ -128,20 +128,23 @@ public:
   // to `tSplit`.
   // In general, both the `tSplit` and the `newVertexPosition` are used; `tSplit` is necessary to allow callbacks to
   // interpolate data; if called with either the other will be inferred.
-  void splitEdge(Edge e, double tSplit);
-  void splitEdge(Edge e, Vector3 newVertexPosition);
-  void splitEdge(Edge e, double tSplit, Vector3 newVertexPosition);
+  // Returns the new halfedge which points away from the new vertex (so he.vertex() is the new vertex), and is the same
+  // direction as e.halfedge() on the original edge. The halfedge direction of the other part of the new split edge is
+  // also preserved.
+  Halfedge splitEdge(Edge e, double tSplit);
+  Halfedge splitEdge(Edge e, Vector3 newVertexPosition);
+  Halfedge splitEdge(Edge e, double tSplit, Vector3 newVertexPosition);
 
   // Collapse an edge.
-  // Returns true if the edge could actually be collapsed.
-  bool collapseEdge(Edge e, double tCollapse);
-  bool collapseEdge(Edge e, Vector3 newVertexPosition);
-  bool collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition);
+  // Returns the new vertex if the edge could be collapsed, and Vertex() otherwise
+  Vertex collapseEdge(Edge e, double tCollapse);
+  Vertex collapseEdge(Edge e, Vector3 newVertexPosition);
+  Vertex collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition);
 
-  // Split a face (i.e. insert a vertex into the face)
-  void splitFace(Face f, const std::vector<double>& bSplit);
-  void splitFace(Face f, Vector3 newVertexPosition);
-  void splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
+  // Split a face (i.e. insert a vertex into the face), and return the new vertex
+  Vertex splitFace(Face f, const std::vector<double>& bSplit);
+  Vertex splitFace(Face f, Vector3 newVertexPosition);
+  Vertex splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
 
   // ======================================================
   // ======== High-level mutations

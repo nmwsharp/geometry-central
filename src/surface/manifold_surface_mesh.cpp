@@ -1263,6 +1263,64 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
   modificationTick++;
 }
 
+Face ManifoldSurfaceMesh::removeEdge(Edge e) {
+  if (e.isBoundary()) {
+    throw std::runtime_error("not implemented");
+  }
+
+  // Halfedges/edges/faces that will be removed
+  // (except first face)
+  std::vector<Halfedge> toRemove{e.halfedge(), e.halfedge().twin()};
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge heStart : toRemove) {
+    Halfedge he = heStart.next();
+    while (he != heStart) {
+      // The one-ring must not contain any other copies of e, or we cannot remove the edge
+      if (he.edge() == e) {
+        return Face();
+      }
+      ringHalfedges.push_back(he);
+      he = he.next();
+    }
+  }
+
+  // If both faces are the same, we cannot remove the edge. This should have been caught above
+  if (toRemove[0].face() == toRemove[1].face()) {
+    return Face();
+  }
+  Face keepFace = toRemove[0].face();
+
+
+  // Record these before we break pointers
+  Vertex src = e.halfedge().vertex();
+  Vertex dst = e.halfedge().twin().vertex();
+  Halfedge altSrcHedge = e.halfedge().twin().next();
+  Halfedge altDstHedge = e.halfedge().next();
+
+  // Hook up next and face refs for the halfedges along the ring
+  size_t N = ringHalfedges.size();
+  for (size_t i = 0; i < N; i++) {
+    heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + 1) % N].getIndex();
+    heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
+  }
+
+  // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
+  if (src.halfedge().edge() == e) {
+    vHalfedgeArr[src.getIndex()] = altSrcHedge.getIndex();
+  }
+  if (dst.halfedge().edge() == e) {
+    vHalfedgeArr[dst.getIndex()] = altDstHedge.getIndex();
+  }
+
+  fHalfedgeArr[keepFace.getIndex()] = ringHalfedges[0].getIndex();
+
+  // Actually delete all of the elements
+  deleteElement(toRemove[1].face());
+  deleteEdgeBundle(e);
+
+  modificationTick++;
+  return keepFace;
+}
 
 
 bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
