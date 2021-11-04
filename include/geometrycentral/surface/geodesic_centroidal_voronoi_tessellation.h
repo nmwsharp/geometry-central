@@ -1,3 +1,5 @@
+#pragma once
+
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
 #include "geometrycentral/surface/trace_geodesic.h"
 #include "geometrycentral/surface/vector_heat_method.h"
