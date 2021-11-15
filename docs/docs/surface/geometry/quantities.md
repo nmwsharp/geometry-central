@@ -471,7 +471,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     Only valid on triangular meshes.
 
-    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::vertexConnectionLaplacian`
+    - **member:** `Eigen::SparseMatrix<std::complex<double>> IntrinsicGeometryInterface::vertexConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireVertexConnectionLaplacian()`
 
 ??? func "DEC operators"
