@@ -59,16 +59,16 @@ bool MutationManager::flipEdge(Edge e) {
   return true;
 }
 
-void MutationManager::splitEdge(Edge e, double tSplit) {
+Halfedge MutationManager::splitEdge(Edge e, double tSplit) {
   Vector3 newPos{0., 0., 0.};
   if (geometry) {
     VertexData<Vector3>& pos = geometry->vertexPositions;
     newPos = (1. - tSplit) * pos[e.halfedge().tailVertex()] + tSplit * pos[e.halfedge().tipVertex()];
   }
-  splitEdge(e, tSplit, newPos);
+  return splitEdge(e, tSplit, newPos);
 }
 
-void MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
+Halfedge MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
 
   double tSplit = -1;
   GC_SAFETY_ASSERT(geometry, "must have geometry to split by position");
@@ -80,10 +80,10 @@ void MutationManager::splitEdge(Edge e, Vector3 newVertexPosition) {
     tSplit = pointLineSegmentNeaestLocation(newVertexPosition, posTail, posTip);
   }
 
-  splitEdge(e, tSplit, newVertexPosition);
+  return splitEdge(e, tSplit, newVertexPosition);
 }
 
-void MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition) {
+Halfedge MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition) {
 
   // Invoke before callbacks
   for (EdgeSplitPolicy* policy : edgeSplitPolicies) {
@@ -102,11 +102,13 @@ void MutationManager::splitEdge(Edge e, double tSplit, Vector3 newVertexPosition
   for (EdgeSplitPolicy* policy : edgeSplitPolicies) {
     policy->afterEdgeSplit(newHeFront, newHeBack, tSplit);
   }
+
+  return newHeFront;
 }
 
 // Collapse an edge.
-// Returns true if the edge could actually be collapsed.
-bool MutationManager::collapseEdge(Edge e, double tCollapse) {
+// Returns the new vertex if the edge could be collapsed, and Vertex() otherwise
+Vertex MutationManager::collapseEdge(Edge e, double tCollapse) {
   Vector3 newPos{0., 0., 0.};
   if (geometry) {
     // Find the nearest tCoord
@@ -116,7 +118,7 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse) {
   return collapseEdge(e, tCollapse, newPos);
 }
 
-bool MutationManager::collapseEdge(Edge e, Vector3 newVertexPosition) {
+Vertex MutationManager::collapseEdge(Edge e, Vector3 newVertexPosition) {
 
   double tCollapse = -1;
   GC_SAFETY_ASSERT(geometry, "must have geometry to split by position");
@@ -130,8 +132,7 @@ bool MutationManager::collapseEdge(Edge e, Vector3 newVertexPosition) {
 
   return collapseEdge(e, tCollapse, newVertexPosition);
 }
-
-bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition) {
+Vertex MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition) {
 
   // Invoke before callbacks
   // TODO need to handle possiblity that collapse fails -- check before calling
@@ -140,7 +141,7 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
   }
 
   Vertex newV = mesh.collapseEdgeTriangular(e);
-  if (newV == Vertex()) return false;
+  if (newV == Vertex()) return Vertex();
 
   if (geometry) {
     VertexData<Vector3>& pos = geometry->vertexPositions;
@@ -152,11 +153,11 @@ bool MutationManager::collapseEdge(Edge e, double tCollapse, Vector3 newVertexPo
     policy->afterEdgeCollapse(newV, tCollapse);
   }
 
-  return true;
+  return newV;
 }
 
 // Split a face (i.e. insert a vertex into the face)
-void MutationManager::splitFace(Face f, const std::vector<double>& bSplit) {
+Vertex MutationManager::splitFace(Face f, const std::vector<double>& bSplit) {
   Vector3 newPos = Vector3::zero();
   if (geometry) {
     size_t iV = 0;
@@ -167,16 +168,17 @@ void MutationManager::splitFace(Face f, const std::vector<double>& bSplit) {
     }
   }
 
-  splitFace(f, bSplit, newPos);
+  return splitFace(f, bSplit, newPos);
 }
 
-void MutationManager::splitFace(Face f, Vector3 newVertexPosition) {
+Vertex MutationManager::splitFace(Face f, Vector3 newVertexPosition) {
   // TODO
   throw std::runtime_error("Face split based on vertex position not implemented yet");
+  return Vertex();
 }
 
 
-void MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition) {
+Vertex MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition) {
   // Invoke before callbacks
   for (FaceSplitPolicy* policy : faceSplitPolicies) {
     policy->beforeFaceSplit(f, bSplit);
@@ -192,6 +194,8 @@ void MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vecto
   for (FaceSplitPolicy* policy : faceSplitPolicies) {
     policy->afterFaceSplit(newV, bSplit);
   }
+
+  return newV;
 }
 
 
@@ -290,7 +294,7 @@ MutationPolicyHandle MutationManager::registerPolicy(MutationPolicy* policyObjec
 }
 
 void MutationManager::removePolicy(const MutationPolicyHandle& toRemove) {
-  // Remove from all lists 
+  // Remove from all lists
   removeFromVector(vertexRepositionPolicies, toRemove.policy);
   removeFromVector(edgeFlipPolicies, toRemove.policy);
   removeFromVector(edgeSplitPolicies, toRemove.policy);

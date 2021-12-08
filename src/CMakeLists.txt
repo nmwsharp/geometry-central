@@ -47,6 +47,8 @@ SET(SRCS
   surface/tufted_laplacian.cpp
   surface/flip_geodesics.cpp
   surface/transfer_functions.cpp
+  surface/quadric_error_simplification.cpp
+  surface/subdivide.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   
@@ -107,6 +109,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
   ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
+  ${INCLUDE_ROOT}/surface/quadric_error_simplification.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
@@ -114,6 +117,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
   ${INCLUDE_ROOT}/surface/simple_polygon_mesh.h
+  ${INCLUDE_ROOT}/surface/subdivide.h
   ${INCLUDE_ROOT}/surface/surface_centers.h
   ${INCLUDE_ROOT}/surface/surface_mesh.h
   ${INCLUDE_ROOT}/surface/surface_mesh.ipp
