@@ -37,7 +37,7 @@ VertexData<double> distToSource = exactGeodesicDistance(*mesh, *geometry, source
 
     Compute the distance from the source using MMP. See the stateful class below for further options.
     
-### Complex Queries
+### Advanced Queries
 
 The stateful class `GeodesicAlgorithmExact` runs the MMP algorithm to compute geodesic distance from a given set of source points. The resulting distance field can be queried at any point on the input mesh to find the identity of the nearest source point, the distance to the source point, and the shortest path to the source point.
 
@@ -80,6 +80,10 @@ VertexData<double> distToSource = mmp.getDistanceFunction();
 // Query the distance function at some point
 SurfacePoint queryPoint = /* some point on the surface */
 double dist = mmp.getDistance(queryPoint);
+
+// Get the geodesic path from a query point to the nearest source
+SurfacePoint queryPoint2 = /* some point on the surface */
+std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 ```
 
 
@@ -136,6 +140,10 @@ double dist = mmp.getDistance(queryPoint);
 ??? func "`#!cpp VertexData<double> GeodesicAlgorithmExact::getDistanceFunction()`"
 
     Evaluate the distance function at every vertex of the mesh.
+    
+??? func "`#!cpp IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e)`"
+
+    Get the list of windows along edge `e` that MMP uses to represent the distance function.
 
 TODO document `exact_polyhedral_geodesics.h`
 

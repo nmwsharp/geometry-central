@@ -1,4 +1,5 @@
 // Copyright (C) 2008 Danil Kirsanov, MIT License
+// (Modified to work in geometry-central. Original code can be found here: https://code.google.com/p/geodesic/)
 
 #include "geometrycentral/surface/exact_geodesics.h"
 
@@ -34,7 +35,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<Vertex>& sources, doubl
 void GeodesicAlgorithmExact::propagate(const SurfacePoint& source, double max_propagation_distance,
                                        const std::vector<SurfacePoint>& stop_points) {
   // Call general version
-  return propagate({source}, max_propagation_distance, stop_points);
+  return propagate(std::vector<SurfacePoint>{source}, max_propagation_distance, stop_points);
 }
 void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagation_distance,
                                        const std::vector<Vertex>& stop_points) {
@@ -47,15 +48,15 @@ void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagat
 
 std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& destination) {
   // Call general version
-  return traceBack(SurfacePoint(v));
+  return traceBack(SurfacePoint(destination));
 }
 
-std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& point) {
+std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) {
   // Call general version
   return closestSource(SurfacePoint(v));
 }
 
-double GeodesicAlgorithmExact::getDistance(const Vertex& point) {
+double GeodesicAlgorithmExact::getDistance(const Vertex& v) {
   // Call general version
   return getDistance(SurfacePoint(v));
 }

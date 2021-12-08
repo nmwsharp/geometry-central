@@ -1,4 +1,5 @@
 // Copyright (C) 2008 Danil Kirsanov, MIT License
+// (Modified to work in geometry-central. Original code can be found here: https://code.google.com/p/geodesic/)
 
 namespace geometrycentral {
 namespace surface {
