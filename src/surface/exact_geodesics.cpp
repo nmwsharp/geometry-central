@@ -632,13 +632,15 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
     }
 
     *p = m_memory_allocator.allocate();
-    memcpy(*p, first, sizeof(Interval));
+    // memcpy(*p, first, sizeof(Interval));
+    **p = *first;
     m_queue.insert(*p);
 
     if (num_candidates == 2) {
       p = &(*p)->next();
       *p = m_memory_allocator.allocate();
-      memcpy(*p, second, sizeof(Interval));
+      // memcpy(*p, second, sizeof(Interval));
+      **p = *second;
       m_queue.insert(*p);
     }
 
@@ -701,7 +703,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
           interval_pointer next = p->next();
           erase_from_queue(p);
 
-          memcpy(previous, q, sizeof(Interval));
+          // memcpy(previous, q, sizeof(Interval));
+          *previous = *q;
 
           previous->start() = start[0];
           previous->next() = next;
@@ -743,7 +746,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       } else // p becomes "previous"
       {
         i_new[0] = p;
-        memcpy(p, q, sizeof(Interval));
+        // memcpy(p, q, sizeof(Interval));
+        *p = *q;
 
         p->next() = i_new[1];
         p->start() = start[0];
@@ -755,9 +759,11 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
         interval_pointer current_interval = i_new[j];
 
         if (map[j] == OLD) {
-          memcpy(current_interval, &swap, sizeof(Interval));
+          // memcpy(current_interval, &swap, sizeof(Interval));
+          *current_interval = swap;
         } else {
-          memcpy(current_interval, q, sizeof(Interval));
+          // memcpy(current_interval, q, sizeof(Interval));
+          *current_interval = *q;
         }
 
         if (j == N - 1) {
