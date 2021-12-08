@@ -19,6 +19,8 @@ SET(SRCS
   surface/base_geometry_interface.cpp
   surface/intrinsic_geometry_interface.cpp
   surface/extrinsic_geometry_interface.cpp
+  surface/exact_geodesic_helpers.cpp
+  surface/exact_geodesics.cpp
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
@@ -90,6 +92,9 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/edge_length_geometry.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.ipp
   ${INCLUDE_ROOT}/surface/embedded_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/exact_geodesics.h
+  ${INCLUDE_ROOT}/surface/exact_geodesic_helpers.h
+  ${INCLUDE_ROOT}/surface/exact_geodesic_helpers.ipp
   ${INCLUDE_ROOT}/surface/exact_polyhedral_geodesics.h
   ${INCLUDE_ROOT}/surface/extrinsic_geometry_interface.h
   ${INCLUDE_ROOT}/surface/fast_marching_method.h
