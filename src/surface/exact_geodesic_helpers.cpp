@@ -237,6 +237,9 @@ bool SurfacePointWithIndex::operator()(SurfacePointWithIndex* x, SurfacePointWit
     case SurfacePointType::Face:
       return x->face.getIndex() < y->face.getIndex();
     }
+
+    GC_SAFETY_ASSERT(false, "this should be unreachable");
+    return false;
   }
 }
 
