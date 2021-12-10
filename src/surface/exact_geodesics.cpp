@@ -465,6 +465,50 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     bool const nonmanifold_left = !he.tailVertex().isManifoldAndOriented();
     bool const nonmanifold_right = !he.tipVertex().isManifoldAndOriented();
 
+    if (nonmanifold_left) {
+      IntervalWithStop candidate;
+      for (Halfedge heSpoke : he.tailVertex().outgoingHalfedges()) {
+        double L = geom.edgeLengths[heSpoke.edge()];
+        candidate.start() = 0;
+        candidate.stop() = L;
+        candidate.d() = min_interval->d() + sqrt(min_interval->pseudo_x() * min_interval->pseudo_x() +
+                                                 min_interval->pseudo_y() * min_interval->pseudo_y());
+        candidate.pseudo_x() = heSpoke.orientation() ? 0 : L;
+        candidate.pseudo_y() = 0;
+
+        candidate.next() = nullptr;
+        candidate.edge() = heSpoke.edge();
+        candidate.halfedge() = heSpoke;
+        candidate.direction() = Interval::DirectionType::FROM_HALFEDGE;
+        candidate.source_index() = min_interval->source_index();
+        candidate.min() = 0.0; // hopefully it will be changed later on
+
+        update_list_and_queue(interval_list(heSpoke.edge()), &candidate, 1);
+      }
+    }
+
+    if (nonmanifold_right) {
+      IntervalWithStop candidate;
+      for (Halfedge heSpoke : he.tipVertex().outgoingHalfedges()) {
+        double L = geom.edgeLengths[heSpoke.edge()];
+        candidate.start() = 0;
+        candidate.stop() = L;
+        candidate.d() = min_interval->d() + sqrt(min_interval->pseudo_x() * min_interval->pseudo_x() +
+                                                 min_interval->pseudo_y() * min_interval->pseudo_y());
+        candidate.pseudo_x() = heSpoke.orientation() ? 0 : L;
+        candidate.pseudo_y() = 0;
+
+        candidate.next() = nullptr;
+        candidate.edge() = heSpoke.edge();
+        candidate.halfedge() = heSpoke;
+        candidate.direction() = Interval::DirectionType::FROM_HALFEDGE;
+        candidate.source_index() = min_interval->source_index();
+        candidate.min() = 0.0; // hopefully it will be changed later on
+
+        update_list_and_queue(interval_list(heSpoke.edge()), &candidate, 1);
+      }
+    }
+
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
       Face face = neighboring_halfedge.face();
 
