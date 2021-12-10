@@ -43,7 +43,7 @@ A introductory talk on geometry-central was given at SGP 2020, check it out to g
 **Bindings & Plugins:**
 
 - **Python:** [Potpourri3d](https://github.com/nmwsharp/potpourri3d)
-- **Grasshopper/Rhino:** [Lionfish](https://www.food4rhino.com/app/lion-fish#comment-34610) by Math Whittaker
+- **Grasshopper/Rhino:** [Lionfish](https://www.food4rhino.com/app/lion-fish) by Math Whittaker
 
 If you're interested in creating additional bindings/plugins, feel free to reach out!
 
