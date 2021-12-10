@@ -122,11 +122,12 @@ long GeodesicAlgorithmExact::visible_from_source(SurfacePoint& point) // negativ
   switch (point.type) {
   case SurfacePointType::Vertex: {
     Vertex v = point.vertex;
-    for (Edge e : v.adjacentEdges()) {
+    for (Halfedge he : v.outgoingHalfedges()) {
+      Edge e = he.edge();
       list_pointer list = interval_list(e);
 
       double edgeLength = geom.edgeLengths[e];
-      double position = e.halfedge().tailVertex() == v ? 0.0 : edgeLength;
+      double position = he.orientation() ? 0.0 : edgeLength;
 
       interval_pointer interval = list->covering_interval(position);
       if (interval && interval->visible_from_source()) {
@@ -481,7 +482,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       Face gc_face = gc_he.face();
 
       // if we come from 1, go to 2
-      Edge gc_next_edge = (gc_he == he) ? gc_he.next().next().edge() : gc_he.next().edge();
+      Halfedge next_halfedge = (gc_he == he) ? gc_he.next().next() : gc_he.next();
+      Edge gc_next_edge = next_halfedge.edge();
       double next_edge_length = geom.edgeLengths[gc_next_edge];
       double corner_angle =
           (gc_he == he) ? geom.cornerAngles[gc_he.corner()] : geom.cornerAngles[gc_he.next().corner()];
@@ -504,7 +506,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
         // if the origins coinside, do not invert
         // intervals
-        bool const invert = gc_next_edge.halfedge().tailVertex() != he.tailVertex();
+        // bool const invert = gc_next_edge.halfedge().tailVertex() != he.tailVertex();
+        bool const invert =
+            (next_halfedge == gc_he.next().next()) ? next_halfedge.orientation() : !next_halfedge.orientation();
 
         construct_propagated_intervals(invert, // do not inverse
                                        gc_next_edge, gc_face, candidates, num_propagated, min_interval);
@@ -516,7 +520,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
         // propogation to the right edge
         double length = geom.edgeLengths[gc_edge];
 
-        gc_next_edge = (gc_he == he) ? gc_he.next().edge() : gc_he.next().next().edge();
+        next_halfedge = (gc_he == he) ? gc_he.next() : gc_he.next().next();
+        gc_next_edge = next_halfedge.edge();
 
         next_edge_length = geom.edgeLengths[gc_next_edge];
         corner_angle = (gc_he == he) ? geom.cornerAngles[gc_he.next().corner()] : geom.cornerAngles[gc_he.corner()];
@@ -533,7 +538,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
         if (num_propagated) {
           // if the origins coinside, do not invert intervals
-          bool const invert = gc_next_edge.halfedge().tailVertex() != he.tipVertex();
+          // bool const invert = gc_next_edge.halfedge().tailVertex() != he.tipVertex();
+          bool const invert =
+              (next_halfedge == gc_he.next().next()) ? next_halfedge.orientation() : !next_halfedge.orientation();
 
           construct_propagated_intervals(invert, // do not inverse
                                          gc_next_edge, gc_face, candidates, num_propagated, min_interval);
@@ -580,8 +587,8 @@ bool GeodesicAlgorithmExact::check_stop_conditions(unsigned& index) {
     Vertex v = m_stop_vertices[index].first;
     Edge edge = v.halfedge().edge(); // take any edge
 
-    double distance = edge.halfedge().tailVertex() == v ? interval_list(edge)->signal(0.0)
-                                                        : interval_list(edge)->signal(geom.edgeLengths[edge]);
+    double distance = v.halfedge().orientation() ? interval_list(edge)->signal(0.0)
+                                                 : interval_list(edge)->signal(geom.edgeLengths[edge]);
 
     if (queue_distance < distance + m_stop_vertices[index].second) {
       return false;
@@ -1034,11 +1041,12 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
   switch (point.type) {
   case SurfacePointType::Vertex: {
     Vertex v = point.vertex;
-    for (Edge e : v.adjacentEdges()) {
+    for (Halfedge he : v.outgoingHalfedges()) {
+      Edge e = he.edge();
       list_pointer list = interval_list(e);
 
       // double position = e->v0()->id() == v->id() ? 0.0 : e->length();
-      double position = e.halfedge().tailVertex() == v ? 0.0 : geom.edgeLengths[e];
+      double position = he.orientation() ? 0.0 : geom.edgeLengths[e];
 
       interval_pointer interval = list->covering_interval(position);
       if (interval) {
