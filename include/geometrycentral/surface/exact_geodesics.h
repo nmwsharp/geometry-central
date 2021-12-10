@@ -6,6 +6,7 @@
 #include "geometrycentral/surface/exact_geodesic_helpers.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 #include "geometrycentral/surface/manifold_surface_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 
 #include <assert.h>
@@ -17,11 +18,11 @@ namespace geometrycentral {
 namespace surface {
 
 // One-off function to compute distance from a vertex
-VertexData<double> exactGeodesicDistance(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v);
+VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v);
 
 class GeodesicAlgorithmExact {
 public:
-  GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_);
+  GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_);
   ~GeodesicAlgorithmExact(){};
 
   // propagation algorithm stops after reaching the certain distance from the
@@ -117,7 +118,7 @@ protected:
   std::vector<stop_vertex_with_distace_type> m_stop_vertices;
   double m_max_propagation_distance; // or reaching the certain distance
 
-  ManifoldSurfaceMesh& mesh;
+  SurfaceMesh& mesh;
   IntrinsicGeometryInterface& geom;
 
   double m_time_consumed;                // how much time does the propagation step takes

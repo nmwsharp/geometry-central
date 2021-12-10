@@ -6,13 +6,13 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<double> exactGeodesicDistance(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v) {
+VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v) {
   GeodesicAlgorithmExact mmp(mesh, geom);
   mmp.propagate({SurfacePoint(v)});
   return mmp.getDistanceFunction();
 }
 
-GeodesicAlgorithmExact::GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_)
+GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_)
     : m_max_propagation_distance(1e100), mesh(mesh_), geom(geom_), m_memory_allocator(mesh_.nEdges(), mesh_.nEdges()) {
 
   geom.requireEdgeLengths();
@@ -456,7 +456,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       geom.unrequireVertexGaussianCurvatures();
       // Also return true at nonmanifold vertices
       // TODO: this check is probably pretty expensive
-      return saddle || v.isBoundary() || !v.isManifold();
+      return saddle || v.isBoundary() || !v.isManifoldAndOriented();
     };
 
     bool const turn_left = saddleOrBoundary(he.tailVertex());
@@ -506,8 +506,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
         }
 
         // if the origins coinside, do not invert intervals
-        // TODO: check fails on a delta complex
-        bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tailVertex();
+        // bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tailVertex();
+        bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
+                                                                                  : !next_halfedge.orientation();
 
         construct_propagated_intervals(invert, // do not inverse
                                        next_halfedge, candidates, num_propagated, min_interval);
@@ -543,7 +544,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
         if (num_propagated) {
           // if the origins coinside, do not invert intervals
           // TODO: check fails on a delta complex
-          bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tipVertex();
+          // bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tipVertex();
+          bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
+                                                                                    : !next_halfedge.orientation();
 
           construct_propagated_intervals(invert, // do not inverse
                                          next_halfedge, candidates, num_propagated, min_interval);
