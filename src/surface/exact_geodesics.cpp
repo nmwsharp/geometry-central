@@ -98,11 +98,10 @@ void GeodesicAlgorithmExact::possible_traceback_edges(SurfacePoint& point, std::
     break;
   }
   case SurfacePointType::Edge: {
-    Halfedge he = point.edge.halfedge();
-    storage.push_back(he.next().edge());
-    storage.push_back(he.next().next().edge());
-    storage.push_back(he.twin().next().edge());
-    storage.push_back(he.twin().next().next().edge());
+    for (Halfedge he : point.edge.adjacentHalfedges()) {
+      storage.push_back(he.next().edge());
+      storage.push_back(he.next().next().edge());
+    }
     break;
   }
   case SurfacePointType::Face: {
@@ -396,7 +395,7 @@ void GeodesicAlgorithmExact::initialize_propagation_data() {
       candidate.initialize(geom, e, edge_length, source, i);
       candidate.stop() = edge_length;
       candidate.compute_min_distance(candidate.stop());
-      candidate.direction() = Interval::FROM_SOURCE;
+      candidate.direction() = Interval::DirectionType::FROM_SOURCE;
 
       update_list_and_queue(interval_list(e), &candidate, 1);
     }
@@ -439,9 +438,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
     interval_pointer min_interval = *m_queue.begin();
     m_queue.erase(m_queue.begin());
-    Edge gc_edge = min_interval->edge();
-    Halfedge he = gc_edge.halfedge();
-    list_pointer list = interval_list(gc_edge);
+    Edge edge = min_interval->edge();
+    Halfedge he = edge.halfedge();
+    list_pointer list = interval_list(edge);
     // std::cout << "\tprocessing edge " << edge->id() << std::endl;
     // std::cout << "\t\t with weight " << min_interval->min() << std::endl;
 
@@ -455,36 +454,40 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
       geom.unrequireVertexGaussianCurvatures();
-      return saddle || v.isBoundary();
+      // Also return true at nonmanifold vertices
+      // TODO: this check is probably pretty expensive
+      return saddle || v.isBoundary() || !v.isManifold();
     };
 
     bool const turn_left = saddleOrBoundary(he.tailVertex());
     bool const turn_right = saddleOrBoundary(he.tipVertex());
 
-    std::vector<Halfedge> adjacentHalfedges{he};
-    if (!gc_edge.isBoundary()) {
-      adjacentHalfedges.push_back(he.twin());
-    }
+    for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
+      Face face = neighboring_halfedge.face();
 
-    for (unsigned i = 0; i < adjacentHalfedges.size(); ++i) // two possible faces to propagate
-    {
-      if (!gc_edge.isBoundary()) // just in case, always propagate
-                                 // boundary edges
-      {
-        if ((i == 0 && min_interval->direction() == Interval::FROM_FACE_0) ||
-            (i == 1 && min_interval->direction() == Interval::FROM_FACE_1)) {
-          continue;
-        }
+      // just in case, always propagate boundary edges
+      if (!edge.isBoundary()) {
+        // Don't propagate in the direction that you came from
+        if (neighboring_halfedge == min_interval->halfedge()) continue;
+        // if ((i == 0 && min_interval->direction() == Interval::DirectionType::FROM_FACE_0) ||
+        //     (i == 1 && min_interval->direction() == Interval::DirectionType::FROM_FACE_1)) {
+        //   continue;
+        // }
       }
 
-      Halfedge gc_he = adjacentHalfedges[i];
-      Face gc_face = gc_he.face();
 
       // if we come from 1, go to 2
-      Edge gc_next_edge = (gc_he == he) ? gc_he.next().next().edge() : gc_he.next().edge();
-      double next_edge_length = geom.edgeLengths[gc_next_edge];
-      double corner_angle =
-          (gc_he == he) ? geom.cornerAngles[gc_he.corner()] : geom.cornerAngles[gc_he.next().corner()];
+      // Edge next_edge = (neighboring_halfedge.orientation() == he.orientation()) ?
+      // neighboring_halfedge.next().next().edge() : neighboring_halfedge.next().edge();
+      Halfedge next_halfedge = (neighboring_halfedge.orientation() == he.orientation())
+                                   ? neighboring_halfedge.next().next()
+                                   : neighboring_halfedge.next();
+      Edge next_edge = next_halfedge.edge();
+
+      double next_edge_length = geom.edgeLengths[next_edge];
+      double corner_angle = (neighboring_halfedge.orientation() == he.orientation())
+                                ? geom.cornerAngles[neighboring_halfedge.corner()]
+                                : geom.cornerAngles[neighboring_halfedge.next().corner()];
 
       unsigned num_propagated = compute_propagated_parameters(min_interval->pseudo_x(), min_interval->pseudo_y(),
                                                               min_interval->d(), // parameters of the interval
@@ -502,24 +505,30 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
           propagate_to_right = false;
         }
 
-        // if the origins coinside, do not invert
-        // intervals
-        bool const invert = gc_next_edge.halfedge().tailVertex() != he.tailVertex();
+        // if the origins coinside, do not invert intervals
+        // TODO: check fails on a delta complex
+        bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tailVertex();
 
         construct_propagated_intervals(invert, // do not inverse
-                                       gc_next_edge, gc_face, candidates, num_propagated, min_interval);
+                                       next_halfedge, candidates, num_propagated, min_interval);
 
-        update_list_and_queue(interval_list(gc_next_edge), candidates, num_propagated);
+        update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
       }
 
       if (propagate_to_right) {
         // propogation to the right edge
-        double length = geom.edgeLengths[gc_edge];
+        double length = geom.edgeLengths[edge];
 
-        gc_next_edge = (gc_he == he) ? gc_he.next().edge() : gc_he.next().next().edge();
+        // next_edge = (neighboring_halfedge.orientation() == he.orientation()) ? neighboring_halfedge.next().edge()
+        // : neighboring_halfedge.next().next().edge();
+        next_halfedge = (neighboring_halfedge.orientation() == he.orientation()) ? neighboring_halfedge.next()
+                                                                                 : neighboring_halfedge.next().next();
+        next_edge = next_halfedge.edge();
 
-        next_edge_length = geom.edgeLengths[gc_next_edge];
-        corner_angle = (gc_he == he) ? geom.cornerAngles[gc_he.next().corner()] : geom.cornerAngles[gc_he.corner()];
+        next_edge_length = geom.edgeLengths[next_edge];
+        corner_angle = (neighboring_halfedge.orientation() == he.orientation())
+                           ? geom.cornerAngles[neighboring_halfedge.next().corner()]
+                           : geom.cornerAngles[neighboring_halfedge.corner()];
 
         num_propagated = compute_propagated_parameters(length - min_interval->pseudo_x(), min_interval->pseudo_y(),
                                                        min_interval->d(), // parameters of the interval
@@ -533,12 +542,13 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
         if (num_propagated) {
           // if the origins coinside, do not invert intervals
-          bool const invert = gc_next_edge.halfedge().tailVertex() != he.tipVertex();
+          // TODO: check fails on a delta complex
+          bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tipVertex();
 
           construct_propagated_intervals(invert, // do not inverse
-                                         gc_next_edge, gc_face, candidates, num_propagated, min_interval);
+                                         next_halfedge, candidates, num_propagated, min_interval);
 
-          update_list_and_queue(interval_list(gc_next_edge), candidates, num_propagated);
+          update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
         }
       }
     }
@@ -598,8 +608,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
                                                    unsigned num_candidates) {
   assert(num_candidates <= 2);
   // assert(list->first() != nullptr);
-  Edge gc_edge = list->edge();
-  double edge_length = geom.edgeLengths[gc_edge];
+  Edge edge = list->edge();
+  double edge_length = geom.edgeLengths[edge];
   double const local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
 
   if (list->first() == nullptr) {
@@ -627,7 +637,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 
     if (first->start() > 0.0) {
       *p = m_memory_allocator.allocate();
-      (*p)->initialize(geom, gc_edge, edge_length);
+      (*p)->initialize(geom, edge, edge_length);
       p = &(*p)->next();
     }
 
@@ -647,7 +657,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
     if (second->stop() < edge_length) {
       p = &(*p)->next();
       *p = m_memory_allocator.allocate();
-      (*p)->initialize(geom, gc_edge, edge_length);
+      (*p)->initialize(geom, edge, edge_length);
       (*p)->start() = second->stop();
     } else {
       (*p)->next() = nullptr;
@@ -904,13 +914,15 @@ unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
   }
 }
 
-void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc_edge,
-                                                            Face gc_face, // constructs iNew from the rest of the data
+void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Halfedge halfedge,
                                                             IntervalWithStop* candidates,
                                                             unsigned& num_candidates, // up to two candidates
                                                             interval_pointer source_interval) {
+  // constructs iNew from the rest of the data
 
-  double edge_length = geom.edgeLengths[gc_edge];
+  Edge edge = halfedge.edge();
+
+  double edge_length = geom.edgeLengths[edge];
   double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
 
   // kill very small intervals in order to avoid precision problems
@@ -956,8 +968,7 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
 
   // invert intervals if necessary; fill missing data and set pointers
   // correctly
-  Interval::DirectionType direction =
-      (gc_face == gc_edge.halfedge().face()) ? Interval::FROM_FACE_0 : Interval::FROM_FACE_1;
+  Interval::DirectionType direction = Interval::DirectionType::FROM_HALFEDGE;
 
   if (!invert) // in this case everything is straighforward, we do not have to
                // invert the intervals
@@ -966,7 +977,8 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
       IntervalWithStop* p = candidates + i;
 
       p->next() = (i == num_candidates - 1) ? nullptr : candidates + i + 1;
-      p->edge() = gc_edge;
+      p->edge() = edge;
+      p->halfedge() = halfedge;
       p->edge_length() = edge_length;
       p->direction() = direction;
       p->source_index() = source_interval->source_index();
@@ -981,7 +993,8 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
       IntervalWithStop* p = candidates + i;
 
       p->next() = (i == 0) ? nullptr : candidates + i - 1;
-      p->edge() = gc_edge;
+      p->edge() = edge;
+      p->halfedge() = halfedge;
       p->edge_length() = edge_length;
       p->direction() = direction;
       p->source_index() = source_interval->source_index();
@@ -1157,20 +1170,20 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
       source_index = interval->source_index();
 
 
-      Edge gc_edge = interval->edge();
-      Halfedge gc_he = gc_edge.halfedge();
-      double edge_length = geom.edgeLengths[gc_edge];
+      Edge edge = interval->edge();
+      Halfedge he = edge.halfedge();
+      double edge_length = geom.edgeLengths[edge];
 
       double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
       if (position < local_epsilon) {
-        Vertex v = gc_he.tailVertex();
+        Vertex v = he.tailVertex();
         path.push_back(SurfacePoint(v));
       } else if (position > edge_length - local_epsilon) {
-        Vertex v = gc_he.tipVertex();
+        Vertex v = he.tipVertex();
         path.push_back(SurfacePoint(v));
       } else {
         double normalized_position = position / edge_length;
-        path.push_back(SurfacePoint(gc_edge, normalized_position));
+        path.push_back(SurfacePoint(edge, normalized_position));
       }
     }
   }

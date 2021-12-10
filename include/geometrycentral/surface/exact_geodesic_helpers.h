@@ -41,7 +41,7 @@ public:
   Interval(){};
   ~Interval(){};
 
-  enum DirectionType { FROM_FACE_0, FROM_FACE_1, FROM_SOURCE, UNDEFINED_DIRECTION };
+  enum class DirectionType { FROM_HALFEDGE, FROM_SOURCE, UNDEFINED_DIRECTION };
 
   // geodesic distance function at point x
   double signal(double x);
@@ -69,9 +69,10 @@ public:
   double& min() { return m_min; };
   interval_pointer& next() { return m_next; };
   Edge& edge() { return m_edge; };
+  Halfedge& halfedge() { return m_halfedge; };
   double& edge_length() { return m_edge_length; };
   DirectionType& direction() { return m_direction; };
-  bool visible_from_source() { return m_direction == FROM_SOURCE; };
+  bool visible_from_source() { return m_direction == DirectionType::FROM_SOURCE; };
   unsigned& source_index() { return m_source_index; };
 
   void initialize(IntrinsicGeometryInterface& geom, Edge edge, double edge_length, SurfacePoint* point = nullptr,
@@ -85,8 +86,10 @@ protected:
   double m_pseudo_y; // y-coordinate should be always negative
   double m_min;      // minimum distance on the interval
 
-  interval_pointer m_next;   // pointer to the next interval in the list
-  Edge m_edge;               // edge that the interval belongs to
+  interval_pointer m_next; // pointer to the next interval in the list
+  Edge m_edge;             // edge that the interval belongs to
+  Halfedge m_halfedge;     // halfedge indicating which direction the interval comes from (only set if DirectionType is
+                           // FROM_HALFEDGE)
   double m_edge_length = -1; // length of m_edge
   unsigned m_source_index;   // the source it belongs to
   DirectionType m_direction; // where the interval is coming from
