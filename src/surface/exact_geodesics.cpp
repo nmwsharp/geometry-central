@@ -496,8 +496,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
                                                               corner_angle,         // corner angle
                                                               next_edge_length,     // length of the new edge
                                                               first_interval, // if it is the first interval on the edge
-                                                              last_interval, turn_left, turn_right,
-                                                              candidates); // if it is the last interval on the edge
+                                                              last_interval,  // if it is the last interval on the edge
+                                                              turn_left, turn_right, candidates);
       bool propagate_to_right = true;
 
       if (num_propagated) {
@@ -510,8 +510,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
         bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
                                                                                   : !next_halfedge.orientation();
 
-        construct_propagated_intervals(invert, // do not inverse
-                                       next_halfedge, candidates, num_propagated, min_interval);
+        // invert: do not inverse
+        construct_propagated_intervals(invert, next_halfedge, candidates, num_propagated, min_interval);
 
         update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
       }
@@ -543,13 +543,12 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
         if (num_propagated) {
           // if the origins coinside, do not invert intervals
-          // TODO: check fails on a delta complex
           // bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tipVertex();
           bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
                                                                                     : !next_halfedge.orientation();
 
-          construct_propagated_intervals(invert, // do not inverse
-                                         next_halfedge, candidates, num_propagated, min_interval);
+          // invert: do not inverse
+          construct_propagated_intervals(invert, next_halfedge, candidates, num_propagated, min_interval);
 
           update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
         }
@@ -815,17 +814,16 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
   }
 }
 
-unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
-    double pseudo_x, double pseudo_y,
-    double d, // parameters of the interval
-    double begin,
-    double end,          // start/end of the interval
-    double alpha,        // corner angle
-    double L,            // length of the new edge
-    bool first_interval, // if it is the first interval on the edge
-    bool last_interval, bool turn_left, bool turn_right,
-    IntervalWithStop* candidates) // if it is the last interval on the edge
-{
+unsigned
+GeodesicAlgorithmExact::compute_propagated_parameters(double pseudo_x, double pseudo_y,
+                                                      double d, // parameters of the interval
+                                                      double begin,
+                                                      double end,          // start/end of the interval
+                                                      double alpha,        // corner angle
+                                                      double L,            // length of the new edge
+                                                      bool first_interval, // if it is the first interval on the edge
+                                                      bool last_interval,  // if it is the last interval on the edge
+                                                      bool turn_left, bool turn_right, IntervalWithStop* candidates) {
   assert(pseudo_y <= 0.0);
   assert(d < GEODESIC_INF / 10.0);
   assert(begin <= end);
@@ -833,8 +831,8 @@ unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
 
   IntervalWithStop* p = candidates;
 
-  if (std::abs(pseudo_y) <= 1e-30) // pseudo-source is on the edge
-  {
+  // pseudo-source is on the edge
+  if (std::abs(pseudo_y) <= 1e-30) {
     if (first_interval && pseudo_x <= 0.0) {
       p->start() = 0.0;
       p->stop() = L;
