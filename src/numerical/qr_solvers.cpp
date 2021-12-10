@@ -8,9 +8,6 @@
 #include <cholmod.h>
 #endif
 
-
-using namespace Eigen;
-
 namespace geometrycentral {
 
 template <typename T>
