@@ -457,11 +457,13 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       geom.unrequireVertexGaussianCurvatures();
       // Also return true at nonmanifold vertices
       // TODO: this check is probably pretty expensive
-      return saddle || v.isBoundary() || !v.isManifoldAndOriented();
+      return saddle || v.isBoundary();
     };
 
     bool const turn_left = saddleOrBoundary(he.tailVertex());
     bool const turn_right = saddleOrBoundary(he.tipVertex());
+    bool const nonmanifold_left = !he.tailVertex().isManifoldAndOriented();
+    bool const nonmanifold_right = !he.tipVertex().isManifoldAndOriented();
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
       Face face = neighboring_halfedge.face();
@@ -670,8 +672,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 
   bool propagate_flag;
 
-  for (unsigned i = 0; i < num_candidates; ++i) // for all new intervals
-  {
+  // for all new intervals
+  for (unsigned i = 0; i < num_candidates; ++i) {
     IntervalWithStop* q = &candidates[i];
 
     interval_pointer previous = nullptr;
@@ -683,14 +685,13 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       p = p->next();
     }
 
-    while (p != nullptr && p->start() < q->stop() - local_epsilon) // go through all old intervals
-    {
+    // go through all old intervals
+    while (p != nullptr && p->start() < q->stop() - local_epsilon) {
       unsigned const N = intersect_intervals(p, q); // interset two intervals
 
       if (N == 1) {
-        if (map[0] == OLD) // if "p" is always better, we do not need to
-                           // update anything)
-        {
+        // if "p" is always better, we do not need to update anything
+        if (map[0] == OLD) {
           if (previous) // close previous interval and put in into the
                         // queue
           {
@@ -864,8 +865,8 @@ GeodesicAlgorithmExact::compute_propagated_parameters(double pseudo_x, double ps
   double cos_alpha = cos(alpha);
 
   // important: for the first_interval, this function returns zero only if the
-  // new edge is "visible" from the source if the new edge can be covered only
-  // after turn_over, the value is negative (-1.0)
+  // new edge is "visible" from the source.
+  // if the new edge can be covered only after turn_over, the value is negative (-1.0)
   double L1 = compute_positive_intersection(begin, pseudo_x, pseudo_y, sin_alpha, cos_alpha);
 
   if (L1 < 0 || L1 >= L) {
