@@ -81,8 +81,7 @@ public:
 protected:
   double m_start;    // initial point of the interval on the edge
   double m_d;        // distance from the source to the pseudo-source
-  double m_pseudo_x; // coordinates of the pseudo-source in the local
-                     // coordinate system
+  double m_pseudo_x; // coordinates of the pseudo-source in the local coordinate system
   double m_pseudo_y; // y-coordinate should be always negative
   double m_min;      // minimum distance on the interval
 
