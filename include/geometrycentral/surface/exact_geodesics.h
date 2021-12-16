@@ -130,7 +130,7 @@ protected:
   MemoryAllocator<Interval> m_memory_allocator; // quickly allocate and deallocate intervals
   EdgeData<IntervalList> m_edge_interval_lists; // every edge has its interval data
 
-  enum MapType { OLD, NEW }; // used for interval intersection
+  enum class MapType { OLD, NEW }; // used for interval intersection
   MapType map[5];
   double start[6];
   interval_pointer i_new[5];
