@@ -454,18 +454,18 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     bool const turn_left = saddleOrBoundary(he.tailVertex());
     bool const turn_right = saddleOrBoundary(he.tipVertex());
 
-    auto propagateNonmanifoldVertex = [&](Vertex v) {
-      // return;
+    auto propagateNonmanifoldVertex = [&](Vertex v, bool isTailVertex) {
       IntervalWithStop candidate;
+      double Le = geom.edgeLengths[min_interval->edge()];
+      double dx = isTailVertex ? min_interval->pseudo_x() : Le - min_interval->pseudo_x();
+      double dy = min_interval->pseudo_y();
+      double source_d = min_interval->d() + sqrt(dx * dx + dy * dy);
+
       for (Halfedge heSpoke : v.outgoingHalfedges()) {
         double L = geom.edgeLengths[heSpoke.edge()];
-
-        double dx = heSpoke.orientation() ? min_interval->pseudo_x() : L - min_interval->pseudo_x();
-        double dy = min_interval->pseudo_y();
-
         candidate.start() = 0;
         candidate.stop() = L;
-        candidate.d() = min_interval->d() + sqrt(dx * dx + dy * dy);
+        candidate.d() = source_d;
         candidate.pseudo_x() = heSpoke.orientation() ? 0 : L;
         candidate.pseudo_y() = 0;
 
@@ -482,10 +482,10 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     };
 
     if (!vertexIsManifold[he.tailVertex()]) {
-      propagateNonmanifoldVertex(he.tailVertex());
+      propagateNonmanifoldVertex(he.tailVertex(), true);
     }
     if (!vertexIsManifold[he.tipVertex()]) {
-      propagateNonmanifoldVertex(he.tipVertex());
+      propagateNonmanifoldVertex(he.tipVertex(), false);
     }
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
