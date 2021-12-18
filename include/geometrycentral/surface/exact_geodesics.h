@@ -5,7 +5,6 @@
 
 #include "geometrycentral/surface/exact_geodesic_helpers.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
-#include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 
