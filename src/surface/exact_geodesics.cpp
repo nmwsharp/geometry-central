@@ -23,6 +23,7 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeom
   }
 
   // TODO: hack for testing if mesh is a ManifoldSurfaceMesh. Maybe we should check something else instead
+  // Alternatively, add a method to SurfaceMesh which will produce this VertexData
   if (mesh.usesImplicitTwin()) {
     vertexIsManifold = VertexData<bool>(mesh, true);
   } else {
