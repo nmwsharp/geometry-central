@@ -1184,14 +1184,12 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
       Edge edge = interval->edge();
       Halfedge he = edge.halfedge();
       double edge_length = geom.edgeLengths[edge];
-
       double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
+
       if (position < local_epsilon) {
-        Vertex v = he.tailVertex();
-        path.push_back(SurfacePoint(v));
+        path.push_back(SurfacePoint(he.tailVertex()));
       } else if (position > edge_length - local_epsilon) {
-        Vertex v = he.tipVertex();
-        path.push_back(SurfacePoint(v));
+        path.push_back(SurfacePoint(he.tipVertex()));
       } else {
         double normalized_position = position / edge_length;
         path.push_back(SurfacePoint(edge, normalized_position));
