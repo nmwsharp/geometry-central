@@ -139,6 +139,8 @@ protected:
   size_t m_iterations;     // used for statistics
 
   SortedSources m_sources;
+
+  VertexData<bool> vertexIsManifold;
 };
 
 } // namespace surface
