@@ -6,7 +6,7 @@ Note that distance depends on the _intrinsic_ geometry of a surface (via the `In
 
 These routines use [Danil Kirsanov's implementation](https://code.google.com/archive/p/geodesic/) of the [MMP algorithm for exact polyhedral geodesic distance](https://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Mitchell87.pdf) to compute geodesic distance (and geodesic paths) along a surface.
 
-This class requires that the input be a manifold triangle mesh, but relies only on the intrinsic geometry (represented by edge lengths).
+This class supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function. 
 
 `#include "geometrycentral/surface/exact_geodesics.h"`
 
@@ -21,9 +21,9 @@ Example
 #include "geometrycentral/surface/meshio.h"
 
 // Load a mesh
-std::unique_ptr<ManifoldSurfaceMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
-std::tie(mesh, geometry) = readManifoldSurfaceMesh(filename);
+std::tie(mesh, geometry) = readSurfaceMesh(filename);
 
 // Pick a vertex
 Vertex sourceVert = /* some vertex */
@@ -33,7 +33,7 @@ VertexData<double> distToSource = exactGeodesicDistance(*mesh, *geometry, source
 /* do something useful */
 ```
 
-??? func "`#!cpp VertexData<double> exactGeodesicDistance(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v)`"
+??? func "`#!cpp VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v)`"
 
     Compute the distance from the source using MMP. See the stateful class below for further options.
     
@@ -41,7 +41,7 @@ VertexData<double> distToSource = exactGeodesicDistance(*mesh, *geometry, source
 
 The stateful class `GeodesicAlgorithmExact` runs the MMP algorithm to compute geodesic distance from a given set of source points. The resulting distance field can be queried at any point on the input mesh to find the identity of the nearest source point, the distance to the source point, and the shortest path to the source point.
 
-Both the source points and query point are represented as `SurfacePoints` (see [here](../../utilities/surface_point/)), i.e. locations on a surface, which may be a vertex, a point along an edge, or a point inside a face.
+Both the source points and query point are represented as `SurfacePoints` (see [here](../../utilities/surface_point/)), i.e. locations on a surface which may be a vertex, a point along an edge, or a point inside a face.
 
 Note that unlike the [heat method](#heat-method-for-distance), this precomputation does not speed up future distance computations using different sets of source points.
 
@@ -51,9 +51,9 @@ Example:
 #include "geometrycentral/surface/meshio.h"
 
 // Load a mesh
-std::unique_ptr<ManifoldSurfaceMesh> mesh;
+std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> geometry;
-std::tie(mesh, geometry) = readManifoldSurfaceMesh(filename);
+std::tie(mesh, geometry) = readSurfaceMesh(filename);
 
 // Create the GeodesicAlgorithmExact
 GeodesicAlgorithmExact mmp(*mesh, *geometry);
@@ -87,7 +87,7 @@ std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 ```
 
 
-??? func "`#!cpp GeodesicAlgorithmExact::GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom)`"
+??? func "`#!cpp GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom)`"
 
     Creates a new solver, but does not do any computation
 
@@ -151,7 +151,7 @@ TODO document `exact_polyhedral_geodesics.h`
 
 These routines implement the [Heat Method for Geodesic Distance](http://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/paper.pdf). This algorithm uses short time heat flow to compute distance on surfaces. Because the main burden is simply solving linear systems of equations, it tends to be faster than polyhedral schemes, especially when computing distance multiple times on the same surface.  In the computational geometry sense, this method is an approximation, as the result is not precisely equal to the polyhedral distance on the surface; nonetheless it is fast and well-suited for many applications.
 
-This class supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function. Furthermore, it can optionally use robust operators internally to improve performance on low-quality meshes.
+This class also supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function. Furthermore, it can optionally use robust operators internally to improve performance on low-quality meshes.
 
 `#include "geometrycentral/surface/heat_method_distance.h"`
 
