@@ -1,9 +1,9 @@
 #pragma once
 
+#include "geometrycentral/numerical/linear_algebra_types.h"
 #include "geometrycentral/surface/halfedge_element_types.h"
 #include "geometrycentral/utilities/mesh_data.h"
 #include "geometrycentral/utilities/utilities.h"
-#include "geometrycentral/numerical/linear_algebra_types.h"
 
 #include <list>
 #include <memory>
@@ -46,7 +46,8 @@ public:
   // The output will preserve the ordering of vertices and faces.
   SurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
 
-  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer type.
+  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer
+  // type.
   template <typename T>
   SurfaceMesh(const Eigen::MatrixBase<T>& triangles);
 
@@ -117,13 +118,17 @@ public:
   virtual bool isEdgeManifold();
   virtual bool isOriented();
   void printStatistics() const; // print info about element counts to std::cout
-  
+
+  virtual VertexData<bool> getVertexManifoldStatus();
+  virtual EdgeData<bool> getEdgeManifoldStatus();
+  virtual EdgeData<bool> getEdgeOrientedStatus();
+
   // Mesh helper utilities
   Edge connectingEdge(Vertex vA, Vertex vB); // an edge from vA -- vB if one exists; Edge() otherwise
 
   // Get representations of the face vertex indices
   std::vector<std::vector<size_t>> getFaceVertexList();
-  template<typename T>
+  template <typename T>
   DenseMatrix<T> getFaceVertexMatrix(); // all faces must have same degree
 
   std::unique_ptr<SurfaceMesh> copy() const;

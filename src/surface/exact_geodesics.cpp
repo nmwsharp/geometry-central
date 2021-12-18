@@ -22,16 +22,8 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeom
     m_edge_interval_lists[e].initialize(e);
   }
 
-  // TODO: hack for testing if mesh is a ManifoldSurfaceMesh. Maybe we should check something else instead
-  // Alternatively, add a method to SurfaceMesh which will produce this VertexData
-  if (mesh.usesImplicitTwin()) {
-    vertexIsManifold = VertexData<bool>(mesh, true);
-  } else {
-    vertexIsManifold = VertexData<bool>(mesh);
-    for (Vertex v : mesh.vertices()) {
-      vertexIsManifold[v] = v.isManifold();
-    }
-  }
+  // Cache vertex manifold status so we don't have to repeatedly check vertices
+  vertexIsManifold = mesh.getVertexManifoldStatus();
 };
 
 // == Adapters for various input types
