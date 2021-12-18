@@ -235,31 +235,6 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(interval_pointer zero, Inte
   assert(zero->stop() > one->start() && zero->start() < one->stop());
   assert(one->min() < GEODESIC_INF / 10.0);
 
-
-  bool verbose = false;
-  if (verbose) {
-    std::cout << "Intersecting intervals: " << std::endl;
-    std::cout << "  iZero: " << std::endl;
-    std::cout << "     edge: " << zero->edge() << std::endl;
-    std::cout << "      len: " << geom.edgeLengths[zero->edge()] << std::endl;
-    std::cout << "    start: " << zero->start() << std::endl;
-    std::cout << "     stop: " << zero->stop() << std::endl;
-    std::cout << "        d: " << zero->d() << std::endl;
-    std::cout << "       px: " << zero->pseudo_x() << std::endl;
-    std::cout << "       py: " << zero->pseudo_y() << std::endl;
-    std::cout << "      min: " << zero->min() << std::endl;
-    std::cout << "  iOne: " << std::endl;
-    std::cout << "     edge: " << one->edge() << std::endl;
-    std::cout << "      len: " << geom.edgeLengths[one->edge()] << std::endl;
-    std::cout << "    start: " << one->start() << std::endl;
-    std::cout << "     stop: " << one->stop() << std::endl;
-    std::cout << "        d: " << one->d() << std::endl;
-    std::cout << "       px: " << one->pseudo_x() << std::endl;
-    std::cout << "       py: " << one->pseudo_y() << std::endl;
-    std::cout << "      min: " << one->min() << std::endl;
-    std::cout << std::endl;
-  }
-
   double const local_epsilon = SMALLEST_INTERVAL_RATIO * one->edge_length();
 
   unsigned N = 0;
@@ -338,14 +313,6 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(interval_pointer zero, Inte
         Ninter = 1;
       }
     }
-  }
-
-  if (verbose) {
-    std::cout << "  Ninter = " << Ninter << std::endl;
-    for (int i = 0; i < Ninter; i++) {
-      std::cout << "   " << inter[i] << std::endl;
-    }
-    std::cout << std::endl;
   }
 
   //-----------------------find possible intervals-------------------------------
@@ -516,13 +483,11 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       }
     };
 
-    if (true) {
-      if (!vertexIsManifold[he.tailVertex()]) {
-        propagateNonmanifoldVertex(he.tailVertex());
-      }
-      if (!vertexIsManifold[he.tipVertex()]) {
-        propagateNonmanifoldVertex(he.tipVertex());
-      }
+    if (!vertexIsManifold[he.tailVertex()]) {
+      propagateNonmanifoldVertex(he.tailVertex());
+    }
+    if (!vertexIsManifold[he.tipVertex()]) {
+      propagateNonmanifoldVertex(he.tipVertex());
     }
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
@@ -1212,10 +1177,6 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
       double total_distance;
       double position;
 
-      // bool verbose = (q.gcPoint.edge == mesh.edge(24655) ||
-      //                 q.gcPoint.edge == mesh.edge(24656));
-      // bool verbose = 2 < path.size() && path.size() < 5;
-      bool verbose = false;
       best_point_on_the_edge_set(q, possible_edges, interval, total_distance, position);
       // std::cout << total_distance + length(path) << std::endl;
       assert(total_distance < GEODESIC_INF);
