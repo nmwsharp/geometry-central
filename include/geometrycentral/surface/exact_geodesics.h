@@ -72,10 +72,9 @@ protected:
                                          bool last_interval, bool turn_left, bool turn_right,
                                          IntervalWithStop* candidates); // if it is the last interval on the edge
 
-  void construct_propagated_intervals(bool invert, Edge gc_edge,
-                                      Face gc_face, // constructs iNew from the rest of the data
-                                      IntervalWithStop* candidates, unsigned& num_candidates,
-                                      interval_pointer source_interval);
+  void construct_propagated_intervals(bool invert, Halfedge halfedge, IntervalWithStop* candidates,
+                                      unsigned& num_candidates, interval_pointer source_interval);
+  // constructs iNew from the rest of the data
 
   double compute_positive_intersection(double start, double pseudo_x, double pseudo_y, double sin_alpha,
                                        double cos_alpha); // used in construct_propagated_intervals
