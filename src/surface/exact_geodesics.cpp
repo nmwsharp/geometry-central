@@ -21,6 +21,16 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeom
   for (Edge e : mesh.edges()) {
     m_edge_interval_lists[e].initialize(e);
   }
+
+  // TODO: hack for testing if mesh is a ManifoldSurfaceMesh. Maybe we should check something else instead
+  if (mesh.usesImplicitTwin()) {
+    vertexIsManifold = VertexData<bool>(mesh, true);
+  } else {
+    vertexIsManifold = VertexData<bool>(mesh);
+    for (Vertex v : mesh.vertices()) {
+      vertexIsManifold[v] = v.isManifold();
+    }
+  }
 };
 
 // == Adapters for various input types
@@ -513,13 +523,13 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       }
     };
 
-    // if (!he.tailVertex().isManifoldAndOriented()) {
-    if (!he.tailVertex().isManifold()) {
-      propagateNonmanifoldVertex(he.tailVertex());
-    }
-    // if (!he.tipVertex().isManifoldAndOriented()) {
-    if (!he.tipVertex().isManifold()) {
-      propagateNonmanifoldVertex(he.tipVertex());
+    if (true) {
+      if (!vertexIsManifold[he.tailVertex()]) {
+        propagateNonmanifoldVertex(he.tailVertex());
+      }
+      if (!vertexIsManifold[he.tipVertex()]) {
+        propagateNonmanifoldVertex(he.tipVertex());
+      }
     }
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
