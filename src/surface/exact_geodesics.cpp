@@ -448,8 +448,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
       geom.unrequireVertexGaussianCurvatures();
-      // Also return true at nonmanifold vertices
-      // TODO: this check is probably pretty expensive
       return saddle || v.isBoundary();
     };
 
