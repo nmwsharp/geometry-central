@@ -531,6 +531,10 @@ bool ManifoldSurfaceMesh::isManifold() { return true; }
 bool ManifoldSurfaceMesh::isEdgeManifold() { return true; }
 bool ManifoldSurfaceMesh::isOriented() { return true; }
 
+VertexData<bool> ManifoldSurfaceMesh::getVertexManifoldStatus() { return VertexData<bool>(*this, true); }
+EdgeData<bool> ManifoldSurfaceMesh::getEdgeManifoldStatus() { return EdgeData<bool>(*this, true); }
+EdgeData<bool> ManifoldSurfaceMesh::getEdgeOrientedStatus() { return EdgeData<bool>(*this, true); }
+
 
 // ==========================================================
 // ================        Mutation        ==================
