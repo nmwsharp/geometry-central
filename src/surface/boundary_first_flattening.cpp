@@ -5,22 +5,26 @@ namespace surface {
 
 VertexData<Vector2> parameterizeBFF(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geo) {
   BFF bff(mesh, geo);
-  return bff.flattenMAD();
+  return bff.flatten();
 }
 
 VertexData<Vector2> parameterizeBFFfromScaleFactors(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geo,
                                                     const VertexData<double>& boundaryScaleFactors) {
   BFF bff(mesh, geo);
-  return bff.flattenFromU(boundaryScaleFactors);
+  return bff.flattenFromScaleFactors(boundaryScaleFactors);
 }
 
 VertexData<Vector2> parameterizeBFFfromExteriorAngles(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geo,
                                                       const VertexData<double>& exteriorAngles) {
   BFF bff(mesh, geo);
-  return bff.flattenFromK(exteriorAngles);
+  return bff.flattenFromExteriorAngles(exteriorAngles);
 }
 
 BFF::BFF(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geo_) : mesh(mesh_), geo(geo_) {
+
+  GC_SAFETY_ASSERT(mesh.eulerCharacteristic() == 2 && mesh.nBoundaryLoops() == 1,
+                   "Input to BFF must be a topological disk");
+
   vIdx = mesh.getVertexIndices();
   iIdx = VertexData<int>(mesh, -1);
   bIdx = VertexData<int>(mesh, -1);
@@ -69,12 +73,12 @@ BFF::BFF(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geo_) : mesh(me
   }
 }
 
-VertexData<Vector2> BFF::flattenMAD() {
+VertexData<Vector2> BFF::flatten() {
   VertexData<double> u(mesh, 0);
-  return flattenFromU(u);
+  return flattenFromScaleFactors(u);
 }
 
-VertexData<Vector2> BFF::flattenFromU(const VertexData<double>& uData) {
+VertexData<Vector2> BFF::flattenFromScaleFactors(const VertexData<double>& uData) {
   // Extract boundary values
   Vector<double> uBdy, ignore;
   decomposeVector(Ldecomp, uData.toVector(), ignore, uBdy);
@@ -83,10 +87,10 @@ VertexData<Vector2> BFF::flattenFromU(const VertexData<double>& uData) {
   Vector<double> kBdy = dirichletToNeumann(uBdy);
 
   // Flatten
-  return flattenFromUK(uBdy, kBdy);
+  return flattenFromBoth(uBdy, kBdy);
 }
 
-VertexData<Vector2> BFF::flattenFromK(const VertexData<double>& kData) {
+VertexData<Vector2> BFF::flattenFromExteriorAngles(const VertexData<double>& kData) {
   // Extract boundary values
   Vector<double> kBdy, ignore;
   decomposeVector(Ldecomp, kData.toVector(), ignore, kBdy);
@@ -99,10 +103,10 @@ VertexData<Vector2> BFF::flattenFromK(const VertexData<double>& kData) {
   Vector<double> uBdy = neumannToDirichlet(kBdy);
 
   // Flatten
-  return flattenFromUK(uBdy, kBdy);
+  return flattenFromBoth(uBdy, kBdy);
 }
 
-VertexData<Vector2> BFF::flattenFromUK(const Vector<double>& uBdy, const Vector<double>& kBdy) {
+VertexData<Vector2> BFF::flattenFromBoth(const Vector<double>& uBdy, const Vector<double>& kBdy) {
 
   Vector<double> boundaryX, boundaryY;
   std::tie(boundaryX, boundaryY) = tuple_cat(computeBoundaryPositions(uBdy, kBdy));

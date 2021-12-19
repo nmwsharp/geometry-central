@@ -18,10 +18,10 @@ class BFF {
 public:
   BFF(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geo_);
 
-  VertexData<Vector2> flattenMAD();
-  VertexData<Vector2> flattenFromU(const VertexData<double>& uBdy);
-  VertexData<Vector2> flattenFromK(const VertexData<double>& kBdy);
-  VertexData<Vector2> flattenFromUK(const Vector<double>& uBdy, const Vector<double>& kBdy);
+  VertexData<Vector2> flatten();
+  VertexData<Vector2> flattenFromScaleFactors(const VertexData<double>& uBdy);
+  VertexData<Vector2> flattenFromExteriorAngles(const VertexData<double>& kBdy);
+  VertexData<Vector2> flattenFromBoth(const Vector<double>& uBdy, const Vector<double>& kBdy);
 
   Vector<double> dirichletToNeumann(const Vector<double>& uBdy);
   Vector<double> neumannToDirichlet(const Vector<double>& kBdy);
