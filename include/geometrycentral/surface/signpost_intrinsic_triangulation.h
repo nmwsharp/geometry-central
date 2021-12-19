@@ -77,7 +77,6 @@ public:
   // Split an edge
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
-
 protected:
 private:
   // ======================================================

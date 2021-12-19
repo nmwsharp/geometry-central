@@ -677,19 +677,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     std::array<Vector3, 3> vertexBary;
     size_t iV = 0;
     for (Vertex v : f.adjacentVertices()) {
-      if (insertionFace == Face()) {
-        std::cout << "Error: could not find parent face for " << f << std::endl;
-        std::cout << "Normal coordinates: " << std::endl;
-        for (Edge e : f.adjacentEdges()) {
-          std::cout << "\t" << e << "\t|\t" << normalCoordinates[e] << std::endl;
-        }
-      }
-      try {
-        vertexBary[iV] = vertexLocations[v].inFace(insertionFace).faceCoords;
-      } catch (std::exception& e) {
-        std::cout << "Error: " << vertexLocations[v] << " not adjacent to " << insertionFace << "?!" << std::endl;
-        throw e;
-      }
+      vertexBary[iV] = vertexLocations[v].inFace(insertionFace).faceCoords;
       iV++;
     }
 
