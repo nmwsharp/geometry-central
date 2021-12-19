@@ -33,7 +33,7 @@ VertexData<Vector2> parameterization = parameterizeBFF(*mesh, *geometry);
     Although `boundaryScaleFactors` is a `VertexData` object which stores values at all vertices, only the values at boundary vertices are used by the algorithm. All other values are ignored.
     
 ??? func "`#!cpp VertexData<Vector2> parameterizeBFFfromExteriorAngles(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, const VertexData<double>& exteriorAngles)`"
-    Conformally parameterize the input mesh so that the boundary vertices of the parameterized mesh have the given exterior angles. The exterior angles must sum up to 2π along the boundary.
+    Conformally parameterize the input mesh so that the boundary vertices of the parameterized mesh have the given exterior angles. The exterior angles must sum up to $2\pi$ along the boundary.
     
     Although `exteriorAngles` is a `VertexData` object which stores values at all vertices, only the values at boundary vertices are used by the algorithm. All other values are ignored.
 
@@ -74,7 +74,7 @@ VertexData<Vector2> parameterization2 = bff.flattenFromExteriorAngles(exteriorAn
     
 ??? func "`#!cpp VertexData<Vector2> BFF::flattenFromExteriorAngles(const VertexData<double>& exteriorAngles)`"
 
-    Compute a conformal parameterization with the given exterior angles along the boundary. The exterior angles must sum up to 2π along the boundary.
+    Compute a conformal parameterization with the given exterior angles along the boundary. The exterior angles must sum up to $2\pi$ along the boundary.
     
     Although `exteriorAngles` is a `VertexData` object which stores values at all vertices, only the values at boundary vertices are used by the algorithm. All other values are ignored.
     
