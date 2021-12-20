@@ -81,6 +81,7 @@ nav:
       - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
+      - 'Parameterization' : 'surface/algorithms/parameterization.md'
     - Intrinsic Triangulations:
       - 'Basics' : 'surface/intrinsic_triangulations/basics.md'
       - 'Common Subdivision' : 'surface/intrinsic_triangulations/common_subdivision.md'

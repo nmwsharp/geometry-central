@@ -17,6 +17,7 @@ SET(SRCS
   surface/rich_surface_mesh_data.cpp
 
   surface/base_geometry_interface.cpp
+  surface/boundary_first_flattening.cpp
   surface/intrinsic_geometry_interface.cpp
   surface/extrinsic_geometry_interface.cpp
   surface/exact_geodesic_helpers.cpp
@@ -89,6 +90,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.h
   ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.ipp
   ${INCLUDE_ROOT}/surface/base_geometry_interface.h
+  ${INCLUDE_ROOT}/surface/boundary_first_flattening.h
   ${INCLUDE_ROOT}/surface/detect_symmetry.h
   ${INCLUDE_ROOT}/surface/direction_fields.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.h
