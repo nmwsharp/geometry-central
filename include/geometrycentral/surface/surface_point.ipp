@@ -147,6 +147,27 @@ inline SurfacePoint SurfacePoint::inFace(Face targetFace) const {
   return *this;
 }
 
+inline SurfacePoint SurfacePoint::inEdge(Edge targetEdge) const {
+  switch (type) {
+  case SurfacePointType::Vertex:
+    if (vertex == targetEdge.halfedge().tailVertex()) {
+      return SurfacePoint(targetEdge, 0);
+    } else if (vertex == targetEdge.halfedge().tipVertex()) {
+      return SurfacePoint(targetEdge, 1);
+    }
+    break;
+  case SurfacePointType::Edge:
+    if (edge == targetEdge) {
+      return *this;
+    }
+    break;
+  default:
+    break;
+  }
+  throw std::logic_error("SurfacePoint " + std::to_string(*this) + " not adjacent to target edge " +
+                         std::to_string(targetEdge));
+  return *this;
+}
 
 inline Vertex SurfacePoint::nearestVertex() const {
 
@@ -292,4 +313,3 @@ inline std::string to_string(geometrycentral::surface::SurfacePoint p) {
   return output.str();
 }
 } // namespace std
-

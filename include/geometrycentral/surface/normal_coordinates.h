@@ -49,7 +49,7 @@ public:
 
   // Count of edges emanating from each corner (nonnegative)
   VertexData<int> roundaboutDegrees;
-  
+
   // === Initialization
   void setCurvesFromEdges(ManifoldSurfaceMesh& mesh);
 
@@ -80,6 +80,9 @@ public:
 
   std::array<int, 3> computeBoundaryEdgeSplitDataGeodesic(IntrinsicGeometryInterface& geo, Edge e, double location);
 
+  // Compute the new normal coordinates after splitting edge e
+  // Edge e is split at segment iSeg, where 0 <= iSeg <= edgeCoords[e]
+  std::array<int, 4> computeInteriorEdgeSplitDataCombinatorial(IntrinsicGeometryInterface& geo, Edge e, size_t iSeg);
 
   // Check that these are valid normal coordinates, throw if not
   void validate() const;
@@ -200,7 +203,8 @@ std::vector<SurfacePoint> generateSingleGeodesicGeometry(ManifoldSurfaceMesh& me
 // Barycentric coordinates are 0 at the src of and edge and 1 at the dst
 std::vector<std::pair<SurfacePoint, double>> generateFullSingleGeodesicGeometry(ManifoldSurfaceMesh& mesh,
                                                                                 IntrinsicGeometryInterface& geo,
-                                                                                const NormalCoordinatesCurve& curve);
+                                                                                const NormalCoordinatesCurve& curve,
+                                                                                bool verbose = false);
 
 // Compute the new normal coordinates for an inserted vertex v in face f given
 // that v's barycentric coordinates and the barycentric coordinates of the
