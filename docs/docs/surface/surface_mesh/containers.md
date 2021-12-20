@@ -199,12 +199,12 @@ All containers track a default value for their elements, which can optionally be
     Example usage:
     ```cpp
     SurfaceMesh meshA = /* something */;
-    SurfaceMesh meshB = meshA.copy();
+    std::unique_ptr<SurfaceMesh> meshB = meshA.copy();
 
     FaceData<Vector3> myDataOnA(meshA);
     /* fill myDataOnA with interesting values */
 
-    FaceData<Vector3> myDataOnB = myDataOnA.reinterpretTo(meshB);
+    FaceData<Vector3> myDataOnB = myDataOnA.reinterpretTo(*meshB);
     ```
 
 

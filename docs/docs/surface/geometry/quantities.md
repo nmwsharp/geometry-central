@@ -3,14 +3,14 @@ This page enumerates the surface geometry quantities available in geometry centr
 Recall that these quantities are each associated with a [geometry interface](geometry.md#geometry-hierarchy) specifying what can be computed from the given input data. Instantiating a geometry from data, classes like `VertexPositionGeometry` extend these interfaces and give access to all of the quantities therein.  Quantities should usually be accessed via the [managed caches](geometry.md#managed-quantities), as in the example below.
 
 ```cpp
-#include "geometrycentral/surface/geometry.h"
+#include "geometrycentral/surface/vertex_position_geometry.h"
 #include "geometrycentral/surface/meshio.h"
 using namespace geometrycentral::surface;
 
 // Load a mesh and geometry from file
 std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> positionGeometry;
-std::tie<mesh, positionGeometry> = loadMesh("spot.obj");
+std::tie<mesh, positionGeometry> = readSurfaceMesh("spot.obj");
 
 // For the sake of the example, use an interface type that offers
 // only the quantities which we will actually use below.
@@ -340,19 +340,19 @@ See [face tangent basis](#face-tangent-basis) to convert these vectors to world 
 
     Only valid on triangular meshes. Not defined for halfedges (interior or exterior) incident on boundary edges, these boundary values are set to NaN so errors can be caught quickly.
 
-    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorAcrossHalfedge`
+    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorsAcrossHalfedge`
     - **require:** `void IntrinsicGeometryInterface::requireTransportVectorAcrossHalfedge()`
     
     Example usage:
     ```cpp
-    geometry.requireTransportVectorAcrossHalfedge();
+    geometry.requireTransportVectorsAcrossHalfedge();
 
     Face f = /* ... */;        // a face of interest
     Vector2 myVec = /* ... */; // tangent vector in face f
     
     for(Halfedge he : f.adjacentHalfedges()) {
 
-      Vertex neighborFace = he.twin().face();
+      Face neighborFace = he.twin().face();
       Vector2 rot = geometry.transportVectorAcrossHalfedge[he];
       Vector2 neighVec = rot * myVec;    // now in the basis of neighborFace
     }
@@ -391,12 +391,12 @@ See [vertex tangent basis](#vertex-tangent-basis) to convert these tangent vecto
 
     Only valid on triangular meshes.
 
-    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorAlongHalfedge`
-    - **require:** `void IntrinsicGeometryInterface::requireTransportVectorAlongHalfedge()`
+    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorsAlongHalfedge`
+    - **require:** `void IntrinsicGeometryInterface::requireTransportVectorsAlongHalfedge()`
     
     Example usage:
     ```cpp
-    geometry.requireTransportVectorAlongHalfedge();
+    geometry.requireTransportVectorsAlongHalfedge();
 
     Vertex v = /* ... */;        // a vertex of interest
     Vector2 myVec = /* ... */;   // tangent vector in vertex v
@@ -588,8 +588,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     for(Face f : mesh.faces()) {
       Vector2 field = myTangentVectorField[f];
 
-      Vector3 basisX = geometry.faceTangentBasis[f];
-      Vector3 basisY = geometry.faceTangentBasis[f];
+      Vector3 basisX = geometry.faceTangentBasis[f][0];
+      Vector3 basisY = geometry.faceTangentBasis[f][1];
 
       Vector3 fieldInWorldCoords = basisX * field.x + basisY * field.y;
     }
@@ -619,8 +619,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     for(Vertex v : mesh.vertices()) {
       Vector2 field = myTangentVectorField[v];
 
-      Vector3 basisX = geometry.vertexTangentBasis[v];
-      Vector3 basisY = geometry.vertexTangentBasis[v];
+      Vector3 basisX = geometry.vertexTangentBasis[v][0];
+      Vector3 basisY = geometry.vertexTangentBasis[v][1];
 
       Vector3 fieldInWorldCoords = basisX * field.x + basisY * field.y;
     }
