@@ -189,13 +189,6 @@ This class inherits from all of the geometry interfaces mentioned above, so all 
 
 `#!cpp #include "geometrycentral/surface/vertex_position_geometry.h"`
 
-??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(VertexData<Vector3> positions)`"
-
-    Construct a new geometry from vertex positions.
-
-    The `positions` input is copied, and stored in the member `VertexPositionGeometry::vertexPositions`.
-
-
 ??? func "`#!cpp void VertexPositionGeometry::VertexPositionGeometry(SurfaceMesh& mesh)`"
 
     Construct a new geometry for the mesh, with all positions set to the origin `Vector3{0., 0., 0.,}`.
