@@ -38,7 +38,7 @@ inline double VertexPositionGeometry::faceArea(Face f) const {
   he = he.next();
   Vector3 pC = vertexPositions[he.vertex()];
 
-  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
   double area = 0.5 * norm(cross(pB - pA, pC - pA));
   return area;
@@ -81,7 +81,7 @@ inline double VertexPositionGeometry::halfedgeCotanWeight(Halfedge heI) const {
     Vector3 pC = vertexPositions[he.vertex()];
     he = he.next();
     Vector3 pA = vertexPositions[he.vertex()];
-    GC_SAFETY_ASSERT(he.next() == heI, "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == heI, "faces must be triangular");
 
     Vector3 vecR = pB - pA;
     Vector3 vecL = pC - pA;
