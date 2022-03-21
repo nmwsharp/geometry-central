@@ -892,7 +892,7 @@ std::vector<std::pair<SurfacePoint, double>> generateFullSingleGeodesicGeometry(
     Halfedge heOpp = heA.next();
     Halfedge heB = heOpp.next();
 
-    GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
+    GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
 
     double lOpp = geo.edgeLengths[heOpp.edge()];
     double lA = geo.edgeLengths[heA.edge()];

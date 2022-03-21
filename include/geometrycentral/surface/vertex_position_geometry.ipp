@@ -64,7 +64,7 @@ inline double VertexPositionGeometry::cornerAngle(Corner c) const {
   he = he.next();
   Vector3 pC = vertexPositions[he.vertex()];
 
-  GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces mush be triangular");
+  GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces must be triangular");
 
   double q = dot(unit(pB - pA), unit(pC - pA));
   q = clamp(q, -1.0, 1.0);
