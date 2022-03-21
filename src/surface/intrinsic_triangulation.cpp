@@ -191,7 +191,7 @@ double IntrinsicTriangulation::getCornerAngle(Corner c) const {
   Halfedge heOpp = heA.next();
   Halfedge heB = heOpp.next();
 
-  GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
+  GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
 
   double lOpp = edgeLengths[heOpp.edge()];
   double lA = edgeLengths[heA.edge()];

@@ -69,7 +69,7 @@ void IntrinsicGeometryInterface::computeFaceAreas() {
     he = he.next();
     double c = edgeLengths[he.edge()];
 
-    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
     // Herons formula
     double s = (a + b + c) / 2.0;
@@ -112,7 +112,7 @@ void IntrinsicGeometryInterface::computeCornerAngles() {
     Halfedge heOpp = heA.next();
     Halfedge heB = heOpp.next();
 
-    GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
+    GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
 
     double lOpp = edgeLengths[heOpp.edge()];
     double lA = edgeLengths[heA.edge()];
@@ -192,7 +192,7 @@ void IntrinsicGeometryInterface::computeFaceGaussianCurvatures() {
       angleDefect += cornerScaledAngles[he.corner()];
       he = he.next();
     }
-    GC_SAFETY_ASSERT(he == f.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he == f.halfedge(), "faces must be triangular");
 
     faceGaussianCurvatures[f] = angleDefect;
   }
@@ -217,7 +217,7 @@ void IntrinsicGeometryInterface::computeHalfedgeCotanWeights() {
     double l_ki = edgeLengths[heF.edge()];
     heF = heF.next();
 
-    GC_SAFETY_ASSERT(heF == he, "faces mush be triangular");
+    GC_SAFETY_ASSERT(heF == he, "faces must be triangular");
 
     double area = faceAreas[he.face()];
     double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
@@ -245,7 +245,7 @@ void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
       he = he.next();
       double l_ki = edgeLengths[he.edge()];
       he = he.next();
-      GC_SAFETY_ASSERT(he == heFirst, "faces mush be triangular");
+      GC_SAFETY_ASSERT(he == heFirst, "faces must be triangular");
       double area = faceAreas[he.face()];
       double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
       cotSum += cotValue / 2;
