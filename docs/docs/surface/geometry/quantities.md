@@ -256,8 +256,8 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     Only valid on triangular meshes.
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMeanCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMeanCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMeanCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMeanCurvatures()`
 
     The inline immediate method can be used to compute this value directly from input data for a single element:
 
@@ -274,11 +274,11 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     Only valid on triangular meshes.
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMinPrincipalCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMinPrincipalCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMinPrincipalCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMinPrincipalCurvatures()`
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMaxPrincipalCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMaxPrincipalCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMaxPrincipalCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMaxPrincipalCurvatures()`
 
     The inline immediate methods can be used to compute this value directly from input data for a single element:
 
@@ -299,6 +299,7 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     - **member:** `FaceData<double> IntrinsicGeometryInterface::faceGaussianCurvatures`
     - **require:** `void IntrinsicGeometryInterface::requireFaceGaussianCurvatures()`
+
 
 ## Tangent vectors and transport
 
@@ -568,6 +569,26 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     - **member:** `VertexData<Vector3> EmbeddedGeometryInterface::faceNormals`
     - **require:** `void EmbeddedGeometryInterface::requireFaceNormals()`
+    
+??? func "vertex dual mean curvature normal"
+    
+    ##### vertex dual mean curvature normal
+    
+    Conceptually, the _mean curvature normal_ at any location on a surface is a vector which points in the normal direction, and has magnitude equal to the mean curvature at that location. In practice, we discretize this using the fact that applying the [Laplacian](#cotangent-laplacian) to the position function yields the mean curvature normals.
+
+
+    Should be interpreted as an _integrated_ mean curvature normal (units: $m$), giving the integral of the mean curvature curvature in the neighborhood of the vertex.  A corresponding _pointwise_ mean curvature (units: $1/m$) can be obtained by dividing by the `vertexDualArea`.
+
+    Only valid on triangular meshes.
+
+    - **member:** `VertexData<double> EmbeddedGeometryInterface::vertexDualMeanCurvatureNormals`
+    - **require:** `void EmbeddedGeometryInterface::requireVertexDualMeanCurvatureNormals()`
+
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v)`
+    
+    Fun fact: these vertex dual mean curvature normals are also the derivative of the mesh's surface area with respect to vertex positions.
 
 ??? func "face tangent basis"
 

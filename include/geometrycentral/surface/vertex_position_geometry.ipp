@@ -200,5 +200,15 @@ inline double VertexPositionGeometry::vertexPrincipalCurvature(int whichCurvatur
     return std::max(k1, k2);
 }
 
+inline Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v) const {
+  // WARNING: Logic duplicated between cached and immediate version
+  Vector3 hN = Vector3::zero();
+  for (Halfedge he : v.outgoingHalfedges()) {
+    double w = edgeCotanWeight(he.edge());
+    hN += w * (vertexPositions[v] - vertexPositions[he.tipVertex()]);
+  }
+  return hN;
+}
+
 } // namespace surface
 } // namespace geometrycentral

@@ -17,7 +17,7 @@ public:
 
   // Construct from positions
   VertexPositionGeometry(SurfaceMesh& mesh_, const VertexData<Vector3>& inputVertexPositions);
-  
+
   // Construct from positions (stored in an Eigen matrix)
   template <typename T>
   VertexPositionGeometry(SurfaceMesh& mesh_, const Eigen::MatrixBase<T>& vertexPositions);
@@ -38,8 +38,9 @@ public:
   // == Members
 
   // The actual input data which defines the geometry
-  // In a previous version of the library, this was a distinct field which got copied in to `vertexPositions`. However, now they are simply aliases for the same buffer.
-  VertexData<Vector3> &inputVertexPositions;
+  // In a previous version of the library, this was a distinct field which got copied in to `vertexPositions`. However,
+  // now they are simply aliases for the same buffer.
+  VertexData<Vector3>& inputVertexPositions;
 
   // == Immediates
   double edgeLength(Edge e) const;
@@ -55,6 +56,7 @@ public:
   double vertexGaussianCurvature(Vertex v) const;
   double vertexMinPrincipalCurvature(Vertex v) const;
   double vertexMaxPrincipalCurvature(Vertex v) const;
+  Vector3 vertexDualMeanCurvatureNormal(Vertex v) const;
 
 protected:
   // Override the compute vertex positions method for embedded geometry
