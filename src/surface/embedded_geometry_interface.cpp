@@ -216,10 +216,11 @@ void EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals() {
 
   vertexDualMeanCurvatureNormals = VertexData<Vector3>(mesh, Vector3::zero());
 
-  // These are defined by the property that the mean curvature normals are the laplacian of the vertex positions
+  // These are defined by the property that the mean curvature normals are the (half) the laplacian of the vertex
+  // positions
   // WARNING: this means that vertexMeanCurvatures != vertexMeanCurvatureNormals.norm()
 
-  // Rather than building the whole cotan laplacian, we evaluate L * positions using our edge cotan weights
+  // Rather than building the whole cotan laplacian, we evaluate 0.5 * L * positions using our edge cotan weights
   for (Edge e : mesh.edges()) {
     double w = edgeCotanWeights[e];
 
@@ -229,8 +230,8 @@ void EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals() {
     Vector3 pTail = vertexPositions[vTail];
     Vector3 pTip = vertexPositions[vTip];
 
-    vertexDualMeanCurvatureNormals[vTail] += w * (pTail - pTip);
-    vertexDualMeanCurvatureNormals[vTip] += w * (pTip - pTail);
+    vertexDualMeanCurvatureNormals[vTail] += w * (pTail - pTip) / 2;
+    vertexDualMeanCurvatureNormals[vTip] += w * (pTip - pTail) / 2;
   }
 }
 void EmbeddedGeometryInterface::requireVertexDualMeanCurvatureNormals() { vertexDualMeanCurvatureNormalsQ.require(); }

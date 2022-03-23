@@ -205,7 +205,7 @@ inline Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v) c
   Vector3 hN = Vector3::zero();
   for (Halfedge he : v.outgoingHalfedges()) {
     double w = edgeCotanWeight(he.edge());
-    hN += w * (vertexPositions[v] - vertexPositions[he.tipVertex()]);
+    hN += w * (vertexPositions[v] - vertexPositions[he.tipVertex()]) / 2.;
   }
   return hN;
 }
