@@ -587,6 +587,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     The inline immediate method can be used to compute this value directly from input data for a single element:
 
     - **immediate:** `Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v)`
+    
+    Fun fact: these vertex dual mean curvature normals are also the derivative of the mesh's surface area with respect to vertex positions.
 
 ??? func "face tangent basis"
 
