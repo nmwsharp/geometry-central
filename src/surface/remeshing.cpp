@@ -323,6 +323,7 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Mutatio
     // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
     if ((nFlips == 0) && (flowDist < 0.01)) break;
   }
+  geometry.refreshQuantities();
 }
 
 } // namespace surface
