@@ -99,9 +99,10 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry,
   return true;
 }
 
+// Warning: requires that geometry.vertexDualAreas and geometry.vertexMeanCurvatures are filled in with accurate data
 double getSmoothMeanCurvature(VertexPositionGeometry& geometry, Vertex v) {
-  double A = geometry.vertexDualArea(v);
-  double S = geometry.vertexMeanCurvature(v);
+  double A = geometry.vertexDualAreas[v];
+  double S = geometry.vertexMeanCurvatures[v];
   double K = S / A;
   return K;
 }
@@ -244,6 +245,9 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
 
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
                        double flatLength, double curvatureAdaptation, double minRelativeLength) {
+  geometry.requireVertexDualAreas();
+  geometry.requireVertexMeanCurvatures();
+
   bool useCurvatureAdaptation = curvatureAdaptation > 0;
   double minLength = minRelativeLength * flatLength;
 
@@ -288,6 +292,9 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
       }
     }
   }
+
+  geometry.unrequireVertexDualAreas();
+  geometry.unrequireVertexMeanCurvatures();
 
   mesh.compress();
   return didSplitOrCollapse;
