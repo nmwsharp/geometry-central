@@ -196,8 +196,10 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
   // update final vertices
   double totalMovement = 0;
   for (Vertex v : mesh.vertices()) {
-    mm.repositionVertex(v, vertexOffsets[v]);
-    totalMovement += vertexOffsets[v].norm();
+    bool didMove = mm.repositionVertex(v, vertexOffsets[v]);
+    if (didMove) {
+      totalMovement += vertexOffsets[v].norm();
+    }
   }
   return totalMovement / mesh.nVertices();
 }
@@ -230,8 +232,10 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
   // update final vertices
   double totalMovement = 0;
   for (Vertex v : mesh.vertices()) {
-    mm.repositionVertex(v, vertexOffsets[v]);
-    totalMovement += vertexOffsets[v].norm();
+    bool didMove = mm.repositionVertex(v, vertexOffsets[v]);
+    if (didMove) {
+      totalMovement += vertexOffsets[v].norm();
+    }
   }
   return totalMovement / mesh.nVertices();
 }
@@ -270,7 +274,9 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
     if (length_e > minLength && length_e > threshold * 1.5) {
       Vector3 newPos = edgeMidpoint(mesh, geometry, e);
       Halfedge he = mm.splitEdge(e, newPos);
-      didSplitOrCollapse = true;
+      if (he != Halfedge()) {
+        didSplitOrCollapse = true;
+      }
     } else {
       toCollapse.push_back(e);
     }
@@ -288,7 +294,9 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
       Vector3 newPos = edgeMidpoint(mesh, geometry, e);
       if (shouldCollapse(mesh, geometry, e)) {
         Vertex v = mm.collapseEdge(e, newPos);
-        didSplitOrCollapse = true;
+        if (v != Vertex()) {
+          didSplitOrCollapse = true;
+        }
       }
     }
   }
