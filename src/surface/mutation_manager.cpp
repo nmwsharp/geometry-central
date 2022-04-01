@@ -67,7 +67,15 @@ void MutationManager::setCollapsibleEdges(const EdgeData<bool>& collapsibleEdges
   collapsibleEdges.setDefault(defaultValue);
 }
 void MutationManager::clearCollapsibleEdges() { collapsibleEdges = EdgeData<bool>(); }
-bool MutationManager::mayCollapseEdge(Edge e) const { return collapsibleEdges.size() == 0 || collapsibleEdges[e]; }
+bool MutationManager::mayCollapseEdge(Edge e) const {
+  if (collapsibleEdges.size() > 0 && !collapsibleEdges[e]) return false;
+  if (repositionableVertices.size() > 0) {
+    for (Vertex v : e.adjacentVertices()) {
+      if (!repositionableVertices[v]) return false;
+    }
+  }
+  return collapsibleEdges.size() == 0 || collapsibleEdges[e];
+}
 
 void MutationManager::setFlippableEdges(const EdgeData<bool>& flippableEdges_, bool defaultValue) {
   flippableEdges = flippableEdges_;
