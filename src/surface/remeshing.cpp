@@ -318,7 +318,7 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Mutatio
     }
 
     size_t nFlips = fixDelaunay(mesh, geometry, mm);
-    double flowDist = smoothByCircumcenter(mesh, geometry);
+    double flowDist = smoothByCircumcenter(mesh, geometry, mm);
 
     // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
     if ((nFlips == 0) && (flowDist < 0.01)) break;
