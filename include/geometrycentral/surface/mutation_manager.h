@@ -118,8 +118,8 @@ public:
   // (set to an array which holds true if a vertex may be moved, and false if it should stay fixed)
   // Note that this array may be uninitialized, in which case all vertices are allowed to be repositioned
   // By default, any newly created vertices are repositionable, unless otherwise specified
-  // Warning: this only prevents vertices from being moved by calls to `repositionVertex()`. Even if
-  // repositionableVertices[v] is false, v may be moved by collapsing an incident edge
+  // Warning: this prevents vertices from being moved by calls to `repositionVertex()`, and also prevents incident edges
+  // from being collapsed (since this might move the vertex)
   VertexData<bool> repositionableVertices;
   void setRepositionableVertices(const VertexData<bool>& repositionableVertex, bool defaultValue = true);
   void clearRepositionableVertices();
