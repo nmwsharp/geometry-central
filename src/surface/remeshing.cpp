@@ -46,6 +46,22 @@ Vector3 findCircumcenter(VertexPositionGeometry& geometry, Face f) {
   return findCircumcenter(p[0], p[1], p[2]);
 }
 
+// Returns the barycenter for faces incident on a nonflippable edge (e.g. a boundary edge), and the circumcenter for all
+// other faces
+Vector3 findODTCenter(VertexPositionGeometry& geom, Face f, MutationManager& mm) {
+  Vector3 p0 = geom.vertexPositions[f.halfedge().tailVertex()];
+  Vector3 p1 = geom.vertexPositions[f.halfedge().tipVertex()];
+  Vector3 p2 = geom.vertexPositions[f.halfedge().next().tipVertex()];
+
+  for (Edge e : f.adjacentEdges()) {
+    if (e.isBoundary() || !mm.mayFlipEdge(e)) {
+      // e is not flippable. return barycenter
+      return (p0 + p1 + p2) / 3.;
+    }
+  }
+  return findCircumcenter(p0, p1, p2);
+}
+
 bool isDelaunay(VertexPositionGeometry& geometry, Edge e) {
   float angle1 = geometry.cornerAngle(e.halfedge().next().next().corner());
   float angle2 = geometry.cornerAngle(e.halfedge().twin().next().next().corner());
@@ -220,7 +236,7 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
       vertexOffsets[v] = Vector3::zero();
       for (Face f : v.adjacentFaces()) {
         // add the circumcenter weighted by face area to the update direction
-        Vector3 circum = findCircumcenter(geometry, f);
+        Vector3 circum = findODTCenter(geometry, f, mm);
         vertexOffsets[v] += geometry.faceArea(f) * (circum - geometry.vertexPositions[v]);
       }
       vertexOffsets[v] /= (3 * geometry.vertexDualArea(v));
