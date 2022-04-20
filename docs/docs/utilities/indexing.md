@@ -94,7 +94,7 @@ These methods build and return an `ElementData<size_t>` array that indexes the m
 ## Per element indices
 
 !!! warning
-    The routines in this section are valid only when the mesh is [compressed](mutation.md#compressed-mode).
+    The routines in this section are valid only when the mesh is [compressed](/surface/surface_mesh/mutation/#compressed-mode).
 
 These methods access the index directly from the mesh element itself.  For example:
 

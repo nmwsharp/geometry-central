@@ -218,7 +218,7 @@ Note that some additional functions and members can be found in the `IntrinsicTr
 
 !!! note "Refreshing quantities"
 
-    The intrinsic triangulation is-a [geometry](../surface/geometry) object, which means that one may `require()` quantities from it. However, for efficiency reasons, these quantities are not automatically updated after each low-level mutataion. Call `refreshQuantities()` after a sequence of mutations to update.
+    The intrinsic triangulation is-a [geometry](/surface/geometry/geometry/) object, which means that one may `require()` quantities from it. However, for efficiency reasons, these quantities are not automatically updated after each low-level mutataion. Call `refreshQuantities()` after a sequence of mutations to update.
   
 
 ??? func "`#!cpp bool IntrinsicTriangulation::flipEdgeIfNotDelaunay(Edge e)`"
