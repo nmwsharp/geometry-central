@@ -96,7 +96,8 @@ for( Vertex v : mesh->vertices() ) {
 These methods access the index directly from the mesh element itself.  For example:
 
 ```cpp
-Edge e;     size_t i = e.getIndex();
+Edge e;
+size_t i = e.getIndex();
 ```
 
 ??? func "`#!cpp size_t Halfedge::getIndex() const`"
