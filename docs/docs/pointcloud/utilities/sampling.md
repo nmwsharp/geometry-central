@@ -46,5 +46,5 @@ PointPositionGeometry cloudGeom(*cloud, pointPos);
     - A `SurfacePoint` on the original mesh corresponding to each point
 
 
-Note that in addition to the cloud and 3D positions, this routine returns a `SurfacePoint` associated with each point sample. The [surface point](surface/utilities/surface_point) is a handy class representing a location on the underlying mesh, and makes it easy to do things like interpolate data defined on the source mesh, or grab face normals, etc.
+Note that in addition to the cloud and 3D positions, this routine returns a `SurfacePoint` associated with each point sample. The [surface point](/surface/utilities/surface_point/) is a handy class representing a location on the underlying mesh, and makes it easy to do things like interpolate data defined on the source mesh, or grab face normals, etc.
 
