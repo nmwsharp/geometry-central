@@ -62,31 +62,31 @@ for( Vertex v : mesh->vertices() ) {
 
 ??? func "`#!cpp void BaseGeometryInterface::requireHalfedgeIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::halfedgeIndices` that provides indices for all halfedges, with values between 0 and _H_-1, where _H_ is the number of halfedges in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::halfedgeIndices` that provides indices for all halfedges, with values between 0 and _H_-1, where _H_ is the number of halfedges in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireCornerIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::cornerIndices` that provides indices for all corners, with values between 0 and _C_-1, where _C_ is the number of halfedges in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::cornerIndices` that provides indices for all corners, with values between 0 and _C_-1, where _C_ is the number of halfedges in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireVertexIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::vertexIndices` that provides indices for all vertices, with values between 0 and _V_-1, where _V_ is the number of vertices in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::vertexIndices` that provides indices for all vertices, with values between 0 and _V_-1, where _V_ is the number of vertices in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireInteriorVertexIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::interiorVertexIndices` that provides indices for all interior vertices, with values between 0 and _I_-1, where _I_ is the number of interior vertices in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::interiorVertexIndices` that provides indices for all interior vertices, with values between 0 and _I_-1, where _I_ is the number of interior vertices in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireEdgeIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::edgeIndices` that provides indices for all edges, with values between 0 and _E_-1, where _E_ is the number of edges in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::edgeIndices` that provides indices for all edges, with values between 0 and _E_-1, where _E_ is the number of edges in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireFaceIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::faceIndices` that provides indices for all faces, with values between 0 and _F_-1, where _F_ is the number of faces in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::faceIndices` that provides indices for all faces, with values between 0 and _F_-1, where _F_ is the number of faces in the mesh.
 
 ??? func "`#!cpp void BaseGeometryInterface::requireBoundaryLoopIndices()`"
 
-    Builds and maintains the array`BaseGeometryInterface::boundaryLoopIndices` that provides indices for all boundary loops, with values between 0 and _B_-1, where _B_ is the number of boundary loops in the mesh.
+    Builds and maintains the array `BaseGeometryInterface::boundaryLoopIndices` that provides indices for all boundary loops, with values between 0 and _B_-1, where _B_ is the number of boundary loops in the mesh.
 
 ## Per element indices
 
