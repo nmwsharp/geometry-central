@@ -111,7 +111,7 @@ inline SurfacePoint SurfacePoint::inFace(Face targetFace) const {
   case SurfacePointType::Edge: {
 
     double thisT = tEdge;
-    for (Halfedge targetHe : {edge.halfedge(), edge.halfedge().twin()}) {
+    for (Halfedge targetHe : edge.adjacentHalfedges()) {
 
       int i = 0;
       for (Halfedge he : targetFace.adjacentHalfedges()) {
@@ -287,11 +287,8 @@ inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
 
   case SurfacePointType::Edge:
 
-    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().face(), Vector3::zero()), pB)) {
-      return pA.edge.halfedge().face();
-    }
-    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().twin().face(), Vector3::zero()), pB)) {
-      return pA.edge.halfedge().twin().face();
+    for (Face f : pA.edge.adjacentFaces()) {
+      if (checkAdjacent(SurfacePoint(f, Vector3::zero()), pB)) return f;
     }
     break;
 

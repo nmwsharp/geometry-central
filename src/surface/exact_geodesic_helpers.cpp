@@ -103,7 +103,7 @@ void Interval::initialize(IntrinsicGeometryInterface& geom, Edge edge, double ed
                           unsigned source_index) {
   m_next = nullptr;
   // m_geodesic_previous = nullptr;
-  m_direction = UNDEFINED_DIRECTION;
+  m_direction = DirectionType::UNDEFINED_DIRECTION;
   m_edge = edge;
   m_edge_length = edge_length;
   m_source_index = source_index;

@@ -5,7 +5,7 @@
 
 #include "geometrycentral/surface/exact_geodesic_helpers.h"
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
-#include "geometrycentral/surface/manifold_surface_mesh.h"
+#include "geometrycentral/surface/surface_mesh.h"
 #include "geometrycentral/surface/surface_point.h"
 
 #include <assert.h>
@@ -17,11 +17,11 @@ namespace geometrycentral {
 namespace surface {
 
 // One-off function to compute distance from a vertex
-VertexData<double> exactGeodesicDistance(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v);
+VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v);
 
 class GeodesicAlgorithmExact {
 public:
-  GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_);
+  GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_);
   ~GeodesicAlgorithmExact(){};
 
   // propagation algorithm stops after reaching the certain distance from the
@@ -36,8 +36,9 @@ public:
                  const std::vector<Vertex>& stop_points = {});
 
   // trace back piecewise-linear path
-  std::vector<SurfacePoint> traceBack(const SurfacePoint& destination);
-  std::vector<SurfacePoint> traceBack(const Vertex& destination);
+  // the resulting path starts at "point" and ends at the closest source
+  std::vector<SurfacePoint> traceBack(const SurfacePoint& point);
+  std::vector<SurfacePoint> traceBack(const Vertex& point);
 
   // quickly find what source this point belongs to and what is the distance
   // to this source
@@ -72,10 +73,9 @@ protected:
                                          bool last_interval, bool turn_left, bool turn_right,
                                          IntervalWithStop* candidates); // if it is the last interval on the edge
 
-  void construct_propagated_intervals(bool invert, Edge gc_edge,
-                                      Face gc_face, // constructs iNew from the rest of the data
-                                      IntervalWithStop* candidates, unsigned& num_candidates,
-                                      interval_pointer source_interval);
+  void construct_propagated_intervals(bool invert, Halfedge halfedge, IntervalWithStop* candidates,
+                                      unsigned& num_candidates, interval_pointer source_interval);
+  // constructs iNew from the rest of the data
 
   double compute_positive_intersection(double start, double pseudo_x, double pseudo_y, double sin_alpha,
                                        double cos_alpha); // used in construct_propagated_intervals
@@ -118,7 +118,7 @@ protected:
   std::vector<stop_vertex_with_distace_type> m_stop_vertices;
   double m_max_propagation_distance; // or reaching the certain distance
 
-  ManifoldSurfaceMesh& mesh;
+  SurfaceMesh& mesh;
   IntrinsicGeometryInterface& geom;
 
   double m_time_consumed;                // how much time does the propagation step takes
@@ -130,7 +130,7 @@ protected:
   MemoryAllocator<Interval> m_memory_allocator; // quickly allocate and deallocate intervals
   EdgeData<IntervalList> m_edge_interval_lists; // every edge has its interval data
 
-  enum MapType { OLD, NEW }; // used for interval intersection
+  enum class MapType { OLD, NEW }; // used for interval intersection
   MapType map[5];
   double start[6];
   interval_pointer i_new[5];
@@ -139,6 +139,8 @@ protected:
   size_t m_iterations;     // used for statistics
 
   SortedSources m_sources;
+
+  VertexData<bool> vertexIsManifold;
 };
 
 } // namespace surface

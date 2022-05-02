@@ -16,7 +16,8 @@ public:
   // The output will preserve the ordering of vertices and faces.
   ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>& polygons);
 
-  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer type.
+  // like above, but with an FxD array input, e.g. Fx3 for triangle mesh or Fx4 for quads. T should be some integer
+  // type.
   template <typename T>
   ManifoldSurfaceMesh(const Eigen::MatrixBase<T>& triangles);
 
@@ -30,6 +31,10 @@ public:
   virtual bool isManifold() override;
   virtual bool isEdgeManifold() override;
   virtual bool isOriented() override;
+
+  virtual VertexData<bool> getVertexManifoldStatus() override;
+  virtual EdgeData<bool> getEdgeManifoldStatus() override;
+  virtual EdgeData<bool> getEdgeOrientedStatus() override;
 
 
   // === Methods that mutate the mesh.

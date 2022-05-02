@@ -6,13 +6,13 @@
 namespace geometrycentral {
 namespace surface {
 
-VertexData<double> exactGeodesicDistance(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v) {
+VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v) {
   GeodesicAlgorithmExact mmp(mesh, geom);
   mmp.propagate({SurfacePoint(v)});
   return mmp.getDistanceFunction();
 }
 
-GeodesicAlgorithmExact::GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_)
+GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeometryInterface& geom_)
     : m_max_propagation_distance(1e100), mesh(mesh_), geom(geom_), m_memory_allocator(mesh_.nEdges(), mesh_.nEdges()) {
 
   geom.requireEdgeLengths();
@@ -21,6 +21,9 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(ManifoldSurfaceMesh& mesh_, Intri
   for (Edge e : mesh.edges()) {
     m_edge_interval_lists[e].initialize(e);
   }
+
+  // Cache vertex manifold status so we don't have to repeatedly check vertices
+  vertexIsManifold = mesh.getVertexManifoldStatus();
 };
 
 // == Adapters for various input types
@@ -46,9 +49,9 @@ void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagat
   propagate(source_surface_points, max_propagation_distance, stop_surface_points);
 }
 
-std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& destination) {
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point) {
   // Call general version
-  return traceBack(SurfacePoint(destination));
+  return traceBack(SurfacePoint(point));
 }
 
 std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) {
@@ -98,11 +101,10 @@ void GeodesicAlgorithmExact::possible_traceback_edges(SurfacePoint& point, std::
     break;
   }
   case SurfacePointType::Edge: {
-    Halfedge he = point.edge.halfedge();
-    storage.push_back(he.next().edge());
-    storage.push_back(he.next().next().edge());
-    storage.push_back(he.twin().next().edge());
-    storage.push_back(he.twin().next().next().edge());
+    for (Halfedge he : point.edge.adjacentHalfedges()) {
+      storage.push_back(he.next().edge());
+      storage.push_back(he.next().next().edge());
+    }
     break;
   }
   case SurfacePointType::Face: {
@@ -227,10 +229,8 @@ bool GeodesicAlgorithmExact::erase_from_queue(interval_pointer p) {
   return false;
 }
 
-unsigned GeodesicAlgorithmExact::intersect_intervals(
-    interval_pointer zero,
-    IntervalWithStop* one) // intersecting two intervals with up to three intervals in the end
-{
+// intersecting two intervals with up to three intervals in the end
+unsigned GeodesicAlgorithmExact::intersect_intervals(interval_pointer zero, IntervalWithStop* one) {
   assert(zero->edge() == one->edge());
   assert(zero->stop() > one->start() && zero->start() < one->stop());
   assert(one->min() < GEODESIC_INF / 10.0);
@@ -241,17 +241,17 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
   if (zero->min() > GEODESIC_INF / 10.0) {
     start[0] = zero->start();
     if (zero->start() < one->start() - local_epsilon) {
-      map[0] = OLD;
+      map[0] = MapType::OLD;
       start[1] = one->start();
-      map[1] = NEW;
+      map[1] = MapType::NEW;
       N = 2;
     } else {
-      map[0] = NEW;
+      map[0] = MapType::NEW;
       N = 1;
     }
 
     if (zero->stop() > one->stop() + local_epsilon) {
-      map[N] = OLD; //"zero" interval
+      map[N] = MapType::OLD; // "zero" interval
       start[N++] = one->stop();
     }
 
@@ -270,8 +270,7 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
   double inter[2]; // points of intersection
   int Ninter = 0;  // number of the points of the intersection
 
-  if (std::abs(D) < local_epsilon) // if d1 == d0, equation is linear
-  {
+  if (std::abs(D) < local_epsilon) { // if d1 == d0, equation is linear
     double denom = x1 - x0;
     if (std::abs(denom) > local_small_epsilon) {
       inter[0] = (R1 - R0) / (2. * denom); // one solution
@@ -286,16 +285,14 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
     double B = Q * X + D2 * x0;
     double C = Q * Q - D2 * R0;
 
-    if (std::abs(A) < local_small_epsilon) // if A == 0, linear equation
-    {
+    if (std::abs(A) < local_small_epsilon) { // if A == 0, linear equation
       if (std::abs(B) > local_small_epsilon) {
         inter[0] = -C / B; // one solution
         Ninter = 1;
       }
     } else {
       double det = B * B - A * C;
-      if (det > local_small_epsilon * local_small_epsilon) // two roots
-      {
+      if (det > local_small_epsilon * local_small_epsilon) { // two roots
         det = sqrt(det);
         if (A > 0.0) // make sure that the roots are ordered
         {
@@ -311,27 +308,24 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
         } else {
           Ninter = 1;
         }
-      } else if (det >= 0.0) // single root
-      {
+      } else if (det >= 0.0) { // single root
         inter[0] = -B / A;
         Ninter = 1;
       }
     }
   }
-  //---------------------------find possible
-  // intervals---------------------------------------
-  double left = std::max(zero->start(),
-                         one->start()); // define left and right boundaries of
-                                        // the intersection of the intervals
+
+  //-----------------------find possible intervals-------------------------------
+  // define left and right boundaries of the intersection of the intervals
+  double left = std::max(zero->start(), one->start());
   double right = std::min(zero->stop(), one->stop());
 
-  double good_start[4]; // points of intersection within the (left, right)
-                        // limits +"left" + "right"
+  // points of intersection within the (left, right) limits + "left" + "right"
+  double good_start[4];
   good_start[0] = left;
   int Ngood_start = 1; // number of the points of the intersection
 
-  for (int i = 0; i < Ninter; ++i) // for all points of intersection
-  {
+  for (int i = 0; i < Ninter; ++i) { // for all points of intersection
     double x = inter[i];
     if (x > left + local_epsilon && x < right - local_epsilon) {
       good_start[Ngood_start++] = x;
@@ -342,24 +336,22 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
   MapType mid_map[3];
   for (int i = 0; i < Ngood_start - 1; ++i) {
     double mid = (good_start[i] + good_start[i + 1]) * 0.5;
-    mid_map[i] = zero->signal(mid) <= one->signal(mid) ? OLD : NEW;
+    mid_map[i] = zero->signal(mid) <= one->signal(mid) ? MapType::OLD : MapType::NEW;
   }
 
   //-----------------------------------output----------------------------------
   N = 0;
-  if (zero->start() < left - local_epsilon) // additional "zero" interval
-  {
-    if (mid_map[0] == OLD) // first interval in the map is already the old one
-    {
+  if (zero->start() < left - local_epsilon) { // additional "zero" interval
+
+    if (mid_map[0] == MapType::OLD) { // first interval in the map is already the old one
       good_start[0] = zero->start();
     } else {
-      map[N] = OLD; //"zero" interval
+      map[N] = MapType::OLD; //"zero" interval
       start[N++] = zero->start();
     }
   }
 
-  for (long i = 0; i < Ngood_start - 1; ++i) // for all intervals
-  {
+  for (long i = 0; i < Ngood_start - 1; ++i) { // for all intervals
     MapType current_map = mid_map[i];
     if (N == 0 || map[N - 1] != current_map) {
       map[N] = current_map;
@@ -368,8 +360,8 @@ unsigned GeodesicAlgorithmExact::intersect_intervals(
   }
 
   if (zero->stop() > one->stop() + local_epsilon) {
-    if (N == 0 || map[N - 1] == NEW) {
-      map[N] = OLD; //"zero" interval
+    if (N == 0 || map[N - 1] == MapType::NEW) {
+      map[N] = MapType::OLD; //"zero" interval
       start[N++] = one->stop();
     }
   }
@@ -397,7 +389,7 @@ void GeodesicAlgorithmExact::initialize_propagation_data() {
       candidate.initialize(geom, e, edge_length, source, i);
       candidate.stop() = edge_length;
       candidate.compute_min_distance(candidate.stop());
-      candidate.direction() = Interval::FROM_SOURCE;
+      candidate.direction() = Interval::DirectionType::FROM_SOURCE;
 
       update_list_and_queue(interval_list(e), &candidate, 1);
     }
@@ -426,8 +418,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
   geom.requireCornerAngles();
 
   while (!m_queue.empty()) {
-    // if (++reps > 2) return;
-    // std::cout << m_queue.size() << std::endl;
     m_queue_max_size = std::max(m_queue.size(), m_queue_max_size);
 
     unsigned const check_period = 10;
@@ -440,11 +430,9 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
     interval_pointer min_interval = *m_queue.begin();
     m_queue.erase(m_queue.begin());
-    Edge gc_edge = min_interval->edge();
-    Halfedge he = gc_edge.halfedge();
-    list_pointer list = interval_list(gc_edge);
-    // std::cout << "\tprocessing edge " << edge->id() << std::endl;
-    // std::cout << "\t\t with weight " << min_interval->min() << std::endl;
+    Edge edge = min_interval->edge();
+    Halfedge he = edge.halfedge();
+    list_pointer list = interval_list(edge);
 
     assert(min_interval->d() < GEODESIC_INF);
 
@@ -452,6 +440,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     // bool const last_interval = min_interval->stop() == edge->length();
     bool const last_interval = min_interval->next() == nullptr;
 
+    // just in case, always propagate boundary edges
     auto saddleOrBoundary = [&](Vertex v) -> bool {
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
@@ -462,31 +451,55 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     bool const turn_left = saddleOrBoundary(he.tailVertex());
     bool const turn_right = saddleOrBoundary(he.tipVertex());
 
-    std::vector<Halfedge> adjacentHalfedges{he};
-    if (!gc_edge.isBoundary()) {
-      adjacentHalfedges.push_back(he.twin());
+    auto propagateNonmanifoldVertex = [&](Vertex v, bool isTailVertex) {
+      IntervalWithStop candidate;
+      double Le = geom.edgeLengths[min_interval->edge()];
+      double dx = isTailVertex ? min_interval->pseudo_x() : Le - min_interval->pseudo_x();
+      double dy = min_interval->pseudo_y();
+      double source_d = min_interval->d() + sqrt(dx * dx + dy * dy);
+
+      for (Halfedge heSpoke : v.outgoingHalfedges()) {
+        double L = geom.edgeLengths[heSpoke.edge()];
+        candidate.start() = 0;
+        candidate.stop() = L;
+        candidate.d() = source_d;
+        candidate.pseudo_x() = heSpoke.orientation() ? 0 : L;
+        candidate.pseudo_y() = 0;
+
+        candidate.next() = nullptr;
+        candidate.edge() = heSpoke.edge();
+        candidate.halfedge() = heSpoke;
+        candidate.edge_length() = L;
+        candidate.source_index() = min_interval->source_index();
+        candidate.direction() = Interval::DirectionType::FROM_HALFEDGE;
+        candidate.min() = candidate.d();
+
+        update_list_and_queue(interval_list(heSpoke.edge()), &candidate, 1);
+      }
+    };
+
+    if (!vertexIsManifold[he.tailVertex()]) {
+      propagateNonmanifoldVertex(he.tailVertex(), true);
+    }
+    if (!vertexIsManifold[he.tipVertex()]) {
+      propagateNonmanifoldVertex(he.tipVertex(), false);
     }
 
-    for (unsigned i = 0; i < adjacentHalfedges.size(); ++i) // two possible faces to propagate
-    {
-      if (!gc_edge.isBoundary()) // just in case, always propagate
-                                 // boundary edges
-      {
-        if ((i == 0 && min_interval->direction() == Interval::FROM_FACE_0) ||
-            (i == 1 && min_interval->direction() == Interval::FROM_FACE_1)) {
-          continue;
-        }
-      }
-
-      Halfedge gc_he = adjacentHalfedges[i];
-      Face gc_face = gc_he.face();
+    for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
+      Face face = neighboring_halfedge.face();
 
       // if we come from 1, go to 2
-      Halfedge next_halfedge = (gc_he == he) ? gc_he.next().next() : gc_he.next();
-      Edge gc_next_edge = next_halfedge.edge();
-      double next_edge_length = geom.edgeLengths[gc_next_edge];
-      double corner_angle =
-          (gc_he == he) ? geom.cornerAngles[gc_he.corner()] : geom.cornerAngles[gc_he.next().corner()];
+      // Edge next_edge = (neighboring_halfedge.orientation() == he.orientation()) ?
+      // neighboring_halfedge.next().next().edge() : neighboring_halfedge.next().edge();
+      Halfedge next_halfedge = (neighboring_halfedge.orientation() == he.orientation())
+                                   ? neighboring_halfedge.next().next()
+                                   : neighboring_halfedge.next();
+      Edge next_edge = next_halfedge.edge();
+
+      double next_edge_length = geom.edgeLengths[next_edge];
+      double corner_angle = (neighboring_halfedge.orientation() == he.orientation())
+                                ? geom.cornerAngles[neighboring_halfedge.corner()]
+                                : geom.cornerAngles[neighboring_halfedge.next().corner()];
 
       unsigned num_propagated = compute_propagated_parameters(min_interval->pseudo_x(), min_interval->pseudo_y(),
                                                               min_interval->d(), // parameters of the interval
@@ -495,8 +508,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
                                                               corner_angle,         // corner angle
                                                               next_edge_length,     // length of the new edge
                                                               first_interval, // if it is the first interval on the edge
-                                                              last_interval, turn_left, turn_right,
-                                                              candidates); // if it is the last interval on the edge
+                                                              last_interval,  // if it is the last interval on the edge
+                                                              turn_left, turn_right, candidates);
       bool propagate_to_right = true;
 
       if (num_propagated) {
@@ -504,27 +517,31 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
           propagate_to_right = false;
         }
 
-        // if the origins coinside, do not invert
-        // intervals
-        // bool const invert = gc_next_edge.halfedge().tailVertex() != he.tailVertex();
-        bool const invert =
-            (next_halfedge == gc_he.next().next()) ? next_halfedge.orientation() : !next_halfedge.orientation();
+        // if the origins coinside, do not invert intervals
+        // bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tailVertex();
+        bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
+                                                                                  : !next_halfedge.orientation();
 
-        construct_propagated_intervals(invert, // do not inverse
-                                       gc_next_edge, gc_face, candidates, num_propagated, min_interval);
+        // invert: do not inverse
+        construct_propagated_intervals(invert, next_halfedge, candidates, num_propagated, min_interval);
 
-        update_list_and_queue(interval_list(gc_next_edge), candidates, num_propagated);
+        update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
       }
 
       if (propagate_to_right) {
         // propogation to the right edge
-        double length = geom.edgeLengths[gc_edge];
+        double length = geom.edgeLengths[edge];
 
-        next_halfedge = (gc_he == he) ? gc_he.next() : gc_he.next().next();
-        gc_next_edge = next_halfedge.edge();
+        // next_edge = (neighboring_halfedge.orientation() == he.orientation()) ? neighboring_halfedge.next().edge()
+        // : neighboring_halfedge.next().next().edge();
+        next_halfedge = (neighboring_halfedge.orientation() == he.orientation()) ? neighboring_halfedge.next()
+                                                                                 : neighboring_halfedge.next().next();
+        next_edge = next_halfedge.edge();
 
-        next_edge_length = geom.edgeLengths[gc_next_edge];
-        corner_angle = (gc_he == he) ? geom.cornerAngles[gc_he.next().corner()] : geom.cornerAngles[gc_he.corner()];
+        next_edge_length = geom.edgeLengths[next_edge];
+        corner_angle = (neighboring_halfedge.orientation() == he.orientation())
+                           ? geom.cornerAngles[neighboring_halfedge.next().corner()]
+                           : geom.cornerAngles[neighboring_halfedge.corner()];
 
         num_propagated = compute_propagated_parameters(length - min_interval->pseudo_x(), min_interval->pseudo_y(),
                                                        min_interval->d(), // parameters of the interval
@@ -538,14 +555,14 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
         if (num_propagated) {
           // if the origins coinside, do not invert intervals
-          // bool const invert = gc_next_edge.halfedge().tailVertex() != he.tipVertex();
-          bool const invert =
-              (next_halfedge == gc_he.next().next()) ? next_halfedge.orientation() : !next_halfedge.orientation();
+          // bool const invert = next_halfedge.edge().halfedge().tailVertex() != he.tipVertex();
+          bool const invert = (next_halfedge == neighboring_halfedge.next().next()) ? next_halfedge.orientation()
+                                                                                    : !next_halfedge.orientation();
 
-          construct_propagated_intervals(invert, // do not inverse
-                                         gc_next_edge, gc_face, candidates, num_propagated, min_interval);
+          // invert: do not inverse
+          construct_propagated_intervals(invert, next_halfedge, candidates, num_propagated, min_interval);
 
-          update_list_and_queue(interval_list(gc_next_edge), candidates, num_propagated);
+          update_list_and_queue(interval_list(next_edge), candidates, num_propagated);
         }
       }
     }
@@ -605,8 +622,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
                                                    unsigned num_candidates) {
   assert(num_candidates <= 2);
   // assert(list->first() != nullptr);
-  Edge gc_edge = list->edge();
-  double edge_length = geom.edgeLengths[gc_edge];
+  Edge edge = list->edge();
+  double edge_length = geom.edgeLengths[edge];
   double const local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
 
   if (list->first() == nullptr) {
@@ -634,7 +651,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 
     if (first->start() > 0.0) {
       *p = m_memory_allocator.allocate();
-      (*p)->initialize(geom, gc_edge, edge_length);
+      (*p)->initialize(geom, edge, edge_length);
       p = &(*p)->next();
     }
 
@@ -654,7 +671,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
     if (second->stop() < edge_length) {
       p = &(*p)->next();
       *p = m_memory_allocator.allocate();
-      (*p)->initialize(geom, gc_edge, edge_length);
+      (*p)->initialize(geom, edge, edge_length);
       (*p)->start() = second->stop();
     } else {
       (*p)->next() = nullptr;
@@ -664,8 +681,8 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 
   bool propagate_flag;
 
-  for (unsigned i = 0; i < num_candidates; ++i) // for all new intervals
-  {
+  // for all new intervals
+  for (unsigned i = 0; i < num_candidates; ++i) {
     IntervalWithStop* q = &candidates[i];
 
     interval_pointer previous = nullptr;
@@ -677,17 +694,14 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       p = p->next();
     }
 
-    while (p != nullptr && p->start() < q->stop() - local_epsilon) // go through all old intervals
-    {
+    // go through all old intervals
+    while (p != nullptr && p->start() < q->stop() - local_epsilon) {
       unsigned const N = intersect_intervals(p, q); // interset two intervals
 
       if (N == 1) {
-        if (map[0] == OLD) // if "p" is always better, we do not need to
-                           // update anything)
-        {
-          if (previous) // close previous interval and put in into the
-                        // queue
-          {
+        // if "p" is always better, we do not need to update anything
+        if (map[0] == MapType::OLD) {
+          if (previous) { // close previous interval and put in into the queue
             previous->next() = p;
             previous->compute_min_distance(p->start());
             m_queue.insert(previous);
@@ -696,16 +710,13 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
 
           p = p->next();
 
-        } else if (previous) // extend previous interval to cover
-                             // everything; remove p
-        {
+        } else if (previous) { // extend previous interval to cover everything; remove p
           previous->next() = p->next();
           erase_from_queue(p);
           m_memory_allocator.deallocate(p);
 
           p = previous->next();
-        } else // p becomes "previous"
-        {
+        } else { // p becomes "previous"
           previous = p;
           interval_pointer next = p->next();
           erase_from_queue(p);
@@ -726,14 +737,12 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       Interval swap(*p); // used for swapping information
       propagate_flag = erase_from_queue(p);
 
-      for (unsigned j = 1; j < N; ++j) // no memory is needed for the first one
-      {
-        i_new[j] = m_memory_allocator.allocate(); // create new
-                                                  // intervals
+      for (unsigned j = 1; j < N; ++j) { // no memory is needed for the first one
+        // create new intervals
+        i_new[j] = m_memory_allocator.allocate();
       }
 
-      if (map[0] == OLD) // finish previous, if any
-      {
+      if (map[0] == MapType::OLD) { // finish previous, if any
         if (previous) {
           previous->next() = p;
           previous->compute_min_distance(previous->stop());
@@ -743,15 +752,12 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
         i_new[0] = p;
         p->next() = i_new[1];
         p->start() = start[0];
-      } else if (previous) // extend previous interval to cover
-                           // everything; remove p
-      {
+      } else if (previous) { // extend previous interval to cover everything; remove p
         i_new[0] = previous;
         previous->next() = i_new[1];
         m_memory_allocator.deallocate(p);
         previous = nullptr;
-      } else // p becomes "previous"
-      {
+      } else { // p becomes "previous"
         i_new[0] = p;
         // memcpy(p, q, sizeof(Interval));
         *p = *q;
@@ -765,7 +771,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       for (unsigned j = 1; j < N; ++j) {
         interval_pointer current_interval = i_new[j];
 
-        if (map[j] == OLD) {
+        if (map[j] == MapType::OLD) {
           // memcpy(current_interval, &swap, sizeof(Interval));
           *current_interval = swap;
         } else {
@@ -782,16 +788,15 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
         current_interval->start() = start[j];
       }
 
-      for (unsigned j = 0; j < N; ++j) // find "min" and add the intervals to the queue
-      {
-        if (j == N - 1 && map[j] == NEW) {
+      for (unsigned j = 0; j < N; ++j) { // find "min" and add the intervals to the queue
+        if (j == N - 1 && map[j] == MapType::NEW) {
           previous = i_new[j];
         } else {
           interval_pointer current_interval = i_new[j];
 
           current_interval->compute_min_distance(current_interval->stop()); // compute minimal distance
 
-          if (map[j] == NEW || (map[j] == OLD && propagate_flag)) {
+          if (map[j] == MapType::NEW || (map[j] == MapType::OLD && propagate_flag)) {
             m_queue.insert(current_interval);
           }
         }
@@ -800,8 +805,7 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
       p = swap.next();
     }
 
-    if (previous) // close previous interval and put in into the queue
-    {
+    if (previous) { // close previous interval and put in into the queue
       previous->compute_min_distance(previous->stop());
       m_queue.insert(previous);
       previous = nullptr;
@@ -809,17 +813,16 @@ void GeodesicAlgorithmExact::update_list_and_queue(list_pointer list,
   }
 }
 
-unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
-    double pseudo_x, double pseudo_y,
-    double d, // parameters of the interval
-    double begin,
-    double end,          // start/end of the interval
-    double alpha,        // corner angle
-    double L,            // length of the new edge
-    bool first_interval, // if it is the first interval on the edge
-    bool last_interval, bool turn_left, bool turn_right,
-    IntervalWithStop* candidates) // if it is the last interval on the edge
-{
+unsigned
+GeodesicAlgorithmExact::compute_propagated_parameters(double pseudo_x, double pseudo_y,
+                                                      double d, // parameters of the interval
+                                                      double begin,
+                                                      double end,          // start/end of the interval
+                                                      double alpha,        // corner angle
+                                                      double L,            // length of the new edge
+                                                      bool first_interval, // if it is the first interval on the edge
+                                                      bool last_interval,  // if it is the last interval on the edge
+                                                      bool turn_left, bool turn_right, IntervalWithStop* candidates) {
   assert(pseudo_y <= 0.0);
   assert(d < GEODESIC_INF / 10.0);
   assert(begin <= end);
@@ -827,8 +830,8 @@ unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
 
   IntervalWithStop* p = candidates;
 
-  if (std::abs(pseudo_y) <= 1e-30) // pseudo-source is on the edge
-  {
+  // pseudo-source is on the edge
+  if (std::abs(pseudo_y) <= 1e-30) {
     if (first_interval && pseudo_x <= 0.0) {
       p->start() = 0.0;
       p->stop() = L;
@@ -859,8 +862,8 @@ unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
   double cos_alpha = cos(alpha);
 
   // important: for the first_interval, this function returns zero only if the
-  // new edge is "visible" from the source if the new edge can be covered only
-  // after turn_over, the value is negative (-1.0)
+  // new edge is "visible" from the source.
+  // if the new edge can be covered only after turn_over, the value is negative (-1.0)
   double L1 = compute_positive_intersection(begin, pseudo_x, pseudo_y, sin_alpha, cos_alpha);
 
   if (L1 < 0 || L1 >= L) {
@@ -911,13 +914,15 @@ unsigned GeodesicAlgorithmExact::compute_propagated_parameters(
   }
 }
 
-void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc_edge,
-                                                            Face gc_face, // constructs iNew from the rest of the data
+void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Halfedge halfedge,
                                                             IntervalWithStop* candidates,
                                                             unsigned& num_candidates, // up to two candidates
                                                             interval_pointer source_interval) {
+  // constructs iNew from the rest of the data
 
-  double edge_length = geom.edgeLengths[gc_edge];
+  Edge edge = halfedge.edge();
+
+  double edge_length = geom.edgeLengths[edge];
   double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
 
   // kill very small intervals in order to avoid precision problems
@@ -963,8 +968,7 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
 
   // invert intervals if necessary; fill missing data and set pointers
   // correctly
-  Interval::DirectionType direction =
-      (gc_face == gc_edge.halfedge().face()) ? Interval::FROM_FACE_0 : Interval::FROM_FACE_1;
+  Interval::DirectionType direction = Interval::DirectionType::FROM_HALFEDGE;
 
   if (!invert) // in this case everything is straighforward, we do not have to
                // invert the intervals
@@ -973,7 +977,8 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
       IntervalWithStop* p = candidates + i;
 
       p->next() = (i == num_candidates - 1) ? nullptr : candidates + i + 1;
-      p->edge() = gc_edge;
+      p->edge() = edge;
+      p->halfedge() = halfedge;
       p->edge_length() = edge_length;
       p->direction() = direction;
       p->source_index() = source_interval->source_index();
@@ -988,7 +993,8 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Edge gc
       IntervalWithStop* p = candidates + i;
 
       p->next() = (i == 0) ? nullptr : candidates + i - 1;
-      p->edge() = gc_edge;
+      p->edge() = edge;
+      p->halfedge() = halfedge;
       p->edge_length() = edge_length;
       p->direction() = direction;
       p->source_index() = source_interval->source_index();
@@ -1123,21 +1129,21 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
 }
 
 // trace back piecewise-linear path
-std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& destination) {
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) {
   std::vector<SurfacePoint> path;
 
   double best_total_distance;
   double best_interval_position;
   unsigned source_index = std::numeric_limits<unsigned>::max();
   interval_pointer best_interval =
-      best_first_interval(destination, best_total_distance, best_interval_position, source_index);
+      best_first_interval(point, best_total_distance, best_interval_position, source_index);
 
   // unable to find the right path
   if (best_total_distance >= GEODESIC_INF / 2.0) {
     return {};
   }
 
-  path.push_back(destination);
+  path.push_back(point);
 
   if (best_interval) // if we did not hit the face source immediately
   {
@@ -1155,30 +1161,23 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
       double total_distance;
       double position;
 
-      // bool verbose = (q.gcPoint.edge == mesh.edge(24655) ||
-      //                 q.gcPoint.edge == mesh.edge(24656));
-      // bool verbose = 2 < path.size() && path.size() < 5;
-      bool verbose = false;
       best_point_on_the_edge_set(q, possible_edges, interval, total_distance, position);
-      // std::cout << total_distance + length(path) << std::endl;
       assert(total_distance < GEODESIC_INF);
       source_index = interval->source_index();
 
 
-      Edge gc_edge = interval->edge();
-      Halfedge gc_he = gc_edge.halfedge();
-      double edge_length = geom.edgeLengths[gc_edge];
-
+      Edge edge = interval->edge();
+      Halfedge he = edge.halfedge();
+      double edge_length = geom.edgeLengths[edge];
       double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
+
       if (position < local_epsilon) {
-        Vertex v = gc_he.tailVertex();
-        path.push_back(SurfacePoint(v));
+        path.push_back(SurfacePoint(he.tailVertex()));
       } else if (position > edge_length - local_epsilon) {
-        Vertex v = gc_he.tipVertex();
-        path.push_back(SurfacePoint(v));
+        path.push_back(SurfacePoint(he.tipVertex()));
       } else {
         double normalized_position = position / edge_length;
-        path.push_back(SurfacePoint(gc_edge, normalized_position));
+        path.push_back(SurfacePoint(edge, normalized_position));
       }
     }
   }
