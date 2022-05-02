@@ -26,33 +26,39 @@ public:
   VertexData<Vector3> vertexPositions;
   void requireVertexPositions();
   void unrequireVertexPositions();
-  
+
   // Face normal
   FaceData<Vector3> faceNormals;
   void requireFaceNormals();
   void unrequireFaceNormals();
-  
+
   // Vertex normal
   VertexData<Vector3> vertexNormals;
   void requireVertexNormals();
   void unrequireVertexNormals();
-  
+
   // Face tangent basis
-  FaceData<std::array<Vector3,2>> faceTangentBasis;
+  FaceData<std::array<Vector3, 2>> faceTangentBasis;
   void requireFaceTangentBasis();
   void unrequireFaceTangentBasis();
-  
+
   // Vertex tangent basis
-  VertexData<std::array<Vector3,2>> vertexTangentBasis;
+  VertexData<std::array<Vector3, 2>> vertexTangentBasis;
   void requireVertexTangentBasis();
   void unrequireVertexTangentBasis();
-  
-protected:
 
+  // Vertex mean curvature normals
+  // These are defined by the property that the mean curvature normals are the laplacian of the vertex positions
+  // WARNING: this means that vertexMeanCurvatures != vertexMeanCurvatureNormals.norm()
+  VertexData<Vector3> vertexDualMeanCurvatureNormals;
+  void requireVertexDualMeanCurvatureNormals();
+  void unrequireVertexDualMeanCurvatureNormals();
+
+protected:
   // == Implmentations of quantities from base classes
   virtual void computeEdgeLengths() override;
   virtual void computeEdgeDihedralAngles() override;
-  
+
   // == Quantities
 
   DependentQuantityD<VertexData<Vector3>> vertexPositionsQ;
@@ -60,15 +66,18 @@ protected:
 
   DependentQuantityD<FaceData<Vector3>> faceNormalsQ;
   virtual void computeFaceNormals();
-  
+
   DependentQuantityD<VertexData<Vector3>> vertexNormalsQ;
   virtual void computeVertexNormals();
 
-  DependentQuantityD<FaceData<std::array<Vector3,2>>> faceTangentBasisQ;
+  DependentQuantityD<FaceData<std::array<Vector3, 2>>> faceTangentBasisQ;
   virtual void computeFaceTangentBasis();
-  
-  DependentQuantityD<VertexData<std::array<Vector3,2>>> vertexTangentBasisQ;
+
+  DependentQuantityD<VertexData<std::array<Vector3, 2>>> vertexTangentBasisQ;
   virtual void computeVertexTangentBasis();
+
+  DependentQuantityD<VertexData<Vector3>> vertexDualMeanCurvatureNormalsQ;
+  virtual void computeVertexDualMeanCurvatureNormals();
 
   // == Overrides to compute things better using vertex positions
   virtual void computeFaceAreas() override;

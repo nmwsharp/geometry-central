@@ -15,7 +15,7 @@ inline double EdgeLengthGeometry::faceArea(Face f) const {
   he = he.next();
   double c = edgeLengths[he.edge()];
 
-  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
   // Heron's formula
   double s = (a + b + c) / 2.0;
@@ -42,7 +42,7 @@ inline double EdgeLengthGeometry::cornerAngle(Corner c) const {
   Halfedge heOpp = heA.next();
   Halfedge heB = heOpp.next();
 
-  GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
+  GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
 
   double lOpp = edgeLengths[heOpp.edge()];
   double lA = edgeLengths[heA.edge()];
@@ -68,7 +68,7 @@ inline double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge heI) const {
     he = he.next();
     double l_ki = edgeLengths[he.edge()];
     he = he.next();
-    GC_SAFETY_ASSERT(he == heI, "faces mush be triangular");
+    GC_SAFETY_ASSERT(he == heI, "faces must be triangular");
     double area = faceArea(he.face());
     double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
     return cotValue / 2;

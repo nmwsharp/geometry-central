@@ -28,11 +28,11 @@ Halfedge myHe = /* some exterior halfedge */;
 assert(myHe.isInterior() == false); // this is an exterior halfedge
 
 // Traverse to "face"
-Face bFace = myExteriorHalfedge.face()
+Face bFace = myExteriorHalfedge.face();
 
 // bFace is really a boundary loop, doing any face things 
 // with it would be invalid
-assert(bFace.isBoundaryLoop() == true)
+assert(bFace.isBoundaryLoop() == true);
 
 // Convert the "face" to its true boundary loop form 
 BoundaryLoop bLoop = bFace.asBoundaryLoop();

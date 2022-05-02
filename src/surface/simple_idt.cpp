@@ -72,7 +72,7 @@ size_t flipToDelaunay(SurfaceMesh& mesh, EdgeData<double>& edgeLengths, FlipType
       he = he.next();
       double l_ki = edgeLengths[he.edge()];
       he = he.next();
-      GC_SAFETY_ASSERT(he == heI, "faces mush be triangular");
+      GC_SAFETY_ASSERT(he == heI, "faces must be triangular");
       double areaV = area(he.face());
       double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * areaV);
       return cotValue / 2;

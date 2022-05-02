@@ -2,22 +2,21 @@ Several methods can be used to obtain integer indices associated with mesh eleme
 
 Note that in some cases, the most straightforward thing may be to just assign your own indices---especially if the indexing scheme needed to build your matrix is different from a straightforward enumeration of mesh elements.  For instance, in the following example a boolean vertex attribute `skip` is provided, which determines whether each vertex is used in a linear system:
 
-    ```cpp
-    VertexData<bool> skip; // assume skip[v] is true if v is not used in the linear system
-    VertexData<size_t> vertexIndex( mesh );
-
-    int i = 0;
-    for( Vertex v : mesh.vertices() ) {
-       if( !skip[v] ) {
-          vertexIndex[v] = i;
-          i++;
-       }
-    }
-    ```
+```cpp
+VertexData<bool> skip; // assume skip[v] is true if v is not used in the linear system
+VertexData<size_t> vertexIndex( mesh );
+int i = 0;
+for( Vertex v : mesh.vertices() ) {
+   if( !skip[v] ) {
+      vertexIndex[v] = i;
+      i++;
+   }
+}
+```
 
 ## Uncached index arrays
 
-These methods build and return an `ElementData<size_t>` array that indexes the mesh elements.  Note that these arrays are not cached, and arrays are re-built each time the method is invoked.
+These methods build and return an `ElementData<size_t>` array that indexes the mesh elements. Note that these arrays are not cached, and arrays are re-built each time the method is invoked.
 
 ??? func "`#!cpp HalfedgeData<size_t> SurfaceMesh::getHalfedgeIndices()`"
 
@@ -47,21 +46,19 @@ These methods build and return an `ElementData<size_t>` array that indexes the m
 
     Returns an array that provides indices for all boundary loops, with values between 0 and _B_-1, where _B_ is the number of boundary loops in the mesh.
 
-
 ## Cached index arrays
 
-    These methods build the same arrays as the uncached methods, but cache them in a `Geometry` object.  Note that indices of course do not relate to the actual geometry (i.e., shape and size) of the mesh---however, this mechanism allows indices to be tracked with the geometry classes, so they can participate in the buffer management and dependency management.  Basic example usage:
+These methods build the same arrays as the uncached methods, but cache them in a `Geometry` object. Note that indices of course do not relate to the actual geometry (i.e., shape and size) of the mesh---however, this mechanism allows indices to be tracked with the geometry classes, so they can participate in the buffer management and dependency management.  Basic example usage:
 
-    ```cpp
-    SurfaceMesh mesh;
-    VertexPositionGeometry geometry( mesh );
-
-    geometry->requireVertexIndices();
-    for( Vertex v : mesh->vertices() ) {
-       int i = geometry->vertexIndices[v];
-       // do science
-    }
-    ```
+```cpp
+SurfaceMesh mesh;
+VertexPositionGeometry geometry( mesh );
+geometry->requireVertexIndices();
+for( Vertex v : mesh->vertices() ) {
+   int i = geometry->vertexIndices[v];
+   // do science
+}
+```
 
 ??? func "`#!cpp void BaseGeometryInterface::requireHalfedgeIndices()`"
 
@@ -94,14 +91,14 @@ These methods build and return an `ElementData<size_t>` array that indexes the m
 ## Per element indices
 
 !!! warning
-    The routines in this section are valid only when the mesh is [compressed](mutation.md#compressed-mode).
+    The routines in this section are valid only when the mesh is [compressed](/surface/surface_mesh/mutation/#compressed-mode).
 
 These methods access the index directly from the mesh element itself.  For example:
 
-    ```cpp
-    Edge e;
-    size_t i = e.getIndex();
-    ```
+```cpp
+Edge e;
+size_t i = e.getIndex();
+```
 
 ??? func "`#!cpp size_t Halfedge::getIndex() const`"
 
@@ -122,4 +119,3 @@ These methods access the index directly from the mesh element itself.  For examp
 ??? func "`#!cpp size_t Face::getIndex() const`"
 
     Returns an index between 0 and _F_-1, where _F_ is the number of faces in the mesh.
-

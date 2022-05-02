@@ -459,6 +459,7 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& so
     }
 
     geom.unrequireHalfedgeVectorsInVertex();
+    return resultMap;
     break;
   }
   case SurfacePointType::Face: {

@@ -48,6 +48,8 @@ public:
   EdgeData<std::vector<SurfacePoint>> traceAllInputEdgesAlongIntrinsic() override;
   std::vector<SurfacePoint> traceInputHalfedgeAlongIntrinsic(Halfedge inputHe) override;
 
+  bool checkEdgeOriginal(Edge e) const override;
+
   // ======================================================
   // ======== Low-Level Mutators
   // ======================================================
@@ -64,7 +66,8 @@ public:
 
   Halfedge splitEdge(Halfedge he, double tSplit) override;
 
-  // Check if an edge can be flipped geometrically, as defined by the (relative) signed areas of the resulting triangles; positive values mean flippable.
+  // Check if an edge can be flipped geometrically, as defined by the (relative) signed areas of the resulting
+  // triangles; positive values mean flippable.
   double checkFlip(Edge e);
 
   // Insert circumcenter or split segment
@@ -72,8 +75,8 @@ public:
 
   Vertex splitFace(Face f, Vector3 bary, bool verbose = false);
   Vertex splitEdge(Edge e, double bary, bool verbose = false);
-  Vertex splitInteriorEdge(Edge e, double bary, bool verbose = false);
-  Vertex splitBoundaryEdge(Edge e, double bary, bool verbose = false);
+  Halfedge splitInteriorEdge(Halfedge he, double bary, bool verbose = false);
+  Halfedge splitBoundaryEdge(Halfedge he, double bary, bool verbose = false);
 
   // Move a vertex `v` in direction `vec`, represented as a vector in the
   // vertex's tangent space.
@@ -99,6 +102,10 @@ public:
   // and computes the corresponding point on the input mesh, as well as the normal coordinates of
   // the edges connecting this new point to f's vertices.
   std::pair<SurfacePoint, std::array<int, 3>> computeFaceSplitData(Face f, Vector3 bary, bool verbose = false);
+
+  // Computes the corresponding point on the input mesh, as well as which segment the point belongs to.
+  // The segment is specified by an integer 0 <= segmentIndex <= normalCoordinates[he.edge()]
+  std::pair<SurfacePoint, size_t> computeEdgeSplitData(Halfedge he, double tBary);
 
   // Compute the number of vertices in the common subdivision
   // i.e. intrinsicMesh->nVertices() plus the sum of the normal coordinates
@@ -134,10 +141,6 @@ private:
   // Construct the common subdivision for the current triangulation.
   void constructCommonSubdivision() override;
 };
-
-// Compute the cotan weight of halfedge ij in terms of the lengths of its
-// neighbors
-double halfedgeCotanWeight(double lij, double ljk, double lki);
 
 FaceData<Vector2> interpolateTangentVectorsB(const IntegerCoordinatesIntrinsicTriangulation& tri,
                                              const CommonSubdivision& cs, const FaceData<Vector2>& dataB);
