@@ -36,8 +36,9 @@ public:
                  const std::vector<Vertex>& stop_points = {});
 
   // trace back piecewise-linear path
-  std::vector<SurfacePoint> traceBack(const SurfacePoint& destination);
-  std::vector<SurfacePoint> traceBack(const Vertex& destination);
+  // the resulting path starts at "point" and ends at the closest source
+  std::vector<SurfacePoint> traceBack(const SurfacePoint& point);
+  std::vector<SurfacePoint> traceBack(const Vertex& point);
 
   // quickly find what source this point belongs to and what is the distance
   // to this source
