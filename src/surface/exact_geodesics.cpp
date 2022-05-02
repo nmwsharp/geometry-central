@@ -418,8 +418,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
   geom.requireCornerAngles();
 
   while (!m_queue.empty()) {
-    // if (++reps > 2) return;
-    // std::cout << m_queue.size() << std::endl;
     m_queue_max_size = std::max(m_queue.size(), m_queue_max_size);
 
     unsigned const check_period = 10;
@@ -435,8 +433,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     Edge edge = min_interval->edge();
     Halfedge he = edge.halfedge();
     list_pointer list = interval_list(edge);
-    // std::cout << "\tprocessing edge " << edge->id() << std::endl;
-    // std::cout << "\t\t with weight " << min_interval->min() << std::endl;
 
     assert(min_interval->d() < GEODESIC_INF);
 
@@ -444,6 +440,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     // bool const last_interval = min_interval->stop() == edge->length();
     bool const last_interval = min_interval->next() == nullptr;
 
+    // just in case, always propagate boundary edges
     auto saddleOrBoundary = [&](Vertex v) -> bool {
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
@@ -490,17 +487,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
       Face face = neighboring_halfedge.face();
-
-      // just in case, always propagate boundary edges
-      if (!edge.isBoundary()) {
-        // Don't propagate in the direction that you came from
-        if (neighboring_halfedge == min_interval->halfedge()) continue;
-        // if ((i == 0 && min_interval->direction() == Interval::DirectionType::FROM_FACE_0) ||
-        //     (i == 1 && min_interval->direction() == Interval::DirectionType::FROM_FACE_1)) {
-        //   continue;
-        // }
-      }
-
 
       // if we come from 1, go to 2
       // Edge next_edge = (neighboring_halfedge.orientation() == he.orientation()) ?
@@ -1176,7 +1162,6 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
       double position;
 
       best_point_on_the_edge_set(q, possible_edges, interval, total_distance, position);
-      // std::cout << total_distance + length(path) << std::endl;
       assert(total_distance < GEODESIC_INF);
       source_index = interval->source_index();
 
