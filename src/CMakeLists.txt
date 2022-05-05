@@ -180,3 +180,8 @@ if(GC_HAVE_SUITESPARSE)
   target_include_directories(geometry-central PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
   target_link_libraries(geometry-central PRIVATE ${SUITESPARSE_LIBRARIES})
 endif()
+
+# Export symbols if DLL is requested
+if(MSVC AND BUILD_SHARED_LIBS)
+  set_target_properties(geometry-central PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif()
