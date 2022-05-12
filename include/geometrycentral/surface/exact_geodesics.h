@@ -140,7 +140,7 @@ protected:
 
   SortedSources m_sources;
 
-  VertexData<bool> vertexIsManifold;
+  VertexData<bool> vertexIsManifold, vertexIsBoundary;
 };
 
 } // namespace surface
