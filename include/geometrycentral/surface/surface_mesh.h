@@ -123,6 +123,8 @@ public:
   virtual EdgeData<bool> getEdgeManifoldStatus();
   virtual EdgeData<bool> getEdgeOrientedStatus();
 
+  VertexData<bool> getVertexBoundaryStatus();
+
   // Mesh helper utilities
   Edge connectingEdge(Vertex vA, Vertex vB); // an edge from vA -- vB if one exists; Edge() otherwise
 

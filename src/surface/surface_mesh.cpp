@@ -431,6 +431,14 @@ EdgeData<bool> SurfaceMesh::getEdgeOrientedStatus() {
   return edgeIsOriented;
 }
 
+VertexData<bool> SurfaceMesh::getVertexBoundaryStatus() {
+  VertexData<bool> vertexIsBoundary(*this);
+  for (Vertex v : vertices()) {
+    vertexIsBoundary[v] = v.isBoundary();
+  }
+  return vertexIsBoundary;
+}
+
 size_t SurfaceMesh::nConnectedComponents() {
   VertexData<size_t> vertInd = getVertexIndices();
   DisjointSets dj(nVertices());

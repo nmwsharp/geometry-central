@@ -24,6 +24,7 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeom
 
   // Cache vertex manifold status so we don't have to repeatedly check vertices
   vertexIsManifold = mesh.getVertexManifoldStatus();
+  vertexIsBoundary = mesh.getVertexBoundaryStatus();
 };
 
 // == Adapters for various input types
@@ -102,8 +103,10 @@ void GeodesicAlgorithmExact::possible_traceback_edges(SurfacePoint& point, std::
   }
   case SurfacePointType::Edge: {
     for (Halfedge he : point.edge.adjacentHalfedges()) {
-      storage.push_back(he.next().edge());
-      storage.push_back(he.next().next().edge());
+      if (he.isInterior()) {
+        storage.push_back(he.next().edge());
+        storage.push_back(he.next().next().edge());
+      }
     }
     break;
   }
@@ -444,7 +447,8 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
       geom.unrequireVertexGaussianCurvatures();
-      return saddle || v.isBoundary();
+      return saddle || vertexIsBoundary[v];
+      // return saddle;
     };
 
     bool const turn_left = saddleOrBoundary(he.tailVertex());
