@@ -440,7 +440,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     // bool const last_interval = min_interval->stop() == edge->length();
     bool const last_interval = min_interval->next() == nullptr;
 
-    // just in case, always propagate boundary edges
     auto saddleOrBoundary = [&](Vertex v) -> bool {
       geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
@@ -486,6 +485,13 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     }
 
     for (Halfedge neighboring_halfedge : edge.adjacentHalfedges()) {
+
+      //== Check some early exit conditions
+      if (!neighboring_halfedge.isInterior()) continue;
+
+      // just in case, always propagate boundary edges
+      if (!edge.isBoundary() && min_interval->halfedge() == neighboring_halfedge) continue;
+
       Face face = neighboring_halfedge.face();
 
       // if we come from 1, go to 2
