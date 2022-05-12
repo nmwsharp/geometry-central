@@ -448,7 +448,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
       geom.unrequireVertexGaussianCurvatures();
       return saddle || vertexIsBoundary[v];
-      // return saddle;
     };
 
     bool const turn_left = saddleOrBoundary(he.tailVertex());
