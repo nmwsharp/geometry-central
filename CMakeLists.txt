@@ -49,3 +49,17 @@ SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 
 ### Recurse to the source code
 add_subdirectory(src)
+
+# install
+install(
+  TARGETS geometry-central
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib)
+
+install(
+  DIRECTORY ${CMAKE_SOURCE_DIR}/include/
+  DESTINATION include
+  FILES_MATCHING
+  PATTERN "*.h"
+  PATTERN "*.ipp")
