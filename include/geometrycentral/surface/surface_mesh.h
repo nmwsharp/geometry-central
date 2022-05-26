@@ -193,6 +193,7 @@ public:
   std::list<std::function<void(const std::vector<size_t>&)>> edgePermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> halfedgePermuteCallbackList;
   std::list<std::function<void(const std::vector<size_t>&)>> boundaryLoopPermuteCallbackList;
+  std::list<std::function<void(void)>> compressCallbackList;
 
   // Mesh delete callbacks
   // (this unfortunately seems to be necessary; objects which have registered their callbacks above
