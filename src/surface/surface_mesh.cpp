@@ -848,10 +848,10 @@ bool SurfaceMesh::flip(Edge eFlip, bool preventSelfEdges) {
   if (preventSelfEdges) {
     // If enabled, make sure it is not a duplicate
     for (Vertex v : vc.adjacentVertices()) {
-      if(v == vd) return false;
+      if (v == vd) return false;
     }
   }
-  
+
   Face fa = ha1.face();
   Face fb = hb1.face();
 
@@ -1908,6 +1908,10 @@ void SurfaceMesh::compress() {
   compressFaces();
   compressVertices();
   isCompressedFlag = true;
+
+  for (auto& f : compressCallbackList) {
+    f();
+  }
 }
 
 
