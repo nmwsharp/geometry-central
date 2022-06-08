@@ -3,12 +3,28 @@
 namespace geometrycentral {
 namespace surface {
 
-Vector3 vertexNormal(VertexPositionGeometry& geometry, Vertex v) {
-  Vector3 norm = Vector3::zero();
+Vector3 vertexNormal(VertexPositionGeometry& geometry, Vertex v, MutationManager& mm) {
+  Vector3 totalNormal = Vector3::zero();
+  Vector3 fixedFaceNormals = Vector3::zero();
+  bool foundFixedFace = false;
   for (Corner c : v.adjacentCorners()) {
-    norm += geometry.cornerAngle(c) * geometry.faceNormal(c.face());
+    size_t nFixedVertices = 0;
+    for (Vertex w : c.face().adjacentVertices()) {
+      if (!mm.mayRepositionVertex(w)) nFixedVertices++;
+    }
+
+    Vector3 cornerNormal = geometry.cornerAngle(c) * geometry.faceNormal(c.face());
+    if (nFixedVertices >= 2) {
+      fixedFaceNormals += cornerNormal;
+      foundFixedFace = true;
+    }
+    totalNormal += cornerNormal;
   }
-  return normalize(norm);
+  if (foundFixedFace) {
+    return normalize(fixedFaceNormals);
+  } else {
+    return normalize(totalNormal);
+  }
 }
 
 inline Vector3 projectToPlane(Vector3 v, Vector3 norm) { return v - norm * dot(norm, v); }
@@ -205,7 +221,8 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
 
       // and project the average to the tangent plane
       Vector3 updateDirection = avgNeighbor - geometry.vertexPositions[v];
-      vertexOffsets[v] = stepSize * projectToPlane(updateDirection, vertexNormal(geometry, v));
+      Vector3 normal = vertexNormal(geometry, v, mm);
+      vertexOffsets[v] = stepSize * projectToPlane(updateDirection, normal);
     }
   }
 
@@ -241,7 +258,7 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
       }
       vertexOffsets[v] /= (3 * geometry.vertexDualArea(v));
       // project update direction to tangent plane
-      vertexOffsets[v] = stepSize * projectToPlane(vertexOffsets[v], vertexNormal(geometry, v)) / 2.;
+      vertexOffsets[v] = stepSize * projectToPlane(vertexOffsets[v], vertexNormal(geometry, v, mm)) / 2.;
     }
   }
 
