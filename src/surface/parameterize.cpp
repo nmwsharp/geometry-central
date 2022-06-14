@@ -221,15 +221,31 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
      for( Vertex vi : mesh.vertices() ) {
         size_t i = index[vi];
         if( i != pinned ) {
-           param[i][k] = xk[i];
+           param[vi][k] = xk[i];
         }
      }
   }
 
-  // TODO stereographic projection
+  // stereographically map from equilateral triangle to the sphere
+  const double scaleFactor = 1e5;
+  for( Vertex v : mesh.vertices() ) {
+     Vector3 x&( coords[v] );
+     Vector2 X = param[v];
+
+     // make the boundary equilateral triangle very big, so
+     // that its complement (corresponding to the removed
+     // triangle projects to a very small area on the unit sphere)
+     X *= scaleFactor;
+
+     // apply stereographic projection
+     x = Vector3 {
+         2.*X[0],
+         2.*X[1],
+         X[0]*X[0] + X[1]*X[1] - 1.
+     } / X[0]*X[0] + X[1]*X[1] + 1.;
+  }
 
   // TODO Möbius balancing
-
 }
 
 } // namespace surface
