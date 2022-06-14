@@ -139,7 +139,7 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
 
   // Select a triangle to pin, and compute locations for its three vertices
   Face fp = mesh.face(0);
-  array<Vertex,3> vp; // pinned vertices
+  std::array<Vertex,3> vp; // pinned vertices
   VertexData<Vector2> param( mesh ); // 2D parameterization
   Halfedge h = fp.halfedge();
   for( int k = 0; k < 3; k++ ) {
@@ -168,7 +168,7 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
   int n = mesh.nVertices() - 3;
   SparseMatrix<double> L( n, n );
   std::vector<Vector2> b( n, Vector2{0.,0.} );
-  typedef Eigen::triplet<double> Entry;
+  typedef Eigen::Triplet<double> Entry;
   std::vector<Entry> entries;
 
   // set entries by iterating over halfedges
@@ -176,40 +176,40 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
   for( Halfedge h : mesh.halfedges() ) {
      // get the endpoints and their indices
      Vertex vi = h.vertex();
-     Vertex vj = h.vertex().twin();
+     Vertex vj = h.twin().vertex();
      size_t i = index[vi];
      size_t j = index[vj];
 
      // get the (half)edge weight
-     double cotTheta = halfedgeCotanWeights[h];
+     double cotTheta = geometry.halfedgeCotanWeights[h];
 
      if( i != pinned ) {
-        entries.push_back( Triplet( i, i, cotTheta ));
+        entries.push_back( Entry( i, i, cotTheta ));
         if( j != pinned ) {
-           entries.push_back( Triplet( i, j, -cotTheta ));
+           entries.push_back( Entry( i, j, -cotTheta ));
         }
         else {
-           b(i) += cotTheta * param[vj];
+           b[i] += cotTheta * param[vj];
         }
      }
 
      if( j != pinned ) {
-        entries.push_back( Triplet( j, j, cotTheta ));
+        entries.push_back( Entry( j, j, cotTheta ));
         if( i != pinned ) {
-           entries.push_back( Triplet( j, i, -cotTheta ));
+           entries.push_back( Entry( j, i, -cotTheta ));
         }
         else {
-           b(j) += cotTheta * param[vi];
+           b[j] += cotTheta * param[vi];
         }
      }
   }
 
   // solve for the two coordinate functions
   PositiveDefiniteSolver<double> solver( L );
-  for( int k = 0; k < 2; j++ ) {
+  for( int k = 0; k < 2; k++ ) {
 
      // build a column vector for the kth component of the right-hand side
-     Vector bk( n );
+     Vector<double> bk( n );
      for( size_t i = 0; i < n; i++ ) {
         bk[i] = b[i][k];
      }
@@ -229,7 +229,7 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
   // stereographically map from equilateral triangle to the sphere
   const double scaleFactor = 1e5;
   for( Vertex v : mesh.vertices() ) {
-     Vector3 x&( coords[v] );
+     Vector3& x( coords[v] );
      Vector2 X = param[v];
 
      // make the boundary equilateral triangle very big, so
@@ -239,13 +239,15 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
 
      // apply stereographic projection
      x = Vector3 {
-         2.*X[0],
-         2.*X[1],
-         X[0]*X[0] + X[1]*X[1] - 1.
-     } / X[0]*X[0] + X[1]*X[1] + 1.;
+          2.*X[0],
+          2.*X[1],
+          X[0]*X[0] + X[1]*X[1] - 1.
+     } /( X[0]*X[0] + X[1]*X[1] + 1. );
   }
 
   // TODO Möbius balancing
+
+  return coords;
 }
 
 } // namespace surface
