@@ -120,5 +120,117 @@ VertexData<Vector2> parameterizeDisk(ManifoldSurfaceMesh& origMesh, IntrinsicGeo
   return coords.reinterpretTo(origMesh);
 }
 
+VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geometry) {
+
+  // Check that it's a sphere
+  if (mesh.eulerCharacteristic() != -2 ||
+      mesh.nBoundaryLoops() != 0) {
+     throw std::runtime_error("parameterizeSphere(): mesh must have spherical topology (and no boundary)");
+  }
+  
+  // Check that it's triangulated
+  for( Face f : mesh.faces() ) {
+     if( f.degree() != 3 ) {
+        throw std::runtime_error("parameterizeSphere(): all mesh faces must be triangles");
+     }
+  }
+
+  VertexData<Vector3> coords(mesh);
+
+  // Select a triangle to pin, and compute locations for its three vertices
+  Face fp = mesh.face(0);
+  array<Vertex,3> vp; // pinned vertices
+  VertexData<Vector2> param( mesh ); // 2D parameterization
+  Halfedge h = fp.halfedge();
+  for( int k = 0; k < 3; k++ ) {
+     // grab vertices of the pinned triangle
+     vp[k] = h.vertex();
+     h = h.next();
+
+     // construct vertices of an equilateral triangle
+     double theta = 2.*k*M_PI/3.;
+     param[vp[k]] = Vector2{ cos(theta), sin(theta) };
+  }
+
+  // Assign indices to non-pinned vertices, and flag pinned vertices
+  VertexData<size_t> index;
+  size_t nV = 0;
+  size_t pinned = -1;
+  for( Vertex v : mesh.vertices() ) {
+     if( v == vp[0] && v == vp[1] && v == vp[2] ) {
+        index[v] = pinned;
+     } else {
+        index[v] = nV++;
+     }
+  }
+
+  // Build (weak) cotan-Laplace operator with three vertices pinned
+  int n = mesh.nVertices() - 3;
+  SparseMatrix<double> L( n, n );
+  std::vector<Vector2> b( n, Vector2{0.,0.} );
+  typedef Eigen::triplet<double> Entry;
+  std::vector<Entry> entries;
+
+  // set entries by iterating over halfedges
+  geometry.requireHalfedgeCotanWeights();
+  for( Halfedge h : mesh.halfedges() ) {
+     // get the endpoints and their indices
+     Vertex vi = h.vertex();
+     Vertex vj = h.vertex().twin();
+     size_t i = index[vi];
+     size_t j = index[vj];
+
+     // get the (half)edge weight
+     double cotTheta = halfedgeCotanWeights[h];
+
+     if( i != pinned ) {
+        entries.push_back( Triplet( i, i, cotTheta ));
+        if( j != pinned ) {
+           entries.push_back( Triplet( i, j, -cotTheta ));
+        }
+        else {
+           b(i) += cotTheta * param[vj];
+        }
+     }
+
+     if( j != pinned ) {
+        entries.push_back( Triplet( j, j, cotTheta ));
+        if( i != pinned ) {
+           entries.push_back( Triplet( j, i, -cotTheta ));
+        }
+        else {
+           b(j) += cotTheta * param[vi];
+        }
+     }
+  }
+
+  // solve for the two coordinate functions
+  PositiveDefiniteSolver<double> solver( L );
+  for( int k = 0; k < 2; j++ ) {
+
+     // build a column vector for the kth component of the right-hand side
+     Vector bk( n );
+     for( size_t i = 0; i < n; i++ ) {
+        bk[i] = b[i][k];
+     }
+
+     // solve for the kth coordinate function in the plane
+     Vector<double> xk = solver.solve( bk );
+
+     // copy into 2D coordinate vectors
+     for( Vertex vi : mesh.vertices() ) {
+        size_t i = index[vi];
+        if( i != pinned ) {
+           param[i][k] = xk[i];
+        }
+     }
+  }
+
+  // TODO stereographic projection
+
+  // TODO Möbius balancing
+
+}
+
 } // namespace surface
 } // namespace geometrycentral
