@@ -44,6 +44,21 @@ inline double VertexPositionGeometry::faceArea(Face f) const {
   return area;
 }
 
+// Face centroids
+inline double VertexPositionGeometry::faceCentroid(Face f) const {
+   // WARNING: Logic duplicated between cached and immediate version
+
+   Vector3 c{ 0., 0., 0. };
+   double n = 0.;
+
+   for( Vertex v : f.vertices() ) {
+      c += vertexPositions[v];
+      n += 1.;
+   }
+
+   return c/n;
+}
+
 // Vertex dual areas
 inline double VertexPositionGeometry::vertexDualArea(Vertex v) const {
   // WARNING: Logic duplicated between cached and immediate version

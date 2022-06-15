@@ -45,6 +45,7 @@ public:
   // == Immediates
   double edgeLength(Edge e) const;
   double faceArea(Face f) const;
+  double faceCentroid(Face f) const;
   double vertexDualArea(Vertex v) const;
   double cornerAngle(Corner c) const;
   double halfedgeCotanWeight(Halfedge he) const;
