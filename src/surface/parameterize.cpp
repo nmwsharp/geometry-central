@@ -237,15 +237,39 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
      }
   }
 
+  // Compute scale factor needed for next step, where we use
+  // stereographic projection to map the triangular domain to
+  // the unit sphere.  If the image of the outer triangle is
+  // too small or too big, this map will be badly distorted.
+  // So, as a heuristic, we'll first scale the 2D domain so
+  // that the image triangle has area roughly proportional to
+  // its area in the original mesh.  Specifically, suppose we
+  // apply a scale factor h; then the vertex (1,0,0) gets
+  // scaled up to (h,0,0), and its x-coordinate gets mapped
+  // by stereographic projection to r := 2h/(h^2 + 1).  As a
+  // heuristic, we will solve for h such that πr^2 = 4π A0,
+  // where A0 is the area fraction and 4π is the area of the
+  // unit sphere.
+  geometry.requireFaceAreas();
+  double surfaceArea = 0.;
+  for( Face f : mesh.faces() ) {
+     surfaceArea += geometry.faceAreas[f];
+  }
+  double A0 = geometry.faceAreas[fp] / surfaceArea;
+  double h0 = (1.-sqrt(1.-4.*A0))/(2.*sqrt(A0));
+  double h1 = (1.+sqrt(1.-4.*A0))/(2.*sqrt(A0));
+  double scaleFactor = std::max(h0,h1);
+
   // stereographically map from equilateral triangle to the sphere
-  const double scaleFactor = 1.;
   for( Vertex v : mesh.vertices() ) {
      Vector2 X = param[v];
      Vector3& x( coords[v] );
 
-     // make the boundary equilateral triangle very big, so
+     // Make the boundary equilateral triangle bigger, so
      // that its complement (corresponding to the removed
-     // triangle projects to a very small area on the unit sphere)
+     // triangle projects to a very small area on the unit sphere).
+     // As a heuristic, we'll try to roughly match the size of the
+     // outer triangle so it's proportional to its original area.
      X *= scaleFactor;
 
      // apply stereographic projection
