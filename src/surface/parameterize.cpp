@@ -122,18 +122,18 @@ VertexData<Vector2> parameterizeDisk(ManifoldSurfaceMesh& origMesh, IntrinsicGeo
 
 VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geometry) {
 
-  // Check that it's a sphere
-  if (mesh.eulerCharacteristic() != -2 ||
-      mesh.nBoundaryLoops() != 0) {
-     throw std::runtime_error("parameterizeSphere(): mesh must have spherical topology (and no boundary)");
-  }
-  
-  // Check that it's triangulated
-  for( Face f : mesh.faces() ) {
-     if( f.degree() != 3 ) {
-        throw std::runtime_error("parameterizeSphere(): all mesh faces must be triangles");
-     }
-  }
+  // // Check that it's a sphere
+  // if (mesh.eulerCharacteristic() != -2 ||
+  //     mesh.nBoundaryLoops() != 0) {
+  //    throw std::runtime_error("parameterizeSphere(): mesh must have spherical topology (and no boundary)");
+  // }
+  // 
+  // // Check that it's triangulated
+  // for( Face f : mesh.faces() ) {
+  //    if( f.degree() != 3 ) {
+  //       throw std::runtime_error("parameterizeSphere(): all mesh faces must be triangles");
+  //    }
+  // }
 
   VertexData<Vector3> coords(mesh);
 
@@ -153,20 +153,20 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
   }
 
   // Assign indices to non-pinned vertices, and flag pinned vertices
-  VertexData<size_t> index;
+  VertexData<size_t> index( mesh );
   size_t nV = 0;
   size_t pinned = -1;
   for( Vertex v : mesh.vertices() ) {
-     if( v == vp[0] && v == vp[1] && v == vp[2] ) {
+     if( v == vp[0] || v == vp[1] || v == vp[2] ) {
         index[v] = pinned;
      } else {
-        index[v] = nV++;
+        index[v] = nV;
+        nV++;
      }
   }
 
   // Build (weak) cotan-Laplace operator with three vertices pinned
-  int n = mesh.nVertices() - 3;
-  SparseMatrix<double> L( n, n );
+  size_t n = mesh.nVertices() - 3;
   std::vector<Vector2> b( n, Vector2{0.,0.} );
   typedef Eigen::Triplet<double> Entry;
   std::vector<Entry> entries;
@@ -183,10 +183,13 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
      // get the (half)edge weight
      double cotTheta = geometry.halfedgeCotanWeights[h];
 
+     // set the entries
      if( i != pinned ) {
-        entries.push_back( Entry( i, i, cotTheta ));
+        entries.emplace_back( Entry( i, i, cotTheta ));
+        // std::cerr << "{" << 1+i << "," << 1+i << "} -> " << cotTheta << ", ";
         if( j != pinned ) {
-           entries.push_back( Entry( i, j, -cotTheta ));
+           entries.emplace_back( Entry( i, j, -cotTheta ));
+           // std::cerr << "{" << 1+i << "," << 1+j << "} -> " << -cotTheta << ", ";
         }
         else {
            b[i] += cotTheta * param[vj];
@@ -194,9 +197,11 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
      }
 
      if( j != pinned ) {
-        entries.push_back( Entry( j, j, cotTheta ));
+        entries.emplace_back( Entry( j, j, cotTheta ));
+        // std::cerr << "{" << 1+j << "," << 1+j << "} -> " << cotTheta << ", ";
         if( i != pinned ) {
-           entries.push_back( Entry( j, i, -cotTheta ));
+           entries.emplace_back( Entry( j, i, -cotTheta ));
+           // std::cerr << "{" << 1+j << "," << 1+i << "} -> " << -cotTheta << ", ";
         }
         else {
            b[j] += cotTheta * param[vi];
@@ -204,7 +209,13 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
      }
   }
 
+  // set from triplets
+  std::cerr << "set from triplets" << std::endl;
+  SparseMatrix<double> L( n, n );
+  L.setFromTriplets( entries.begin(), entries.end() );
+
   // solve for the two coordinate functions
+  std::cerr << "solve for the two coordinate functions" << std::endl;
   PositiveDefiniteSolver<double> solver( L );
   for( int k = 0; k < 2; k++ ) {
 
@@ -227,10 +238,10 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
   }
 
   // stereographically map from equilateral triangle to the sphere
-  const double scaleFactor = 1e5;
+  const double scaleFactor = 1.;
   for( Vertex v : mesh.vertices() ) {
-     Vector3& x( coords[v] );
      Vector2 X = param[v];
+     Vector3& x( coords[v] );
 
      // make the boundary equilateral triangle very big, so
      // that its complement (corresponding to the removed
@@ -243,6 +254,8 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
           2.*X[1],
           X[0]*X[0] + X[1]*X[1] - 1.
      } /( X[0]*X[0] + X[1]*X[1] + 1. );
+
+     // x = Vector3{ X[0], X[1], 0. };
   }
 
   // TODO Möbius balancing
