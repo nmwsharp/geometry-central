@@ -133,12 +133,11 @@ Vector3 toVector3( const Eigen::Vector3d& u ) {
 
 VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geometry) {
 
-   // Compute a conformal parameterization to the sphere, via the following algorithm:
+   // Compute a conformal parameterization to the sphere, in three steps:
    //
-   //    1. Fix the three vertices of some triangle to an equilateral triangle in the plane.
-   //    2. Map all other vertices harmonically into this equilateral region.
-   //    3. Stereographically project from the plane to the sphere.
-   //    4. Compute the unique Möbius transformation that puts the center of mass at the origin.
+   //    1. Map the surface minus a triangle into an equilateral triangle in the plane.
+   //    2. Stereographically project from the plane to the sphere.
+   //    3. Compute the unique Möbius transformation that puts the center of mass at the origin.
    //
    // This algorithm basically builds on two papers:
    //
@@ -153,20 +152,26 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
    // The first paper basically says that if you map a surface with boundary into an equilateral
    // triangle via a harmonic map, but let the boundary vertices "slide" along the three triangle
    // edges (which is just a linear constraint), then you'll get something that converges to a
-   // conformal map, rather than just a harmonic one.  This fact is in spirit an application of
+   // conformal map, rather than just a harmonic one.  This fact is essentially an application of
    // Eells & Wood 1975, which likewise says that harmonic maps between surfaces with appropriate
    // Euler characteristic are automatically conformal.  The use of an equilateral triangle can
    // also be justified from an orbifold perspective.  In this algorithm, we consider a very
    // special case where the boundary is just a single triangle.  Hence, to compute the harmonic
-   // map we just need to remove three rows/columns from the usual cotan-Laplace matrix
-   // (corresponding to the three vertices of a "removed" triangle, which isn't explicitly removed).
+   // map we just need to compute a discrete harmonic map with Dirichlet conditions at three
+   // vertices, using the usual cotan matrix L:
+   //
+   //    Lx = 0 on V \ {i,j,k}
+   //    x_i = (1,0)
+   //    x_j = (-1/2, √3/2)
+   //    x_k = (-1/2,-√3/2)
    //
    // The second paper accounts for the fact that an arbitrary stereographic projection can
    // result in extreme distortion; it gives a simple procedure for computing the unique
    // Möbius transformation that puts the center of mass (relative to the density on the original
    // surface) at the origin, giving the "best possible" map from the 2D domain to the sphere.
-   // The code below makes a couple refinements, not described in the Baden et al paper, which
-   // makes this process faster and more numerically stable, namely:
+   // See Algorithm 1 of Baden et al for pseudocode.  The code below makes a couple refinements,
+   // not described in the original paper, which makes this process faster and more numerically
+   // stable, namely:
    //
    //    - It picks an initial scaling for the 2D domain so that the removed triangle has
    //      approximately the same area (proportionally) as in the original mesh, helping
