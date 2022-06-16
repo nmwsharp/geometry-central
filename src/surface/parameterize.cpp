@@ -239,10 +239,8 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
       // set the entries
       if( i != pinned ) {
          entries.emplace_back( Entry( i, i, cotTheta ));
-         // std::cerr << "{" << 1+i << "," << 1+i << "} -> " << cotTheta << ", ";
          if( j != pinned ) {
             entries.emplace_back( Entry( i, j, -cotTheta ));
-            // std::cerr << "{" << 1+i << "," << 1+j << "} -> " << -cotTheta << ", ";
          }
          else {
             b[i] += cotTheta * param[vj];
@@ -251,10 +249,8 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
 
       if( j != pinned ) {
          entries.emplace_back( Entry( j, j, cotTheta ));
-         // std::cerr << "{" << 1+j << "," << 1+j << "} -> " << cotTheta << ", ";
          if( i != pinned ) {
             entries.emplace_back( Entry( j, i, -cotTheta ));
-            // std::cerr << "{" << 1+j << "," << 1+i << "} -> " << -cotTheta << ", ";
          }
          else {
             b[j] += cotTheta * param[vi];
@@ -263,12 +259,10 @@ VertexData<Vector3> parameterizeSphere(ManifoldSurfaceMesh& mesh, IntrinsicGeome
    }
 
    // set from triplets
-   std::cerr << "set from triplets" << std::endl;
    SparseMatrix<double> L( n, n );
    L.setFromTriplets( entries.begin(), entries.end() );
 
    // solve for the two coordinate functions
-   std::cerr << "solve for the two coordinate functions" << std::endl;
    PositiveDefiniteSolver<double> solver( L );
    for( int k = 0; k < 2; k++ ) {
 
