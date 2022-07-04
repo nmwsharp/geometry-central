@@ -52,6 +52,7 @@ SET(SRCS
   surface/transfer_functions.cpp
   surface/quadric_error_simplification.cpp
   surface/subdivide.cpp
+  surface/poisson_disk_sampler.cpp
   #surface/detect_symmetry.cpp
   #surface/mesh_ray_tracer.cpp
   
@@ -116,6 +117,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
   ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
+  ${INCLUDE_ROOT}/surface/poisson_disk_sampler.h
   ${INCLUDE_ROOT}/surface/quadric_error_simplification.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.ipp
