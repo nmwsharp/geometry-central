@@ -3,7 +3,7 @@
 namespace geometrycentral {
 namespace surface {
 
-PoissonDiskSampler::PoissonDiskSampler(SurfaceMesh& mesh_, VertexPositionGeometry& geometry_, double rCoef_,
+PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositionGeometry& geometry_, double rCoef_,
                                        int kCandidates_, std::vector<SurfacePoint> pointsToAvoid_)
     : mesh(mesh_), geometry(geometry_), rCoef(rCoef_), kCandidates(kCandidates_), pointsToAvoid(pointsToAvoid_) {
 
@@ -19,8 +19,64 @@ PoissonDiskSampler::PoissonDiskSampler(SurfaceMesh& mesh_, VertexPositionGeometr
 
   // Prepare spatial lookup
   Vector3 bboxMin, bboxMax;
-  geometry.boundingBox(bboxMin, bboxMax);
+  std::tie(bboxMin, bboxMax) = boundingBox();
   mapCenter = 0.5 * (bboxMin + bboxMax);
+
+  // Determine connected components.
+  storeFaceFromEachComponent();
+}
+
+std::tuple<Vector3, Vector3> PoissonDiskSampler::boundingBox() {
+  // Return one of the two pairs of furthest-away corners in the axis-aligned bounding box of the mesh.
+  // I.e., the distance between bboxMin and bboxMax is the length of the bbox's diagonal, and the length of the bbox in
+  // the i-th dimension is |bboxMin[i] - bboxMax[i]|.
+  const double inf = std::numeric_limits<double>::infinity();
+  Vector3 bboxMin = {inf, inf, inf};
+  Vector3 bboxMax = {-inf, -inf, -inf};
+  for (Vertex v : mesh.vertices()) {
+    Vector3& pos = geometry.vertexPositions[v];
+    if (pos[0] <= bboxMin[0] && pos[1] <= bboxMin[1] && pos[2] <= bboxMin[2]) {
+      bboxMin = pos;
+    }
+    if (pos[0] >= bboxMax[0] && pos[1] >= bboxMax[1] && pos[2] >= bboxMax[2]) {
+      bboxMax = pos;
+    }
+  }
+  return std::make_tuple(bboxMin, bboxMax);
+}
+
+/*
+ * Get one face from each connected component in the mesh.
+ */
+void PoissonDiskSampler::storeFaceFromEachComponent() {
+
+  // Do simple depth-first search.
+  faceFromEachComponent.clear();
+  FaceData<char> marked(mesh, false); // has face been visited?
+
+  for (Face f : mesh.faces()) {
+    // Get the next unmarked face.
+    if (marked[f]) continue;
+
+    // We've never visited this face before; it must belong to a new component.
+    marked[f] = true;
+    faceFromEachComponent.push_back(f);
+
+    // Begin gathering each face in the current component.
+    std::vector<Face> queue = {f};
+    Face currF;
+    while (!queue.empty()) {
+
+      currF = queue.back();
+      queue.pop_back();
+
+      for (Face g : currF.adjacentFaces()) {
+        if (marked[g]) continue;
+        marked[g] = true;
+        queue.push_back(g);
+      }
+    }
+  }
 }
 
 /*
@@ -106,14 +162,17 @@ double PoissonDiskSampler::nearestWithinRadius(const SurfacePoint& candidate) co
 }
 
 /*
- * The workhorse function.
+ * The workhorse function. Takes as input a face from a connected component.
  */
-std::vector<SurfacePoint> PoissonDiskSampler::sampleOnConnectedComponent() {
+void PoissonDiskSampler::sampleOnConnectedComponent(const Face& f) {
 
   // TODO: Add points to avoid.
-  // TODO: Get initial sample.
+
+  // Get initial sample.
+  Vector3 baryCoords = {1. / 3., 1. / 3., 1. / 3.};
+  SurfacePoint x0(f, baryCoords);
   activeList.clear();
-  samples.clear();
+  addNewSample(x0);
 
   while (activeList.size() > 0) {
     // Select a random point from the active list.
@@ -151,7 +210,15 @@ std::vector<SurfacePoint> PoissonDiskSampler::sampleOnConnectedComponent() {
  * The final function.
  */
 std::vector<SurfacePoint> PoissonDiskSampler::sample() {
+
+  samples.clear();
+
   // Carry out sampling process for each connected component.
+  for (const Face& f : faceFromEachComponent) {
+    sampleOnConnectedComponent(f);
+  }
+
+  return samples;
 }
 
 } // namespace surface
