@@ -3,18 +3,17 @@
 namespace geometrycentral {
 namespace surface {
 
-PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositionGeometry& geometry_, double rCoef_,
-                                       int kCandidates_, std::vector<SurfacePoint> pointsToAvoid_)
-    : mesh(mesh_), geometry(geometry_), rCoef(rCoef_), kCandidates(kCandidates_), pointsToAvoid(pointsToAvoid_) {
+PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositionGeometry& geometry_)
+    : mesh(mesh_), geometry(geometry_) {
 
-  // Compute mean edge length and set <r>.
+  // Compute mean edge length.
   geometry.requireEdgeLengths();
   double meanEdgeLength = 0.;
   for (Edge e : mesh.edges()) {
     meanEdgeLength += geometry.edgeLengths[e];
   }
   meanEdgeLength /= mesh.nEdges();
-  r = rCoef * meanEdgeLength;
+  h = meanEdgeLength;
   geometry.unrequireEdgeLengths();
 
   // Prepare spatial lookup
@@ -26,10 +25,14 @@ PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositio
   storeFaceFromEachComponent();
 }
 
+/*
+ * Return one of the two pairs of furthest-away corners in the axis-aligned bounding box of the mesh.
+ *
+ * I.e., the distance between bboxMin and bboxMax is the length of the bbox's diagonal, and the length of the bbox in
+ * the i-th dimension is |bboxMin[i] - bboxMax[i]|.
+ */
 std::tuple<Vector3, Vector3> PoissonDiskSampler::boundingBox() {
-  // Return one of the two pairs of furthest-away corners in the axis-aligned bounding box of the mesh.
-  // I.e., the distance between bboxMin and bboxMax is the length of the bbox's diagonal, and the length of the bbox in
-  // the i-th dimension is |bboxMin[i] - bboxMax[i]|.
+
   const double inf = std::numeric_limits<double>::infinity();
   Vector3 bboxMin = {inf, inf, inf};
   Vector3 bboxMax = {-inf, -inf, -inf};
@@ -102,13 +105,13 @@ void PoissonDiskSampler::addNewSample(const SurfacePoint& sample) {
   addPointToSpatialLookup(sample.interpolate(geometry.vertexPositions));
 }
 
-// ===== Helpers for spatial lookup. This code was pretty much directly taken from Nick Sharp.
+// ===== Helpers for spatial lookup. This code was pretty much directly taken from Nick Sharp's Poisson sampling code.
 
 PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& position) const {
 
-  // It doesn't really matter that each bucket have sidelength r/sqrt(3), so that it can hold at most 1 sample. We would
-  // have to translate between SurfacePoints and their positions more anyway.
-  Vector3 coord = (position - mapCenter) / r;
+  // Each bucket has sidelength r/(sqrt(3) * 2) so that it can hold at most 1 sample, and any two points within two
+  // adjacent buckets are guaranteed to be within r of each other.
+  Vector3 coord = (position - mapCenter) / r * (2.0 * std::sqrt(3.0));
   long long int keyX = static_cast<long long int>(std::floor(coord.x));
   long long int keyY = static_cast<long long int>(std::floor(coord.y));
   long long int keyZ = static_cast<long long int>(std::floor(coord.z));
@@ -116,29 +119,53 @@ PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& po
   return {keyX, keyY, keyZ};
 }
 
-void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint) {
+/*
+ * Optionally mark all buckets with a radius of <R> buckets as occupied, as well.
+ */
+void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint, int R) {
 
   SpatialKey key = positionKey(newPoint);
 
-  // Make sure the list exists (does nothing if already present)
-  std::vector<Vector3> newV;
-  spatialBuckets.insert(std::make_pair(key, newV));
+  spatialBuckets.insert(std::make_pair(key, true));
 
-  // Insert
-  std::vector<Vector3>& bucketList = spatialBuckets[key];
-  bucketList.push_back(newPoint);
+  if (R < 0) return;
+
+  // implicitly convert to floats
+  long long int keyX = key[0];
+  long long int keyY = key[1];
+  long long int keyZ = key[2];
+  long long int queryX, queryY, queryZ;
+  for (int offsetX = -R; offsetX <= R; offsetX++) {
+    for (int offsetY = -R; offsetY <= R; offsetY++) {
+      for (int offsetZ = -R; offsetZ <= R; offsetZ++) {
+
+        queryX = keyX + offsetX;
+        queryY = keyY + offsetY;
+        queryZ = keyZ + offsetZ;
+
+        long long int dx = queryX - keyX;
+        long long int dy = queryY - keyY;
+        long long int dz = queryZ - keyZ;
+        if (std::sqrt(dx * dx + dy * dy + dz * dz) < (float)R) {
+          SpatialKey newKey = {queryX, queryY, queryZ};
+          spatialBuckets.insert(std::make_pair(newKey, true));
+        }
+      }
+    }
+  }
 }
 
 /*
- * Given a candidate point, return the smallest distance to any of the existing samples.
+ * Given a candidate point, return "false" if the smallest distance to any of the existing samples is less than r.
+ * Return "true" otherwise.
  */
-double PoissonDiskSampler::nearestWithinRadius(const SurfacePoint& candidate) const {
+bool PoissonDiskSampler::isCandidateValid(const SurfacePoint& candidate) const {
 
   Vector3 queryPoint = candidate.interpolate(geometry.vertexPositions);
-  double minDistance = std::numeric_limits<double>::infinity();
   SpatialKey queryKey = positionKey(queryPoint);
 
-  // Check all adjacent buckets
+  // Check all adjacent buckets. Each bucket's sidelength is chosen to be small enough such that if any two adjacent
+  // buckets contain points, their points are guaranteed to be within r of each other.
   for (int offsetX = -1; offsetX <= 1; offsetX++) {
     for (int offsetY = -1; offsetY <= 1; offsetY++) {
       for (int offsetZ = -1; offsetZ <= 1; offsetZ++) {
@@ -150,15 +177,14 @@ double PoissonDiskSampler::nearestWithinRadius(const SurfacePoint& candidate) co
 
         auto bucketIter = spatialBuckets.find(bucketKey);
         if (bucketIter != spatialBuckets.end()) {
-          for (Vector3 testP : bucketIter->second) {
-            double dist = (queryPoint - testP).norm();
-            minDistance = std::min(minDistance, dist);
+          if (bucketIter->second) {
+            return false;
           }
         }
       }
     }
   }
-  return minDistance;
+  return true;
 }
 
 /*
@@ -181,15 +207,13 @@ void PoissonDiskSampler::sampleOnConnectedComponent(const Face& f) {
 
     // Generate k samples between a distance of r and 2r away from x_i.
     // For each sample, check if it is within r of any points in <samples>.
-    // If a sample is further than r away from all existing samples,
-    // add it to <samples> and <activeList>.
+    // If a sample is further than r away from all existing samples, add it to <samples> and <activeList>.
     bool gotNewSample = false;
-    for (size_t i = 0; i < kCandidates; i++) {
+    for (int i = 0; i < kCandidates; i++) {
 
       SurfacePoint candidate = generateCandidate(xi);
 
-      double dist = nearestWithinRadius(candidate);
-      if (dist > r) {
+      if (isCandidateValid(candidate)) {
         addNewSample(candidate);
         gotNewSample = true;
         break;
@@ -207,11 +231,32 @@ void PoissonDiskSampler::sampleOnConnectedComponent(const Face& f) {
 }
 
 /*
- * The final function.
+ * Reset all data structures in preparation for a new solve.
  */
-std::vector<SurfacePoint> PoissonDiskSampler::sample() {
+void PoissonDiskSampler::clearData() {
 
   samples.clear();
+  spatialBuckets.clear();
+}
+
+/*
+ * The final function.
+ */
+std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandidates_,
+                                                     std::vector<SurfacePoint> pointsToAvoid_, int rAvoidance) {
+
+  clearData();
+
+  // Set parameters.
+  rCoef = rCoef_;
+  r = rCoef * h;
+  kCandidates = kCandidates_;
+  pointsToAvoid = pointsToAvoid_;
+
+  // Add points to avoid.
+  for (const SurfacePoint& pt : pointsToAvoid) {
+    addPointToSpatialLookup(pt.interpolate(geometry.vertexPositions), rAvoidance);
+  }
 
   // Carry out sampling process for each connected component.
   for (const Face& f : faceFromEachComponent) {
