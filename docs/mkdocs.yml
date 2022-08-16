@@ -78,6 +78,7 @@ nav:
       - 'Tracing Geodesic Paths' : 'surface/algorithms/geodesic_paths.md'
       - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
       - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
+      - 'Surface Sampling' : 'surface/algorithms/surface_sampling.md'
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
       - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
