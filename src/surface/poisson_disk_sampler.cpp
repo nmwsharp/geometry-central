@@ -109,9 +109,8 @@ void PoissonDiskSampler::addNewSample(const SurfacePoint& sample) {
 
 PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& position) const {
 
-  // Each bucket has sidelength r/(sqrt(3) * 2) so that it can hold at most 1 sample, and any two points within two
-  // adjacent buckets are guaranteed to be within r of each other.
-  Vector3 coord = (position - mapCenter) / r * (2.0 * std::sqrt(3.0));
+  // Each bucket has sidelength s = r/sqrt(3) so that it can hold at most 1 sample.
+  Vector3 coord = (position - mapCenter) / s;
   long long int keyX = static_cast<long long int>(std::floor(coord.x));
   long long int keyY = static_cast<long long int>(std::floor(coord.y));
   long long int keyZ = static_cast<long long int>(std::floor(coord.z));
@@ -119,40 +118,63 @@ PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& po
   return {keyX, keyY, keyZ};
 }
 
+void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint) {
+
+  SpatialKey key = positionKey(newPoint);
+  spatialBuckets.insert(std::make_pair(key, newPoint));
+}
+
 /*
  * Optionally mark all buckets with a radius of <R> buckets as occupied, as well.
  */
-void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint, int R) {
+void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const Vector3& newPoint, int R) {
 
-  SpatialKey key = positionKey(newPoint);
+  addPointToSpatialLookup(newPoint);
 
-  spatialBuckets.insert(std::make_pair(key, true));
+  if (R <= 0) return;
 
-  if (R < 0) return;
-
-  // implicitly convert to floats
-  long long int keyX = key[0];
-  long long int keyY = key[1];
-  long long int keyZ = key[2];
-  long long int queryX, queryY, queryZ;
-  for (int offsetX = -R; offsetX <= R; offsetX++) {
-    for (int offsetY = -R; offsetY <= R; offsetY++) {
-      for (int offsetZ = -R; offsetZ <= R; offsetZ++) {
-
-        queryX = keyX + offsetX;
-        queryY = keyY + offsetY;
-        queryZ = keyZ + offsetZ;
-
-        long long int dx = queryX - keyX;
-        long long int dy = queryY - keyY;
-        long long int dz = queryZ - keyZ;
-        if (std::sqrt(dx * dx + dy * dy + dz * dz) < (float)R) {
-          SpatialKey newKey = {queryX, queryY, queryZ};
-          spatialBuckets.insert(std::make_pair(newKey, true));
-        }
+  for (int offsetR = -R; offsetR <= R; offsetR++) {
+    for (double u = -1.0; u <= 1.0; u += r) {
+      for (double theta = 0.0; theta <= 2.0 * PI; theta += 2.0 * PI / offsetR) {
+        // TODO
       }
     }
   }
+
+  // R = radius of avoidance, expressed as a multiple of r.
+  // Place fictitious points so that they are all within r of each other, and are within R*r of <newPoint>.
+
+
+  // R = std::floor(R * std::sqrt(3.0));
+  // Vector3 centerOffset = {0.5 * r, 0.5 * r, 0.5 * r}; // vector from the "origin" corner of each bucket to its center
+  // long long int keyX = key[0];
+  // long long int keyY = key[1];
+  // long long int keyZ = key[2];
+  // long long int queryX, queryY, queryZ;
+  // for (int offsetX = -R; offsetX <= R; offsetX++) {
+  //   for (int offsetY = -R; offsetY <= R; offsetY++) {
+  //     for (int offsetZ = -R; offsetZ <= R; offsetZ++) {
+
+  //       queryX = keyX + offsetX;
+  //       queryY = keyY + offsetY;
+  //       queryZ = keyZ + offsetZ;
+
+  //       long long int dx = queryX - keyX;
+  //       long long int dy = queryY - keyY;
+  //       long long int dz = queryZ - keyZ;
+  //       // implicitly convert to floats
+  //       if (std::sqrt(dx * dx + dy * dy + dz * dz) < (float)R) {
+  //         SpatialKey newKey = {queryX, queryY, queryZ};
+  //         Vector3 queryPos = {queryX, queryX, queryZ};
+  //         std::cerr << queryX << " " << queryY << " " << queryZ << std::endl;
+  //         std::cerr << queryPos << "\n" << std::endl;
+
+  //         queryPos = queryPos * s + mapCenter + centerOffset;
+  //         spatialBuckets.insert(std::make_pair(newKey, queryPos));
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 /*
@@ -177,7 +199,7 @@ bool PoissonDiskSampler::isCandidateValid(const SurfacePoint& candidate) const {
 
         auto bucketIter = spatialBuckets.find(bucketKey);
         if (bucketIter != spatialBuckets.end()) {
-          if (bucketIter->second) {
+          if ((queryPoint - bucketIter->second).norm() < r) {
             return false;
           }
         }
@@ -191,8 +213,6 @@ bool PoissonDiskSampler::isCandidateValid(const SurfacePoint& candidate) const {
  * The workhorse function. Takes as input a face from a connected component.
  */
 void PoissonDiskSampler::sampleOnConnectedComponent(const Face& f) {
-
-  // TODO: Add points to avoid.
 
   // Get initial sample.
   Vector3 baryCoords = {1. / 3., 1. / 3., 1. / 3.};
@@ -250,12 +270,13 @@ std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandida
   // Set parameters.
   rCoef = rCoef_;
   r = rCoef * h;
+  s = r / std::sqrt(3.0);
   kCandidates = kCandidates_;
   pointsToAvoid = pointsToAvoid_;
 
   // Add points to avoid.
   for (const SurfacePoint& pt : pointsToAvoid) {
-    addPointToSpatialLookup(pt.interpolate(geometry.vertexPositions), rAvoidance);
+    addPointToSpatialLookupWithRadius(pt.interpolate(geometry.vertexPositions), rAvoidance - 1);
   }
 
   // Carry out sampling process for each connected component.

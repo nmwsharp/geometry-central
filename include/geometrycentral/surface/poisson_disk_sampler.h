@@ -33,6 +33,7 @@ private:
 
   double r; // the actual minimum distance between samples
   double h; // the mean edge length
+  double s; // side length of each bucket
 
   std::vector<Face> faceFromEachComponent; // holds one face for each connected component in the mesh
   std::vector<SurfacePoint> activeList;    // holds candidate points
@@ -40,7 +41,7 @@ private:
 
   // Spatial lookup structure
   typedef std::array<long long int, 3> SpatialKey;
-  std::map<SpatialKey, bool> spatialBuckets;
+  std::map<SpatialKey, Vector3> spatialBuckets;
   Vector3 mapCenter;
 
   // ===== Utility and auxiliary functions
@@ -49,7 +50,8 @@ private:
   SurfacePoint generateCandidate(const SurfacePoint& xi) const;
   void addNewSample(const SurfacePoint& sample);
   SpatialKey positionKey(const Vector3& position) const;
-  void addPointToSpatialLookup(const Vector3& newPoint, int R = -1);
+  void addPointToSpatialLookup(const Vector3& newPoint);
+  void addPointToSpatialLookupWithRadius(const Vector3& newPoint, int R = 0);
   bool isCandidateValid(const SurfacePoint& candidate) const;
   void sampleOnConnectedComponent(const Face& f);
   void clearData();
