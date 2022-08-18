@@ -117,34 +117,55 @@ PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& po
   return {keyX, keyY, keyZ};
 }
 
-void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint) {
+void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPos) {
 
-  SpatialKey key = positionKey(newPoint);
-  spatialBuckets.insert(std::make_pair(key, newPoint));
+  SpatialKey key = positionKey(newPos);
+  spatialBuckets.insert(std::make_pair(key, newPos));
 }
 
 /*
  * Mark all buckets with a radius of <R> buckets as occupied, as well.
  */
-void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const Vector3& newPoint, int R) {
+void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const SurfacePoint& newPoint, int R,
+                                                           bool use3DAvoidanceRadius) {
 
-  addPointToSpatialLookup(newPoint);
+  Vector3 newPos = newPoint.interpolate(geometry.vertexPositions);
+  addPointToSpatialLookup(newPos);
 
   if (R <= 0) return;
 
-  // This places fictitious points in a solid ball approximately of radius R*r centered at <newPoint>
-  // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
-  // points in each layer are spaced approx. r apart in a "grid" (a mapping from the cylinder to the sphere that has
-  // been scaled s.t. projected points end up being approx. r apart.) The idea is that no point can be added within this
-  // solid ball of points without being at most approx. r * sqrt(3)/2 < r away from another point with the ball.
-  for (int rIter = 0; rIter <= R; rIter++) {
-    double r = rIter * rMinDist;
-    for (double z = -0.99; z <= 0.99; z += rMinDist) {
-      double coeff = std::sqrt(1. - z * z);
-      for (double theta = 0.0; theta <= 2.0 * PI; theta += rMinDist / coeff) {
-        Vector3 pos = {r * coeff * std::cos(theta), r * coeff * std::sin(theta), r * z};
-        pos += newPoint;
-        addPointToSpatialLookup(pos);
+  if (!use3DAvoidanceRadius) {
+    // This places fictitious points in a metric ball approximately of radius R*r centered at <newPoint>.
+    // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
+    // points in each layer are spaced approx. r apart around the circular layer. The idea is that no point can be added
+    // within this ball of points without being at most approx. r * sqrt(3)/2 < r away from another point with the ball.
+    // In practice, the curvature of the surface may be s.t. geodesics traced in this manner don't end up being spaced
+    // evenly the way we want; heuristically, just divide the angle increment by 2, which should work for all but very
+    // "spiky" meshes.
+    SurfacePoint pathEndpoint;
+    TraceGeodesicResult trace;
+    for (int rIter = 0; rIter <= R; rIter++) {
+      double dist = rIter * rMinDist;
+      for (double theta = 0.; theta <= 2. * PI; theta += rMinDist / dist / 2.) {
+        trace = traceGeodesic(geometry, newPoint, dist * Vector2::fromAngle(theta));
+        pathEndpoint = trace.endPoint;
+        addPointToSpatialLookup(pathEndpoint.interpolate(geometry.vertexPositions));
+      }
+    }
+  } else {
+    // This places fictitious points in a *solid 3D ball* approximately of radius R*r centered at <newPoint>.
+    // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
+    // points in each layer are spaced approx. r apart in a "grid" (a mapping from the cylinder to the sphere that has
+    // been scaled s.t. projected points end up being approx. r apart.)
+    for (int rIter = 0; rIter <= R; rIter++) {
+      double r = rIter * rMinDist;
+      for (double z = -0.99; z <= 0.99; z += rMinDist) {
+        double coeff = std::sqrt(1. - z * z);
+        for (double theta = 0.0; theta <= 2.0 * PI; theta += rMinDist / coeff) {
+          Vector3 pos = {r * coeff * std::cos(theta), r * coeff * std::sin(theta), r * z};
+          pos += newPos;
+          addPointToSpatialLookup(pos);
+        }
       }
     }
   }
@@ -236,7 +257,8 @@ void PoissonDiskSampler::clearData() {
  * The final function.
  */
 std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandidates_,
-                                                     std::vector<SurfacePoint> pointsToAvoid_, int rAvoidance) {
+                                                     std::vector<SurfacePoint> pointsToAvoid_, int rAvoidance,
+                                                     bool use3DAvoidanceRadius) {
 
   clearData();
 
@@ -249,7 +271,7 @@ std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandida
 
   // Add points to avoid.
   for (const SurfacePoint& pt : pointsToAvoid) {
-    addPointToSpatialLookupWithRadius(pt.interpolate(geometry.vertexPositions), rAvoidance - 1);
+    addPointToSpatialLookupWithRadius(pt, rAvoidance - 1, use3DAvoidanceRadius);
   }
 
   // Carry out sampling process for each connected component.
