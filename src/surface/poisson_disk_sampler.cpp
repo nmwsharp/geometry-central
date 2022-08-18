@@ -8,12 +8,11 @@ PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositio
 
   // Compute mean edge length.
   geometry.requireEdgeLengths();
-  double meanEdgeLength = 0.;
+  meanEdgeLength = 0.;
   for (Edge e : mesh.edges()) {
     meanEdgeLength += geometry.edgeLengths[e];
   }
   meanEdgeLength /= mesh.nEdges();
-  h = meanEdgeLength;
   geometry.unrequireEdgeLengths();
 
   // Prepare spatial lookup
@@ -91,7 +90,7 @@ SurfacePoint PoissonDiskSampler::generateCandidate(const SurfacePoint& xi) const
   TraceGeodesicResult trace;
 
   Vector2 dir = Vector2::fromAngle(randomReal(0., 2. * PI));
-  double dist = std::sqrt(randomReal(r, 2. * r));
+  double dist = std::sqrt(randomReal(rMinDist, 2. * rMinDist));
   trace = traceGeodesic(geometry, xi, dist * dir);
 
   pathEndpoint = trace.endPoint;
@@ -110,7 +109,7 @@ void PoissonDiskSampler::addNewSample(const SurfacePoint& sample) {
 PoissonDiskSampler::SpatialKey PoissonDiskSampler::positionKey(const Vector3& position) const {
 
   // Each bucket has sidelength s = r/sqrt(3) so that it can hold at most 1 sample.
-  Vector3 coord = (position - mapCenter) / s;
+  Vector3 coord = (position - mapCenter) / sideLength;
   long long int keyX = static_cast<long long int>(std::floor(coord.x));
   long long int keyY = static_cast<long long int>(std::floor(coord.y));
   long long int keyZ = static_cast<long long int>(std::floor(coord.z));
@@ -125,7 +124,7 @@ void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPoint) {
 }
 
 /*
- * Optionally mark all buckets with a radius of <R> buckets as occupied, as well.
+ * Mark all buckets with a radius of <R> buckets as occupied, as well.
  */
 void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const Vector3& newPoint, int R) {
 
@@ -133,48 +132,22 @@ void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const Vector3& newPoi
 
   if (R <= 0) return;
 
-  for (int offsetR = -R; offsetR <= R; offsetR++) {
-    for (double u = -1.0; u <= 1.0; u += r) {
-      for (double theta = 0.0; theta <= 2.0 * PI; theta += 2.0 * PI / offsetR) {
-        // TODO
+  // This places fictitious points in a solid ball approximately of radius R*r centered at <newPoint>
+  // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
+  // points in each layer are spaced approx. r apart in a "grid" (a mapping from the cylinder to the sphere that has
+  // been scaled s.t. projected points end up being approx. r apart.) The idea is that no point can be added within this
+  // solid ball of points without being at most approx. r * sqrt(3)/2 < r away from another point with the ball.
+  for (int rIter = 0; rIter <= R; rIter++) {
+    double r = rIter * rMinDist;
+    for (double z = -0.99; z <= 0.99; z += rMinDist) {
+      double coeff = std::sqrt(1. - z * z);
+      for (double theta = 0.0; theta <= 2.0 * PI; theta += rMinDist / coeff) {
+        Vector3 pos = {r * coeff * std::cos(theta), r * coeff * std::sin(theta), r * z};
+        pos += newPoint;
+        addPointToSpatialLookup(pos);
       }
     }
   }
-
-  // R = radius of avoidance, expressed as a multiple of r.
-  // Place fictitious points so that they are all within r of each other, and are within R*r of <newPoint>.
-
-
-  // R = std::floor(R * std::sqrt(3.0));
-  // Vector3 centerOffset = {0.5 * r, 0.5 * r, 0.5 * r}; // vector from the "origin" corner of each bucket to its center
-  // long long int keyX = key[0];
-  // long long int keyY = key[1];
-  // long long int keyZ = key[2];
-  // long long int queryX, queryY, queryZ;
-  // for (int offsetX = -R; offsetX <= R; offsetX++) {
-  //   for (int offsetY = -R; offsetY <= R; offsetY++) {
-  //     for (int offsetZ = -R; offsetZ <= R; offsetZ++) {
-
-  //       queryX = keyX + offsetX;
-  //       queryY = keyY + offsetY;
-  //       queryZ = keyZ + offsetZ;
-
-  //       long long int dx = queryX - keyX;
-  //       long long int dy = queryY - keyY;
-  //       long long int dz = queryZ - keyZ;
-  //       // implicitly convert to floats
-  //       if (std::sqrt(dx * dx + dy * dy + dz * dz) < (float)R) {
-  //         SpatialKey newKey = {queryX, queryY, queryZ};
-  //         Vector3 queryPos = {queryX, queryX, queryZ};
-  //         std::cerr << queryX << " " << queryY << " " << queryZ << std::endl;
-  //         std::cerr << queryPos << "\n" << std::endl;
-
-  //         queryPos = queryPos * s + mapCenter + centerOffset;
-  //         spatialBuckets.insert(std::make_pair(newKey, queryPos));
-  //       }
-  //     }
-  //   }
-  // }
 }
 
 /*
@@ -199,7 +172,7 @@ bool PoissonDiskSampler::isCandidateValid(const SurfacePoint& candidate) const {
 
         auto bucketIter = spatialBuckets.find(bucketKey);
         if (bucketIter != spatialBuckets.end()) {
-          if ((queryPoint - bucketIter->second).norm() < r) {
+          if ((queryPoint - bucketIter->second).norm() < rMinDist) {
             return false;
           }
         }
@@ -269,8 +242,8 @@ std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandida
 
   // Set parameters.
   rCoef = rCoef_;
-  r = rCoef * h;
-  s = r / std::sqrt(3.0);
+  rMinDist = rCoef * meanEdgeLength;
+  sideLength = rMinDist / std::sqrt(3.0);
   kCandidates = kCandidates_;
   pointsToAvoid = pointsToAvoid_;
 

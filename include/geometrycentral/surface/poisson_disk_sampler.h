@@ -31,9 +31,9 @@ private:
   int kCandidates; // number of candidate points chosen from the (r,2r)-annulus around each sample
   std::vector<SurfacePoint> pointsToAvoid;
 
-  double r; // the actual minimum distance between samples
-  double h; // the mean edge length
-  double s; // side length of each bucket
+  double rMinDist;       // the actual minimum distance between samples
+  double meanEdgeLength; // the mean edge length
+  double sideLength;     // side length of each bucket
 
   std::vector<Face> faceFromEachComponent; // holds one face for each connected component in the mesh
   std::vector<SurfacePoint> activeList;    // holds candidate points
