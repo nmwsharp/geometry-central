@@ -96,7 +96,6 @@ BarycentricVector operator*(const T s, const BarycentricVector& v);
 
 // Printing
 ::std::ostream& operator<<(::std::ostream& output, const BarycentricVector& v);
-::std::istream& operator>>(::std::istream& input, BarycentricVector& v);
 
 } // namespace surface
 } // namespace geometrycentral
