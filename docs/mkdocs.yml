@@ -73,6 +73,7 @@ nav:
       - 'Simple Polygon Mesh' : 'surface/utilities/simple_polygon_mesh.md'
       - 'I/O' : 'surface/utilities/io.md'
       - 'Surface Point' : 'surface/utilities/surface_point.md'
+      - 'Barycentric Vector': 'surface/utilities/barycentric_vector.md'
     - Algorithms: 
       - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
       - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'

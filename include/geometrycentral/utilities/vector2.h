@@ -103,6 +103,7 @@ bool isfinite(const Vector2& u); // break camel case rule to match std
 bool isDefined(const Vector2& u);
 Vector2 componentwiseMin(const Vector2& u, const Vector2& v);
 Vector2 componentwiseMax(const Vector2& u, const Vector2& v);
+double sum(const Vector2& u);
 
 } // namespace geometrycentral
 

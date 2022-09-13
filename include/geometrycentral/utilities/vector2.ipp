@@ -157,6 +157,7 @@ inline Vector2 componentwiseMin(const Vector2& u, const Vector2& v) {
 inline Vector2 componentwiseMax(const Vector2& u, const Vector2& v) {
   return Vector2{std::fmax(u.x, v.x), std::fmax(u.y, v.y)};
 }
+inline double sum(const Vector2& u) { return u.x + u.y; }
 
 inline std::ostream& operator<<(std::ostream& output, const Vector2& v) {
   output << "<" << v.x << ", " << v.y << ">";

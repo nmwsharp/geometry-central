@@ -132,6 +132,8 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/surface_mesh.ipp
   ${INCLUDE_ROOT}/surface/surface_point.h
   ${INCLUDE_ROOT}/surface/surface_point.ipp
+  ${INCLUDE_ROOT}/surface/barycentric_vector.h
+  ${INCLUDE_ROOT}/surface/barycentric_vector.ipp
   ${INCLUDE_ROOT}/surface/surgery.h
   ${INCLUDE_ROOT}/surface/trace_geodesic.h
   ${INCLUDE_ROOT}/surface/transfer_functions.h

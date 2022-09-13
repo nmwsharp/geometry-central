@@ -300,6 +300,53 @@ inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
   // no shared face
   return Face();
 }
+
+inline Edge sharedEdge(const SurfacePoint& pA, const SurfacePoint& pB) {
+
+  if (pA.type == SurfacePointType::Face || pB.type == SurfacePointType::Face) return Edge();
+
+  // This is kind of ugly code, esp. since there's only two options for the switch statement. But a nested-if looks even
+  // worse...
+  switch (pA.type) {
+  case SurfacePointType::Vertex: {
+    switch (pB.type) {
+    case SurfacePointType::Vertex:
+      for (Halfedge he : pA.vertex.outgoingHalfedges()) {
+        if (he.tipVertex() == pB.vertex) return he.edge();
+      }
+      break;
+    case SurfacePointType::Edge:
+      for (Edge e : pA.vertex.adjacentEdges()) {
+        if (e == pB.edge) return e;
+      }
+      break;
+    default:
+      break;
+    }
+    break;
+  }
+  case SurfacePointType::Edge: {
+    switch (pB.type) {
+    case SurfacePointType::Vertex:
+      for (Edge e : pB.vertex.adjacentEdges()) {
+        if (e == pB.edge) return e;
+      }
+      break;
+    case SurfacePointType::Edge:
+      if (pA.edge == pB.edge) return pA.edge;
+      break;
+    default:
+      break;
+    }
+    break;
+  }
+  default:
+    break;
+  }
+
+  // no shared edge
+  return Edge();
+}
 } // namespace surface
 } // namespace geometrycentral
 

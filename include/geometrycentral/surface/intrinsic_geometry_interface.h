@@ -74,14 +74,14 @@ public:
   EdgeData<double> edgeCotanWeights;
   void requireEdgeCotanWeights();
   void unrequireEdgeCotanWeights();
- 
-  // Shape length scale 
+
+  // Shape length scale
   // (computed as sqrt(total_area), so it is a property of the shape, not the mesh)
   double shapeLengthScale = -1;
   void requireShapeLengthScale();
   void unrequireShapeLengthScale();
-  
-  // Mesh length scale 
+
+  // Mesh length scale
   // (computed as mean edge length, so it is a property of the mesh moreso than the shape)
   double meshLengthScale = -1;
   void requireMeshLengthScale();
@@ -192,12 +192,12 @@ protected:
   // Edge cotan weight
   DependentQuantityD<EdgeData<double>> edgeCotanWeightsQ;
   virtual void computeEdgeCotanWeights();
-  
-  // Shape length scale 
+
+  // Shape length scale
   DependentQuantityD<double> shapeLengthScaleQ;
   virtual void computeShapeLengthScale();
-  
-  // Mesh length scale 
+
+  // Mesh length scale
   DependentQuantityD<double> meshLengthScaleQ;
   virtual void computeMeshLengthScale();
 
