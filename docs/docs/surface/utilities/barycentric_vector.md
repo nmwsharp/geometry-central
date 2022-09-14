@@ -13,7 +13,7 @@ enum class BarycentricVectorType { Face = 0, Edge, Vertex };
 
 which indicates what kind of vector it is.
 
-- If the barycentric vector is **inside a face**, the field `BarycentricVector::face` indicates which face. Otherwise it is the null default face. The field `BarycentricVector::faceCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the face (ordered according to the iteration order of vertices about the face, as usual).
+- If the barycentric vector is **inside a face**, the field `BarycentricVector::face` indicates which face. Otherwise it is the null default face. The field `BarycentricVector::faceCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the face. If one thinks of a barycentric vector as being the difference of two barycentric points, the order of the vector coordinates can be thought of as corresponding to the usual iteration order of vertices about the face. More technically, the vector coordinates represent values of a _1-form_ on the _standard triangle_.
 
 - If the barycentric vector is **along an edge**, the field `BarycentricVector::edge` indicates which edge. Otherwise it is the null default edge. The field `BarycentricVector::edgeCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the edge (ordered according to the order of vertices on the edge as usual, i.e. the first component corresponds to `edge.halfedge().vertex() == edge.firstVertex()`.)
 
