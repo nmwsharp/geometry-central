@@ -2,7 +2,9 @@ A `BarycentricVector` is a vector that lies along a surface. This vector can lie
 
 ![example of a barycentric vector within a face of an intrinsic triangulation](/media/barycentric_vector.svg)
 
-Using barycentric vectors, one can easily do vector arithmetic on a surface. Barycentric vectors are especially useful when working with an intrinsic representation of a surface; they can be used to do computations on vectors that depend only on intrinsic geometry (such as inner products.)
+Although a barycentric vector can be constructed as the difference of two barycentric points, a barycentric vector technically does not define a single unique vector along the surface but rather a constant vector field within a face.
+
+Using barycentric vectors, one can easily do vector arithmetic on a surface. Barycentric vectors are especially useful when working with an intrinsic representation of a surface; they can be used to do computations on vectors that depend only on intrinsic geometry, such as inner products.
 
 `#include "geometrycentral/surface/barycentric_vector.h"`
 
@@ -13,9 +15,9 @@ enum class BarycentricVectorType { Face = 0, Edge, Vertex };
 
 which indicates what kind of vector it is.
 
-- If the barycentric vector is **inside a face**, the field `BarycentricVector::face` indicates which face. Otherwise it is the null default face. The field `BarycentricVector::faceCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the face. If one thinks of a barycentric vector as being the difference of two barycentric points, the order of the vector coordinates can be thought of as corresponding to the usual iteration order of vertices about the face. More technically, the vector coordinates represent values of a _1-form_ on the _standard triangle_.
+- If the barycentric vector is **inside a face**, the field `BarycentricVector::face` indicates which face. Otherwise it is the null default face. The field `BarycentricVector::faceCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the face. If one thinks of a barycentric vector as being the difference of two barycentric points, the order of the vector coordinates can be thought of as corresponding to the usual iteration order of vertices about the face. More technically, the vector coordinates represent vectors in the tangent plane of the _standard triangle_ (see Section 2.3 of [these notes](https://markjgillespie.com/Research/int-tri-course/int_tri_course.pdf).)
 
-- If the barycentric vector is **along an edge**, the field `BarycentricVector::edge` indicates which edge. Otherwise it is the null default edge. The field `BarycentricVector::edgeCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the edge (ordered according to the order of vertices on the edge as usual, i.e. the first component corresponds to `edge.halfedge().vertex() == edge.firstVertex()`.)
+- If the barycentric vector is **along an edge**, the field `BarycentricVector::edge` indicates which edge. Otherwise it is the null default edge. The field `BarycentricVector::edgeCoords` stores the coordinates of the vector, expressed in barycentric coordinates of the edge (ordered according to the usual order of vertices on the edge, i.e. the first component corresponds to `edge.halfedge().vertex() == edge.firstVertex()`.)
 
 - If the barycentric vector is on a **vertex**, the field `BarycentricVector::vertex` indicates which vertex. Otherwise it is the null default vertex. There are no corresponding coordinates, since a vector on a vertex is always considered to have zero length.
 
@@ -37,7 +39,7 @@ which indicates what kind of vector it is.
 
     Construct a barycentric vector from the given [surface points](../surface_point), i.e. barycentric points. The vector direction goes from `pA` to `pB`.
 
-    Note that constructing a barycentric vector from two barycentric points is a lossy conversion, in that there do not exist unique barycentric endpoints for a given vector (except for the degenerate case of a vertex-type vector, where both endpoints are the vertex itself.)
+    Note that there do not exist unique barycentric endpoints for a given barycentric vector, except for the degenerate case of a vertex-type vector where both endpoints are the vertex itself. Perhaps a more straightforward way to say this is that barycentric vectors really are **vectors** (displacements), **not** rays.
 
 ### Arithmetic
 Barycentric vectors support addition, subtraction, scalar multiplication, and scalar division.
