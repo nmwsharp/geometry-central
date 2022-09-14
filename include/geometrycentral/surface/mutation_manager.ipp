@@ -38,6 +38,7 @@ template <typename T>
 class SimpleSplitUpdater : public EdgeSplitPolicy {
   // General case where the pre function passes data to the post function. Both must be given.
   T data;
+
 public:
   std::function<T(Edge, double)> pre;
   std::function<void(Halfedge, Halfedge, double, T)> post;
