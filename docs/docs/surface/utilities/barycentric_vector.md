@@ -1,5 +1,7 @@
 A `BarycentricVector` is a vector that lies along a surface. This vector can lie within a face, along an edge, or at a single vertex (in which case it is simply a zero vector.) Barycentric vectors represent the difference between two barycentric points on the surface, hence their coordinates always sum to 0. (Barycentric points are implemented as [SurfacePoint](../surface_point) in geometry-central.) Currently, barycentric points and vectors are only supported on triangle meshes.
 
+![example of a barycentric vector within a face of an intrinsic triangulation](/media/barycentric_vector.svg)
+
 Using barycentric vectors, one can easily do vector arithmetic on a surface. Barycentric vectors are especially useful when working with an intrinsic representation of a surface; they can be used to do computations on vectors that depend only on intrinsic geometry (such as inner products.)
 
 `#include "geometrycentral/surface/barycentric_vector.h"`
@@ -33,7 +35,9 @@ which indicates what kind of vector it is.
 
 ??? func "`#!cpp BarycentricVector::BarycentricVector(SurfacePoint pA, SurfacePoint pB)`"
 
-    Construct a barycentric vector from the given [surface points](../surface_point); the vector direction goes from `pA` to `pB`.
+    Construct a barycentric vector from the given [surface points](../surface_point), i.e. barycentric points. The vector direction goes from `pA` to `pB`.
+
+    Note that constructing a barycentric vector from two barycentric points is a lossy conversion, in that there do not exist unique barycentric endpoints for a given vector (except for the degenerate case of a vertex-type vector, where both endpoints are the vertex itself.)
 
 ### Arithmetic
 Barycentric vectors support addition, subtraction, scalar multiplication, and scalar division.
