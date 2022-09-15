@@ -158,7 +158,7 @@ public:
   void unrequireCrouzeixRaviartMassMatrix();
 
   // Crouzeix-Raviart connection Laplacian. Corresponds to the complex version, not the 2E x 2E version.
-  Eigen::SparseMatrix<double> crouzeixRaviartConnectionLaplacian;
+  Eigen::SparseMatrix<std::complex<double>> crouzeixRaviartConnectionLaplacian;
   void requireCrouzeixRaviartConnectionLaplacian();
   void unrequireCrouzeixRaviartConnectionLaplacian();
 
@@ -275,7 +275,7 @@ protected:
   virtual void computeCrouzeixRaviartMassMatrix();
 
   // Crouzeix-Raviart connection Laplacian
-  DependentQuantityD<Eigen::SparseMatrix<stdd::complex<double>>> crouzeixRaviartConnectionLaplacianQ;
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> crouzeixRaviartConnectionLaplacianQ;
   virtual void computeCrouzeixRaviartConnectionLaplacian();
 
   // DEC Operators

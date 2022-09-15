@@ -642,7 +642,7 @@ void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
   cornerAnglesQ.ensureHave();
 
   crouzeixRaviartConnectionLaplacian = Eigen::SparseMatrix<std::complex<double>>(mesh.nEdges(), mesh.nEdges());
-  std::vector<Eigen::Triplet<double>> tripletList;
+  std::vector<Eigen::Triplet<std::complex<double>>> tripletList;
   for (Face f : mesh.faces()) {
     for (Halfedge he : f.adjacentHalfedges()) {
       Halfedge heA = he.next();
@@ -654,11 +654,14 @@ void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
       size_t iE_j = edgeIndices[heB.edge()];
 
       double weight = 4.0 * halfedgeCotanWeights[he];
-      int s_ij = (heA.orientation() == heB.orientation()) ? 1 : -1;
-      std::complex<double> rot = Vector2::fromAngle(-cornerAngles[c]);
+      double s_ij = (heA.orientation() == heB.orientation()) ? 1. : -1.;
+      std::complex<double> rot_ij = -Vector2::fromAngle(-cornerAngles[c]);
+      std::complex<double> rot_ji = -Vector2::fromAngle(cornerAngles[c]);
 
       tripletList.emplace_back(iE_i, iE_i, weight);
-      tripletList.emplace_back(iE_i, iE_j, weight * rot * s_ij);
+      tripletList.emplace_back(iE_j, iE_j, weight);
+      tripletList.emplace_back(iE_i, iE_j, -weight * rot_ij * s_ij);
+      tripletList.emplace_back(iE_j, iE_i, -weight * rot_ji * s_ij);
     }
   }
   crouzeixRaviartConnectionLaplacian.setFromTriplets(tripletList.begin(), tripletList.end());
