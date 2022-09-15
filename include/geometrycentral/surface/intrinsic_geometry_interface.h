@@ -143,10 +143,6 @@ public:
   void requireFaceConnectionLaplacian();
   void unrequireFaceConnectionLaplacian();
 
-  // I thought about calling the Crouzeix-Raviart matrices <edgeMidpointLaplacian>, <edgeMidpointGalerkinMassMatrix>,
-  // etc. because they are formed via integration of piecewise linear elements associated with edge midpoints. But these
-  // elements are more commonly referred to via Crouzeix-Raviart in the literature.
-
   // Crouzeix-Raviart Laplace matrix
   Eigen::SparseMatrix<double> crouzeixRaviartLaplacian;
   void requireCrouzeixRaviartLaplacian();
