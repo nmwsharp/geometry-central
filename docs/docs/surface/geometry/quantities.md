@@ -475,6 +475,48 @@ All operators are indexed over mesh elements according to the natural iteration 
     - **member:** `Eigen::SparseMatrix<std::complex<double>> IntrinsicGeometryInterface::vertexConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireVertexConnectionLaplacian()`
 
+??? func "Crouzeix-Raviart Laplacian"
+    
+    ##### Crouzeix-Raviart Laplacian
+
+    The discrete Laplace operator, discretized via the piecewise linear *Crouzeix-Raviart* basis functions associated with edge midpoints.
+
+    A $|E| \times |E|$ real matrix. Always symmetric and positive semi-definite. This is the _weak_ Laplace operator, if we use it to evaluate $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at edge midpoints, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each edge midpoint. If used to solve a Poisson problem, a mass matrix is likely necessary on the right hand side.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartLaplacian()`
+
+??? func "Crouzeix-Raviart mass matrix"
+
+    ##### Crouzeix-Raviart mass matrix
+
+    A mass matrix at edges, where the edge area is $1/3$ the incident face areas.
+
+    A $|E| \times |E|$ real diagonal matrix. Corresponds to the Galerkin mass matrix for Crouzeix-Raviart elements, which is already diagonal without lumping.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartMassMatrix`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartMassMatrix()`
+
+??? func "Crouzeix-Raviart connection Laplacian"
+
+    ##### Crouzeix-Raviart connection Laplacian
+
+    A discrete connection Laplacian operator, which applies to vector fields defined in edge tangent spaces
+
+    A $|E| \times |E|$ complex matrix. Always Hermitian and positive semi-definite.
+
+    Given a complex vector $\mathsf{x}$ of tangent vectors at edge midpoints, apply the operator by multiplying $\mathsf{L} * \mathsf{x}$. Like other mesh elements, the $x$-axis of the tangent space at edge `e` points in the direction of `e.halfedge()`.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
+
+
 ??? func "DEC operators"
 
     ##### DEC operators
