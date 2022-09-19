@@ -475,6 +475,33 @@ All operators are indexed over mesh elements according to the natural iteration 
     - **member:** `Eigen::SparseMatrix<std::complex<double>> IntrinsicGeometryInterface::vertexConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireVertexConnectionLaplacian()`
 
+??? func "DEC operators"
+
+    ##### DEC operators
+
+    These operators are the basic building blocks for _discrete exterior calculus_ on surfaces.
+
+    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requireDECOperators()` function which manages all 8 of the members listed below.
+
+    The following members are constructed:
+
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge0` A $|V| \times |V|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge0Inverse` A $|V| \times |V|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge1` An $|E| \times |E|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge1Inverse` An $|E| \times |E|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge2` An $|F| \times |F|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge2Inverse` An $|F| \times |F|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::d0` An $|E| \times |V|$ matrix with $\{-1, 0, 1\}$ entries
+    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::d1` An $|F| \times |E|$ matrix with $\{-1, 0, 1\}$ entries
+
+    Only valid on triangular meshes.
+
+    - **require:** `void IntrinsicGeometryInterface::requireDECOperators()`
+
+While the vertex-based cotan Laplacian above is standard in geometry processing, one can also construct a discrete Laplacian using different basis functions. The following matrices are the result of using _Crouzeix-Raviart_ basis functions, which are Lagrange elements based at edge midpoints: Each function is piecewise linear, has a value at 1 at its associated edge midpoint, and is 0 at all other adjacent edge midpoints.
+
+In graphics and geometry processing, Crouzeix-Raviart elements have been used, for example, to [discretize bending energies](https://cims.nyu.edu/gcl/papers/wardetzky2007dqb.pdf) and [discretize vector Dirichlet energy](https://odedstein.com/projects/a-simple-discretization/a-simple-discretization.pdf). Because there are typically more edges than vertices in a mesh, and there are only two faces in the support of each Crouzeix-Raviart basis function, Crouzeix-Raviart operators also typically have more DOFs than vertex-based operators.
+
 ??? func "Crouzeix-Raviart Laplacian"
     
     ##### Crouzeix-Raviart Laplacian
@@ -515,30 +542,6 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
-
-
-??? func "DEC operators"
-
-    ##### DEC operators
-
-    These operators are the basic building blocks for _discrete exterior calculus_ on surfaces.
-
-    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requireDECOperators()` function which manages all 8 of the members listed below.
-
-    The following members are constructed:
-
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge0` A $|V| \times |V|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge0Inverse` A $|V| \times |V|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge1` An $|E| \times |E|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge1Inverse` An $|E| \times |E|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge2` An $|F| \times |F|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::hodge2Inverse` An $|F| \times |F|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::d0` An $|E| \times |V|$ matrix with $\{-1, 0, 1\}$ entries
-    - `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::d1` An $|F| \times |E|$ matrix with $\{-1, 0, 1\}$ entries
-
-    Only valid on triangular meshes.
-
-    - **require:** `void IntrinsicGeometryInterface::requireDECOperators()`
 
 
 ## Extrinsic angles
