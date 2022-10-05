@@ -35,12 +35,12 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double flatLength,
                        double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
-                       double flatLength, double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
+                       double flatLength, double curvatureAdaptation = 0., double minRelativeLength = 0.05);
 
 void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double targetEdgeLength,
-            size_t maxIterations = 10, double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
+            size_t maxIterations = 10, double curvatureAdaptation = 0., double minRelativeLength = 0.05);
 void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm, double targetEdgeLength,
-            size_t maxIterations = 10, double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
+            size_t maxIterations = 10, double curvatureAdaptation = 0., double minRelativeLength = 0.05);
 
 } // namespace surface
 } // namespace geometrycentral
