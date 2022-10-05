@@ -13,12 +13,12 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Mutatio
             size_t maxIterations, double curvatureAdaptation, double minRelativeLength) {
   if (targetEdgeLength < 0) {
     double meanLength = 0;
-    geometry->requireEdgeLengths();
-    for (Edge e : mesh->edges()) {
-      meanLength += geometry->edgeLengths[e];
+    geometry.requireEdgeLengths();
+    for (Edge e : mesh.edges()) {
+      meanLength += geometry.edgeLengths[e];
     }
-    geometry->unrequireEdgeLengths();
-    meanLength /= mesh->nEdges();
+    geometry.unrequireEdgeLengths();
+    meanLength /= mesh.nEdges();
 
     targetEdgeLength = meanLength;
   }
@@ -42,26 +42,11 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Mutatio
 
 Vector3 vertexNormal(VertexPositionGeometry& geometry, Vertex v, MutationManager& mm) {
   Vector3 totalNormal = Vector3::zero();
-  Vector3 fixedFaceNormals = Vector3::zero();
-  bool foundFixedFace = false;
   for (Corner c : v.adjacentCorners()) {
-    size_t nFixedVertices = 0;
-    for (Vertex w : c.face().adjacentVertices()) {
-      if (!mm.mayRepositionVertex(w)) nFixedVertices++;
-    }
-
     Vector3 cornerNormal = geometry.cornerAngle(c) * geometry.faceNormal(c.face());
-    if (nFixedVertices >= 2) {
-      fixedFaceNormals += cornerNormal;
-      foundFixedFace = true;
-    }
     totalNormal += cornerNormal;
   }
-  if (foundFixedFace) {
-    return normalize(fixedFaceNormals);
-  } else {
-    return normalize(totalNormal);
-  }
+  return normalize(totalNormal);
 }
 
 inline Vector3 projectToPlane(Vector3 v, Vector3 norm) { return v - norm * dot(norm, v); }
