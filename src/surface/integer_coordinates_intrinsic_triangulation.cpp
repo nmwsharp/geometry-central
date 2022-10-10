@@ -787,7 +787,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     bool foundRegion = false;
 
     // Used to print error messages later
-    size_t myCase = 0;
+    // size_t myCase = 0;
 
     // Case 1: in a corner, or just past a corner
     for (size_t iC = 0; iC < 3 && !foundRegion; iC++) {
@@ -796,7 +796,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
       if (cornerCoord < 1 || counts[iC] > cornerCoord) continue;
 
       if (verbose) std::cout << "Case I" << std::endl;
-      myCase = 1;
+      // myCase = 1;
 
       bool justPast = (counts[iC] == static_cast<int>(normalCoordinates.strictCornerCoord(faceCorners[iC])));
 
@@ -891,7 +891,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
         continue;
       }
       if (verbose) std::cout << "Case II" << std::endl;
-      myCase = 2;
+      // myCase = 2;
 
       // We must have iC == longHe
       // So the new point is in the first section along longHe
@@ -913,7 +913,7 @@ IntegerCoordinatesIntrinsicTriangulation::computeFaceSplitData(Face f, Vector3 b
     // Case 3: in the center of the fan region
     if (!foundRegion) {
       if (verbose) std::cout << "Case III" << std::endl;
-      myCase = 3;
+      // myCase = 3;
 
       Halfedge firstHedge;
       bool hasFanEdge = normalCoordinates.triangleInequalityViolation(f, firstHedge);
