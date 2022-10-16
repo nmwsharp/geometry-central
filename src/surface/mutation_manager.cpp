@@ -139,6 +139,20 @@ bool MutationManager::flipEdge(Edge e) {
   return true;
 }
 
+Halfedge MutationManager::insertVertexAlongEdge(Edge e, double tSplit) {
+
+  Vector3 newPos = Vector3::zero();
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions;
+    newPos = (1. - tSplit) * pos[e.firstVertex()] + tSplit * pos[e.secondVertex()];
+  }
+  Halfedge he = mesh.insertVertexAlongEdge(e);
+  if (geometry) {
+    geometry->vertexPositions[he.vertex()] = newPos;
+  }
+  return he;
+}
+
 Halfedge MutationManager::splitEdge(Edge e, double tSplit) {
   if (!maySplitEdge(e)) return Halfedge();
 
@@ -290,6 +304,220 @@ Vertex MutationManager::splitFace(Face f, const std::vector<double>& bSplit, Vec
   }
 
   return newV;
+}
+
+Halfedge MutationManager::cutFace(Vertex vA, Vertex vB) {
+
+  Face commonFace = sharedFace(SurfacePoint(vA), SurfacePoint(vB));
+  if (commonFace == Face())
+    throw std::logic_error("Can only cut mesh if the vertices at the endpoints "
+                           "of the cut share a face.");
+
+  // If segment already lies along an edge, return an existing halfedge.
+  for (Halfedge he : vA.outgoingHalfedges()) {
+    if (he.tipVertex() == vB) return he;
+  }
+
+  // Find out which halfedges correspond to these vertices, then call the
+  // already-written connectVertices() function.
+  Halfedge heA, heB;
+  for (Halfedge he : commonFace.adjacentHalfedges()) {
+    if (he.vertex() == vA) heA = he;
+    if (he.vertex() == vB) heB = he;
+  }
+  return mesh.connectVertices(heA, heB);
+}
+
+Halfedge MutationManager::cutFace(SurfacePoint pA, SurfacePoint pB) {
+
+  Face commonFace = sharedFace(pA, pB);
+  if (commonFace == Face()) throw std::logic_error("Can only cut mesh if endpoints of cut share a face.");
+
+  // TODO: seems buggy
+  switch (pA.type) {
+  case (SurfacePointType::Vertex): {
+    switch (pB.type) {
+    case (SurfacePointType::Vertex):
+      return cutFace(pA.vertex, pB.vertex);
+      break;
+    case (SurfacePointType::Edge): {
+      Halfedge heB = insertVertexAlongEdge(pB.edge, pB.tEdge);
+      return cutFace(pA.vertex, heB.vertex());
+      break;
+    }
+    case (SurfacePointType::Face):
+      throw std::logic_error("Cutting into faces, i.e. from a point on the "
+                             "boundary of the face to an interior point, "
+                             "is not yet supported.");
+      break;
+    }
+    break;
+  }
+  case (SurfacePointType::Edge): {
+    switch (pB.type) {
+    case (SurfacePointType::Vertex): {
+      Halfedge heA = insertVertexAlongEdge(pA.edge, pA.tEdge);
+      Vertex vA = heA.vertex();
+      return cutFace(vA, pB.vertex);
+      break;
+    }
+    case (SurfacePointType::Edge): {
+      Halfedge heA = insertVertexAlongEdge(pA.edge, pA.tEdge);
+      Halfedge heB;
+      if (pA.edge == pB.edge) {
+        // If points lie on same edge, then make sure we add both points in
+        // correct places. ManifoldSurfaceMesh::insertVertexAlongEdge()
+        // repurposes the input edge as one of the two new edges; I think the
+        // one corresponding to the returned halfedge, but I'm not sure (and
+        // this might change if insertVertexAlongEdge() ever changes.)
+        double tB = pB.tEdge;
+        double tA = pA.tEdge;
+        if (tB > tA) {
+          // pB gets inserted along same edge that pA is now the firstVertex of.
+          heB = insertVertexAlongEdge(heA.edge(), (tB - tA) / (1. - tA));
+        } else {
+          // pB gets inserted along the *previous* edge along the old edge
+          heB = insertVertexAlongEdge(heA.twin().next().edge(), tB / tA);
+        }
+      } else {
+        // If pA and pB don't lie on the same edge, it's business as usual.
+        Halfedge heB = insertVertexAlongEdge(pB.edge, pB.tEdge);
+      }
+      // instead of ManifoldSurfaceMesh::connectVertices(), which doesn't handle
+      // endpoints on the same edge.
+      return cutFace(heA.vertex(), heB.vertex());
+      break;
+    }
+    case (SurfacePointType::Face): {
+      throw std::logic_error("Cutting into faces, i.e. from a point on the "
+                             "boundary of the face to an interior point, "
+                             "is not yet supported.");
+      break;
+    }
+    }
+    break;
+  }
+  case (SurfacePointType::Face): {
+    switch (pB.type) {
+    case (SurfacePointType::Vertex): {
+      throw std::logic_error("Cutting into faces, i.e. from a point on the "
+                             "boundary of the face to an interior point, "
+                             "is not yet supported.");
+      break;
+    }
+    case (SurfacePointType::Edge): {
+      throw std::logic_error("Cutting into faces, i.e. from a point on the "
+                             "boundary of the face to an interior point, "
+                             "is not yet supported.");
+      break;
+    }
+    case (SurfacePointType::Face):
+      throw std::logic_error("Cannot cut mesh along a cut within the interior "
+                             "of a face; geometry-central does not "
+                             "support faces with holes.");
+      break;
+    }
+    break;
+  }
+  }
+  return Halfedge(); // shouldn't get here
+}
+
+std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<std::vector<SurfacePoint>>& pathCurves) {
+
+  std::vector<SurfacePoint> pathNodes;
+  std::vector<std::array<size_t, 2>> pathEdges;
+
+  for (auto curve : pathCurves) {
+    size_t N = pathNodes.size();
+    pathNodes.insert(pathNodes.end(), curve.begin(), curve.end());
+    size_t M = curve.size();
+    for (size_t i = 0; i < M - 1; i++) {
+      pathEdges.push_back({N + i, N + i + 1});
+    }
+  }
+
+  // Call general version
+  return cutAlongPath(pathNodes, pathEdges);
+}
+
+std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoint>& pathNodes,
+                                                    const std::vector<std::array<size_t, 2>>& pathEdges) {
+
+  // Safety check before we mutate the mesh.
+  for (auto seg : pathEdges) {
+    SurfacePoint pA = pathNodes[seg[0]];
+    SurfacePoint pB = pathNodes[seg[1]];
+
+    Face commonFace = sharedFace(pA, pB);
+    if (commonFace == Face()) throw std::logic_error("Each segment of cut path must lie within a single face.");
+  }
+
+  // Make sure we don't duplicate inserted vertices.
+  std::vector<SurfacePoint> dedupNodes;
+  std::vector<std::array<size_t, 2>> newEdges;
+  for (auto seg : pathEdges) {
+    SurfacePoint pA = pathNodes[seg[0]];
+    SurfacePoint pB = pathNodes[seg[1]];
+
+    if (pA == pB) continue;
+
+    auto itA = find(dedupNodes.begin(), dedupNodes.end(), pA);
+    auto itB = find(dedupNodes.begin(), dedupNodes.end(), pB);
+
+    size_t idxA, idxB;
+    std::vector<SurfacePoint> ptsToAdd; // because idk if push_back() invalidates begin() iterator
+    if (itA == dedupNodes.end()) {
+      ptsToAdd.push_back(pA);
+      idxA = dedupNodes.size();
+    } else {
+      idxA = itA - dedupNodes.begin();
+    }
+
+    if (itB == dedupNodes.end()) {
+      idxB = dedupNodes.size() + ptsToAdd.size();
+      ptsToAdd.push_back(pB);
+    } else {
+      idxB = itB - dedupNodes.begin();
+    }
+
+    dedupNodes.insert(dedupNodes.end(), ptsToAdd.begin(), ptsToAdd.end());
+    newEdges.push_back({idxA, idxB});
+  }
+
+  // Insert new vertices. TODO: multiple linear cuts within face not yet
+  // supported.
+  std::vector<Vertex> newVertices;
+  for (SurfacePoint& pt : dedupNodes) {
+    Halfedge he;
+    Vertex newVert;
+    switch (pt.type) {
+    case (SurfacePointType::Vertex):
+      newVert = pt.vertex;
+      break;
+    case (SurfacePointType::Edge):
+      he = insertVertexAlongEdge(pt.edge, pt.tEdge);
+      assert(he.tipVertex() == pt.edge.secondVertex());
+      newVert = he.vertex();
+      break;
+    default:
+      throw std::logic_error("Each SurfacePoint in cut path must be either "
+                             "Type::Vertex or Type::Edge.");
+      break;
+    }
+    // mesh.compress();
+    newVertices.push_back(newVert);
+  }
+
+  // Then perform the face-splitting. TODO: This function doesn't handle cuts
+  // which intersect other cuts.
+  std::vector<Halfedge> cutHalfedges;
+  for (auto& seg : newEdges) {
+    Halfedge newHe = cutFace(newVertices[seg[0]], newVertices[seg[1]]);
+    cutHalfedges.push_back(newHe);
+  }
+
+  return cutHalfedges;
 }
 
 
