@@ -20,6 +20,31 @@ inline double displacementLength(Vector3 displacement, Vector3 triangleLengths) 
   return std::sqrt(length2);
 }
 
+inline Vector2 barycentricDisplacementToCartesian(const std::array<Vector2, 3>& vertCoords, Vector3 baryVec) {
+  // Note: happens to be the same as baryCoordsToFaceCoords()
+  return vertCoords[0] * baryVec.x + vertCoords[1] * baryVec.y + vertCoords[2] * baryVec.z;
+}
+
+inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec, bool verbose) {
+
+
+  // Build matrix for linear transform problem
+  // (last constraint comes from chosing the displacement vector with sum = 0)
+  Eigen::Matrix3d A;
+  Eigen::Vector3d rhs;
+  const std::array<Vector2, 3>& c = vertCoords; // short name
+  A << c[0].x, c[1].x, c[2].x, c[0].y, c[1].y, c[2].y, 1., 1., 1.;
+  rhs << faceVec.x, faceVec.y, 0.;
+
+  // Solve
+  Eigen::Vector3d result = A.colPivHouseholderQr().solve(rhs);
+  Vector3 resultBary{result(0), result(1), result(2)};
+
+  resultBary = normalizeBarycentricDisplacement(resultBary);
+
+  return resultBary;
+}
+
 // Allows not-normalized input
 inline Vector3 normalizeBarycentric(Vector3 baryCoords) {
   double s = sum(baryCoords);

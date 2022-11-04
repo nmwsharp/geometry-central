@@ -52,11 +52,6 @@ inline Vector2 baryCoordsToFaceCoords(const std::array<Vector2, 3>& vertCoords, 
   return vertCoords[0] * baryCoord.x + vertCoords[1] * baryCoord.y + vertCoords[2] * baryCoord.z;
 }
 
-inline Vector2 barycentricDisplacementToCartesian(const std::array<Vector2, 3>& vertCoords, Vector3 baryVec) {
-  // Note: happens to be the same as baryCoordsToFaceCoords()
-  return vertCoords[0] * baryVec.x + vertCoords[1] * baryVec.y + vertCoords[2] * baryVec.z;
-}
-
 inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
 
 
