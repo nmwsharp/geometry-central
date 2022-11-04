@@ -359,6 +359,7 @@ std::pair<double, double> compute_local_coordinates(IntrinsicGeometryInterface& 
 
   return std::make_pair(x, y);
 }
+
 } // namespace exactgeodesic
 
 } // namespace surface

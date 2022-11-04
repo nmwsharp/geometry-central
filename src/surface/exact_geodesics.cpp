@@ -65,6 +65,11 @@ double GeodesicAlgorithmExact::getDistance(const Vertex& v) {
   return getDistance(SurfacePoint(v));
 }
 
+Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) {
+  // Call general version
+  return getDistanceGradient(SurfacePoint(v));
+}
+
 void GeodesicAlgorithmExact::best_point_on_the_edge_set(SurfacePoint& point, std::vector<Edge> const& storage,
                                                         interval_pointer& best_interval, double& best_total_distance,
                                                         double& best_interval_position, bool verbose) {
@@ -1044,6 +1049,106 @@ VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() {
     distances[v] = closestSource(SurfacePoint(v)).second;
   }
   return distances;
+}
+
+Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
+
+  double best_interval_position;
+  unsigned best_source_index;
+  double best_source_distance;
+
+  interval_pointer best_interval =
+      best_first_interval(point, best_source_distance, best_interval_position, best_source_index);
+
+  SurfacePoint closestPoint;
+  if (best_interval) {
+
+    // Identity point in interval which lies along the geodesic
+    Edge edge = best_interval->edge();
+    Halfedge he = edge.halfedge();
+    double edge_length = geom.edgeLengths[edge];
+    double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
+
+    if (best_interval_position < local_epsilon) {
+      closestPoint = SurfacePoint(he.tailVertex());
+    } else if (best_interval_position > edge_length - local_epsilon) {
+      closestPoint = SurfacePoint(he.tipVertex());
+    } else {
+      double normalized_position = best_interval_position / edge_length;
+      closestPoint = SurfacePoint(edge, normalized_position);
+    }
+
+  } else {
+    // closest source shares face with point
+    closestPoint = static_cast<SurfacePoint&>(m_sources[best_source_index]);
+  }
+
+  // gradient of distance points from closestPoint to point
+  Face fShared = sharedFace(point, closestPoint);
+  Vector3 baryPoint = point.inFace(fShared).faceCoords;
+  Vector3 baryClosestPoint = closestPoint.inFace(fShared).faceCoords;
+
+  auto vertexCoordinatesInTriangle = [](IntrinsicGeometryInterface& geom, Face face) -> std::array<Vector2, 3> {
+    geom.requireHalfedgeVectorsInFace();
+    std::array<Vector2, 3> result = {Vector2{0., 0.}, geom.halfedgeVectorsInFace[face.halfedge()],
+                                     -geom.halfedgeVectorsInFace[face.halfedge().next().next()]};
+    geom.unrequireHalfedgeVectorsInFace();
+    return result;
+  };
+
+  // gradient vector in face fShared
+  Vector2 displacement =
+      barycentricDisplacementToCartesian(vertexCoordinatesInTriangle(geom, fShared), baryPoint - baryClosestPoint);
+
+  geom.requireHalfedgeVectorsInFace();
+  geom.requireHalfedgeVectorsInVertex();
+  // Transform to coordinate system at point
+  switch (point.type) {
+  case SurfacePointType::Vertex: {
+    // find shared halfedge
+    Halfedge heShared;
+    for (Halfedge h : fShared.adjacentHalfedges()) {
+      if (h.vertex() == point.vertex) {
+        heShared = h;
+        break;
+      }
+    }
+
+    // Transform from face to halfedge
+    displacement /= geom.halfedgeVectorsInFace[heShared];
+
+    // Transform from halfedge to vertex
+    displacement *= geom.halfedgeVectorsInVertex[heShared];
+    break;
+  }
+  case SurfacePointType::Edge: {
+    // find shared halfedge
+    Halfedge heShared;
+    for (Halfedge h : point.edge.adjacentHalfedges()) {
+      if (h.face() == fShared) {
+        heShared = h;
+        break;
+      }
+    }
+
+    // Transform from face to halfedge
+    displacement /= geom.halfedgeVectorsInFace[heShared];
+
+    // Transform from halfedge to edge
+    if (!heShared.orientation()) {
+      displacement *= -1;
+    }
+
+    break;
+  }
+  case SurfacePointType::Face:
+    // do nothing; already using face coordinate system
+    break;
+  }
+  geom.unrequireHalfedgeVectorsInVertex();
+  geom.unrequireHalfedgeVectorsInFace();
+
+  return displacement.normalize();
 }
 
 interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint& point, double& best_total_distance,

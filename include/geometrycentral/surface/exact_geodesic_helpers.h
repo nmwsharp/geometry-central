@@ -59,7 +59,7 @@ public:
 
   double hypotenuse(double a, double b);
 
-  // find the point on the interval that is closest to the point (alpha, s)
+  // find the point on the interval that is closest to the point (x, y)
   void find_closest_point(double const x, double const y, double& offset, double& distance);
 
   double& start() { return m_start; };

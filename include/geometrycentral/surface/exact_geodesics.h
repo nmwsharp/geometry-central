@@ -49,6 +49,10 @@ public:
   double getDistance(const SurfacePoint& point);
   double getDistance(const Vertex& point);
 
+  // evaluate gradient of distance function at a point
+  Vector2 getDistanceGradient(const SurfacePoint& point);
+  Vector2 getDistanceGradient(const Vertex& point);
+
   // evaluate distance function at all vertices
   VertexData<double> getDistanceFunction();
 
