@@ -164,6 +164,10 @@ SET(HEADERS
 # Create a single library for the project
 add_library(geometry-central ${SRCS} ${HEADERS})
 
+# Mark the library target and its headers as installable
+install(TARGETS geometry-central)
+install(FILES ${HEADERS} DESTINATION "${CMAKE_INSTALL_PREFIX}/include/geometrycentral")
+
 # Includes from this project
 target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
 
