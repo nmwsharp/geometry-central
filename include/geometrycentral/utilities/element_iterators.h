@@ -31,11 +31,19 @@ template <typename F>
 class RangeIteratorBase {
 
 public:
+  using difference_type = std::ptrdiff_t;
+  using value_type = typename F::Etype;
+  using pointer = value_type*;
+  using reference = value_type;
+  using iterator_category = std::forward_iterator_tag;
+
+  RangeIteratorBase() = default;
   RangeIteratorBase(typename F::ParentMeshT* mesh_, size_t iStart_, size_t iEnd_);
-  const RangeIteratorBase& operator++();
+  RangeIteratorBase& operator++();
+  RangeIteratorBase operator++(int);
   bool operator==(const RangeIteratorBase& other) const;
   bool operator!=(const RangeIteratorBase& other) const;
-  typename F::Etype operator*() const;
+  reference operator*() const;
 
 private:
   typename F::ParentMeshT* mesh;

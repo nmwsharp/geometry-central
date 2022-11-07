@@ -13,12 +13,19 @@ inline RangeIteratorBase<F>::RangeIteratorBase(typename F::ParentMeshT* mesh_, s
 }
 
 template <typename F>
-inline const RangeIteratorBase<F>& RangeIteratorBase<F>::operator++() {
+inline RangeIteratorBase<F>& RangeIteratorBase<F>::operator++() {
   iCurr++;
   while (iCurr != iEnd && !F::elementOkay(*mesh, iCurr)) {
     iCurr++;
   }
   return *this;
+}
+
+template <typename F>
+inline RangeIteratorBase<F> RangeIteratorBase<F>::operator++(int) {
+  auto ret = *this;
+  ++(*this);
+  return ret;
 }
 
 template <typename F>
@@ -32,7 +39,7 @@ inline bool RangeIteratorBase<F>::operator!=(const RangeIteratorBase<F>& other) 
 }
 
 template <typename F>
-inline typename F::Etype RangeIteratorBase<F>::operator*() const {
+inline typename RangeIteratorBase<F>::reference RangeIteratorBase<F>::operator*() const {
   return typename F::Etype(mesh, iCurr);
 }
 
