@@ -101,15 +101,15 @@ protected:
   void initialize_propagation_data();
 
   // used in initialization
-  void list_edges_visible_from_source(SurfacePoint& source, std::vector<Edge>& storage);
+  void list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage);
 
-  long visible_from_source(SurfacePoint& point); // used in backtracing
+  long visible_from_source(const SurfacePoint& point); // used in backtracing
 
-  void best_point_on_the_edge_set(SurfacePoint& point, std::vector<Edge> const& storage,
+  void best_point_on_the_edge_set(const SurfacePoint& point, std::vector<Edge> const& storage,
                                   interval_pointer& best_interval, double& best_total_distance,
                                   double& best_interval_position, bool verbose = false);
 
-  void possible_traceback_edges(SurfacePoint& point, std::vector<Edge>& storage);
+  void possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage);
 
   bool erase_from_queue(interval_pointer p);
 
