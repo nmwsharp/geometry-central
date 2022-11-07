@@ -333,18 +333,25 @@ typedef RangeSetBase<BoundaryLoopRangeF> BoundaryLoopSet;
 // For implicit-twin meshes, it just does the usual twin.next() and currHe is always an outgoing halfedge. For general
 // meshes, it iterates first through the outgoing, then the incoming halfedges (always stored in currHe).
 struct VertexNeighborIteratorState {
+  VertexNeighborIteratorState() = default;
   VertexNeighborIteratorState(Halfedge currHeOutgoing, bool useImplicitTwin);
-
-  const bool useImplicitTwin;
-  Halfedge currHe = Halfedge();
-
-  // if useImplicitTwin == false, this is populated
-  bool processingIncoming = false;
-  Halfedge firstHe = Halfedge();
 
   void advance();
   bool isHalfedgeCanonical() const; // this currently pointing at the one canonical halfedge along an edge
   bool operator==(const VertexNeighborIteratorState& rhs) const;
+
+  bool useImplicitTwin() const { return useImplicitTwinFlag; }
+  bool processingIncoming() const { return processingIncomingFlag; }
+  Halfedge firstHalfedge() const { return firstHe; }
+  Halfedge currentHalfedge() const { return currHe; }
+
+private:
+  bool useImplicitTwinFlag;
+  Halfedge currHe = Halfedge();
+
+  // if useImplicitTwin == false, this is populated
+  bool processingIncomingFlag = false;
+  Halfedge firstHe = Halfedge();
 };
 
 // Adjacent vertices

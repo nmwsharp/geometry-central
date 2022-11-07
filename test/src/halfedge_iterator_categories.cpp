@@ -43,8 +43,17 @@ struct is_post_incrementable<T, void_t<decltype(std::declval<T&>()++)>> : std::t
 template <typename T>
 class StlIteratorCategories : public ::testing::Test {};
 
-using GCRangeTypes = ::testing::Types<HalfedgeSet, HalfedgeInteriorSet, HalfedgeExteriorSet, CornerSet, VertexSet,
-                                      EdgeSet, FaceSet, BoundaryLoopSet>;
+using GCRangeTypes = ::testing::Types<
+    HalfedgeSet, HalfedgeInteriorSet, HalfedgeExteriorSet, CornerSet, VertexSet, EdgeSet, FaceSet, BoundaryLoopSet,
+    NavigationSetBase<VertexAdjacentVertexNavigator>, NavigationSetBase<VertexIncomingHalfedgeNavigator>,
+    NavigationSetBase<VertexOutgoingHalfedgeNavigator>, NavigationSetBase<VertexAdjacentCornerNavigator>,
+    NavigationSetBase<VertexAdjacentEdgeNavigator>, NavigationSetBase<VertexAdjacentFaceNavigator>,
+    NavigationSetBase<EdgeAdjacentHalfedgeNavigator>, NavigationSetBase<EdgeAdjacentInteriorHalfedgeNavigator>,
+    NavigationSetBase<EdgeAdjacentFaceNavigator>, NavigationSetBase<FaceAdjacentVertexNavigator>,
+    NavigationSetBase<FaceAdjacentHalfedgeNavigator>, NavigationSetBase<FaceAdjacentCornerNavigator>,
+    NavigationSetBase<FaceAdjacentEdgeNavigator>, NavigationSetBase<FaceAdjacentFaceNavigator>,
+    NavigationSetBase<BoundaryLoopAdjacentVertexNavigator>, NavigationSetBase<BoundaryLoopAdjacentHalfedgeNavigator>,
+    NavigationSetBase<BoundaryLoopAdjacentEdgeNavigator>>;
 TYPED_TEST_SUITE(StlIteratorCategories, GCRangeTypes);
 
 

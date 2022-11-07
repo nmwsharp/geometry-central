@@ -82,13 +82,20 @@ inline NavigationIteratorBase<N>::NavigationIteratorBase(typename N::Etype e, bo
 }
 
 template <typename N>
-inline const NavigationIteratorBase<N>& NavigationIteratorBase<N>::operator++() {
+inline NavigationIteratorBase<N>& NavigationIteratorBase<N>::operator++() {
   state.advance();
   while (!state.isValid()) {
     state.advance();
   }
   justStarted = false;
   return *this;
+}
+
+template <typename N>
+inline NavigationIteratorBase<N> NavigationIteratorBase<N>::operator++(int) {
+  auto ret = *this;
+  ++(*this);
+  return ret;
 }
 
 template <typename N>
@@ -102,7 +109,7 @@ inline bool NavigationIteratorBase<N>::operator!=(const NavigationIteratorBase<N
 }
 
 template <typename N>
-inline typename N::Rtype NavigationIteratorBase<N>::operator*() const {
+inline typename NavigationIteratorBase<N>::reference NavigationIteratorBase<N>::operator*() const {
   return state.getCurrent();
 }
 

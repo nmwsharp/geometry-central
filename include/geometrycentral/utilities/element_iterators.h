@@ -34,7 +34,7 @@ public:
   using difference_type = std::ptrdiff_t;
   using value_type = typename F::Etype;
   using pointer = value_type*;
-  using reference = value_type;
+  using reference = const value_type&;
   using iterator_category = std::forward_iterator_tag;
 
   RangeIteratorBase() = default;
@@ -89,11 +89,20 @@ template <typename N>
 class NavigationIteratorBase {
 
 public:
+  using difference_type = std::ptrdiff_t;
+  using value_type = typename N::Rtype;
+  using pointer = value_type*;
+  using reference = value_type;
+  using iterator_category = std::forward_iterator_tag;
+
+  NavigationIteratorBase() = default;
+
   NavigationIteratorBase(typename N::Etype firstE_, bool justStarted_);
-  const NavigationIteratorBase& operator++();
+  NavigationIteratorBase& operator++();
+  NavigationIteratorBase operator++(int);
   bool operator==(const NavigationIteratorBase& other) const;
   bool operator!=(const NavigationIteratorBase& other) const;
-  typename N::Rtype operator*() const;
+  reference operator*() const;
 
 private:
   N state;
