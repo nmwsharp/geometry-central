@@ -1057,6 +1057,7 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
   long visibleSource = visible_from_source(point);
   if (visibleSource >= 0) {
     // closest source shares face with point
+    // This only handles edge or vertex points which share a face with the source. Face points are handled below
     closestPoint = static_cast<SurfacePoint&>(m_sources[visibleSource]);
   } else {
     double best_interval_position;
@@ -1074,19 +1075,24 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
       best_point_on_the_edge_set(point, possible_edges, best_interval, best_source_distance, best_interval_position);
     }
 
-    // Identity point in interval which lies along the geodesic
-    Edge edge = best_interval->edge();
-    Halfedge he = edge.halfedge();
-    double edge_length = geom.edgeLengths[edge];
-    double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
+    if (best_interval) {
+      // Identity point in interval which lies along the geodesic
+      Edge edge = best_interval->edge();
+      Halfedge he = edge.halfedge();
+      double edge_length = geom.edgeLengths[edge];
+      double local_epsilon = SMALLEST_INTERVAL_RATIO * edge_length;
 
-    if (best_interval_position < local_epsilon) {
-      closestPoint = SurfacePoint(he.tailVertex());
-    } else if (best_interval_position > edge_length - local_epsilon) {
-      closestPoint = SurfacePoint(he.tipVertex());
+      if (best_interval_position < local_epsilon) {
+        closestPoint = SurfacePoint(he.tailVertex());
+      } else if (best_interval_position > edge_length - local_epsilon) {
+        closestPoint = SurfacePoint(he.tipVertex());
+      } else {
+        double normalized_position = best_interval_position / edge_length;
+        closestPoint = SurfacePoint(edge, normalized_position);
+      }
     } else {
-      double normalized_position = best_interval_position / edge_length;
-      closestPoint = SurfacePoint(edge, normalized_position);
+      // If this happens, then point should be in the same face as some source
+      closestPoint = static_cast<SurfacePoint&>(m_sources[best_source_index]);
     }
   }
 
