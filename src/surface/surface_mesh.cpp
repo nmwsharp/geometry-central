@@ -538,6 +538,205 @@ BoundaryLoopData<size_t> SurfaceMesh::getBoundaryLoopIndices() {
   return indices;
 }
 
+void SurfaceMesh::setVertexIndices(const VertexData<size_t>& newVertexIndices) {
+  // validate indices
+  std::vector<char> foundIndex(nVerticesCount, false);
+  for (Vertex v : vertices()) {
+    size_t iV = newVertexIndices[v];
+    GC_SAFETY_ASSERT(iV < nVerticesCount, "Vertex index " + std::to_string(iV) +
+                                              " is greater than the number of vertices (" +
+                                              std::to_string(nVerticesCount) + ")");
+    GC_SAFETY_ASSERT(!foundIndex[iV], "Vertex index " + std::to_string(iV) + " repeated");
+
+    foundIndex[iV] = true;
+  }
+
+  // build the permutations
+  std::vector<size_t> newIndMap(nVerticesCount, INVALID_IND);     // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nVerticesFillCount, INVALID_IND); // maps old ind -> new ind
+
+  for (size_t iOld = 0; iOld < nVerticesFillCount; iOld++) {
+    if (!vertexIsDead(iOld)) {
+      size_t iNew = newVertexIndices.raw()(iOld);
+      oldIndMap[iOld] = iNew;
+      newIndMap[iNew] = iOld;
+    }
+  }
+
+  // Update counts
+  nVerticesFillCount = nVerticesCount;
+  nVerticesCapacityCount = nVerticesCount;
+
+  // Permute & resize all per-vertex arrays
+  applyVertexPermutation(newIndMap, oldIndMap);
+}
+
+void SurfaceMesh::setFaceIndices(const FaceData<size_t>& newFaceIndices) {
+  // validate indices
+  std::vector<char> foundIndex(nFacesCount, false);
+  for (Face f : faces()) {
+    size_t iF = newFaceIndices[f];
+    GC_SAFETY_ASSERT(iF < nFacesCount, "Face index " + std::to_string(iF) + " is greater than the number of faces (" +
+                                           std::to_string(nFacesCount) + ")");
+    GC_SAFETY_ASSERT(!foundIndex[iF], "Face index " + std::to_string(iF) + " repeated");
+
+    foundIndex[iF] = true;
+  }
+
+  // build the permutations
+  std::vector<size_t> newIndMap(nFacesCount + nBoundaryLoopsFillCount, INVALID_IND); // maps new ind -> old ind
+  std::vector<size_t> newBLIndMap;                                                   // maps BL new ind -> old ind
+  std::vector<size_t> oldIndMap(nFacesCapacityCount, INVALID_IND);                   // maps old ind -> new ind
+
+  for (size_t iOld = 0; iOld < nFacesCapacityCount; iOld++) {
+    if (faceIsDead(iOld)) continue;
+
+    bool isBL = (iOld >= nFacesCapacityCount - nBoundaryLoopsFillCount);
+
+    if (isBL) {
+      size_t iOldBL = faceIndToBoundaryLoopInd(iOld);
+      size_t iNew = nFacesCount + iOldBL;
+
+      oldIndMap[iOld] = iNew;
+      newIndMap[iNew] = iOld;
+      newBLIndMap.push_back(iOldBL);
+
+    } else {
+      size_t iNew = newFaceIndices.raw()(iOld);
+      oldIndMap[iOld] = iNew;
+      newIndMap[iNew] = iOld;
+    }
+  }
+
+  // Update counts
+  nFacesFillCount = nFacesCount;
+  nFacesCapacityCount = nFacesCount + nBoundaryLoopsFillCount;
+
+  // Permute & resize all per-face arrays
+  applyFacePermutation(newIndMap, newBLIndMap, oldIndMap);
+}
+
+void SurfaceMesh::setEdgeIndices(const EdgeData<size_t>& newEdgeIndices) {
+  // validate indices
+  std::vector<char> foundIndex(nEdgesCount, false);
+  for (Edge e : edges()) {
+    size_t iE = newEdgeIndices[e];
+    GC_SAFETY_ASSERT(iE < nEdgesCount, "Edge index " + std::to_string(iE) + " is greater than the number of edges (" +
+                                           std::to_string(nEdgesCount) + ")");
+    GC_SAFETY_ASSERT(!foundIndex[iE], "Edge index " + std::to_string(iE) + " repeated");
+
+    foundIndex[iE] = true;
+  }
+
+  if (usesImplicitTwin()) {
+    // if mesh uses implicit twin, edge indices are determined by halfedge indices
+
+    // build the permutations
+    std::vector<size_t> newIndMap(nHalfedgesCount, INVALID_IND);     // maps new ind -> old ind
+    std::vector<size_t> oldIndMap(nHalfedgesFillCount, INVALID_IND); // maps old ind -> new ind
+
+    for (size_t iOld = 0; iOld < nEdgesFillCount; iOld++) {
+      if (!edgeIsDead(iOld)) {
+        size_t iNew = newEdgeIndices.raw()(iOld);
+        oldIndMap[2 * iOld + 0] = 2 * iNew + 0;
+        oldIndMap[2 * iOld + 1] = 2 * iNew + 1;
+        newIndMap[2 * iNew + 0] = 2 * iOld + 0;
+        newIndMap[2 * iNew + 1] = 2 * iOld + 1;
+      }
+    }
+
+    // Update counts
+    nHalfedgesFillCount = nHalfedgesCount;
+    nHalfedgesCapacityCount = nHalfedgesCount;
+    nEdgesFillCount = nEdgesCount;
+    nEdgesCapacityCount = nEdgesCount;
+
+    // Permute & resize all per-edge arrays
+    applyHalfedgePermutation(newIndMap, oldIndMap);
+  } else {
+    // if mesh does not use implicit twin, set edge indices directly
+
+    // build the permutations
+    std::vector<size_t> newIndMap(nEdgesCount, INVALID_IND);     // maps new ind -> old ind
+    std::vector<size_t> oldIndMap(nEdgesFillCount, INVALID_IND); // maps old ind -> new ind
+
+    for (size_t iOld = 0; iOld < nEdgesFillCount; iOld++) {
+      if (!edgeIsDead(iOld)) {
+        size_t iNew = newEdgeIndices.raw()(iOld);
+        oldIndMap[iOld] = iNew;
+        newIndMap[iNew] = iOld;
+      }
+    }
+
+    // Update counts
+    nEdgesFillCount = nEdgesCount;
+    nEdgesCapacityCount = nEdgesCount;
+
+    // Permute & resize all per-edge arrays
+    applyEdgePermutation(newIndMap, oldIndMap);
+  }
+}
+
+void SurfaceMesh::setEdgeOrientations(const EdgeData<Halfedge>& newOrientations) {
+  // validate orientations
+  for (Edge e : edges()) {
+    GC_SAFETY_ASSERT(e == newOrientations[e].edge(),
+                     std::to_string(newOrientations[e]) + " is not a halfedge of " + std::to_string(e));
+    GC_SAFETY_ASSERT(newOrientations[e].isInterior(), "e.halfedge() must always be an interior halfedge");
+  }
+
+  if (usesImplicitTwin()) {
+    // if mesh uses implicit twin, edge orientation is stored implicitly in their indices. To change orientation, we
+    // have to reindex the halfedges
+
+    // build the permutations
+    std::vector<size_t> newIndMap(nHalfedgesFillCount, INVALID_IND); // maps new ind -> old ind
+    std::vector<size_t> oldIndMap(nHalfedgesFillCount, INVALID_IND); // maps old ind -> new ind
+
+    for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
+      if (!edgeIsDead(iE)) {
+        size_t iH = newOrientations.raw()(iE).getIndex();
+        size_t iEH = eHalfedgeImplicit(iE);
+        size_t iEHT = heTwinImplicit(iEH);
+        if (iH == iEH) {
+          // edge already has correct orientation, leave halfedges where they are
+          oldIndMap[iEH] = iEH;
+          oldIndMap[iEHT] = iEHT;
+          newIndMap[iEH] = iEH;
+          newIndMap[iEHT] = iEHT;
+        } else {
+          // edge has wrong orientation, swap halfedges
+          oldIndMap[iEH] = iEHT;
+          oldIndMap[iEHT] = iEH;
+          newIndMap[iEH] = iEHT;
+          newIndMap[iEHT] = iEH;
+        }
+      }
+    }
+
+    // Permute all per-edge arrays
+    applyHalfedgePermutation(newIndMap, oldIndMap);
+  } else {
+    // if mesh does not use implicit twin, we can just update eHalfedgeArr and heOrientArr directly
+
+    for (size_t iE = 0; iE < nEdgesFillCount; iE++) {
+      if (!edgeIsDead(iE)) {
+        size_t iH = newOrientations.raw()(iE).getIndex();
+
+        // check if new orientation agrees with old orientation
+        bool oppositeOrientation = heOrientArr[iH] != heOrientArr[eHalfedgeArr[iE]];
+        if (oppositeOrientation) {
+          for (Halfedge sib : edge(iE).adjacentHalfedges()) {
+            heOrientArr[sib.getIndex()] = !heOrientArr[sib.getIndex()];
+          }
+        }
+
+        // set e.halfedge() to desired halfedge
+        eHalfedgeArr[iE] = iH;
+      }
+    }
+  }
+}
 
 std::unique_ptr<SurfaceMesh> SurfaceMesh::copy() const { return copyToSurfaceMesh(); }
 
@@ -1110,7 +1309,8 @@ void SurfaceMesh::validateConnectivity() {
   // == Halfedges
 
   // Check valid pointers
-  // Note: we intentionally mostly avoid using iterators here, because they can be hard to debug when things are broken.
+  // Note: we intentionally mostly avoid using iterators here, because they can be hard to debug when things are
+  // broken.
   for (size_t iHe = 0; iHe < nHalfedgesFillCount; iHe++) {
     if (halfedgeIsDead(iHe)) continue;
     validateHalfedge(heTwin(iHe), "he.twin()");
@@ -1757,19 +1957,177 @@ void SurfaceMesh::compressHalfedges() {
 
   // Build the compressing shift
   std::vector<size_t> newIndMap;                                   // maps new ind -> old ind
-  std::vector<size_t> newIndEdgeMap;                               // maps edge new ind -> old ind
   std::vector<size_t> oldIndMap(nHalfedgesFillCount, INVALID_IND); // maps old ind -> new ind
   for (size_t i = 0; i < nHalfedgesFillCount; i++) {
     if (!halfedgeIsDead(i)) {
       oldIndMap[i] = newIndMap.size();
       newIndMap.push_back(i);
+    }
+  }
 
-      if (usesImplicitTwin() && i % 2 == 0) {
-        size_t iEdge = i / 2;
-        newIndEdgeMap.push_back(iEdge);
+  // Update counts
+  nHalfedgesFillCount = nHalfedgesCount;
+  nHalfedgesCapacityCount = nHalfedgesCount;
+
+  // In the implicit-twin case, we also need to update edge data here, because they are always in-sync with halfedges
+  if (usesImplicitTwin()) {
+    nEdgesFillCount = nEdgesCount;
+    nEdgesCapacityCount = nEdgesCount;
+  }
+
+  // Permute arrays
+  applyHalfedgePermutation(newIndMap, oldIndMap);
+}
+
+
+void SurfaceMesh::compressEdges() {
+
+  if (usesImplicitTwin()) {
+    // In the implicit-twin case, all updates are handled in the halfedge function (see note there)
+    return;
+  }
+
+  // Build the compressing shift
+  std::vector<size_t> newIndMap;                               // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nEdgesFillCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nEdgesFillCount; i++) {
+    if (!edgeIsDead(i)) {
+      oldIndMap[i] = newIndMap.size();
+      newIndMap.push_back(i);
+    }
+  }
+
+  // Update counts
+  nEdgesFillCount = nEdgesCount;
+  nEdgesCapacityCount = nEdgesCount;
+
+  // Permute arrays
+  applyEdgePermutation(newIndMap, oldIndMap);
+}
+
+void SurfaceMesh::compressFaces() {
+  // Build the compressing shift
+  std::vector<size_t> newIndMap;                                   // maps new ind -> old ind
+  std::vector<size_t> newBLIndMap;                                 // maps BL new ind -> old ind
+  std::vector<size_t> oldIndMap(nFacesCapacityCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nFacesCapacityCount; i++) {
+    bool isBL = (i >= nFacesCapacityCount - nBoundaryLoopsFillCount);
+    if (i < nFacesFillCount || isBL) { // skip gap between faces and BLs
+      if (!faceIsDead(i)) {
+        oldIndMap[i] = newIndMap.size();
+        newIndMap.push_back(i);
+
+        if (isBL) {
+          newBLIndMap.push_back(faceIndToBoundaryLoopInd(i));
+        }
       }
     }
   }
+
+  // Update counts
+  nFacesFillCount = nFacesCount;
+  nFacesCapacityCount = nFacesCount + nBoundaryLoopsCount;
+  nBoundaryLoopsFillCount = nBoundaryLoopsCount;
+
+  // Permute arrays
+  applyFacePermutation(newIndMap, newBLIndMap, oldIndMap);
+}
+
+
+void SurfaceMesh::compressVertices() {
+  // Build the compressing shift
+  std::vector<size_t> newIndMap;                                  // maps new ind -> old ind
+  std::vector<size_t> oldIndMap(nVerticesFillCount, INVALID_IND); // maps old ind -> new ind
+  for (size_t i = 0; i < nVerticesFillCount; i++) {
+    if (!vertexIsDead(i)) {
+      oldIndMap[i] = newIndMap.size();
+      newIndMap.push_back(i);
+    }
+  }
+
+  // Update counts
+  nVerticesFillCount = nVerticesCount;
+  nVerticesCapacityCount = nVerticesCount;
+
+  // Permute arrays
+  applyVertexPermutation(newIndMap, oldIndMap);
+}
+
+void SurfaceMesh::compress() {
+  if (isCompressed()) {
+    return;
+  }
+
+  compressHalfedges();
+  compressEdges();
+  compressFaces();
+  compressVertices();
+  isCompressedFlag = true;
+}
+
+
+void SurfaceMesh::applyVertexPermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap) {
+  if (newIndMap.size() > nVertices()) isCompressedFlag = false;
+
+  // Permute & resize all per-vertex arrays
+  vHalfedgeArr = applyPermutation(vHalfedgeArr, newIndMap);
+  if (!usesImplicitTwin()) {
+    vHeInStartArr = applyPermutation(vHeInStartArr, newIndMap);
+    vHeOutStartArr = applyPermutation(vHeOutStartArr, newIndMap);
+  }
+
+  // Update indices in all vertex-valued arrays
+  updateValues(heVertexArr, oldIndMap);
+
+  // Invoke callbacks
+  for (auto& f : vertexPermuteCallbackList) {
+    f(newIndMap);
+  }
+}
+
+void SurfaceMesh::applyFacePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& newBLIndMap,
+                                       const std::vector<size_t>& oldIndMap) {
+  if (newIndMap.size() > nFaces() + nBoundaryLoops()) isCompressedFlag = false;
+
+  // Permute & resize all per-face arrays
+  fHalfedgeArr = applyPermutation(fHalfedgeArr, newIndMap);
+
+  // Update indices in all face-valued arrays
+  updateValues(heFaceArr, oldIndMap);
+
+  // just new face indices
+  std::vector<size_t> newFaceIndMap(newIndMap.begin(),
+                                    newIndMap.begin() + nFacesCapacityCount - nBoundaryLoopsFillCount);
+  // newIndMap.resize(nFacesCount); // truncate all boundary loop entries, so this array now just holds values for
+  // faces
+
+  // Invoke callbacks
+  for (auto& f : facePermuteCallbackList) {
+    f(newFaceIndMap);
+  }
+  for (auto& f : boundaryLoopPermuteCallbackList) {
+    f(newBLIndMap);
+  }
+}
+
+// if mesh uses implicit twin, permutation must be compatible with implicit twin convention
+void SurfaceMesh::applyHalfedgePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap) {
+
+
+  // In the implicit-twin case, we will also need to update edge data, because they are always in-sync with halfedges
+  std::vector<size_t> newIndEdgeMap; // maps edge new ind -> old ind
+  if (usesImplicitTwin()) {
+    newIndEdgeMap = std::vector<size_t>(newIndMap.size() / 2);
+
+    for (size_t iOldEdge = 0; 2 * iOldEdge < oldIndMap.size(); iOldEdge++) {
+      if (!halfedgeIsDead(2 * iOldEdge)) {
+        size_t iNewHalfedge = newIndMap[2 * iOldEdge];
+        size_t iNewEdge = (iNewHalfedge % 2 == 0) ? iNewHalfedge / 2 : (iNewHalfedge - 1) / 2;
+        newIndEdgeMap[iNewEdge] = iOldEdge;
+      }
+    }
+  }
+
 
   // Permute & resize all per-halfedge arrays
   heNextArr = applyPermutation(heNextArr, newIndMap);
@@ -1801,10 +2159,6 @@ void SurfaceMesh::compressHalfedges() {
     updateValues(vHeOutStartArr, oldIndMap);
   }
 
-  // Update counts
-  nHalfedgesFillCount = nHalfedgesCount;
-  nHalfedgesCapacityCount = nHalfedgesCount;
-
   // Invoke callbacks
   for (auto& f : halfedgePermuteCallbackList) {
     f(newIndMap);
@@ -1812,8 +2166,6 @@ void SurfaceMesh::compressHalfedges() {
 
   // In the implicit-twin case, we also need to update edge data here, because they are always in-sync with halfedges
   if (usesImplicitTwin()) {
-    nEdgesFillCount = nEdgesCount;
-    nEdgesCapacityCount = nEdgesCount;
     // Invoke callbacks
     for (auto& f : edgePermuteCallbackList) {
       f(newIndEdgeMap);
@@ -1821,22 +2173,11 @@ void SurfaceMesh::compressHalfedges() {
   }
 }
 
-
-void SurfaceMesh::compressEdges() {
+void SurfaceMesh::applyEdgePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap) {
 
   if (usesImplicitTwin()) {
     // In the implicit-twin case, all updates are handled in the halfedge function (see note there)
     return;
-  }
-
-  // Build the compressing shift
-  std::vector<size_t> newIndMap;                               // maps new ind -> old ind
-  std::vector<size_t> oldIndMap(nEdgesFillCount, INVALID_IND); // maps old ind -> new ind
-  for (size_t i = 0; i < nEdgesFillCount; i++) {
-    if (!edgeIsDead(i)) {
-      oldIndMap[i] = newIndMap.size();
-      newIndMap.push_back(i);
-    }
   }
 
   // Permute & resize all per-edge arrays
@@ -1844,10 +2185,6 @@ void SurfaceMesh::compressEdges() {
 
   // Update indices in all edge-valued arrays
   updateValues(heEdgeArr, oldIndMap);
-
-  // Update counts
-  nEdgesFillCount = nEdgesCount;
-  nEdgesCapacityCount = nEdgesCount;
 
   // Invoke callbacks
   for (auto& f : edgePermuteCallbackList) {
