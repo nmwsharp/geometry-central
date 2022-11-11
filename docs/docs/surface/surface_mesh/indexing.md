@@ -119,3 +119,59 @@ size_t i = e.getIndex();
 ??? func "`#!cpp size_t Face::getIndex() const`"
 
     Returns an index between 0 and _F_-1, where _F_ is the number of faces in the mesh.
+
+## Setting custom indices
+In most cases, if you need custom element indices you can just maintain you own outside of the mesh data structure (as shown [above](indexing.md)).
+
+However, there are methods to set the element indices within a mesh. The indices must start at 0 and go up through the number of elements (so you cannot, for example, 1-index your vertices).
+
+Since [mesh element types are handles to the underlying elements,](elements/#introduction) stored elements change meaning or become invalidated after reindexing. For example, if `Vertex v = mesh.vertex(0)`, then after changing vertex indices `v` would refer to the vertex whose new index is 0, which may be a different vertex. If the mesh was not [compressed](mutation/#compressed-mode) before reindexing, then `Vertex` variables may become invalid.
+
+On the other hand, [Containers](containers.md) automatically update when you set custom indices. Here is an example of both behaviors:
+```cpp
+Vertex v0 = mesh.vertex(0);
+Vertex v1 = mesh.vertex(1);
+
+VertexData<size_t> oldVertexIndices = mesh.getVertexIndices();
+VertexData<size_t> newVertexIndices = oldVertexIndices;
+std::swap(newVertexIndices[v0], newVertexIndices[v1]); // swap indices of v0 and v1
+
+mesh.setVertexIndices(newVertexIndices);
+// now v0 refers to the mesh with new index 0, and v1 refers to the vertex with new index v1
+
+std::cout << v0 << " has new index " << newVertexIndices[v0]
+                << " and old index " << oldVertexIndices[v0] << std::endl;
+// v_0 has new index 0 and old index 1
+
+std::cout << v1 << " has new index " << newVertexIndices[v0]
+                << " and old index " << oldVertexIndices[v0] << std::endl;
+// v_1 has new index 1 and old index 0
+
+```
+
+This is also discussed in the page on [compression](mutation/#compressed-mode), where the same sort of invalidation happens.
+
+??? func "`#!cpp void SurfaceMesh::setVertexIndices(const VertexData<size_t>& newIndices)`"
+
+    Sets vertex indices to `newIndices`.
+
+??? func "`#!cpp void SurfaceMesh::setEdgeIndices(const EdgeData<size_t>& newIndices)`"
+
+    Sets edge indices to `newIndices`.
+
+??? func "`#!cpp void SurfaceMesh::setFaceIndices(const FaceData<size_t>& newIndices)`"
+
+    Sets face indices to `newIndices`.
+
+### Setting custom edge orientations
+
+!!! warning
+    In a `ManifoldSurfaceMesh` edge orientations are set by reindexing the halfedges, so all of the caveats about [reindexing possibly invalidating elements](#setting-custom-indices) apply
+
+??? func "`#!cpp void SurfaceMesh::setEdgeOrientations(const EdgeData<Halfedge>& newOrientations)`"
+
+    Sets `e.halfedge()` to `newOrientation[e]` for every edge `e` in the mesh.
+    `newOrientations` must obey two conditions:
+    
+    - `newOrientations[e].edge() == e` for every edge, since `e.halfedge().edge()` must equal `e`
+    - `newOrientations[e].isInterior()`, meaning that for any boundary edge `e`, `newOrientations[e]` must be its interior halfedge and not the exterior halfedge.
