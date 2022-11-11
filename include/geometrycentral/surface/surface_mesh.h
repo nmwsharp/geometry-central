@@ -110,6 +110,16 @@ public:
   FaceData<size_t> getFaceIndices();
   BoundaryLoopData<size_t> getBoundaryLoopIndices();
 
+  // Reindex mesh elements. New indices must be a dense enumeration of the elements.
+  // Throws an exception if new indices are invalid
+  void setVertexIndices(const VertexData<size_t>& newIndices);
+  void setEdgeIndices(const EdgeData<size_t>& newIndices);
+  void setFaceIndices(const FaceData<size_t>& newIndices);
+
+  // Set edge.halfedge() to the specified halfedge.
+  // For boundary edges, e.halfedge() must always be an interior halfedge
+  void setEdgeOrientations(const EdgeData<Halfedge>& newOrientations);
+
   // == Utility functions
   virtual bool hasBoundary();    // does the mesh have boundary? (aka not closed)
   bool isTriangular();           // returns true if and only if all faces are triangles [O(n)]
@@ -366,6 +376,14 @@ protected:
   void compressEdges();
   void compressFaces();
   void compressVertices();
+
+  void applyVertexPermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap);
+  void applyFacePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& newBLIndMap,
+                            const std::vector<size_t>& oldIndMap);
+  // if mesh uses implicit twin, permutation must be compatible with implicit twin convention
+  void applyHalfedgePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap);
+  // Only works on meshes which do not use implicit twin
+  void applyEdgePermutation(const std::vector<size_t>& newIndMap, const std::vector<size_t>& oldIndMap);
 
   // = =Helpers for mutation methods and similar things
 
