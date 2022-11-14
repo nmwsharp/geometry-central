@@ -2121,7 +2121,7 @@ void SurfaceMesh::applyHalfedgePermutation(const std::vector<size_t>& newIndMap,
 
     for (size_t iOldEdge = 0; 2 * iOldEdge < oldIndMap.size(); iOldEdge++) {
       if (!halfedgeIsDead(2 * iOldEdge)) {
-        size_t iNewHalfedge = newIndMap[2 * iOldEdge];
+        size_t iNewHalfedge = oldIndMap[2 * iOldEdge];
         size_t iNewEdge = (iNewHalfedge % 2 == 0) ? iNewHalfedge / 2 : (iNewHalfedge - 1) / 2;
         newIndEdgeMap[iNewEdge] = iOldEdge;
       }
