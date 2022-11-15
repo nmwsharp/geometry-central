@@ -153,6 +153,49 @@ Halfedge MutationManager::insertVertexAlongEdge(Edge e, double tSplit) {
   return he;
 }
 
+std::vector<Halfedge> MutationManager::insertVerticesAlongEdge(Edge e, const std::vector<double>& tSplits) {
+
+  size_t nNodes = tSplits.size();
+  std::vector<Halfedge> newHalfedges(nNodes);     // in order along the edge
+  std::vector<Halfedge> orderedHalfedges(nNodes); // in order of <tSplits>
+
+  // Sort <tSplits> from smallest to largest, and build a map from [index in ordered set] to [index in original
+  // unordered set].
+  std::vector<size_t> index(nNodes);
+  std::iota(index.begin(), index.end(), 0); // 0, ..., nNodes - 1
+  std::sort(index.begin(), index.end(), [&](const size_t& a, const size_t& b) { return (tSplits[a] < tSplits[b]); });
+
+  std::vector<Vector3> newPositions(nNodes);
+  if (geometry) {
+    VertexData<Vector3>& pos = geometry->vertexPositions; // in sorted order
+    for (size_t i = 0; i < nNodes; i++) {
+      double t = tSplits[index[i]];
+      newPositions[i] = (1. - t) * pos[e.firstVertex()] + t * pos[e.secondVertex()];
+    }
+  }
+  // Insert the new halfedges.
+  // insertVertexAlongEdge() returns the halfedge whose tail vertex is the newly inserted vertex, and points in the same
+  // direction as e.halfedge().
+  // TODO: This part doesn't seem to be doing what I think it is.
+  Edge currE = e;
+  for (size_t i = 0; i < nNodes; i++) {
+    Halfedge he = mesh.insertVertexAlongEdge(currE);
+    newHalfedges[i] = he;
+    currE = he.edge();
+  }
+  // Set new positions.
+  if (geometry) {
+    for (size_t i = 0; i < nNodes; i++) {
+      geometry->vertexPositions[newHalfedges[i].vertex()] = newPositions[i];
+    }
+  }
+
+  for (size_t i = 0; i < nNodes; i++) {
+    orderedHalfedges[index[i]] = newHalfedges[i];
+  }
+  return orderedHalfedges;
+}
+
 Halfedge MutationManager::splitEdge(Edge e, double tSplit) {
   if (!maySplitEdge(e)) return Halfedge();
 
@@ -310,8 +353,7 @@ Halfedge MutationManager::cutFace(Vertex vA, Vertex vB) {
 
   Face commonFace = sharedFace(SurfacePoint(vA), SurfacePoint(vB));
   if (commonFace == Face())
-    throw std::logic_error("Can only cut mesh if the vertices at the endpoints "
-                           "of the cut share a face.");
+    throw std::logic_error("Can only cut mesh if the vertices at the endpoints of the cut share a face.");
 
   // If segment already lies along an edge, return an existing halfedge.
   for (Halfedge he : vA.outgoingHalfedges()) {
@@ -441,16 +483,25 @@ std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<std::vecto
   return cutAlongPath(pathNodes, pathEdges);
 }
 
+/*
+ * TODO: This function doesn't handle cuts which only go partway through a face.
+ * TODO: This function doesn't handle cuts with intersect other cuts.
+ */
 std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoint>& pathNodes,
                                                     const std::vector<std::array<size_t, 2>>& pathEdges) {
 
-  // Safety check before we mutate the mesh.
+  // Safety checks before we mutate the mesh:
+  // (1) Make sure that each edge in <pathEdges> is entirely contained within a single face.
+  // TODO: (2) Make sure that no two edges intersect each other.
+  FaceData<bool> alreadyCut(mesh, false);
   for (auto seg : pathEdges) {
     SurfacePoint pA = pathNodes[seg[0]];
     SurfacePoint pB = pathNodes[seg[1]];
 
     Face commonFace = sharedFace(pA, pB);
     if (commonFace == Face()) throw std::logic_error("Each segment of cut path must lie within a single face.");
+    // if (alreadyCut[commonFace]) throw std::logic_error("Multiple cuts per face not yet supported.");
+    alreadyCut[commonFace] = true;
   }
 
   // Make sure we don't duplicate inserted vertices.
@@ -485,34 +536,43 @@ std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoi
     newEdges.push_back({idxA, idxB});
   }
 
-  // Insert new vertices. TODO: multiple linear cuts within face not yet
-  // supported.
-  std::vector<Vertex> newVertices;
-  for (SurfacePoint& pt : dedupNodes) {
-    Halfedge he;
-    Vertex newVert;
+  // Insert new vertices. First group all edge-type points, so we can safely make those all at once per edge.
+  // TODO: I don't know how the latter might mess up previously-referenced vertices...
+  size_t nNewVertices = dedupNodes.size();
+  std::vector<Vertex> newVertices(nNewVertices);
+  std::map<Edge, std::vector<size_t>> edgeToNodes; // edge maps to a set of indices into dedupNodes
+  for (size_t i = 0; i < nNewVertices; i++) {
+    SurfacePoint& pt = dedupNodes[i];
     switch (pt.type) {
     case (SurfacePointType::Vertex):
-      newVert = pt.vertex;
+      newVertices[i] = pt.vertex; // TODO: these might get invalidated later by edge insertions...
       break;
     case (SurfacePointType::Edge):
-      he = insertVertexAlongEdge(pt.edge, pt.tEdge);
-      assert(he.tipVertex() == pt.edge.secondVertex());
-      newVert = he.vertex();
+      edgeToNodes[pt.edge].push_back(i);
       break;
-    default:
-      throw std::logic_error("Each SurfacePoint in cut path must be either "
-                             "Type::Vertex or Type::Edge.");
+    case (SurfacePointType::Face):
+      throw std::logic_error(
+          "Cuts which go partway through a face are not yet supported. Each SurfacePoint in cut path must be either "
+          "Type::Vertex or Type::Edge.");
       break;
     }
-    // mesh.compress();
-    newVertices.push_back(newVert);
   }
 
-  // Then perform the face-splitting. TODO: This function doesn't handle cuts
-  // which intersect other cuts.
+  for (const auto& pair : edgeToNodes) {
+    Edge e = pair.first;
+    const std::vector<size_t>& indices = pair.second;
+    std::vector<double> tSplits;
+    for (size_t idx : indices) tSplits.push_back(dedupNodes[idx].tEdge);
+    std::vector<Halfedge> newHalfedges = insertVerticesAlongEdge(e, tSplits);
+    for (size_t i = 0; i < tSplits.size(); i++) {
+      newVertices[indices[i]] = newHalfedges[i].vertex();
+    }
+  }
+
+  // Then perform the face-splitting. TODO: This function doesn't handle cuts which intersect other cuts.
   std::vector<Halfedge> cutHalfedges;
   for (auto& seg : newEdges) {
+    assert(sharedFace(SurfacePoint(newVertices[seg[0]]), SurfacePoint(newVertices[seg[1]])) != Face());
     Halfedge newHe = cutFace(newVertices[seg[0]], newVertices[seg[1]]);
     cutHalfedges.push_back(newHe);
   }

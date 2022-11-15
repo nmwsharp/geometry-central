@@ -166,6 +166,10 @@ public:
   // Returns the new halfedge whose tail vertex is the newly inserted vertex, and points in the same direction as
   // e.halfedge() (same as the original insertVertexAlongEdge().)
   Halfedge insertVertexAlongEdge(Edge e, double tSplit);
+  // Inserts a set of vertices along edge e at the specified positions.
+  // Returns a vector of new halfedges that point along the original e.halfedge(), whose tail vertices correspond to the
+  // newly-inserted vertices at the positions specified by <tSplits> (in that order.)
+  std::vector<Halfedge> insertVerticesAlongEdge(Edge e, const std::vector<double>& tSplits);
 
   // Split an edge.
   // `tSplit` controls the split location from [0,1]; 0 splits at d.halfedge().tailVertex().
