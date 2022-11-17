@@ -65,25 +65,26 @@ double GeodesicAlgorithmExact::getDistance(const Vertex& v) {
   return getDistance(SurfacePoint(v));
 }
 
-Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) {
+Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) const {
   // Call general version
   return getDistanceGradient(SurfacePoint(v));
 }
 
 void GeodesicAlgorithmExact::best_point_on_the_edge_set(const SurfacePoint& point, std::vector<Edge> const& storage,
-                                                        interval_pointer& best_interval, double& best_total_distance,
-                                                        double& best_interval_position, bool verbose) {
+                                                        const_interval_pointer& best_interval,
+                                                        double& best_total_distance, double& best_interval_position,
+                                                        bool verbose) const {
 
   best_total_distance = 1e100;
   for (Edge e : storage) {
     if (verbose) {
       std::cout << "\tconsidering edge " << e << std::endl;
     }
-    list_pointer list = interval_list(e);
+    const_list_pointer list = interval_list(e);
 
     double offset;
     double distance;
-    interval_pointer interval;
+    const_interval_pointer interval;
 
     list->find_closest_point(geom, point, offset, distance, interval, verbose);
 
@@ -95,7 +96,7 @@ void GeodesicAlgorithmExact::best_point_on_the_edge_set(const SurfacePoint& poin
   }
 }
 
-void GeodesicAlgorithmExact::possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage) {
+void GeodesicAlgorithmExact::possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage) const {
   storage.clear();
 
   switch (point.type) {
@@ -126,20 +127,20 @@ void GeodesicAlgorithmExact::possible_traceback_edges(const SurfacePoint& point,
 }
 
 
-long GeodesicAlgorithmExact::visible_from_source(const SurfacePoint& point) // negative if not visible
-{
+// negative if not visible
+long GeodesicAlgorithmExact::visible_from_source(const SurfacePoint& point) const {
   // TODO: interesting branches still untested
   switch (point.type) {
   case SurfacePointType::Vertex: {
     Vertex v = point.vertex;
     for (Halfedge he : v.outgoingHalfedges()) {
       Edge e = he.edge();
-      list_pointer list = interval_list(e);
+      const_list_pointer list = interval_list(e);
 
       double edgeLength = geom.edgeLengths[e];
       double position = he.orientation() ? 0.0 : edgeLength;
 
-      interval_pointer interval = list->covering_interval(position);
+      const_interval_pointer interval = list->covering_interval(position);
       if (interval && interval->visible_from_source()) {
         return (long)interval->source_index();
       }
@@ -148,7 +149,7 @@ long GeodesicAlgorithmExact::visible_from_source(const SurfacePoint& point) // n
   }
   case SurfacePointType::Edge: {
     Edge e = point.edge;
-    list_pointer list = interval_list(e);
+    const_list_pointer list = interval_list(e);
 
     Vertex gcTail = e.halfedge().tailVertex();
 
@@ -156,7 +157,7 @@ long GeodesicAlgorithmExact::visible_from_source(const SurfacePoint& point) // n
     double edgeLength = geom.edgeLengths[e];
     double position = std::min(exactgeodesic::compute_surface_distance(geom, point, gcTail), edgeLength);
 
-    interval_pointer interval = list->covering_interval(position);
+    const_interval_pointer interval = list->covering_interval(position);
     // assert(interval);
     if (interval && interval->visible_from_source()) {
       return (long)interval->source_index();
@@ -1051,19 +1052,19 @@ VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() {
   return distances;
 }
 
-Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
+Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) const {
 
   SurfacePoint closestPoint;
   long visibleSource = visible_from_source(point);
   if (visibleSource >= 0) {
     // closest source shares face with point
     // This only handles edge or vertex points which share a face with the source. Face points are handled below
-    closestPoint = static_cast<SurfacePoint&>(m_sources[visibleSource]);
+    closestPoint = static_cast<SurfacePoint>(m_sources[visibleSource]);
   } else {
     double best_interval_position;
     unsigned best_source_index;
     double best_source_distance;
-    interval_pointer best_interval;
+    const_interval_pointer best_interval;
 
     if (point.type == SurfacePointType::Face) {
       best_interval = best_first_interval(point, best_source_distance, best_interval_position, best_source_index);
@@ -1092,7 +1093,7 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
       }
     } else {
       // If this happens, then point should be in the same face as some source
-      closestPoint = static_cast<SurfacePoint&>(m_sources[best_source_index]);
+      closestPoint = static_cast<SurfacePoint>(m_sources[best_source_index]);
     }
   }
 
@@ -1166,11 +1167,12 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) {
   return displacement.normalize();
 }
 
-interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint& point, double& best_total_distance,
-                                                             double& best_interval_position,
-                                                             unsigned& best_source_index) {
+const_interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint& point,
+                                                                   double& best_total_distance,
+                                                                   double& best_interval_position,
+                                                                   unsigned& best_source_index) const {
 
-  interval_pointer best_interval = nullptr;
+  const_interval_pointer best_interval = nullptr;
   best_total_distance = GEODESIC_INF;
 
   switch (point.type) {
@@ -1178,12 +1180,12 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
     Vertex v = point.vertex;
     for (Halfedge he : v.outgoingHalfedges()) {
       Edge e = he.edge();
-      list_pointer list = interval_list(e);
+      const_list_pointer list = interval_list(e);
 
       // double position = e->v0()->id() == v->id() ? 0.0 : e->length();
       double position = he.orientation() ? 0.0 : geom.edgeLengths[e];
 
-      interval_pointer interval = list->covering_interval(position);
+      const_interval_pointer interval = list->covering_interval(position);
       if (interval) {
         double distance = interval->signal(position);
 
@@ -1200,7 +1202,7 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
   case SurfacePointType::Edge: {
     // TODO: untested branch
     Edge e = point.edge;
-    list_pointer list = interval_list(e);
+    const_list_pointer list = interval_list(e);
 
     Vertex gcTail = e.halfedge().tailVertex();
 
@@ -1216,11 +1218,11 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
   case SurfacePointType::Face: {
     Face f = point.face;
     for (Edge e : f.adjacentEdges()) {
-      list_pointer list = interval_list(e);
+      const_list_pointer list = interval_list(e);
 
       double offset;
       double distance;
-      interval_pointer interval;
+      const_interval_pointer interval;
 
       list->find_closest_point(geom, point, offset, distance, interval);
 
@@ -1233,8 +1235,8 @@ interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint&
     }
 
     // check for all sources that might be located inside this face
-    SortedSources::sorted_iterator_pair local_sources = m_sources.sources(point);
-    for (SortedSources::sorted_iterator it = local_sources.first; it != local_sources.second; ++it) {
+    SortedSources::const_sorted_iterator_pair local_sources = m_sources.sources(point);
+    for (SortedSources::const_sorted_iterator it = local_sources.first; it != local_sources.second; ++it) {
       SurfacePointWithIndex* source = *it;
       double distance = exactgeodesic::compute_surface_distance(geom, point, *source);
       if (distance < best_total_distance) {
@@ -1264,7 +1266,7 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
   double best_total_distance;
   double best_interval_position;
   unsigned source_index = std::numeric_limits<unsigned>::max();
-  interval_pointer best_interval =
+  const_interval_pointer best_interval =
       best_first_interval(point, best_total_distance, best_interval_position, source_index);
 
   // unable to find the right path
@@ -1286,7 +1288,7 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
 
       possible_traceback_edges(q, possible_edges);
 
-      interval_pointer interval;
+      const_interval_pointer interval;
       double total_distance;
       double position;
 

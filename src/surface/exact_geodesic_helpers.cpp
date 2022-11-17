@@ -5,7 +5,7 @@
 
 namespace geometrycentral {
 namespace surface {
-double Interval::signal(double x) {
+double Interval::signal(double x) const {
   assert(x >= 0.0 && x <= m_edge_length);
 
   if (m_d == GEODESIC_INF) {
@@ -20,7 +20,7 @@ double Interval::signal(double x) {
   }
 }
 
-double Interval::max_distance(double end) {
+double Interval::max_distance(double end) const {
   if (m_d == GEODESIC_INF) {
     return GEODESIC_INF;
   } else {
@@ -56,11 +56,11 @@ bool Interval::operator()(interval_pointer const x, interval_pointer const y) co
   }
 }
 
-double Interval::stop() { return m_next ? m_next->start() : m_edge_length; }
+double Interval::stop() const { return m_next ? m_next->start() : m_edge_length; }
 
-double Interval::hypotenuse(double a, double b) { return sqrt(a * a + b * b); }
+double Interval::hypotenuse(double a, double b) const { return sqrt(a * a + b * b); }
 
-void Interval::find_closest_point(double const rs, double const hs, double& r, double& d_out) {
+void Interval::find_closest_point(double const rs, double const hs, double& r, double& d_out) const {
   if (m_d == GEODESIC_INF) {
     r = GEODESIC_INF;
     d_out = GEODESIC_INF;
@@ -157,9 +157,20 @@ interval_pointer IntervalList::covering_interval(double offset) {
   return p; // && p->start() <= offset ? p : nullptr;
 };
 
+const_interval_pointer IntervalList::covering_interval(double offset) const {
+  assert(m_first == nullptr || (offset >= 0.0 && offset <= m_first->edge_length()));
+
+  const_interval_pointer p = m_first;
+  while (p && p->stop() < offset) {
+    p = p->next();
+  }
+
+  return p; // && p->start() <= offset ? p : nullptr;
+};
+
 void IntervalList::find_closest_point(IntrinsicGeometryInterface& geom, const SurfacePoint point, double& offset,
-                                      double& distance, interval_pointer& interval, bool verbose) {
-  interval_pointer p = m_first;
+                                      double& distance, const_interval_pointer& interval, bool verbose) const {
+  const_interval_pointer p = m_first;
   distance = GEODESIC_INF;
   interval = nullptr;
 
@@ -214,7 +225,7 @@ double IntervalList::signal(double x) {
 interval_pointer& IntervalList::first() { return m_first; };
 Edge& IntervalList::edge() { return m_edge; };
 
-unsigned SurfacePointWithIndex::index() { return m_index; }
+unsigned SurfacePointWithIndex::index() const { return m_index; }
 void SurfacePointWithIndex::initialize(const SurfacePoint& p, unsigned index) {
   type = p.type;
   vertex = p.vertex;
@@ -225,17 +236,29 @@ void SurfacePointWithIndex::initialize(const SurfacePoint& p, unsigned index) {
   m_index = index;
 }
 
-bool SurfacePointWithIndex::operator()(SurfacePointWithIndex* x, SurfacePointWithIndex* y) const {
-  if (x->type != y->type) {
-    return x->type < y->type;
+bool SurfacePointWithIndex::operator()(const SurfacePointWithIndex* x, const SurfacePointWithIndex* y) const {
+  return compare(*x, *y);
+}
+
+bool SurfacePointWithIndex::operator()(const SurfacePointWithIndex& x, const SurfacePointWithIndex* y) const {
+  return compare(x, *y);
+}
+
+bool SurfacePointWithIndex::operator()(const SurfacePointWithIndex* x, const SurfacePointWithIndex& y) const {
+  return compare(*x, y);
+}
+
+bool SurfacePointWithIndex::compare(const SurfacePointWithIndex& x, const SurfacePointWithIndex& y) const {
+  if (x.type != y.type) {
+    return x.type < y.type;
   } else {
-    switch (x->type) {
+    switch (x.type) {
     case SurfacePointType::Vertex:
-      return x->vertex.getIndex() < y->vertex.getIndex();
+      return x.vertex.getIndex() < y.vertex.getIndex();
     case SurfacePointType::Edge:
-      return x->edge.getIndex() < y->edge.getIndex();
+      return x.edge.getIndex() < y.edge.getIndex();
     case SurfacePointType::Face:
-      return x->face.getIndex() < y->face.getIndex();
+      return x.face.getIndex() < y.face.getIndex();
     }
 
     GC_SAFETY_ASSERT(false, "this should be unreachable");
@@ -247,6 +270,12 @@ SortedSources::sorted_iterator_pair SortedSources::sources(const SurfacePoint& m
   m_search_dummy = SurfacePointWithIndex(mesh_element);
 
   return equal_range(m_sorted.begin(), m_sorted.end(), &m_search_dummy, m_compare_less);
+}
+
+SortedSources::const_sorted_iterator_pair SortedSources::sources(const SurfacePoint& mesh_element) const {
+  SurfacePointWithIndex temp_search_dummy = SurfacePointWithIndex(mesh_element);
+
+  return equal_range(m_sorted.begin(), m_sorted.end(), temp_search_dummy, m_compare_less);
 }
 
 void SortedSources::initialize(const std::vector<SurfacePoint>& sources) {
@@ -263,6 +292,10 @@ void SortedSources::initialize(const std::vector<SurfacePoint>& sources) {
 }
 
 SurfacePointWithIndex& SortedSources::operator[](unsigned i) {
+  assert(i < size());
+  return *(begin() + i);
+}
+const SurfacePointWithIndex& SortedSources::operator[](unsigned i) const {
   assert(i < size());
   return *(begin() + i);
 }
