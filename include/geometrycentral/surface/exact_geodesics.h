@@ -50,8 +50,8 @@ public:
   double getDistance(const Vertex& point);
 
   // evaluate gradient of distance function at a point
-  Vector2 getDistanceGradient(const SurfacePoint& point);
-  Vector2 getDistanceGradient(const Vertex& point);
+  Vector2 getDistanceGradient(const SurfacePoint& point) const;
+  Vector2 getDistanceGradient(const Vertex& point) const;
 
   // evaluate distance function at all vertices
   VertexData<double> getDistanceFunction();
@@ -87,14 +87,15 @@ protected:
   // intersecting two intervals with up to three intervals in the end
   unsigned intersect_intervals(interval_pointer zero, IntervalWithStop* one);
 
-  interval_pointer best_first_interval(const SurfacePoint& point, double& best_total_distance,
-                                       double& best_interval_position, unsigned& best_source_index);
+  const_interval_pointer best_first_interval(const SurfacePoint& point, double& best_total_distance,
+                                             double& best_interval_position, unsigned& best_source_index) const;
 
   bool check_stop_conditions(unsigned& index);
 
   void clear();
 
   list_pointer interval_list(Edge e) { return &m_edge_interval_lists[e]; };
+  const_list_pointer interval_list(Edge e) const { return &m_edge_interval_lists[e]; };
 
   void set_sources(const std::vector<SurfacePoint>& sources) { m_sources.initialize(sources); }
 
@@ -103,13 +104,13 @@ protected:
   // used in initialization
   void list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage);
 
-  long visible_from_source(const SurfacePoint& point); // used in backtracing
+  long visible_from_source(const SurfacePoint& point) const; // used in backtracing
 
   void best_point_on_the_edge_set(const SurfacePoint& point, std::vector<Edge> const& storage,
-                                  interval_pointer& best_interval, double& best_total_distance,
-                                  double& best_interval_position, bool verbose = false);
+                                  const_interval_pointer& best_interval, double& best_total_distance,
+                                  double& best_interval_position, bool verbose = false) const;
 
-  void possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage);
+  void possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage) const;
 
   bool erase_from_queue(interval_pointer p);
 
