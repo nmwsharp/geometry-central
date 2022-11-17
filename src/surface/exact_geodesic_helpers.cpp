@@ -197,7 +197,7 @@ void IntervalList::find_closest_point(IntrinsicGeometryInterface& geom, const Su
   }
 };
 
-unsigned IntervalList::number_of_intervals() {
+unsigned IntervalList::number_of_intervals() const {
   interval_pointer p = m_first;
   unsigned count = 0;
   while (p) {
@@ -217,8 +217,8 @@ interval_pointer IntervalList::last() {
   return p;
 }
 
-double IntervalList::signal(double x) {
-  interval_pointer interval = covering_interval(x);
+double IntervalList::signal(double x) const {
+  const_interval_pointer interval = covering_interval(x);
 
   return interval ? interval->signal(x) : GEODESIC_INF;
 }

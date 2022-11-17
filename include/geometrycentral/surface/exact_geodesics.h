@@ -42,21 +42,21 @@ public:
 
   // quickly find what source this point belongs to and what is the distance
   // to this source
-  std::pair<unsigned, double> closestSource(const SurfacePoint& point);
-  std::pair<unsigned, double> closestSource(const Vertex& point);
+  std::pair<unsigned, double> closestSource(const SurfacePoint& point) const;
+  std::pair<unsigned, double> closestSource(const Vertex& point) const;
 
   // evaluate distance function at a point
-  double getDistance(const SurfacePoint& point);
-  double getDistance(const Vertex& point);
+  double getDistance(const SurfacePoint& point) const;
+  double getDistance(const Vertex& point) const;
 
   // evaluate gradient of distance function at a point
   Vector2 getDistanceGradient(const SurfacePoint& point) const;
   Vector2 getDistanceGradient(const Vertex& point) const;
 
   // evaluate distance function at all vertices
-  VertexData<double> getDistanceFunction();
+  VertexData<double> getDistanceFunction() const;
 
-  void print_statistics();
+  void print_statistics() const;
 
   IntervalList getEdgeIntervals(Edge e) const;
 
@@ -90,7 +90,7 @@ protected:
   const_interval_pointer best_first_interval(const SurfacePoint& point, double& best_total_distance,
                                              double& best_interval_position, unsigned& best_source_index) const;
 
-  bool check_stop_conditions(unsigned& index);
+  bool check_stop_conditions(unsigned& index) const;
 
   void clear();
 
@@ -102,7 +102,7 @@ protected:
   void initialize_propagation_data();
 
   // used in initialization
-  void list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage);
+  void list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage) const;
 
   long visible_from_source(const SurfacePoint& point) const; // used in backtracing
 
@@ -115,7 +115,7 @@ protected:
   bool erase_from_queue(interval_pointer p);
 
   void set_stop_conditions(const std::vector<SurfacePoint>& stop_points, double stop_distance);
-  double stop_distance() { return m_max_propagation_distance; }
+  double stop_distance() const { return m_max_propagation_distance; }
 
   //== Data
   typedef std::pair<Vertex, double> stop_vertex_with_distace_type;

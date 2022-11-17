@@ -126,9 +126,9 @@ public:
   void find_closest_point(IntrinsicGeometryInterface& geom, const SurfacePoint point, double& offset, double& distance,
                           const_interval_pointer& interval, bool verbose = false) const;
 
-  unsigned number_of_intervals();
+  unsigned number_of_intervals() const;
   interval_pointer last();
-  double signal(double x);
+  double signal(double x) const;
 
   interval_pointer& first();
   Edge& edge();
