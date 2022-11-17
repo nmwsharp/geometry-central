@@ -189,6 +189,10 @@ unsigned compute_closest_vertices(SurfacePoint p, std::vector<Vertex>* storage);
 
 std::pair<double, double> compute_local_coordinates(IntrinsicGeometryInterface& geom, Edge e,
                                                     const SurfacePoint& point);
+
+// maps a tangent vector v from f's coordinate system to p's coordinate system. p must be located on f, or one of its
+// vertices or edges
+Vector2 transformToCoordinateSystem(IntrinsicGeometryInterface& geom, Vector2 v, Face f, SurfacePoint p);
 } // namespace exactgeodesic
 
 //== A fast and simple memory allocator

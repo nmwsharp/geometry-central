@@ -70,6 +70,11 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) const {
   return getDistanceGradient(SurfacePoint(v));
 }
 
+Vector2 GeodesicAlgorithmExact::getLog(const Vertex& v) const {
+  // Call general version
+  return getLog(SurfacePoint(v));
+}
+
 void GeodesicAlgorithmExact::best_point_on_the_edge_set(const SurfacePoint& point, std::vector<Edge> const& storage,
                                                         const_interval_pointer& best_interval,
                                                         double& best_total_distance, double& best_interval_position,
@@ -1112,60 +1117,47 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) c
   };
 
   // gradient vector in face fShared
-  Vector2 displacement =
+  Vector2 faceDisplacement =
       barycentricDisplacementToCartesian(vertexCoordinatesInTriangle(geom, fShared), baryPoint - baryClosestPoint);
 
-  geom.requireHalfedgeVectorsInFace();
-  geom.requireHalfedgeVectorsInVertex();
-  // Transform to coordinate system at point
-  switch (point.type) {
-  case SurfacePointType::Vertex: {
-    // find shared halfedge
-    Halfedge heShared;
-    for (Halfedge h : fShared.adjacentHalfedges()) {
-      if (h.vertex() == point.vertex) {
-        heShared = h;
-        break;
-      }
-    }
-
-    // Transform from face to halfedge
-    displacement /= geom.halfedgeVectorsInFace[heShared];
-
-    // Transform from halfedge to vertex
-    displacement *= geom.halfedgeVectorsInVertex[heShared];
-    break;
-  }
-  case SurfacePointType::Edge: {
-    // find shared halfedge
-    Halfedge heShared;
-    for (Halfedge h : point.edge.adjacentHalfedges()) {
-      if (h.face() == fShared) {
-        heShared = h;
-        break;
-      }
-    }
-
-    GC_SAFETY_ASSERT(heShared != Halfedge(), "failed to find shared halfedge");
-
-    // Transform from face to halfedge
-    displacement /= geom.halfedgeVectorsInFace[heShared];
-
-    // Transform from halfedge to edge
-    if (!heShared.orientation()) {
-      displacement *= -1;
-    }
-
-    break;
-  }
-  case SurfacePointType::Face:
-    // do nothing; already using face coordinate system
-    break;
-  }
-  geom.unrequireHalfedgeVectorsInVertex();
-  geom.unrequireHalfedgeVectorsInFace();
+  Vector2 displacement = exactgeodesic::transformToCoordinateSystem(geom, faceDisplacement, fShared, point);
 
   return displacement.normalize();
+}
+
+Vector2 GeodesicAlgorithmExact::getLog(const SurfacePoint& point) const {
+  std::vector<SurfacePoint> path = traceBack(point);
+
+  if (path.size() <= 1) { // degenerate path means point is closest source
+    return Vector2::zero();
+  }
+
+  double pathLen = 0;
+  for (size_t iC = 0; iC + 1 < path.size(); iC++) {
+    pathLen += exactgeodesic::compute_surface_distance(geom, path[iC], path[iC + 1]);
+  }
+
+  int N = path.size() - 1;
+  SurfacePoint closestSource = path[N];
+  Face fSource = sharedFace(closestSource, path[N - 1]);
+
+  // compute displacement between second-to-last point and closest source
+  // (in barycentric coordinates)
+  Vector3 logDirBary = path[N - 1].inFace(fSource).faceCoords - path[N].inFace(fSource).faceCoords;
+
+  geom.requireHalfedgeVectorsInFace();
+  std::array<Vector2, 3> vertCoordsInSourceFace{Vector2{0., 0.}, geom.halfedgeVectorsInFace[fSource.halfedge()],
+                                                -geom.halfedgeVectorsInFace[fSource.halfedge().next().next()]};
+  geom.unrequireHalfedgeVectorsInFace();
+
+  // convert displacement to cartesian coordinates in fSource
+  Vector2 faceLogDir = barycentricDisplacementToCartesian(vertCoordsInSourceFace, logDirBary);
+
+  // transform displacement into coordinate system of closestSource
+  Vector2 logDir = exactgeodesic::transformToCoordinateSystem(geom, faceLogDir, fSource, closestSource);
+
+  // set log magnitude and return
+  return logDir.normalize() * pathLen;
 }
 
 const_interval_pointer GeodesicAlgorithmExact::best_first_interval(const SurfacePoint& point,
