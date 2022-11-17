@@ -50,7 +50,7 @@ void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagat
   propagate(source_surface_points, max_propagation_distance, stop_surface_points);
 }
 
-std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point) {
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point) const {
   // Call general version
   return traceBack(SurfacePoint(point));
 }
@@ -1260,7 +1260,7 @@ const_interval_pointer GeodesicAlgorithmExact::best_first_interval(const Surface
 }
 
 // trace back piecewise-linear path
-std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) {
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) const {
   std::vector<SurfacePoint> path;
 
   double best_total_distance;
@@ -1313,7 +1313,7 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
     }
   }
 
-  SurfacePoint& source = static_cast<SurfacePoint&>(m_sources[source_index]);
+  SurfacePoint source = static_cast<SurfacePoint>(m_sources[source_index]);
   if (exactgeodesic::compute_surface_distance(geom, path.back(), source) > 0) {
     path.push_back(source);
   }
