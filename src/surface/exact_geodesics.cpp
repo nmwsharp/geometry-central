@@ -55,12 +55,12 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point)
   return traceBack(SurfacePoint(point));
 }
 
-std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) {
+std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) const {
   // Call general version
   return closestSource(SurfacePoint(v));
 }
 
-double GeodesicAlgorithmExact::getDistance(const Vertex& v) {
+double GeodesicAlgorithmExact::getDistance(const Vertex& v) const {
   // Call general version
   return getDistance(SurfacePoint(v));
 }
@@ -196,7 +196,8 @@ double GeodesicAlgorithmExact::compute_positive_intersection(double start, doubl
   return numerator / denominator;
 }
 
-void GeodesicAlgorithmExact::list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage) {
+void GeodesicAlgorithmExact::list_edges_visible_from_source(const SurfacePoint& source,
+                                                            std::vector<Edge>& storage) const {
 
   switch (source.type) {
   case SurfacePointType::Vertex: {
@@ -604,7 +605,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 }
 
 
-bool GeodesicAlgorithmExact::check_stop_conditions(unsigned& index) {
+bool GeodesicAlgorithmExact::check_stop_conditions(unsigned& index) const {
   double queue_distance = (*m_queue.begin())->min();
   double stop_dist = stop_distance();
   if (stop_dist < GEODESIC_INF && queue_distance < stop_distance()) {
@@ -1031,7 +1032,7 @@ void GeodesicAlgorithmExact::construct_propagated_intervals(bool invert, Halfedg
 }
 
 
-std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfacePoint& point) {
+std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfacePoint& point) const {
 
   double best_interval_position;
   unsigned best_source_index;
@@ -1042,9 +1043,9 @@ std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfaceP
   return std::make_pair(best_source_index, best_source_distance);
 }
 
-double GeodesicAlgorithmExact::getDistance(const SurfacePoint& point) { return closestSource(point).second; }
+double GeodesicAlgorithmExact::getDistance(const SurfacePoint& point) const { return closestSource(point).second; }
 
-VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() {
+VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() const {
   VertexData<double> distances(mesh);
   for (Vertex v : mesh.vertices()) {
     distances[v] = closestSource(SurfacePoint(v)).second;
@@ -1321,7 +1322,7 @@ std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& 
   return path;
 }
 
-void GeodesicAlgorithmExact::print_statistics() {
+void GeodesicAlgorithmExact::print_statistics() const {
   std::cout << "propagation step took " << m_time_consumed << " seconds " << std::endl;
 
   unsigned interval_counter = 0;
