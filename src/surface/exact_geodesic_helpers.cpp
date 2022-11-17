@@ -393,6 +393,63 @@ std::pair<double, double> compute_local_coordinates(IntrinsicGeometryInterface& 
   return std::make_pair(x, y);
 }
 
+Vector2 transformToCoordinateSystem(IntrinsicGeometryInterface& geom, Vector2 v, Face f, SurfacePoint p) {
+  Vector2 vTransformed = v;
+
+  geom.requireHalfedgeVectorsInFace();
+  geom.requireHalfedgeVectorsInVertex();
+  // Transform to coordinate system at point
+  switch (p.type) {
+  case SurfacePointType::Vertex: {
+    // find shared halfedge
+    Halfedge heShared;
+    for (Halfedge h : f.adjacentHalfedges()) {
+      if (h.vertex() == p.vertex) {
+        heShared = h;
+        break;
+      }
+    }
+    GC_SAFETY_ASSERT(heShared != Halfedge(), "failed to find shared halfedge");
+
+    // Transform from face to halfedge
+    vTransformed /= geom.halfedgeVectorsInFace[heShared];
+
+    // Transform from halfedge to vertex
+    vTransformed *= geom.halfedgeVectorsInVertex[heShared];
+    break;
+  }
+  case SurfacePointType::Edge: {
+    // find shared halfedge
+    Halfedge heShared;
+    for (Halfedge h : p.edge.adjacentHalfedges()) {
+      if (h.face() == f) {
+        heShared = h;
+        break;
+      }
+    }
+
+    GC_SAFETY_ASSERT(heShared != Halfedge(), "failed to find shared halfedge");
+
+    // Transform from face to halfedge
+    vTransformed /= geom.halfedgeVectorsInFace[heShared];
+
+    // Transform from halfedge to edge
+    if (!heShared.orientation()) {
+      vTransformed *= -1;
+    }
+
+    break;
+  }
+  case SurfacePointType::Face:
+    // do nothing; already using face coordinate system
+    break;
+  }
+  geom.unrequireHalfedgeVectorsInVertex();
+  geom.unrequireHalfedgeVectorsInFace();
+
+  return vTransformed;
+}
+
 } // namespace exactgeodesic
 
 } // namespace surface

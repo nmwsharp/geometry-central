@@ -53,6 +53,10 @@ public:
   Vector2 getDistanceGradient(const SurfacePoint& point) const;
   Vector2 getDistanceGradient(const Vertex& point) const;
 
+  // evaluate log map at closest source
+  Vector2 getLog(const SurfacePoint& point) const;
+  Vector2 getLog(const Vertex& point) const;
+
   // evaluate distance function at all vertices
   VertexData<double> getDistanceFunction() const;
 
