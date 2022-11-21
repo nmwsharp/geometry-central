@@ -153,9 +153,11 @@ Halfedge MutationManager::insertVertexAlongEdge(Edge e, double tSplit) {
   return he;
 }
 
-std::vector<Halfedge> MutationManager::insertVerticesAlongEdge(Edge e, const std::vector<double>& tSplits) {
+std::vector<Vertex> MutationManager::insertVerticesAlongEdge(Edge e, const std::vector<double>& tSplits) {
 
   size_t nNodes = tSplits.size();
+  std::vector<Vertex> newVertices(nNodes);
+  std::vector<Vertex> orderedVertices(nNodes);
   std::vector<Halfedge> newHalfedges(nNodes);     // in order along the edge
   std::vector<Halfedge> orderedHalfedges(nNodes); // in order of <tSplits>
 
@@ -165,9 +167,9 @@ std::vector<Halfedge> MutationManager::insertVerticesAlongEdge(Edge e, const std
   std::iota(index.begin(), index.end(), 0); // 0, ..., nNodes - 1
   std::sort(index.begin(), index.end(), [&](const size_t& a, const size_t& b) { return (tSplits[a] < tSplits[b]); });
 
-  std::vector<Vector3> newPositions(nNodes);
+  std::vector<Vector3> newPositions(nNodes); // in sorted order
   if (geometry) {
-    VertexData<Vector3>& pos = geometry->vertexPositions; // in sorted order
+    VertexData<Vector3>& pos = geometry->vertexPositions;
     for (size_t i = 0; i < nNodes; i++) {
       double t = tSplits[index[i]];
       newPositions[i] = (1. - t) * pos[e.firstVertex()] + t * pos[e.secondVertex()];
@@ -178,22 +180,26 @@ std::vector<Halfedge> MutationManager::insertVerticesAlongEdge(Edge e, const std
   // direction as e.halfedge().
   // TODO: This part doesn't seem to be doing what I think it is.
   Edge currE = e;
+  Halfedge currHe = e.halfedge(); // the one whose *tip* is the newly inserted vertex
   for (size_t i = 0; i < nNodes; i++) {
     Halfedge he = mesh.insertVertexAlongEdge(currE);
-    newHalfedges[i] = he;
+    newVertices[i] = he.vertex();
+    newHalfedges[i] = currHe;
     currE = he.edge();
   }
   // Set new positions.
   if (geometry) {
     for (size_t i = 0; i < nNodes; i++) {
-      geometry->vertexPositions[newHalfedges[i].vertex()] = newPositions[i];
+      geometry->vertexPositions[newVertices[i]] = newPositions[i];
     }
   }
 
   for (size_t i = 0; i < nNodes; i++) {
     orderedHalfedges[index[i]] = newHalfedges[i];
+    orderedVertices[index[i]] = newVertices[i];
   }
-  return orderedHalfedges;
+  // return orderedHalfedges;
+  return orderedVertices;
 }
 
 Halfedge MutationManager::splitEdge(Edge e, double tSplit) {
@@ -563,9 +569,9 @@ std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoi
     const std::vector<size_t>& indices = pair.second;
     std::vector<double> tSplits;
     for (size_t idx : indices) tSplits.push_back(dedupNodes[idx].tEdge);
-    std::vector<Halfedge> newHalfedges = insertVerticesAlongEdge(e, tSplits);
+    std::vector<Vertex> insertedVerts = insertVerticesAlongEdge(e, tSplits);
     for (size_t i = 0; i < tSplits.size(); i++) {
-      newVertices[indices[i]] = newHalfedges[i].vertex();
+      newVertices[indices[i]] = insertedVerts[i];
     }
   }
 
