@@ -223,7 +223,7 @@ handleToInds(PointCloud& cloud, const PointData<std::vector<std::array<Point, 3>
 }
 
 std::vector<std::vector<size_t>> handleToFlatInds(PointCloud& cloud,
-                                                    const PointData<std::vector<std::array<Point, 3>>>& localResult) {
+                                                  const PointData<std::vector<std::array<Point, 3>>>& localResult) {
 
   GC_SAFETY_ASSERT(cloud.isCompressed(), "cloud must be compressed");
 

@@ -13,6 +13,7 @@ namespace pointcloud {
 class PointPositionGeometry {
 public:
   // Data
+  PointPositionGeometry(PointCloud& mesh, const PointData<Vector3>& positions, const PointData<Vector3>& normals);
   PointPositionGeometry(PointCloud& mesh, const PointData<Vector3>& positions);
   PointPositionGeometry(PointCloud& mesh); // uninitialized positions
   virtual ~PointPositionGeometry();
@@ -60,6 +61,10 @@ public:
   void requireNeighbors();
   void unrequireNeighbors();
 
+  // Ground truth normals
+  PointData<Vector3> normalsTruth;
+  bool normalsProvided = false;
+
   // Normals
   PointData<Vector3> normals;
   void requireNormals();
@@ -99,7 +104,7 @@ public:
   // Connection Laplacian
   // Uses Tufted Intrinsic Laplacian as above. Does _not_ require consistent orientation.
   // NOTE: this is an 2Nx2N-sized real matrix rather than a complex matrix so we can conjugate to handle inverted
-  // normals. 
+  // normals.
   Eigen::SparseMatrix<double> connectionLaplacian;
   void requireConnectionLaplacian();
   void unrequireConnectionLaplacian();

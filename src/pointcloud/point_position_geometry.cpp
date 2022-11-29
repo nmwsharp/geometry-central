@@ -10,6 +10,32 @@
 namespace geometrycentral {
 namespace pointcloud {
 
+// clang-format off
+PointPositionGeometry::PointPositionGeometry(PointCloud& cloud_, const PointData<Vector3>& positions_,
+                                             const PointData<Vector3>& normals_)
+    : normalsTruth(normals_),cloud(cloud_), positions(positions_), normalsProvided(true),
+      
+  // Construct the dependency graph of managed quantities and their callbacks
+
+  pointIndicesQ             (&pointIndices,             std::bind(&PointPositionGeometry::computePointIndices, this),          quantities),
+  neighborsQ                (&neighbors,                std::bind(&PointPositionGeometry::computeNeighbors, this),             quantities),
+  normalsQ                  (&normals,                  std::bind(&PointPositionGeometry::computeNormals, this),               quantities),
+  tangentBasisQ             (&tangentBasis,             std::bind(&PointPositionGeometry::computeTangentBasis, this),          quantities),
+  tangentCoordinatesQ       (&tangentCoordinates,       std::bind(&PointPositionGeometry::computeTangentCoordinates, this),             quantities),
+  tangentTransportQ         (&tangentTransport,         std::bind(&PointPositionGeometry::computeTangentTransport, this),             quantities),
+
+  tuftedTriPair{&tuftedMesh, &tuftedGeom},
+  tuftedTriangulationQ      (&tuftedTriPair,            std::bind(&PointPositionGeometry::computeTuftedTriangulation, this),   quantities),
+
+  // operators
+  laplacianQ                (&laplacian,                std::bind(&PointPositionGeometry::computeLaplacian, this),             quantities),
+  connectionLaplacianQ      (&connectionLaplacian,      std::bind(&PointPositionGeometry::computeConnectionLaplacian, this),   quantities),
+  gradientQ                 (&gradient,                 std::bind(&PointPositionGeometry::computeGradient, this),              quantities)
+
+  {
+  }
+// clang-format on
+
 
 // clang-format off
 PointPositionGeometry::PointPositionGeometry(PointCloud& cloud_, const PointData<Vector3>& positions_)
@@ -71,7 +97,10 @@ void PointPositionGeometry::unrequireNeighbors() { neighborsQ.unrequire(); }
 void PointPositionGeometry::computeNormals() {
 
   neighborsQ.ensureHave();
-
+  if (normalsProvided) {
+    normals = normalsTruth;
+    return;
+  }
   normals = PointData<Vector3>(cloud);
 
   for (Point p : cloud.points()) {
