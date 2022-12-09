@@ -12,7 +12,7 @@ namespace surface {
 
 // Improve mesh using repeated rounds of edge flipping, vertex position smoothing, and edge splits/collapses
 //   targetEdgeLength:    the target edge length in flat regions. If `targetEdgeLength` is negative, the target edge
-//                        length is set to the input mesh's mean edge length
+//                        length is set to relative the input mesh's mean edge length
 //   maxIterations:       the maximum number of iterations to run for
 //   curvatureAdaptation: how much variation in target length occurs due to curvature. Set curvatureAdaptation
 //                        to 0 if you want lengths to be approximately flatLength everywhere

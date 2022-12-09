@@ -20,7 +20,7 @@ void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Mutatio
     geometry.unrequireEdgeLengths();
     meanLength /= mesh.nEdges();
 
-    targetEdgeLength = meanLength;
+    targetEdgeLength = abs(targetEdgeLength * meanLength);
   }
 
   bool doConnectivityChanges = true;
