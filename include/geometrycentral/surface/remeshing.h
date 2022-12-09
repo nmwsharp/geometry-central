@@ -19,7 +19,7 @@ struct RemeshOptions {
   size_t maxIterations = 10;    // the maximum number of iterations to run for
   double curvatureAdaptation = 0;  // how much target length should vary due to curvature. Set curvatureAdaptation
                                    // to 0 if you want lengths to be approximately targetEdgeLength everywhere
-  double minRelativeLength = 0.05; // the minimum possible length an edge could become. Defined relative to
+  double minRelativeLength = 0.05; // the minimum possible edge length allowed in the output mesh. Defined relative to
                                    // targetEdgeLength
   RemeshSmoothStyle smoothStyle = RemeshSmoothStyle::Circumcentric; // smoothing function to use
   RemeshBoundaryCondition boundaryCondition =

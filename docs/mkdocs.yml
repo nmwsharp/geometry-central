@@ -80,6 +80,7 @@ nav:
       - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
       - 'Parameterization' : 'surface/algorithms/parameterization.md'
+      - 'Remeshing' : 'surface/algorithms/remeshing.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
       - 'Surface Sampling' : 'surface/algorithms/surface_sampling.md'
