@@ -363,5 +363,34 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
   return didSplitOrCollapse;
 }
 
+<<<<<<< HEAD
+=======
+void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double targetEdgeLength, size_t maxIterations,
+            double curvatureAdaptation, double minRelativeLength) {
+  MutationManager mm(mesh, geometry);
+  return remesh(mesh, geometry, mm, targetEdgeLength, maxIterations, curvatureAdaptation, minRelativeLength);
+}
+
+void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm, double targetEdgeLength,
+            size_t maxIterations, double curvatureAdaptation, double minRelativeLength) {
+
+  bool doConnectivityChanges = true;
+
+  for (size_t iIt = 0; iIt < maxIterations; iIt++) {
+    if (doConnectivityChanges) {
+      doConnectivityChanges =
+          adjustEdgeLengths(mesh, geometry, mm, targetEdgeLength, curvatureAdaptation, minRelativeLength);
+    }
+
+    size_t nFlips = fixDelaunay(mesh, geometry, mm);
+    double flowDist = smoothByCircumcenter(mesh, geometry, mm);
+
+    // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
+    if ((nFlips == 0) && (flowDist < 0.01)) break;
+  }
+  geometry.refreshQuantities();
+}
+
+>>>>>>> a00489b9bdeef5b69dd9b39fbc0e9a1b33ad2d22
 } // namespace surface
 } // namespace geometrycentral

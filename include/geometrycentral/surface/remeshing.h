@@ -41,15 +41,15 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
 double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
                             double stepSize = 1);
 
-// Apply splits and collapses to adjust edge lengths based on the curvature
-//   flatLength:          how long the target edge length should be in flat regions
-//   curvatureAdaptation: how much variation in target length occurs due to curvature. Set curvatureAdaptation
-//                        to 0 if you want lengths to be approximately flatLength everywhere
-//   minRelativeLength:   the minimum possible length an edge could become. Defined relative to flatLength
+// applies splits and collapses to adjust edge lengths based on the curvature
+// flatLength:          specifies how long the target edge length should be in flat regions
+// curvatureAdaptation: controls how much variation in target length occurs due to curvature. Set curvatureAdaptation to
+//                      0 if you want lengths to be approximately flatLength everywhere
+// minRelativeLength:   specifies the minimum possible length an edge could become. Defined relative to flatLength
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double flatLength,
                        double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
 bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
-                       double flatLength, double curvatureAdaptation = 0., double minRelativeLength = 0.05);
+                       double flatLength, double curvatureAdaptation = 0.2, double minRelativeLength = 0.05);
 
 } // namespace surface
 } // namespace geometrycentral
