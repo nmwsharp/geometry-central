@@ -3,57 +3,85 @@
 namespace geometrycentral {
 namespace surface {
 
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double targetEdgeLength, size_t maxIterations,
-            double curvatureAdaptation, double minRelativeLength) {
-  MutationManager mm(mesh, geometry);
-  return remesh(mesh, geometry, mm, targetEdgeLength, maxIterations, curvatureAdaptation, minRelativeLength);
+// The default trace options
+const RemeshOptions defaultRemeshOptions;
+
+void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+  MutationManager mm(mesh, geom);
+  return remesh(mesh, geom, mm, options);
 }
 
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm, double targetEdgeLength,
-            size_t maxIterations, double curvatureAdaptation, double minRelativeLength) {
-  if (targetEdgeLength < 0) {
+void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, RemeshOptions options) {
+  if (options.targetEdgeLength < 0) {
     double meanLength = 0;
-    geometry.requireEdgeLengths();
+    geom.requireEdgeLengths();
     for (Edge e : mesh.edges()) {
-      meanLength += geometry.edgeLengths[e];
+      meanLength += geom.edgeLengths[e];
     }
-    geometry.unrequireEdgeLengths();
+    geom.unrequireEdgeLengths();
     meanLength /= mesh.nEdges();
 
-    targetEdgeLength = abs(targetEdgeLength * meanLength);
+    options.targetEdgeLength = abs(options.targetEdgeLength * meanLength);
   }
 
   bool doConnectivityChanges = true;
 
-  for (size_t iIt = 0; iIt < maxIterations; iIt++) {
+  for (size_t iIt = 0; iIt < options.maxIterations; iIt++) {
     if (doConnectivityChanges) {
-      doConnectivityChanges =
-          adjustEdgeLengths(mesh, geometry, mm, targetEdgeLength, curvatureAdaptation, minRelativeLength);
+      doConnectivityChanges = adjustEdgeLengths(mesh, geom, mm, options);
     }
 
-    size_t nFlips = fixDelaunay(mesh, geometry, mm);
-    double flowDist = smoothByCircumcenter(mesh, geometry, mm);
+    size_t nFlips = fixDelaunay(mesh, geom, mm);
+    double flowDist;
+    switch (options.smoothStyle) {
+    case RemeshSmoothStyle::Circumcentric:
+      flowDist = smoothByCircumcenter(mesh, geom, mm, 1, options.boundaryCondition);
+      break;
+    case RemeshSmoothStyle::Laplacian:
+      flowDist = smoothByLaplacian(mesh, geom, mm, 1, options.boundaryCondition);
+      break;
+    }
 
     // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
     if ((nFlips == 0) && (flowDist < 0.01)) break;
   }
-  geometry.refreshQuantities();
+  geom.refreshQuantities();
 }
 
-Vector3 vertexNormal(VertexPositionGeometry& geometry, Vertex v, MutationManager& mm) {
+Vector3 vertexNormal(VertexPositionGeometry& geom, Vertex v, MutationManager& mm) {
   Vector3 totalNormal = Vector3::zero();
   for (Corner c : v.adjacentCorners()) {
-    Vector3 cornerNormal = geometry.cornerAngle(c) * geometry.faceNormal(c.face());
+    Vector3 cornerNormal = geom.cornerAngle(c) * geom.faceNormal(c.face());
     totalNormal += cornerNormal;
   }
   return normalize(totalNormal);
 }
 
-inline Vector3 projectToPlane(Vector3 v, Vector3 norm) { return v - norm * dot(norm, v); }
+Vector3 boundaryVertexTangent(VertexPositionGeometry& geom, Vertex v, MutationManager& mm) {
+  if (v.isBoundary()) {
+    auto edgeVec = [&](Edge e) -> Vector3 {
+      return (geom.vertexPositions[e.halfedge().tipVertex()] - geom.vertexPositions[e.halfedge().tailVertex()])
+          .normalize();
+    };
 
-inline Vector3 edgeMidpoint(SurfaceMesh& mesh, VertexPositionGeometry& geometry, Edge e) {
-  Vector3 endPos1 = geometry.vertexPositions[e.halfedge().tailVertex()];
-  Vector3 endPos2 = geometry.vertexPositions[e.halfedge().tipVertex()];
+    Vector3 totalTangent = Vector3::zero();
+    for (Edge e : v.adjacentEdges()) {
+      if (e.isBoundary()) {
+        totalTangent += edgeVec(e);
+      }
+    }
+    return totalTangent.normalize();
+  } else {
+    return Vector3::zero();
+  }
+}
+
+inline Vector3 projectToPlane(Vector3 v, Vector3 norm) { return v - norm * dot(norm, v); }
+inline Vector3 projectToLine(Vector3 v, Vector3 tangent) { return tangent * dot(tangent, v); }
+
+inline Vector3 edgeMidpoint(SurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e) {
+  Vector3 endPos1 = geom.vertexPositions[e.halfedge().tailVertex()];
+  Vector3 endPos2 = geom.vertexPositions[e.halfedge().tipVertex()];
   return (endPos1 + endPos2) / 2;
 }
 
@@ -73,12 +101,12 @@ Vector3 findCircumcenter(Vector3 p1, Vector3 p2, Vector3 p3) {
   return circumcenterLoc[0] * p1 + circumcenterLoc[1] * p2 + circumcenterLoc[2] * p3;
 }
 
-Vector3 findCircumcenter(VertexPositionGeometry& geometry, Face f) {
+Vector3 findCircumcenter(VertexPositionGeometry& geom, Face f) {
   // retrieve the face's vertices
   int index = 0;
   Vector3 p[3];
   for (Vertex v0 : f.adjacentVertices()) {
-    p[index] = geometry.vertexPositions[v0];
+    p[index] = geom.vertexPositions[v0];
     index++;
   }
   return findCircumcenter(p[0], p[1], p[2]);
@@ -100,9 +128,9 @@ Vector3 findODTCenter(VertexPositionGeometry& geom, Face f, MutationManager& mm)
   return findCircumcenter(p0, p1, p2);
 }
 
-bool isDelaunay(VertexPositionGeometry& geometry, Edge e) {
-  float angle1 = geometry.cornerAngle(e.halfedge().next().next().corner());
-  float angle2 = geometry.cornerAngle(e.halfedge().twin().next().next().corner());
+bool isDelaunay(VertexPositionGeometry& geom, Edge e) {
+  float angle1 = geom.cornerAngle(e.halfedge().next().next().corner());
+  float angle2 = geom.cornerAngle(e.halfedge().twin().next().next().corner());
   return angle1 + angle2 <= PI;
 }
 
@@ -117,7 +145,7 @@ inline bool checkFoldover(Vector3 a, Vector3 b, Vector3 c, Vector3 x, double ang
   return diamondAngle(a, b, c, x) < angle;
 }
 
-bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, Edge e) {
+bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e) {
   std::vector<Halfedge> edgesToCheck;
   Vertex v1 = e.halfedge().vertex();
   Vertex v2 = e.halfedge().twin().vertex();
@@ -137,15 +165,15 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry,
   }
 
   // see if the point that would form after a collapse would cause a major foldover with surrounding edges
-  Vector3 midpoint = edgeMidpoint(mesh, geometry, e);
+  Vector3 midpoint = edgeMidpoint(mesh, geom, e);
   for (Halfedge he0 : edgesToCheck) {
     Halfedge heT = he0.twin();
     Vertex v1 = heT.tailVertex();
     Vertex v2 = heT.tipVertex();
     Vertex v3 = heT.next().tipVertex();
-    Vector3 a = geometry.vertexPositions[v1];
-    Vector3 b = geometry.vertexPositions[v2];
-    Vector3 c = geometry.vertexPositions[v3];
+    Vector3 a = geom.vertexPositions[v1];
+    Vector3 b = geom.vertexPositions[v2];
+    Vector3 c = geom.vertexPositions[v3];
     if (checkFoldover(a, b, c, midpoint, 2)) {
       return false;
     }
@@ -153,21 +181,21 @@ bool shouldCollapse(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry,
   return true;
 }
 
-// Warning: requires that geometry.vertexDualAreas and geometry.vertexMeanCurvatures are filled in with accurate data
-double getSmoothMeanCurvature(VertexPositionGeometry& geometry, Vertex v) {
-  double A = geometry.vertexDualAreas[v];
-  double S = geometry.vertexMeanCurvatures[v];
+// Warning: requires that geom.vertexDualAreas and geom.vertexMeanCurvatures are filled in with accurate data
+double getSmoothMeanCurvature(VertexPositionGeometry& geom, Vertex v) {
+  double A = geom.vertexDualAreas[v];
+  double S = geom.vertexMeanCurvatures[v];
   double K = S / A;
   return K;
 }
 
 // flatLength: specifies how long the target edge length should be in flat regions
 // curvatureAdaptation: controls how much variation in target length occurs due to curvature
-double findMeanTargetL(SurfaceMesh& mesh, VertexPositionGeometry& geometry, Edge e, double flatLength,
+double findMeanTargetL(SurfaceMesh& mesh, VertexPositionGeometry& geom, Edge e, double flatLength,
                        double curvatureAdaptation) {
   double averageH = 0;
   for (Vertex v : e.adjacentVertices()) {
-    averageH += getSmoothMeanCurvature(geometry, v);
+    averageH += getSmoothMeanCurvature(geom, v);
   }
   averageH /= 2;
   double L = flatLength / (fabs(averageH) * curvatureAdaptation + 1);
@@ -175,12 +203,12 @@ double findMeanTargetL(SurfaceMesh& mesh, VertexPositionGeometry& geometry, Edge
 }
 
 
-size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry) {
-  MutationManager mm(mesh, geometry);
-  return fixDelaunay(mesh, geometry, mm);
+size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom) {
+  MutationManager mm(mesh, geom);
+  return fixDelaunay(mesh, geom, mm);
 }
 
-size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm) {
+size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm) {
   // Logic duplicated from surface/intrinsic_triangulation.cpp
 
   std::deque<Edge> edgesToCheck;      // queue of edges to check if Delaunay
@@ -199,7 +227,7 @@ size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, 
     edgesToCheck.pop_front();
     inQueue[e] = false;
 
-    if (e.isBoundary() || isDelaunay(geometry, e)) continue;
+    if (e.isBoundary() || isDelaunay(geom, e)) continue;
 
     // if not Delaunay, try to flip edge
     bool wasFlipped = mm.flipEdge(e);
@@ -222,30 +250,46 @@ size_t fixDelaunay(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, 
   return nFlips;
 }
 
-double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double stepSize) {
-  MutationManager mm(mesh, geometry);
-  return smoothByLaplacian(mesh, geometry, mm, stepSize);
+double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, double stepSize,
+                         RemeshBoundaryCondition bc) {
+  MutationManager mm(mesh, geom);
+  return smoothByLaplacian(mesh, geom, mm, stepSize, bc);
 }
 
-double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
-                         double stepSize) {
+double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm, double stepSize,
+                         RemeshBoundaryCondition bc) {
   VertexData<Vector3> vertexOffsets(mesh);
   for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      vertexOffsets[v] = Vector3::zero();
-    } else {
-      // calculate average of surrounding vertices
-      Vector3 avgNeighbor = Vector3::zero();
-      for (Vertex j : v.adjacentVertices()) {
-        avgNeighbor += geometry.vertexPositions[j];
-      }
-      avgNeighbor /= v.degree();
-
-      // and project the average to the tangent plane
-      Vector3 updateDirection = avgNeighbor - geometry.vertexPositions[v];
-      Vector3 normal = vertexNormal(geometry, v, mm);
-      vertexOffsets[v] = stepSize * projectToPlane(updateDirection, normal);
+    // calculate average of surrounding vertices
+    Vector3 avgNeighbor = Vector3::zero();
+    for (Vertex j : v.adjacentVertices()) {
+      avgNeighbor += geom.vertexPositions[j];
     }
+    avgNeighbor /= v.degree();
+
+    Vector3 updateDirection = avgNeighbor - geom.vertexPositions[v];
+
+    // project updateDirection onto space of allowed movements
+    Vector3 stepDir;
+    if (v.isBoundary()) {
+      switch (bc) {
+      case RemeshBoundaryCondition::Fixed:
+        stepDir = Vector3::zero();
+        break;
+      case RemeshBoundaryCondition::Tangential:
+        // for free boundary vertices, project the average to the boundary tangent line
+        stepDir = projectToLine(updateDirection, boundaryVertexTangent(geom, v, mm));
+        break;
+      case RemeshBoundaryCondition::Free:
+        // for free boundary vertices, project the average to the surface tangent plane
+        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+        break;
+      }
+    } else {
+      // for interior vertices, project the average to the tangent plane
+      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+    }
+    vertexOffsets[v] = stepSize * stepDir;
   }
 
   // update final vertices
@@ -259,29 +303,46 @@ double smoothByLaplacian(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom
   return totalMovement / mesh.nVertices();
 }
 
-double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double stepSize) {
-  MutationManager mm(mesh, geometry);
-  return smoothByCircumcenter(mesh, geometry, mm, stepSize);
+double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, double stepSize,
+                            RemeshBoundaryCondition bc) {
+  MutationManager mm(mesh, geom);
+  return smoothByCircumcenter(mesh, geom, mm, stepSize, bc);
 }
 
-double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
-                            double stepSize) {
-  geometry.requireFaceAreas();
+double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                            double stepSize, RemeshBoundaryCondition bc) {
+  geom.requireFaceAreas();
   VertexData<Vector3> vertexOffsets(mesh);
   for (Vertex v : mesh.vertices()) {
-    if (v.isBoundary()) {
-      vertexOffsets[v] = Vector3::zero();
-    } else {
-      vertexOffsets[v] = Vector3::zero();
-      for (Face f : v.adjacentFaces()) {
-        // add the circumcenter weighted by face area to the update direction
-        Vector3 circum = findODTCenter(geometry, f, mm);
-        vertexOffsets[v] += geometry.faceArea(f) * (circum - geometry.vertexPositions[v]);
-      }
-      vertexOffsets[v] /= (3 * geometry.vertexDualArea(v));
-      // project update direction to tangent plane
-      vertexOffsets[v] = stepSize * projectToPlane(vertexOffsets[v], vertexNormal(geometry, v, mm)) / 2.;
+    Vector3 updateDirection = Vector3::zero();
+    for (Face f : v.adjacentFaces()) {
+      // add the circumcenter weighted by face area to the update direction
+      Vector3 circum = findODTCenter(geom, f, mm);
+      updateDirection += geom.faceArea(f) * (circum - geom.vertexPositions[v]);
     }
+    updateDirection /= (6 * geom.vertexDualArea(v));
+
+    // project updateDirection onto space of allowed movements
+    Vector3 stepDir;
+    if (v.isBoundary()) {
+      switch (bc) {
+      case RemeshBoundaryCondition::Fixed:
+        stepDir = Vector3::zero();
+        break;
+      case RemeshBoundaryCondition::Tangential:
+        // for free boundary vertices, project the average to the boundary tangent line
+        stepDir = projectToLine(updateDirection, boundaryVertexTangent(geom, v, mm));
+        break;
+      case RemeshBoundaryCondition::Free:
+        // for free boundary vertices, project the average to the surface tangent plane
+        stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+        break;
+      }
+    } else {
+      // for interior vertices, project the average to the tangent plane
+      stepDir = projectToPlane(updateDirection, vertexNormal(geom, v, mm));
+    }
+    vertexOffsets[v] = stepSize * stepDir;
   }
 
   // update final vertices
@@ -293,22 +354,23 @@ double smoothByCircumcenter(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& g
     }
   }
   return totalMovement / mesh.nVertices();
+} // namespace surface
+
+
+bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, RemeshOptions options) {
+  MutationManager mm(mesh, geom);
+  return adjustEdgeLengths(mesh, geom, mm, options);
 }
 
+bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geom, MutationManager& mm,
+                       RemeshOptions options) {
+  geom.requireVertexDualAreas();
+  geom.requireVertexMeanCurvatures();
 
-bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double flatLength,
-                       double curvatureAdaptation, double minRelativeLength) {
-  MutationManager mm(mesh, geometry);
-  return adjustEdgeLengths(mesh, geometry, mm, flatLength, curvatureAdaptation, minRelativeLength);
-}
-
-bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm,
-                       double flatLength, double curvatureAdaptation, double minRelativeLength) {
-  geometry.requireVertexDualAreas();
-  geometry.requireVertexMeanCurvatures();
-
+  double curvatureAdaptation = options.curvatureAdaptation;
   bool useCurvatureAdaptation = curvatureAdaptation > 0;
-  double minLength = minRelativeLength * flatLength;
+  double flatLength = options.targetEdgeLength;
+  double minLength = options.minRelativeLength * options.targetEdgeLength;
 
   bool didSplitOrCollapse = false;
   // queues of edges to CHECK to change
@@ -323,11 +385,11 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
   while (!toSplit.empty()) {
     Edge e = toSplit.back();
     toSplit.pop_back();
-    double length_e = geometry.edgeLength(e);
+    double length_e = geom.edgeLength(e);
     double threshold =
-        (useCurvatureAdaptation) ? findMeanTargetL(mesh, geometry, e, flatLength, curvatureAdaptation) : flatLength;
+        (useCurvatureAdaptation) ? findMeanTargetL(mesh, geom, e, flatLength, curvatureAdaptation) : flatLength;
     if (length_e > minLength && length_e > threshold * 1.5) {
-      Vector3 newPos = edgeMidpoint(mesh, geometry, e);
+      Vector3 newPos = edgeMidpoint(mesh, geom, e);
       Halfedge he = mm.splitEdge(e, newPos);
       if (he != Halfedge()) {
         didSplitOrCollapse = true;
@@ -344,10 +406,10 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
     if (e == Edge() || e.isDead()) continue; // make sure it exists
 
     double threshold =
-        (useCurvatureAdaptation) ? findMeanTargetL(mesh, geometry, e, flatLength, curvatureAdaptation) : flatLength;
-    if (geometry.edgeLength(e) < threshold * 0.5) {
-      Vector3 newPos = edgeMidpoint(mesh, geometry, e);
-      if (shouldCollapse(mesh, geometry, e)) {
+        (useCurvatureAdaptation) ? findMeanTargetL(mesh, geom, e, flatLength, curvatureAdaptation) : flatLength;
+    if (geom.edgeLength(e) < threshold * 0.5) {
+      Vector3 newPos = edgeMidpoint(mesh, geom, e);
+      if (shouldCollapse(mesh, geom, e)) {
         Vertex v = mm.collapseEdge(e, newPos);
         if (v != Vertex()) {
           didSplitOrCollapse = true;
@@ -356,41 +418,12 @@ bool adjustEdgeLengths(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geomet
     }
   }
 
-  geometry.unrequireVertexDualAreas();
-  geometry.unrequireVertexMeanCurvatures();
+  geom.unrequireVertexDualAreas();
+  geom.unrequireVertexMeanCurvatures();
 
   mesh.compress();
   return didSplitOrCollapse;
 }
 
-<<<<<<< HEAD
-=======
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, double targetEdgeLength, size_t maxIterations,
-            double curvatureAdaptation, double minRelativeLength) {
-  MutationManager mm(mesh, geometry);
-  return remesh(mesh, geometry, mm, targetEdgeLength, maxIterations, curvatureAdaptation, minRelativeLength);
-}
-
-void remesh(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry, MutationManager& mm, double targetEdgeLength,
-            size_t maxIterations, double curvatureAdaptation, double minRelativeLength) {
-
-  bool doConnectivityChanges = true;
-
-  for (size_t iIt = 0; iIt < maxIterations; iIt++) {
-    if (doConnectivityChanges) {
-      doConnectivityChanges =
-          adjustEdgeLengths(mesh, geometry, mm, targetEdgeLength, curvatureAdaptation, minRelativeLength);
-    }
-
-    size_t nFlips = fixDelaunay(mesh, geometry, mm);
-    double flowDist = smoothByCircumcenter(mesh, geometry, mm);
-
-    // std::cout << iIt << " : " << changedConnectivity << " " << nFlips << " " << flowDist << std::endl;
-    if ((nFlips == 0) && (flowDist < 0.01)) break;
-  }
-  geometry.refreshQuantities();
-}
-
->>>>>>> a00489b9bdeef5b69dd9b39fbc0e9a1b33ad2d22
 } // namespace surface
 } // namespace geometrycentral
