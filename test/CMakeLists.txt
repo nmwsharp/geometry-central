@@ -81,6 +81,12 @@ FetchContent_MakeAvailable(googletest)
 
 set_property(TARGET gtest PROPERTY CXX_STANDARD 11)
 
+# silence warning about deprecated copies in gtest
+# https://github.com/abseil/abseil-cpp/issues/948#issuecomment-846592426
+if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(gtest INTERFACE -Wno-deprecated-copy)
+endif()
+
 
 ### Set (hardcode) a variable for where to find the assets
 set(REL_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/")

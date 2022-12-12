@@ -43,6 +43,7 @@ SET(SRCS
   surface/fast_marching_method.cpp
   surface/uniformize.cpp
   surface/parameterize.cpp
+  surface/remeshing.cpp
   surface/surgery.cpp
   surface/simple_idt.cpp
   surface/exact_polyhedral_geodesics.cpp
@@ -119,6 +120,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/parameterize.h
   ${INCLUDE_ROOT}/surface/poisson_disk_sampler.h
   ${INCLUDE_ROOT}/surface/quadric_error_simplification.h
+  ${INCLUDE_ROOT}/surface/remeshing.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h

@@ -1940,6 +1940,10 @@ void SurfaceMesh::compress() {
   compressFaces();
   compressVertices();
   isCompressedFlag = true;
+
+  for (auto& f : compressCallbackList) {
+    f();
+  }
 }
 
 
