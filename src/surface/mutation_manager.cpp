@@ -498,22 +498,25 @@ std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoi
 
   // Safety checks before we mutate the mesh:
   // (1) Make sure that each edge in <pathEdges> is entirely contained within a single face.
-  // TODO: (2) Make sure that no two edges intersect each other.
-  FaceData<bool> alreadyCut(mesh, false);
+  // (2) No edge in <pathEdges> lies along an existing edge.
+  // TODO: (3) Make sure that no two edges intersect each other.
+
+  std::vector<std::array<size_t, 2>> cutEdges;
   for (auto seg : pathEdges) {
     SurfacePoint pA = pathNodes[seg[0]];
     SurfacePoint pB = pathNodes[seg[1]];
 
     Face commonFace = sharedFace(pA, pB);
     if (commonFace == Face()) throw std::logic_error("Each segment of cut path must lie within a single face.");
-    // if (alreadyCut[commonFace]) throw std::logic_error("Multiple cuts per face not yet supported.");
-    alreadyCut[commonFace] = true;
+    if (pA.type == SurfacePointType::Edge && pB.type == SurfacePointType::Edge && pA.edge == pB.edge) continue;
+
+    cutEdges.push_back(seg);
   }
 
   // Make sure we don't duplicate inserted vertices.
   std::vector<SurfacePoint> dedupNodes;
   std::vector<std::array<size_t, 2>> newEdges;
-  for (auto seg : pathEdges) {
+  for (auto seg : cutEdges) {
     SurfacePoint pA = pathNodes[seg[0]];
     SurfacePoint pB = pathNodes[seg[1]];
 
