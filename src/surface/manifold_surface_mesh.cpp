@@ -426,6 +426,15 @@ ManifoldSurfaceMesh::ManifoldSurfaceMesh(const std::vector<std::vector<size_t>>&
 
   // SOMEDAY: could shrink_to_fit() std::vectors here, at the cost of a copy. What's preferable?
 
+  nEdgesCapacityCount = nEdgesCount;
+  if (!usesImplicitTwin()) {
+    eHalfedgeArr.resize(nEdgesCapacityCount);
+  }
+  // Invoke relevant callback functions
+  for (auto& f : edgeExpandCallbackList) {
+    f(nEdgesCapacityCount);
+  }
+
   // Set capacities and other properties
   nVerticesCapacityCount = nVerticesCount;
   nHalfedgesCapacityCount = nHalfedgesCount;
