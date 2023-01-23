@@ -508,7 +508,7 @@ std::vector<Halfedge> MutationManager::cutAlongPath(const std::vector<SurfacePoi
 
     Face commonFace = sharedFace(pA, pB);
     if (commonFace == Face()) throw std::logic_error("Each segment of cut path must lie within a single face.");
-    if (sharedEdge(pA, pB) != Edge()) continue;
+    // if (sharedEdge(pA, pB) != Edge()) continue;
 
     cutEdges.push_back(seg);
   }
