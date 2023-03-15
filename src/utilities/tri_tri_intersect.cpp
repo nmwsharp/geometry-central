@@ -4,21 +4,21 @@
  * Journal of Graphics Tools, 2(2), 1997
  * updated: 2001-06-20 (added line of intersection)
  *
- * int tri_tri_intersect(float V0[3],float V1[3],float V2[3],
- *                       float U0[3],float U1[3],float U2[3])
+ * int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
+ *                       double U0[3],double U1[3],double U2[3])
  *
  * parameters: vertices of triangle 1: V0,V1,V2
  *             vertices of triangle 2: U0,U1,U2
  * result    : returns 1 if the triangles intersect, otherwise 0
  *
  * Here is a version withouts divisions (a little faster)
- * int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
- *                      float U0[3],float U1[3],float U2[3]);
+ * int NoDivTriTriIsect(double V0[3],double V1[3],double V2[3],
+ *                      double U0[3],double U1[3],double U2[3]);
  * 
  * This version computes the line of intersection as well (if they are not coplanar):
- * int tri_tri_intersect_with_isectline(float V0[3],float V1[3],float V2[3], 
- *				        float U0[3],float U1[3],float U2[3],int *coplanar,
- *				        float isectpt1[3],float isectpt2[3]);
+ * int tri_tri_intersect_with_isectline(double V0[3],double V1[3],double V2[3], 
+ *				        double U0[3],double U1[3],double U2[3],int *coplanar,
+ *				        double isectpt1[3],double isectpt2[3]);
  * coplanar returns whether the tris are coplanar
  * isectpt1, isectpt2 are the endpoints of the line of intersection
  */
@@ -27,7 +27,7 @@
 
 #include <math.h>
 
-#define FABS(x) (fabsf(x))       /* implement as is fastest on your machine */
+#define FABS(x) (fabs(x))       /* implement as is fastest on your machine */
 //#define FABS(x) (x>=0?x:-x)    /* implement as is fastest on your machine */
 
 /* if USE_EPSILON_TEST is true then we do a check: 
@@ -58,7 +58,7 @@
 #define SORT(a,b)       \
              if(a>b)    \
              {          \
-               float c; \
+               double c; \
                c=a;     \
                a=b;     \
                b=c;     \
@@ -127,7 +127,7 @@
 
 #define EDGE_AGAINST_TRI_EDGES(V0,V1,U0,U1,U2) \
 {                                              \
-  float Ax,Ay,Bx,By,Cx,Cy,e,d,f;               \
+  double Ax,Ay,Bx,By,Cx,Cy,e,d,f;               \
   Ax=V1[i0]-V0[i0];                            \
   Ay=V1[i1]-V0[i1];                            \
   /* test edge U0,U1 against V0,V1 */          \
@@ -140,7 +140,7 @@
 
 #define POINT_IN_TRI(V0,U0,U1,U2)           \
 {                                           \
-  float a,b,c,d0,d1,d2;                     \
+  double a,b,c,d0,d1,d2;                     \
   /* is T1 completly inside T2? */          \
   /* check if V0 is inside tri(U0,U1,U2) */ \
   a=U1[i1]-U0[i1];                          \
@@ -163,10 +163,10 @@
   }                                         \
 }
 
-int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
-                     float U0[3],float U1[3],float U2[3])
+int coplanar_tri_tri(double N[3],double V0[3],double V1[3],double V2[3],
+                     double U0[3],double U1[3],double U2[3])
 {
-   float A[3];
+   double A[3];
    short i0,i1;
    /* first project onto an axis-aligned plane, that maximizes the area */
    /* of the triangles, compute indices: i0,i1. */
@@ -213,19 +213,19 @@ int coplanar_tri_tri(float N[3],float V0[3],float V1[3],float V2[3],
 }
 
 
-int tri_tri_intersect(float V0[3],float V1[3],float V2[3],
-                      float U0[3],float U1[3],float U2[3])
+int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
+                      double U0[3],double U1[3],double U2[3])
 {
-  float E1[3],E2[3];
-  float N1[3],N2[3],d1,d2;
-  float du0,du1,du2,dv0,dv1,dv2;
-  float D[3];
-  float isect1[2], isect2[2];
-  float du0du1,du0du2,dv0dv1,dv0dv2;
+  double E1[3],E2[3];
+  double N1[3],N2[3],d1,d2;
+  double du0,du1,du2,dv0,dv1,dv2;
+  double D[3];
+  double isect1[2], isect2[2];
+  double du0du1,du0du2,dv0dv1,dv0dv2;
   short index;
-  float vp0,vp1,vp2;
-  float up0,up1,up2;
-  float b,c,max;
+  double vp0,vp1,vp2;
+  double up0,up1,up2;
+  double b,c,max;
 
   /* compute plane equation of triangle(V0,V1,V2) */
   SUB(E1,V1,V0);
@@ -344,22 +344,22 @@ int tri_tri_intersect(float V0[3],float V1[3],float V2[3],
 
 
 
-int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
-                     float U0[3],float U1[3],float U2[3])
+int NoDivTriTriIsect(double V0[3],double V1[3],double V2[3],
+                     double U0[3],double U1[3],double U2[3])
 {
-  float E1[3],E2[3];
-  float N1[3],N2[3],d1,d2;
-  float du0,du1,du2,dv0,dv1,dv2;
-  float D[3];
-  float isect1[2], isect2[2];
-  float du0du1,du0du2,dv0dv1,dv0dv2;
+  double E1[3],E2[3];
+  double N1[3],N2[3],d1,d2;
+  double du0,du1,du2,dv0,dv1,dv2;
+  double D[3];
+  double isect1[2], isect2[2];
+  double du0du1,du0du2,dv0dv1,dv0dv2;
   short index;
-  float vp0,vp1,vp2;
-  float up0,up1,up2;
-  float bb,cc,max;
-  float a,b,c,x0,x1;
-  float d,e,f,y0,y1;
-  float xx,yy,xxyy,tmp;
+  double vp0,vp1,vp2;
+  double up0,up1,up2;
+  double bb,cc,max;
+  double a,b,c,x0,x1;
+  double d,e,f,y0,y1;
+  double xx,yy,xxyy,tmp;
 
   /* compute plane equation of triangle(V0,V1,V2) */
   SUB(E1,V1,V0);
@@ -413,10 +413,10 @@ int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
   CROSS(D,N1,N2);
 
   /* compute and index to the largest component of D */
-  max=(float)FABS(D[0]);
+  max=(double)FABS(D[0]);
   index=0;
-  bb=(float)FABS(D[1]);
-  cc=(float)FABS(D[2]);
+  bb=(double)FABS(D[1]);
+  cc=(double)FABS(D[2]);
   if(bb>max) max=bb,index=1;
   if(cc>max) max=cc,index=2;
 
@@ -458,7 +458,7 @@ int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
 #define SORT2(a,b,smallest)       \
              if(a>b)       \
              {             \
-               float c;    \
+               double c;    \
                c=a;        \
                a=b;        \
                b=c;        \
@@ -467,11 +467,11 @@ int NoDivTriTriIsect(float V0[3],float V1[3],float V2[3],
              else smallest=0;
 
 
-void isect2(float VTX0[3],float VTX1[3],float VTX2[3],float VV0,float VV1,float VV2,
-	    float D0,float D1,float D2,float *isect0,float *isect1,float isectpoint0[3],float isectpoint1[3]) 
+void isect2(double VTX0[3],double VTX1[3],double VTX2[3],double VV0,double VV1,double VV2,
+	    double D0,double D1,double D2,double *isect0,double *isect1,double isectpoint0[3],double isectpoint1[3]) 
 {
-  float tmp=D0/(D0-D1);          
-  float diff[3];
+  double tmp=D0/(D0-D1);          
+  double diff[3];
   *isect0=VV0+(VV1-VV0)*tmp;         
   SUB(diff,VTX1,VTX0);              
   MULT(diff,diff,tmp);               
@@ -498,10 +498,10 @@ void isect2(float VTX0[3],float VTX1[3],float VTX2[3],float VV0,float VV1,float 
 /*              ADD(isectpoint1,VTX0,diff);           */
 #endif
 
-int compute_intervals_isectline(float VERT0[3],float VERT1[3],float VERT2[3],
-				       float VV0,float VV1,float VV2,float D0,float D1,float D2,
-				       float D0D1,float D0D2,float *isect0,float *isect1,
-				       float isectpoint0[3],float isectpoint1[3])
+int compute_intervals_isectline(double VERT0[3],double VERT1[3],double VERT2[3],
+				       double VV0,double VV1,double VV2,double D0,double D1,double D2,
+				       double D0D1,double D0D2,double *isect0,double *isect1,
+				       double isectpoint0[3],double isectpoint1[3])
 {
   if(D0D1>0.0f)                                        
   {                                                    
@@ -569,24 +569,24 @@ int compute_intervals_isectline(float VERT0[3],float VERT1[3],float VERT2[3],
   }
 #endif
 
-int tri_tri_intersect_with_isectline(float V0[3],float V1[3],float V2[3],
-				     float U0[3],float U1[3],float U2[3],
+int tri_tri_intersect_with_isectline(double V0[3],double V1[3],double V2[3],
+				     double U0[3],double U1[3],double U2[3],
                                      int *coplanar,
-				     float isectpt1[3],float isectpt2[3])
+				     double isectpt1[3],double isectpt2[3])
 {
-  float E1[3],E2[3];
-  float N1[3],N2[3],d1,d2;
-  float du0,du1,du2,dv0,dv1,dv2;
-  float D[3];
-  float isect1[2], isect2[2];
-  float isectpointA1[3],isectpointA2[3];
-  float isectpointB1[3],isectpointB2[3];
-  float du0du1,du0du2,dv0dv1,dv0dv2;
+  double E1[3],E2[3];
+  double N1[3],N2[3],d1,d2;
+  double du0,du1,du2,dv0,dv1,dv2;
+  double D[3];
+  double isect1[2], isect2[2];
+  double isectpointA1[3],isectpointA2[3];
+  double isectpointB1[3],isectpointB2[3];
+  double du0du1,du0du2,dv0dv1,dv0dv2;
   short index;
-  float vp0,vp1,vp2;
-  float up0,up1,up2;
-  float b,c,max;
-  float tmp,diff[3];
+  double vp0,vp1,vp2;
+  double up0,up1,up2;
+  double b,c,max;
+  double tmp,diff[3];
   int smallest1,smallest2;
   
   /* compute plane equation of triangle(V0,V1,V2) */
@@ -714,10 +714,10 @@ namespace geometrycentral {
 TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
                                               Vector3 qA, Vector3 qB, Vector3 qC)
 {
-   float V0[3], V1[3], V2[3];
-   float U0[3], U1[3], U2[3];
+   double V0[3], V1[3], V2[3];
+   double U0[3], U1[3], U2[3];
    int coplanar;
-   float isectpt1[3], isectpt2[3];
+   double isectpt1[3], isectpt2[3];
 
    for( int i = 0; i < 3; i++ )
    {
