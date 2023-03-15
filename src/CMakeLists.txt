@@ -80,6 +80,7 @@ SET(SRCS
   utilities/disjoint_sets.cpp
   utilities/knn.cpp
   utilities/elementary_geometry.cpp
+  utilities/tri_tri_intersect.cpp
 )
 
 SET(INCLUDE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../include/geometrycentral/")
