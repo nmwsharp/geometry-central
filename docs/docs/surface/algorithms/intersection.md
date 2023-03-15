@@ -4,6 +4,8 @@ Intersections are meaningful only for meshes that have an _extrinsic_ geometry, 
 
 Intersections are returned as an "edge soup," i.e., a collection of line segments with no explicit connectivity between shared endpoints.
 
+**Note:** The current implementation does a naive all-pairs check, which takes O(nm) time (or O(n^2) time in the case of self-intersections).  This makes the methods very slow for large meshes.  A natural future improvement would be to perform hierarchical collision checking.
+
 `#include "geometrycentral/surface/intersection.h"`
 
 ![intersections between two meshes](/media/intersect.png){: style="max-width: 40em; display: block; margin-left: auto; margin-right: auto;"}
