@@ -50,14 +50,6 @@ struct RayRayIntersectionResult2D {
 };
 RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 ray1Dir, Vector2 ray2Start, Vector2 ray2Dir);
 
-struct TriTriIntersectionResult3D {
-   Vector3 xA;
-   Vector3 xB;
-   bool intersect;
-   bool coplanar;
-};
-TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
-                                              Vector3 qA, Vector3 qB, Vector3 qC);
 
 
 // Returns true if pTest is inside the incircle of triangle pA-pB-pC. No snazzy exact predicates or numerical epsilons are used; this is just a simple det(A) < 0 test.
@@ -71,6 +63,16 @@ bool inCircleTest(Vector2 pA, Vector2 pB, Vector2 pC, Vector2 pTest);
 // both.
 double pointLineSegmentDistance(Vector3 p, Vector3 lineA, Vector3 lineB);
 double pointLineSegmentNeaestLocation(Vector3 p, Vector3 lineA, Vector3 lineB);
+
+struct TriTriIntersectionResult3D {
+   Vector3 xA;
+   Vector3 xB;
+   bool intersect;
+};
+
+// Determine if two triangles intersect, and if so compute the segment of intersection.
+TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
+                                              Vector3 qA, Vector3 qB, Vector3 qC);
 
 } // namespace geometrycentral
 

@@ -41,6 +41,7 @@ SET(SRCS
   surface/common_subdivision.cpp
   surface/surface_point.cpp
   surface/fast_marching_method.cpp
+  surface/intersection.cpp
   surface/uniformize.cpp
   surface/parameterize.cpp
   surface/remeshing.cpp
