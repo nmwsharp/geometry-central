@@ -1,4 +1,4 @@
-# Documentation for grand-central 
+# Documentation for geometry-central 
 
 
 Managed using mkdocs.
