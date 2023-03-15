@@ -18,6 +18,8 @@ struct SurfaceIntersectionResult {
 };
 
 SurfaceIntersectionResult selfIntersections(VertexPositionGeometry& geometry);
+SurfaceIntersectionResult intersections(VertexPositionGeometry& geometry1,
+                                        VertexPositionGeometry& geometry2);
 
 } // namespace surface
 } // namespace geometrycentral

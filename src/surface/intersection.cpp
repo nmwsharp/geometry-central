@@ -4,13 +4,14 @@
 #include <queue>
 #include <tuple>
 
-
 namespace geometrycentral {
 namespace surface {
 
-SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) {
+SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
+                                         VertexPositionGeometry& geometry2 ) {
 
-   SurfaceMesh& mesh = geometry.mesh;
+   SurfaceMesh& mesh1 = geometry1.mesh;
+   SurfaceMesh& mesh2 = geometry2.mesh;
    SurfaceIntersectionResult intersections;
    intersections.hasIntersections = false;
    size_t n = 0; // number of intersection points
@@ -22,7 +23,7 @@ SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) 
    Vector3 q[3];
 
    // iterate over all face pairs f,g
-   for( Face f : mesh.faces() ) {
+   for( Face f : mesh1.faces() ) {
 
       // get vertices ui of f
       int i = 0;
@@ -31,7 +32,7 @@ SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) 
          i++;
       }
 
-      for( Face g : mesh.faces() ) {
+      for( Face g : mesh2.faces() ) {
 
          // get vertices uj of g
          int j = 0;
@@ -49,8 +50,8 @@ SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) 
 
          // get vertex locations
          for( int i = 0; i < 3; i++ ) {
-            p[i] = geometry.vertexPositions[u[i]];
-            q[i] = geometry.vertexPositions[v[i]];
+            p[i] = geometry1.vertexPositions[u[i]];
+            q[i] = geometry2.vertexPositions[v[i]];
          }
 
          // check for and compute intersection
@@ -70,6 +71,10 @@ SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) 
    }
 
    return intersections;
+}
+
+SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) {
+   return intersections( geometry, geometry );
 }
 
 } // namespace surface
