@@ -30,42 +30,44 @@ SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
       for( Vertex ui : f.adjacentVertices() ) {
          u[i] = ui;
          i++;
+         if( i == 3 ) break;
       }
 
       for( Face g : mesh2.faces() ) {
 
-         // get vertices uj of g
+         // get vertices vj of g
          int j = 0;
          for( Vertex vj : g.adjacentVertices() ) {
             v[j] = vj;
             j++;
+            if( j == 3 ) break;
          }
 
          // skip triangles that share vertices
-         if( u[0] == v[0] || u[0] == v[1] || u[0] == v[2] ||
-             u[1] == v[0] || u[1] == v[1] || u[1] == v[2] ||
-             u[2] == v[0] || u[2] == v[1] || u[2] == v[2] ) {
-            break;
-         }
+         if(!( u[0] == v[0] || u[0] == v[1] || u[0] == v[2] ||
+               u[1] == v[0] || u[1] == v[1] || u[1] == v[2] ||
+               u[2] == v[0] || u[2] == v[1] || u[2] == v[2] )) {
 
-         // get vertex locations
-         for( int i = 0; i < 3; i++ ) {
-            p[i] = geometry1.vertexPositions[u[i]];
-            q[i] = geometry2.vertexPositions[v[i]];
-         }
+            // get vertex locations
+            for( int k = 0; k < 3; k++ ) {
+               p[k] = geometry1.vertexPositions[u[k]];
+               q[k] = geometry2.vertexPositions[v[k]];
+            }
 
-         // check for and compute intersection
-         TriTriIntersectionResult3D r;
-         r = triTriIntersection( p[0], p[1], p[2],
-               q[0], q[1], q[2] );
+            // check for and compute intersection
+            TriTriIntersectionResult3D r;
+            r = triTriIntersection( p[0], p[1], p[2],
+                  q[0], q[1], q[2] );
 
-         // add to list of all intersections
-         if( r.intersect ) {
-            intersections.hasIntersections = true;
-            intersections.points.push_back( r.xA );
-            intersections.points.push_back( r.xB );
-            intersections.edges.push_back( { n, n+1 } );
-            n += 2;
+            // add to list of all intersections
+            if( r.intersect ) {
+               intersections.hasIntersections = true;
+               intersections.points.push_back( r.xA );
+               intersections.points.push_back( r.xB );
+               intersections.edges.push_back( { n, n+1 } );
+               n += 2;
+            }
+
          }
       }
    }
