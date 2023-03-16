@@ -77,6 +77,7 @@ nav:
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
       - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
+      - 'Intersection' : 'surface/algorithms/intersection.md'
       - 'Parameterization' : 'surface/algorithms/parameterization.md'
       - 'Remeshing' : 'surface/algorithms/remeshing.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'

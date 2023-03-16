@@ -64,6 +64,17 @@ bool inCircleTest(Vector2 pA, Vector2 pB, Vector2 pC, Vector2 pTest);
 double pointLineSegmentDistance(Vector3 p, Vector3 lineA, Vector3 lineB);
 double pointLineSegmentNeaestLocation(Vector3 p, Vector3 lineA, Vector3 lineB);
 
+struct TriTriIntersectionResult3D {
+   Vector3 xA;
+   Vector3 xB;
+   bool intersect;
+   bool coplanar;
+};
+
+// Determine if two triangles intersect, and if so compute the segment of intersection.
+TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
+                                              Vector3 qA, Vector3 qB, Vector3 qC);
+
 } // namespace geometrycentral
 
 #include "geometrycentral/utilities/elementary_geometry.ipp"
