@@ -8,7 +8,8 @@ namespace geometrycentral {
 namespace surface {
 
 SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
-                                         VertexPositionGeometry& geometry2 ) {
+                                         VertexPositionGeometry& geometry2,
+                                         bool selfCheck ) {
 
    SurfaceMesh& mesh1 = geometry1.mesh;
    SurfaceMesh& mesh2 = geometry2.mesh;
@@ -22,25 +23,33 @@ SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
    Vector3 p[3];
    Vector3 q[3];
 
+   int N = 0;
+
    // iterate over all face pairs f,g
    for( Face f : mesh1.faces() ) {
+
+      if( f.degree() != 3 ) {
+         throw std::logic_error("only triangle meshes are supported");
+      }
 
       // get vertices ui of f
       int i = 0;
       for( Vertex ui : f.adjacentVertices() ) {
          u[i] = ui;
          i++;
-         if( i == 3 ) break;
       }
 
       for( Face g : mesh2.faces() ) {
+
+         // for self-intersections, check each pair only once
+         // (otherwise we create redundant output segments)
+         if( selfCheck && g.getIndex() >= f.getIndex() ) continue;
 
          // get vertices vj of g
          int j = 0;
          for( Vertex vj : g.adjacentVertices() ) {
             v[j] = vj;
             j++;
-            if( j == 3 ) break;
          }
 
          // skip triangles that share vertices
@@ -54,10 +63,11 @@ SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
                q[k] = geometry2.vertexPositions[v[k]];
             }
 
+
             // check for and compute intersection
             TriTriIntersectionResult3D r;
             r = triTriIntersection( p[0], p[1], p[2],
-                  q[0], q[1], q[2] );
+                                    q[0], q[1], q[2] );
 
             // add to list of all intersections
             if( r.intersect ) {
@@ -67,7 +77,6 @@ SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
                intersections.edges.push_back( { n, n+1 } );
                n += 2;
             }
-
          }
       }
    }
@@ -76,7 +85,7 @@ SurfaceIntersectionResult intersections( VertexPositionGeometry& geometry1,
 }
 
 SurfaceIntersectionResult selfIntersections( VertexPositionGeometry& geometry ) {
-   return intersections( geometry, geometry );
+   return intersections( geometry, geometry, true );
 }
 
 } // namespace surface

@@ -68,6 +68,7 @@ struct TriTriIntersectionResult3D {
    Vector3 xA;
    Vector3 xB;
    bool intersect;
+   bool coplanar;
 };
 
 // Determine if two triangles intersect, and if so compute the segment of intersection.

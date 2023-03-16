@@ -35,7 +35,7 @@
    else no check is done (which is less robust)
 */
 #define USE_EPSILON_TEST TRUE
-#define EPSILON 0.000001
+#define EPSILON 0.0000000001
 
 
 /* some macros */
@@ -736,6 +736,7 @@ TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC
          U0,U1,U2,
          &coplanar,
          isectpt1, isectpt2 );
+   result.coplanar = coplanar;
 
    for( int i = 0; i < 3; i++ )
    {
