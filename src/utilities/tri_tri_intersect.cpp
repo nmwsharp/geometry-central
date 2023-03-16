@@ -1,3 +1,4 @@
+// clang-format off
 /* Triangle/triangle intersection test routine,
  * by Tomas Moller, 1997.
  * See article "A Fast Triangle-Triangle Intersection Test",
@@ -708,43 +709,36 @@ int tri_tri_intersect_with_isectline(double V0[3],double V1[3],double V2[3],
   }
   return 1;
 }
+// clang-format on
 
 namespace geometrycentral {
 
-TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
-                                              Vector3 qA, Vector3 qB, Vector3 qC)
-{
-   double V0[3], V1[3], V2[3];
-   double U0[3], U1[3], U2[3];
-   int coplanar;
-   double isectpt1[3], isectpt2[3];
+TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC, Vector3 qA, Vector3 qB, Vector3 qC) {
+  double V0[3], V1[3], V2[3];
+  double U0[3], U1[3], U2[3];
+  int coplanar;
+  double isectpt1[3], isectpt2[3];
 
-   for( int i = 0; i < 3; i++ )
-   {
-      V0[i] = pA[i];
-      V1[i] = pB[i];
-      V2[i] = pC[i];
+  for (int i = 0; i < 3; i++) {
+    V0[i] = pA[i];
+    V1[i] = pB[i];
+    V2[i] = pC[i];
 
-      U0[i] = qA[i];
-      U1[i] = qB[i];
-      U2[i] = qC[i];
-   }
+    U0[i] = qA[i];
+    U1[i] = qB[i];
+    U2[i] = qC[i];
+  }
 
-   TriTriIntersectionResult3D result;
-   result.intersect = tri_tri_intersect_with_isectline(
-         V0,V1,V2,
-         U0,U1,U2,
-         &coplanar,
-         isectpt1, isectpt2 );
-   result.coplanar = coplanar;
+  TriTriIntersectionResult3D result;
+  result.intersect = tri_tri_intersect_with_isectline(V0, V1, V2, U0, U1, U2, &coplanar, isectpt1, isectpt2);
+  result.coplanar = coplanar;
 
-   for( int i = 0; i < 3; i++ )
-   {
-      result.xA[i] = isectpt1[i];
-      result.xB[i] = isectpt2[i];
-   }
+  for (int i = 0; i < 3; i++) {
+    result.xA[i] = isectpt1[i];
+    result.xB[i] = isectpt2[i];
+  }
 
-   return result;
+  return result;
 }
 
-}
+} // namespace geometrycentral
