@@ -1,6 +1,6 @@
 #pragma once
 
-#include "geometrycentral/surface/vertex_position_geometry.h"
+#include "geometrycentral/surface/embedded_geometry_interface.h"
 #include "geometrycentral/utilities/utilities.h"
 
 #include <cmath>
@@ -12,15 +12,14 @@ namespace geometrycentral {
 namespace surface {
 
 struct SurfaceIntersectionResult {
-   std::vector<Vector3> points;
-   std::vector<std::array<size_t,2>> edges;
-   bool hasIntersections;
+  std::vector<Vector3> points;
+  std::vector<std::array<size_t, 2>> edges;
+  bool hasIntersections;
 };
 
-SurfaceIntersectionResult selfIntersections(VertexPositionGeometry& geometry);
-SurfaceIntersectionResult intersections(VertexPositionGeometry& geometry1,
-                                        VertexPositionGeometry& geometry2,
-                                        bool selfCheck = false );
+SurfaceIntersectionResult selfIntersections(EmbeddedGeometryInterface& geometry);
+SurfaceIntersectionResult intersections(EmbeddedGeometryInterface& geometry1, EmbeddedGeometryInterface& geometry2,
+                                        bool selfCheck = false);
 
 } // namespace surface
 } // namespace geometrycentral

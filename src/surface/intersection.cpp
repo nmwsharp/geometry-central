@@ -7,7 +7,7 @@
 namespace geometrycentral {
 namespace surface {
 
-SurfaceIntersectionResult intersections(VertexPositionGeometry& geometry1, VertexPositionGeometry& geometry2,
+SurfaceIntersectionResult intersections(EmbeddedGeometryInterface& geometry1, EmbeddedGeometryInterface& geometry2,
                                         bool selfCheck) {
   SurfaceMesh& mesh1 = geometry1.mesh;
   SurfaceMesh& mesh2 = geometry2.mesh;
@@ -80,7 +80,7 @@ SurfaceIntersectionResult intersections(VertexPositionGeometry& geometry1, Verte
   return intersections;
 }
 
-SurfaceIntersectionResult selfIntersections(VertexPositionGeometry& geometry) {
+SurfaceIntersectionResult selfIntersections(EmbeddedGeometryInterface& geometry) {
   return intersections(geometry, geometry, true);
 }
 
