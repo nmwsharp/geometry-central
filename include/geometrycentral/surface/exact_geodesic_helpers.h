@@ -33,7 +33,9 @@ double const SMALLEST_INTERVAL_RATIO = 1e-6;
 class Interval;
 class IntervalList;
 typedef Interval* interval_pointer;
+typedef const Interval* const_interval_pointer;
 typedef IntervalList* list_pointer;
+typedef const IntervalList* const_list_pointer;
 
 // interval of the edge
 class Interval {
@@ -44,36 +46,42 @@ public:
   enum class DirectionType { FROM_HALFEDGE, FROM_SOURCE, UNDEFINED_DIRECTION };
 
   // geodesic distance function at point x
-  double signal(double x);
+  double signal(double x) const;
 
-  double max_distance(double end);
+  double max_distance(double end) const;
 
-  // compute min, given c,d theta, start, end.
+  // compute min, given c,d theta, start, end. save value to m_min
   void compute_min_distance(double stop);
 
   // compare two intervals in the queue
   bool operator()(interval_pointer const x, interval_pointer const y) const;
 
   // return the endpoint of the interval
-  double stop();
+  double stop() const;
 
-  double hypotenuse(double a, double b);
+  double hypotenuse(double a, double b) const;
 
-  // find the point on the interval that is closest to the point (alpha, s)
-  void find_closest_point(double const x, double const y, double& offset, double& distance);
+  // find the point on the interval that is closest to the point (x, y)
+  void find_closest_point(double const x, double const y, double& offset, double& distance) const;
 
   double& start() { return m_start; };
+  const double& start() const { return m_start; };
   double& d() { return m_d; };
   double& pseudo_x() { return m_pseudo_x; };
   double& pseudo_y() { return m_pseudo_y; };
   double& min() { return m_min; };
+  double min() const { return m_min; };
   interval_pointer& next() { return m_next; };
+  const_interval_pointer next() const { return m_next; };
   Edge& edge() { return m_edge; };
+  const Edge& edge() const { return m_edge; };
   Halfedge& halfedge() { return m_halfedge; };
+  const Halfedge& halfedge() const { return m_halfedge; };
   double& edge_length() { return m_edge_length; };
   DirectionType& direction() { return m_direction; };
-  bool visible_from_source() { return m_direction == DirectionType::FROM_SOURCE; };
+  bool visible_from_source() const { return m_direction == DirectionType::FROM_SOURCE; };
   unsigned& source_index() { return m_source_index; };
+  unsigned source_index() const { return m_source_index; };
 
   void initialize(IntrinsicGeometryInterface& geom, Edge edge, double edge_length, SurfacePoint* point = nullptr,
                   unsigned source_index = 0);
@@ -113,13 +121,14 @@ public:
 
   // returns the interval that covers the offset
   interval_pointer covering_interval(double offset);
+  const_interval_pointer covering_interval(double offset) const;
 
   void find_closest_point(IntrinsicGeometryInterface& geom, const SurfacePoint point, double& offset, double& distance,
-                          interval_pointer& interval, bool verbose = false);
+                          const_interval_pointer& interval, bool verbose = false) const;
 
-  unsigned number_of_intervals();
+  unsigned number_of_intervals() const;
   interval_pointer last();
-  double signal(double x);
+  double signal(double x) const;
 
   interval_pointer& first();
   Edge& edge();
@@ -133,12 +142,15 @@ class SurfacePointWithIndex : public SurfacePoint {
 public:
   SurfacePointWithIndex() : SurfacePoint(){};
   SurfacePointWithIndex(const SurfacePoint& p) : SurfacePoint(p){};
-  unsigned index();
+  unsigned index() const;
 
   void initialize(const SurfacePoint& p, unsigned index);
 
   // used for sorting
-  bool operator()(SurfacePointWithIndex* x, SurfacePointWithIndex* y) const;
+  bool operator()(const SurfacePointWithIndex* x, const SurfacePointWithIndex* y) const;
+  bool operator()(const SurfacePointWithIndex& x, const SurfacePointWithIndex* y) const;
+  bool operator()(const SurfacePointWithIndex* x, const SurfacePointWithIndex& y) const;
+  bool compare(const SurfacePointWithIndex& x, const SurfacePointWithIndex& y) const;
 
 public:
   unsigned m_index;
@@ -151,13 +163,17 @@ public:
 public:
   typedef sorted_vector_type::iterator sorted_iterator;
   typedef std::pair<sorted_iterator, sorted_iterator> sorted_iterator_pair;
+  typedef sorted_vector_type::const_iterator const_sorted_iterator;
+  typedef std::pair<const_sorted_iterator, const_sorted_iterator> const_sorted_iterator_pair;
 
   sorted_iterator_pair sources(const SurfacePoint& mesh_element);
+  const_sorted_iterator_pair sources(const SurfacePoint& mesh_element) const;
 
   // we initialize the sources by copy
   void initialize(const std::vector<SurfacePoint>& sources);
 
   SurfacePointWithIndex& operator[](unsigned i);
+  const SurfacePointWithIndex& operator[](unsigned i) const;
 
 public:
   sorted_vector_type m_sorted;
@@ -173,6 +189,10 @@ unsigned compute_closest_vertices(SurfacePoint p, std::vector<Vertex>* storage);
 
 std::pair<double, double> compute_local_coordinates(IntrinsicGeometryInterface& geom, Edge e,
                                                     const SurfacePoint& point);
+
+// maps a tangent vector v from f's coordinate system to p's coordinate system. p must be located on f, or one of its
+// vertices or edges
+Vector2 transformToCoordinateSystem(IntrinsicGeometryInterface& geom, Vector2 v, Face f, SurfacePoint p);
 } // namespace exactgeodesic
 
 //== A fast and simple memory allocator

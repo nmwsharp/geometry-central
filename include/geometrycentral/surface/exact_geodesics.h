@@ -37,22 +37,30 @@ public:
 
   // trace back piecewise-linear path
   // the resulting path starts at "point" and ends at the closest source
-  std::vector<SurfacePoint> traceBack(const SurfacePoint& point);
-  std::vector<SurfacePoint> traceBack(const Vertex& point);
+  std::vector<SurfacePoint> traceBack(const SurfacePoint& point) const;
+  std::vector<SurfacePoint> traceBack(const Vertex& point) const;
 
   // quickly find what source this point belongs to and what is the distance
   // to this source
-  std::pair<unsigned, double> closestSource(const SurfacePoint& point);
-  std::pair<unsigned, double> closestSource(const Vertex& point);
+  std::pair<unsigned, double> closestSource(const SurfacePoint& point) const;
+  std::pair<unsigned, double> closestSource(const Vertex& point) const;
 
   // evaluate distance function at a point
-  double getDistance(const SurfacePoint& point);
-  double getDistance(const Vertex& point);
+  double getDistance(const SurfacePoint& point) const;
+  double getDistance(const Vertex& point) const;
+
+  // evaluate gradient of distance function at a point
+  Vector2 getDistanceGradient(const SurfacePoint& point) const;
+  Vector2 getDistanceGradient(const Vertex& point) const;
+
+  // evaluate log map at closest source
+  Vector2 getLog(const SurfacePoint& point) const;
+  Vector2 getLog(const Vertex& point) const;
 
   // evaluate distance function at all vertices
-  VertexData<double> getDistanceFunction();
+  VertexData<double> getDistanceFunction() const;
 
-  void print_statistics();
+  void print_statistics() const;
 
   IntervalList getEdgeIntervals(Edge e) const;
 
@@ -83,34 +91,35 @@ protected:
   // intersecting two intervals with up to three intervals in the end
   unsigned intersect_intervals(interval_pointer zero, IntervalWithStop* one);
 
-  interval_pointer best_first_interval(const SurfacePoint& point, double& best_total_distance,
-                                       double& best_interval_position, unsigned& best_source_index);
+  const_interval_pointer best_first_interval(const SurfacePoint& point, double& best_total_distance,
+                                             double& best_interval_position, unsigned& best_source_index) const;
 
-  bool check_stop_conditions(unsigned& index);
+  bool check_stop_conditions(unsigned& index) const;
 
   void clear();
 
   list_pointer interval_list(Edge e) { return &m_edge_interval_lists[e]; };
+  const_list_pointer interval_list(Edge e) const { return &m_edge_interval_lists[e]; };
 
   void set_sources(const std::vector<SurfacePoint>& sources) { m_sources.initialize(sources); }
 
   void initialize_propagation_data();
 
   // used in initialization
-  void list_edges_visible_from_source(SurfacePoint& source, std::vector<Edge>& storage);
+  void list_edges_visible_from_source(const SurfacePoint& source, std::vector<Edge>& storage) const;
 
-  long visible_from_source(SurfacePoint& point); // used in backtracing
+  long visible_from_source(const SurfacePoint& point) const; // used in backtracing
 
-  void best_point_on_the_edge_set(SurfacePoint& point, std::vector<Edge> const& storage,
-                                  interval_pointer& best_interval, double& best_total_distance,
-                                  double& best_interval_position, bool verbose = false);
+  void best_point_on_the_edge_set(const SurfacePoint& point, std::vector<Edge> const& storage,
+                                  const_interval_pointer& best_interval, double& best_total_distance,
+                                  double& best_interval_position, bool verbose = false) const;
 
-  void possible_traceback_edges(SurfacePoint& point, std::vector<Edge>& storage);
+  void possible_traceback_edges(const SurfacePoint& point, std::vector<Edge>& storage) const;
 
   bool erase_from_queue(interval_pointer p);
 
   void set_stop_conditions(const std::vector<SurfacePoint>& stop_points, double stop_distance);
-  double stop_distance() { return m_max_propagation_distance; }
+  double stop_distance() const { return m_max_propagation_distance; }
 
   //== Data
   typedef std::pair<Vertex, double> stop_vertex_with_distace_type;
