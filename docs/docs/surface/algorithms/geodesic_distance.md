@@ -83,7 +83,8 @@ double dist = mmp.getDistance(queryPoint);
 
 // Get the geodesic path from a query point to the nearest source
 SurfacePoint queryPoint2 = /* some point on the surface */
-std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
+double pathLength;
+std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2, pathLength);
 
 // Get the gradient of the distance function at some point
 Vector2 gradDist = mmp.getDistanceGradient(queryPoint);
@@ -119,13 +120,15 @@ Vector2 log_base_source_of_query = mmp.getLog(queryPoint);
 
     Performs the same computation as the first `propagate` function, but takes a single source vertex rather than arbitrary surface points for convenience.
 
-??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) const`"
+??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point, double& pathLength [optional]) const`"
 
     Compute the geodesic path from `point` to the closest source. This path is encoded as a list of `SurfacePoints` starting at `point` and ending at the source.
+    (Optionally also returns the length of the path via the `pathLength` argument.)
 
-??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& v) const`"
+??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& v, double& pathLength [optional]) const`"
 
     Compute the geodesic path from `v` to the closest source point. This path is encoded as a list of `SurfacePoints` starting at `v` and ending at the source point.
+    (Optionally also returns the length of the path via the `pathLength` argument.)
 
 ??? func "`#!cpp std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfacePoint& point) const`"
 
