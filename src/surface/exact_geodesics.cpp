@@ -52,7 +52,19 @@ void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagat
 
 std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point) const {
   // Call general version
-  return traceBack(SurfacePoint(point));
+  double ignore;
+  return traceBack(SurfacePoint(point), ignore);
+}
+
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& point, double& pathLength) const {
+  // Call general version
+  return traceBack(SurfacePoint(point), pathLength);
+}
+
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) const {
+  // Call general version
+  double ignore;
+  return traceBack(point, ignore);
 }
 
 std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) const {
@@ -1126,15 +1138,11 @@ Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) c
 }
 
 Vector2 GeodesicAlgorithmExact::getLog(const SurfacePoint& point) const {
-  std::vector<SurfacePoint> path = traceBack(point);
+  double pathLen;
+  std::vector<SurfacePoint> path = traceBack(point, pathLen);
 
   if (path.size() <= 1) { // degenerate path means point is closest source
     return Vector2::zero();
-  }
-
-  double pathLen = 0;
-  for (size_t iC = 0; iC + 1 < path.size(); iC++) {
-    pathLen += exactgeodesic::compute_surface_distance(geom, path[iC], path[iC + 1]);
   }
 
   int N = path.size() - 1;
@@ -1253,17 +1261,15 @@ const_interval_pointer GeodesicAlgorithmExact::best_first_interval(const Surface
 }
 
 // trace back piecewise-linear path
-std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) const {
+std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point, double& pathLength) const {
   std::vector<SurfacePoint> path;
 
-  double best_total_distance;
   double best_interval_position;
   unsigned source_index = std::numeric_limits<unsigned>::max();
-  const_interval_pointer best_interval =
-      best_first_interval(point, best_total_distance, best_interval_position, source_index);
+  const_interval_pointer best_interval = best_first_interval(point, pathLength, best_interval_position, source_index);
 
   // unable to find the right path
-  if (best_total_distance >= GEODESIC_INF / 2.0) {
+  if (pathLength >= GEODESIC_INF / 2.0) {
     return {};
   }
 
