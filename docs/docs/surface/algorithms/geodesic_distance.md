@@ -1,4 +1,4 @@
-This section describes algorithms for computing distance along a surface, or _geodesic_ distance. 
+This section describes algorithms for computing distance along a surface, or _geodesic_ distance.
 
 Note that distance depends on the _intrinsic_ geometry of a surface (via the `IntrinsicGeometryInterface`). Therefore, these routines can be run on abstract geometric domains as well as traditional surfaces in 3D.
 
@@ -6,7 +6,7 @@ Note that distance depends on the _intrinsic_ geometry of a surface (via the `In
 
 These routines use [Danil Kirsanov's implementation](https://code.google.com/archive/p/geodesic/) of the [MMP algorithm for exact polyhedral geodesic distance](https://www.cs.jhu.edu/~misha/ReadingSeminar/Papers/Mitchell87.pdf) to compute geodesic distance (and geodesic paths) along a surface.
 
-This class supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function. 
+This class supports any (possibly-nonmanifold) triangle mesh as input, and requires only intrinsic geometry (aka edge lengths) to function.
 
 `#include "geometrycentral/surface/exact_geodesics.h"`
 
@@ -36,7 +36,7 @@ VertexData<double> distToSource = exactGeodesicDistance(*mesh, *geometry, source
 ??? func "`#!cpp VertexData<double> exactGeodesicDistance(SurfaceMesh& mesh, IntrinsicGeometryInterface& geom, Vertex v)`"
 
     Compute the distance from the source using MMP. See the stateful class below for further options.
-    
+
 ### Advanced Queries
 
 The stateful class `GeodesicAlgorithmExact` runs the MMP algorithm to compute geodesic distance from a given set of source points. The resulting distance field can be queried at any point on the input mesh to find the identity of the nearest source point, the distance to the source point, and the shortest path to the source point.
@@ -94,17 +94,17 @@ std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 ??? func "`#!cpp void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources, double max_propagation_distance = GEODESIC_INF, const std::vector<SurfacePoint>& stop_points = {})`"
 
     Compute the distance field from a set of source vertices. This distance field can then be queried by several functions below.
-    
+
     - `sources` is a list of points on the surface. The computed distance field gives the distance from any point on the mesh to the closest of these source points.
 
     - `max_propagation_distance` is a cutoff value. Once `propagate` identifies all vertices within `max_propagation_distance` of the source points, it stops. By default, `max_propagation_distance` is set to infinity so that distances are computed across the whole input surface.
-    
+
     - `stop_points` is a list of points on the mesh at which we want to know the distance function. By default it is empty. If it is nonempty, then propagate stops once accurate distances at all of the stop points have been computed. This can speed up run time considerably if one is only interested in a small set of points near the source.
 
 ??? func "`#!cpp void GeodesicAlgorithmExact::propagate(const std::vector<Vertex>& sources, double max_propagation_distance = GEODESIC_INF, const std::vector<Vertex>& stop_points = {})`"
 
     Performs the same computation as the first `propagate` function, but takes vertices rather than arbitrary surface points for convenience.
-    
+
 ??? func "`#!cpp void GeodesicAlgorithmExact::propagate(const SurfacePoint& source, double max_propagation_distance = GEODESIC_INF, const std::vector<SurfacePoint>& stop_points = {})`"
 
     Performs the same computation as the first `propagate` function, but takes a single source point for convenience.
@@ -112,36 +112,52 @@ std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 ??? func "`#!cpp void GeodesicAlgorithmExact::propagate(const Vertex& source, double max_propagation_distance = GEODESIC_INF, const std::vector<Vertex>& stop_points = {})`"
 
     Performs the same computation as the first `propagate` function, but takes a single source vertex rather than arbitrary surface points for convenience.
-    
-??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point)`"
+
+??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const SurfacePoint& point) const`"
 
     Compute the geodesic path from `point` to the closest source. This path is encoded as a list of `SurfacePoints` starting at `point` and ending at the source.
 
-??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& v)`"
+??? func "`#!cpp std::vector<SurfacePoint> GeodesicAlgorithmExact::traceBack(const Vertex& v) const`"
 
     Compute the geodesic path from `v` to the closest source point. This path is encoded as a list of `SurfacePoints` starting at `v` and ending at the source point.
 
-??? func "`#!cpp std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfacePoint& point)`"
+??? func "`#!cpp std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const SurfacePoint& point) const`"
 
     Identify the closest source to `point` and compute the distance to that source. Returns the index of that source in the source list along with the distance.
 
-??? func "`#!cpp std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v)`"
+??? func "`#!cpp std::pair<unsigned, double> GeodesicAlgorithmExact::closestSource(const Vertex& v) const`"
 
     Identify the closest source to `v` and compute the distance to that source. Returns the index of that source in the source list along with the distance.
 
-??? func "`#!cpp double GeodesicAlgorithmExact::getDistance(const SurfacePoint& point)`"
+??? func "`#!cpp double GeodesicAlgorithmExact::getDistance(const SurfacePoint& point) const`"
 
     Returns the distance from `point` to the closest source.
-    
-??? func "`#!cpp double GeodesicAlgorithmExact::getDistance(const Vertex& v)`"
+
+??? func "`#!cpp double GeodesicAlgorithmExact::getDistance(const Vertex& v) const`"
 
     Returns the distance from `v` to the closest source.
-    
-??? func "`#!cpp VertexData<double> GeodesicAlgorithmExact::getDistanceFunction()`"
+
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) const`"
+
+    Returns the gradient of the distance function at `point` (i.e. the unit tangent vector at `point` which points away from the closest source)
+
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) const`"
+
+    Returns the gradient of the distance function at `v` (i.e. the unit tangent vector at `v` which points away from the closest source)
+
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getLog(const SurfacePoint& point) const`"
+
+    Returns the log map at the source closest to `point` (i.e. the tangent vector based at the closest source which points towards `point` whose magnitude is the distance from the source to `point`).
+
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getLog(const Vertex& v) const`"
+
+    Returns the log map at the source closest to `v` (i.e. the tangent vector based at the closest source which points towards `v` whose magnitude is the distance from the source to `point`).
+
+??? func "`#!cpp VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() const`"
 
     Evaluate the distance function at every vertex of the mesh.
-    
-??? func "`#!cpp IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e)`"
+
+??? func "`#!cpp IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e) const`"
 
     Get the list of windows along edge `e` that MMP uses to represent the distance function.
 
@@ -229,7 +245,7 @@ VertexData<double> distToSource = heatSolver.computeDistance(targetP);
     - `geom` is the geometry (and hence mesh) on which to compute. Note that nearly any geometry object (`VertexPositionGeometry`, etc) can be passed here.
 
     - `tCoef` is the time to use for short time heat flow, as a factor `m * h^2`, where `h` is the mean edge length. The default value of `1.0` is almost always sufficient.
-    
+
     - `useRobustLaplacian` is true, the solver will internally use a robust intrinsic Laplacian, including mollification & tufting for nonmanifold inputs. See "A Laplacian for Nonmanifold Triangle Meshes" [Sharp & Crane 2020 @ SGP] for algorithmic details and citation.
 
     Algorithm options (like `tCoef`) cannot be changed after construction; create a new solver object with the new settings.
