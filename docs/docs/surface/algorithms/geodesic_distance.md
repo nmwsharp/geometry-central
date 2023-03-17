@@ -84,6 +84,12 @@ double dist = mmp.getDistance(queryPoint);
 // Get the geodesic path from a query point to the nearest source
 SurfacePoint queryPoint2 = /* some point on the surface */
 std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
+
+// Get the gradient of the distance function at some point
+Vector2 gradDist = mmp.getDistanceGradient(queryPoint);
+
+// Find the tangent vector pointing to a query point from the closest source
+Vector2 log_base_source_of_query = mmp.getLog(queryPoint);
 ```
 
 
@@ -137,13 +143,17 @@ std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 
     Returns the distance from `v` to the closest source.
 
-??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) const`"
+??? func "`#!cpp VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() const`"
 
-    Returns the gradient of the distance function at `point` (i.e. the unit tangent vector at `point` which points away from the closest source)
+    Evaluate the distance function at every vertex of the mesh.
 
-??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) const`"
+??? func "`#!cpp IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e) const`"
 
-    Returns the gradient of the distance function at `v` (i.e. the unit tangent vector at `v` which points away from the closest source)
+    Get the list of windows along edge `e` that MMP uses to represent the distance function.
+
+### Vector-valued Queries
+
+Computing exact geodesic paths also allows one to compute exact [log maps](/surface/algorithms/vector_heat_method/#logarithmic-map), as well as the exact gradient of the distance function.
 
 ??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getLog(const SurfacePoint& point) const`"
 
@@ -153,15 +163,13 @@ std::vector<SurfacePoint> path = mmp.traceBack(queryPoint2);
 
     Returns the log map at the source closest to `v` (i.e. the tangent vector based at the closest source which points towards `v` whose magnitude is the distance from the source to `point`).
 
-??? func "`#!cpp VertexData<double> GeodesicAlgorithmExact::getDistanceFunction() const`"
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const SurfacePoint& point) const`"
 
-    Evaluate the distance function at every vertex of the mesh.
+    Returns the gradient of the distance function at `point` (i.e. the unit tangent vector at `point` which points away from the closest source)
 
-??? func "`#!cpp IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e) const`"
+??? func "`#!cpp Vector2 GeodesicAlgorithmExact::getDistanceGradient(const Vertex& v) const`"
 
-    Get the list of windows along edge `e` that MMP uses to represent the distance function.
-
-TODO document `exact_polyhedral_geodesics.h`
+    Returns the gradient of the distance function at `v` (i.e. the unit tangent vector at `v` which points away from the closest source)
 
 ## Heat Method for Distance
 
