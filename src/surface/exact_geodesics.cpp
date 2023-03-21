@@ -120,6 +120,7 @@ void GeodesicAlgorithmExact::possible_traceback_edges(const SurfacePoint& point,
   case SurfacePointType::Vertex: {
     Vertex v = point.vertex;
     for (Halfedge he : v.outgoingHalfedges()) {
+      if (he.face().isBoundaryLoop()) continue; // don't try to trace along virtual boundary face
       storage.push_back(he.next().edge());
     }
     break;
