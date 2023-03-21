@@ -56,6 +56,7 @@ The result is returned as a `TraceGeodesicResult`, which has 5 fields:
 | `#!cpp Vector2 endingDir`| the incoming direction to the final point, in its tangent space |
 | `#!cpp bool hitBoundary`| did the path stop early because we hit a boundary? |
 | `#!cpp bool hasPath`| is `pathPoints` populated? |
+| `#!cpp double length`| length of the traced path (generally equals norm of `traceVec` unless tracing stopped early due to hitting a boundary/barrier edge or due to the iteration limit `maxIters`) |
 
 
 ## Tangent Spaces
