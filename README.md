@@ -62,11 +62,11 @@ Geometry-central is developed by [Nicholas Sharp](http://nmwsharp.com), with man
 
 If geometry-central contributes to an academic publication, cite it as:
 ```bib
-@misc{geometrycentral,
-  title = {geometry-central},
-  author = {Nicholas Sharp and Keenan Crane and others},
-  note = {www.geometry-central.net},
-  year = {2019}
+@article{geometrycentral,
+  title={GeometryCentral: A modern C++ library of data structures and algorithms for geometry processing},
+  author={Nicholas Sharp and Keenan Crane and others},
+  howpublished="\url{https://geometry-central.net/}",
+  year={2019}
 }
 ```
 
