@@ -145,10 +145,7 @@ Vector<double> BFF::neumannToDirichlet(const Vector<double>& kBdy) {
 }
 
 std::array<Vector<double>, 2> BFF::computeBoundaryPositions(const Vector<double>& uBdy, const Vector<double>& kBdy) {
-
-  auto src = [](Edge e) { return e.halfedge().vertex(); };
-  auto dst = [](Edge e) { return e.halfedge().next().vertex(); };
-
+  
   geo.requireEdgeLengths();
 
   double phi = 0;
@@ -158,18 +155,19 @@ std::array<Vector<double>, 2> BFF::computeBoundaryPositions(const Vector<double>
   DenseMatrix<double> T(2, nBoundary);
 
   for (BoundaryLoop b : mesh.boundaryLoops()) {
-    for (Edge e : b.adjacentEdges()) {
-      int iV = bIdx[src(e)];
+    for (Halfedge he : b.adjacentHalfedges()) {
+      size_t iV = bIdx[he.vertex()];
+      Edge e = he.edge();
       GC_SAFETY_ASSERT(0 <= iV && iV < (int)nBoundary, "invalid boundary vertex index");
 
-      targetLength(iV) = geo.edgeLengths[e] * exp(0.5 * (uBdy(bIdx[src(e)]) + uBdy(bIdx[dst(e)])));
+      targetLength(iV) = geo.edgeLengths[e] * exp(0.5 * (uBdy(bIdx[he.tailVertex()]) + uBdy(bIdx[he.tipVertex()])));
 
       T(0, iV) = cos(phi);
       T(1, iV) = sin(phi);
 
       Ntriplets.emplace_back(iV, iV, geo.edgeLengths[e]);
 
-      phi += kBdy(bIdx[dst(e)]);
+      phi += kBdy(bIdx[he.tipVertex()]);
     }
   }
 
@@ -182,10 +180,12 @@ std::array<Vector<double>, 2> BFF::computeBoundaryPositions(const Vector<double>
   std::array<Vector<double>, 2> bdyPositions{Vector<double>(nBoundary), Vector<double>(nBoundary)};
   double x = 0, y = 0;
   for (BoundaryLoop b : mesh.boundaryLoops()) {
-    for (Edge e : b.adjacentEdges()) {
-      size_t iV = bIdx[src(e)];
+    for (Halfedge he : b.adjacentHalfedges()) {
+      size_t iV = bIdx[he.vertex()];
 
-      bdyPositions[0](iV) = x;
+      // flip the param, since we orbit boundary loops in
+      // the opposite direction it ends up backward
+      bdyPositions[0](iV) = -x;
       bdyPositions[1](iV) = y;
 
       x += roundedLength(iV) * T(0, iV);
