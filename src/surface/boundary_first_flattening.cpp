@@ -175,7 +175,7 @@ std::array<Vector<double>, 2> BFF::computeBoundaryPositions(const Vector<double>
   Ninv.setFromTriplets(std::begin(Ntriplets), std::end(Ntriplets));
 
   Vector<double> roundedLength =
-      targetLength - Ninv * T.transpose() * (T * Ninv * T.transpose()).inverse() * T * targetLength;
+      targetLength - Ninv * T.transpose() * (T * Ninv * T.transpose()).inverse() * (T * targetLength);
 
   std::array<Vector<double>, 2> bdyPositions{Vector<double>(nBoundary), Vector<double>(nBoundary)};
   double x = 0, y = 0;
