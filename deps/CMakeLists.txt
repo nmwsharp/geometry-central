@@ -45,7 +45,7 @@ else()
       message(FATAL_ERROR "Eigen could not be found at GC_EIGEN_LOCATION = ${GC_EIGEN_LOCATION}.")
     endif()
   else()
-    
+
     # GC_EIGEN_LOCATION is not set
     # (3) Search using the normal method
     if(NOT GC_ALWAYS_DOWNLOAD_EIGEN)
@@ -144,14 +144,20 @@ endif()
 
 # ===  done finding Suitesparse
 
-add_library(nanort INTERFACE)
-target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+if (NOT TARGET nanort)
+    add_library(nanort INTERFACE)
+    target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+endif()
 
-add_library(nanoflann INTERFACE)
-target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include>)
+if (NOT TARGET nanoflann)
+    add_library(nanoflann INTERFACE)
+    target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include>)
+endif()
 
-add_library(happly INTERFACE)
-target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+if (NOT TARGET happly)
+    add_library(happly INTERFACE)
+    target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+endif()
 
 # Find other simpler dependencies
 list(APPEND GC_DEP_LIBS nanort)
