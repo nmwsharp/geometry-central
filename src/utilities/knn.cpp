@@ -1,6 +1,6 @@
 #include "geometrycentral/utilities/knn.h"
 
-#include "nanoflann/nanoflann.hpp"
+#include "nanoflann.hpp"
 
 using std::vector;
 
