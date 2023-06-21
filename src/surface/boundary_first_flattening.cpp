@@ -158,7 +158,7 @@ std::array<Vector<double>, 2> BFF::computeBoundaryPositions(const Vector<double>
     for (Halfedge he : b.adjacentHalfedges()) {
       size_t iV = bIdx[he.vertex()];
       Edge e = he.edge();
-      GC_SAFETY_ASSERT(0 <= iV && iV < (int)nBoundary, "invalid boundary vertex index");
+      GC_SAFETY_ASSERT(iV < nBoundary, "invalid boundary vertex index");
 
       targetLength(iV) = geo.edgeLengths[e] * exp(0.5 * (uBdy(bIdx[he.tailVertex()]) + uBdy(bIdx[he.tipVertex()])));
 
