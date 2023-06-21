@@ -1535,34 +1535,55 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
     throw std::runtime_error("not implemented");
   }
 
+  // Maintain sets of edges/vertices which should be unique in the neighborhood around the vertex to be removed
+  // This ensures no fishy cases happen with repeated elements on the boundary etc.
+  // Some of these checks may be overly cautious: it could be possible to remove the vertex with a better algorithm.
+  std::unordered_set<Edge> uniqueEdges;
+  auto checkAndAddUniqueEdge = [&](Edge e) {
+    if (uniqueEdges.find(e) != uniqueEdges.end()) return false;
+    uniqueEdges.insert(e);
+    return true;
+  };
+  std::unordered_set<Vertex> uniqueVertices;
+  auto checkAndAddUniqueVertex = [&](Vertex v) {
+    if (uniqueVertices.find(v) != uniqueVertices.end()) return false;
+    uniqueVertices.insert(v);
+    return true;
+  };
+  checkAndAddUniqueVertex(v);
+
+
   // Halfedges/edges/faces that will be removed
   // (except first face)
   std::vector<Halfedge> toRemove;
   for (Halfedge he : v.outgoingHalfedges()) {
+    if (!checkAndAddUniqueEdge(he.edge())) return Face(); // check that the ring is distinct/safe
     toRemove.push_back(he);
-
-    // The one-ring must not contain any other copies of v, or we cannot remove the vertex
-    if (he.tipVertex() == v) {
-      return Face();
-    }
   }
 
   // Halfedges along the outer ring boundary which will remain but need to be updated
   std::vector<Halfedge> ringHalfedges;
-  {
-    Halfedge firstRingHe = v.halfedge().next();
-    Halfedge ringHe = firstRingHe;
-    bool first = true;
-    while (first || ringHe != firstRingHe) {
-      first = false;
+  for (Halfedge outgoingHe : v.outgoingHalfedges()) { // this orbits cw
+
+    Halfedge ringHe = outgoingHe.next();
+
+    size_t iStart = ringHalfedges.size();
+    while (true) {
+
+      if (!checkAndAddUniqueEdge(ringHe.edge())) return Face(); // check that the ring is distinct/safe
+      if (!checkAndAddUniqueVertex(ringHe.tailVertex())) return Face();
 
       ringHalfedges.push_back(ringHe);
 
       ringHe = ringHe.next();
-      if (ringHe.tipVertex() == v) {
-        ringHe = ringHe.twin().next();
+      if (ringHe.next() == outgoingHe) {
+        break;
       }
     }
+
+    // we just added a run of halfedges in ccw order, reverse them so the whole list is ccw
+    size_t iEnd = ringHalfedges.size();
+    std::reverse(ringHalfedges.begin() + iStart, ringHalfedges.begin() + iEnd);
   }
 
   Face keepFace = toRemove[0].face();
@@ -1570,7 +1591,7 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
   { // Hook up next for the halfedges along the ring
     size_t N = ringHalfedges.size();
     for (size_t i = 0; i < N; i++) {
-      heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + 1) % N].getIndex();
+      heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + N - 1) % N].getIndex(); // list is cw
       heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
     }
   }
