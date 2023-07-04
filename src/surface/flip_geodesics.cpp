@@ -680,8 +680,6 @@ bool FlipEdgeNetwork::wedgeIsClearEndpointsOnly(const FlipPathSegment& pathSegme
   // Gather values
   Vertex prevVert = hePrev.vertex();
   Vertex middleVert = heNext.vertex();
-  Vertex nextVert = heNext.twin().vertex();
-
 
   // Split to cases based on which side the wedge faces. Either way, we're iterating around the wedge making sure there
   // are no path edges in the way.
@@ -1399,7 +1397,6 @@ void FlipEdgeNetwork::validateHalfedgesOnly() {
     for (auto it : path.pathHeInfo) {
 
       // Gather values
-      SegmentID currID = it.first;
       SegmentID prevID, nextID;
       Halfedge currHe;
       std::tie(currHe, prevID, nextID) = it.second;

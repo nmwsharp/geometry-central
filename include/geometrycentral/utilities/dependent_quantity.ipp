@@ -46,9 +46,6 @@ void clearBuffer(T* buffer) {
 
 // Scalars
 void clearBuffer(double* buffer) {}
-void clearBuffer(size_t* buffer) {}
-void clearBuffer(int* buffer) {}
-
 
 // Eigen sparse matrices
 template <typename F>

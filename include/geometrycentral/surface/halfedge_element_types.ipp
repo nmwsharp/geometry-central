@@ -409,7 +409,7 @@ inline bool Face::isTriangle() const {
 }
 inline size_t Face::degree() const {
   size_t k = 0;
-  for (Halfedge h : adjacentHalfedges()) { k++; }
+  for (const Halfedge& _ : adjacentHalfedges()) { k++; }
   return k;
 }
 
@@ -483,7 +483,7 @@ inline bool BoundaryLoop::isDead() const    { return asFace().isDead(); }
 
 inline size_t BoundaryLoop::degree() const {
   size_t k = 0;
-  for (Halfedge h : adjacentHalfedges()) { k++; }
+  for (const Halfedge& _ : adjacentHalfedges()) { k++; }
   return k;
 }
 

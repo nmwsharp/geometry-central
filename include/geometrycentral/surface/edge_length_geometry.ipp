@@ -58,8 +58,6 @@ inline double EdgeLengthGeometry::cornerAngle(Corner c) const {
 
 inline double EdgeLengthGeometry::halfedgeCotanWeight(Halfedge heI) const {
   // WARNING: Logic duplicated between cached and immediate version
-  double cotSum = 0.;
-
   if (heI.isInterior()) {
     Halfedge he = heI;
     double l_ij = edgeLengths[he.edge()];
