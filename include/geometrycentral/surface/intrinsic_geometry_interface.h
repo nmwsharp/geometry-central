@@ -74,14 +74,14 @@ public:
   EdgeData<double> edgeCotanWeights;
   void requireEdgeCotanWeights();
   void unrequireEdgeCotanWeights();
- 
-  // Shape length scale 
+
+  // Shape length scale
   // (computed as sqrt(total_area), so it is a property of the shape, not the mesh)
   double shapeLengthScale = -1;
   void requireShapeLengthScale();
   void unrequireShapeLengthScale();
-  
-  // Mesh length scale 
+
+  // Mesh length scale
   // (computed as mean edge length, so it is a property of the mesh moreso than the shape)
   double meshLengthScale = -1;
   void requireMeshLengthScale();
@@ -143,6 +143,21 @@ public:
   void requireFaceConnectionLaplacian();
   void unrequireFaceConnectionLaplacian();
 
+  // Crouzeix-Raviart Laplace matrix
+  Eigen::SparseMatrix<double> crouzeixRaviartLaplacian;
+  void requireCrouzeixRaviartLaplacian();
+  void unrequireCrouzeixRaviartLaplacian();
+
+  // Crouzeix-Raviart mass matrix
+  Eigen::SparseMatrix<double> crouzeixRaviartMassMatrix;
+  void requireCrouzeixRaviartMassMatrix();
+  void unrequireCrouzeixRaviartMassMatrix();
+
+  // Crouzeix-Raviart connection Laplacian. Corresponds to the complex version, not the 2E x 2E version.
+  Eigen::SparseMatrix<std::complex<double>> crouzeixRaviartConnectionLaplacian;
+  void requireCrouzeixRaviartConnectionLaplacian();
+  void unrequireCrouzeixRaviartConnectionLaplacian();
+
   // DEC Operators
   Eigen::SparseMatrix<double> hodge0, hodge0Inverse, hodge1, hodge1Inverse, hodge2, hodge2Inverse, d0, d1;
   void requireDECOperators();
@@ -192,12 +207,12 @@ protected:
   // Edge cotan weight
   DependentQuantityD<EdgeData<double>> edgeCotanWeightsQ;
   virtual void computeEdgeCotanWeights();
-  
-  // Shape length scale 
+
+  // Shape length scale
   DependentQuantityD<double> shapeLengthScaleQ;
   virtual void computeShapeLengthScale();
-  
-  // Mesh length scale 
+
+  // Mesh length scale
   DependentQuantityD<double> meshLengthScaleQ;
   virtual void computeMeshLengthScale();
 
@@ -246,6 +261,18 @@ protected:
   // Face connection Laplacian
   DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> faceConnectionLaplacianQ;
   virtual void computeFaceConnectionLaplacian();
+
+  // Crouzeix-Raviart Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<double>> crouzeixRaviartLaplacianQ;
+  virtual void computeCrouzeixRaviartLaplacian();
+
+  // Crouzeix-Raviart mass matrix
+  DependentQuantityD<Eigen::SparseMatrix<double>> crouzeixRaviartMassMatrixQ;
+  virtual void computeCrouzeixRaviartMassMatrix();
+
+  // Crouzeix-Raviart connection Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> crouzeixRaviartConnectionLaplacianQ;
+  virtual void computeCrouzeixRaviartConnectionLaplacian();
 
   // DEC Operators
   // Note: The DEC operators deviate from the convention of one member per quantity. This extra array allows the

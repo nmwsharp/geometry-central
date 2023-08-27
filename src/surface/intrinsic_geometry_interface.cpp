@@ -36,7 +36,9 @@ IntrinsicGeometryInterface::IntrinsicGeometryInterface(SurfaceMesh& mesh_) :
   vertexConnectionLaplacianQ    (&vertexConnectionLaplacian,    std::bind(&IntrinsicGeometryInterface::computeVertexConnectionLaplacian, this),     quantities),
   faceGalerkinMassMatrixQ       (&faceGalerkinMassMatrix,       std::bind(&IntrinsicGeometryInterface::computeFaceGalerkinMassMatrix, this),        quantities),
   faceConnectionLaplacianQ      (&faceConnectionLaplacian,      std::bind(&IntrinsicGeometryInterface::computeFaceConnectionLaplacian, this),       quantities),
-
+  crouzeixRaviartLaplacianQ     (&crouzeixRaviartLaplacian,     std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartLaplacian, this),      quantities),
+  crouzeixRaviartMassMatrixQ    (&crouzeixRaviartMassMatrix,    std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartMassMatrix, this),     quantities),
+  crouzeixRaviartConnectionLaplacianQ     (&crouzeixRaviartConnectionLaplacian,     std::bind(&IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian, this),      quantities),
 
   // DEC operators need some extra work since 8 members are grouped under one require
   DECOperatorArray{&hodge0, &hodge0Inverse, &hodge1, &hodge1Inverse, &hodge2, &hodge2Inverse, &d0, &d1},
@@ -69,7 +71,7 @@ void IntrinsicGeometryInterface::computeFaceAreas() {
     he = he.next();
     double c = edgeLengths[he.edge()];
 
-    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
     // Herons formula
     double s = (a + b + c) / 2.0;
@@ -112,7 +114,7 @@ void IntrinsicGeometryInterface::computeCornerAngles() {
     Halfedge heOpp = heA.next();
     Halfedge heB = heOpp.next();
 
-    GC_SAFETY_ASSERT(heB.next() == heA, "faces mush be triangular");
+    GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
 
     double lOpp = edgeLengths[heOpp.edge()];
     double lA = edgeLengths[heA.edge()];
@@ -192,7 +194,7 @@ void IntrinsicGeometryInterface::computeFaceGaussianCurvatures() {
       angleDefect += cornerScaledAngles[he.corner()];
       he = he.next();
     }
-    GC_SAFETY_ASSERT(he == f.halfedge(), "faces mush be triangular");
+    GC_SAFETY_ASSERT(he == f.halfedge(), "faces must be triangular");
 
     faceGaussianCurvatures[f] = angleDefect;
   }
@@ -217,7 +219,7 @@ void IntrinsicGeometryInterface::computeHalfedgeCotanWeights() {
     double l_ki = edgeLengths[heF.edge()];
     heF = heF.next();
 
-    GC_SAFETY_ASSERT(heF == he, "faces mush be triangular");
+    GC_SAFETY_ASSERT(heF == he, "faces must be triangular");
 
     double area = faceAreas[he.face()];
     double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
@@ -245,7 +247,7 @@ void IntrinsicGeometryInterface::computeEdgeCotanWeights() {
       he = he.next();
       double l_ki = edgeLengths[he.edge()];
       he = he.next();
-      GC_SAFETY_ASSERT(he == heFirst, "faces mush be triangular");
+      GC_SAFETY_ASSERT(he == heFirst, "faces must be triangular");
       double area = faceAreas[he.face()];
       double cotValue = (-l_ij * l_ij + l_jk * l_jk + l_ki * l_ki) / (4. * area);
       cotSum += cotValue / 2;
@@ -578,6 +580,98 @@ void IntrinsicGeometryInterface::computeFaceConnectionLaplacian() {
 }
 void IntrinsicGeometryInterface::requireFaceConnectionLaplacian() { faceConnectionLaplacianQ.require(); }
 void IntrinsicGeometryInterface::unrequireFaceConnectionLaplacian() { faceConnectionLaplacianQ.unrequire(); }
+
+
+// Crouzeix-Raviart Laplacian
+void IntrinsicGeometryInterface::computeCrouzeixRaviartLaplacian() {
+  edgeIndicesQ.ensureHave();
+  halfedgeCotanWeightsQ.ensureHave();
+
+  crouzeixRaviartLaplacian = Eigen::SparseMatrix<double>(mesh.nEdges(), mesh.nEdges());
+  std::vector<Eigen::Triplet<double>> tripletList;
+
+  for (Face f : mesh.faces()) {
+    for (Halfedge he : f.adjacentHalfedges()) {
+      Halfedge heA = he.next();
+      Halfedge heB = heA.next();
+      GC_SAFETY_ASSERT(heB.next() == he, "Crouzeix-Raviart Laplacian is not yet implemented for non-triangle meshes.");
+
+      size_t iE_i = edgeIndices[heA.edge()];
+      size_t iE_j = edgeIndices[heB.edge()];
+
+      // halfedge cotan weight = (1/2) cot(theta)
+      // C-R weight = 2.0 cot(theta) (if computing the positive version)
+      double weight = 4.0 * halfedgeCotanWeights[he];
+
+      tripletList.emplace_back(iE_i, iE_j, -weight);
+      tripletList.emplace_back(iE_j, iE_i, -weight);
+      tripletList.emplace_back(iE_i, iE_i, weight);
+      tripletList.emplace_back(iE_j, iE_j, weight);
+    }
+  }
+
+  crouzeixRaviartLaplacian.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+void IntrinsicGeometryInterface::requireCrouzeixRaviartLaplacian() { crouzeixRaviartLaplacianQ.require(); }
+void IntrinsicGeometryInterface::unrequireCrouzeixRaviartLaplacian() { crouzeixRaviartLaplacianQ.unrequire(); }
+
+
+// Crouzeix-Raviart mass matrix
+void IntrinsicGeometryInterface::computeCrouzeixRaviartMassMatrix() {
+  edgeIndicesQ.ensureHave();
+  faceAreasQ.ensureHave();
+
+  crouzeixRaviartMassMatrix = Eigen::SparseMatrix<double>(mesh.nEdges(), mesh.nEdges());
+  std::vector<Eigen::Triplet<double>> tripletList;
+  for (Edge e : mesh.edges()) {
+    size_t iE_i = edgeIndices[e];
+    for (Face f : e.adjacentFaces()) {
+      tripletList.emplace_back(iE_i, iE_i, faceAreas[f] / 3.0);
+    }
+  }
+  crouzeixRaviartMassMatrix.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+void IntrinsicGeometryInterface::requireCrouzeixRaviartMassMatrix() { crouzeixRaviartMassMatrixQ.require(); }
+void IntrinsicGeometryInterface::unrequireCrouzeixRaviartMassMatrix() { crouzeixRaviartMassMatrixQ.unrequire(); }
+
+
+// Crouzeix-Raviart connection Laplacian (the complex version)
+void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
+  edgeIndicesQ.ensureHave();
+  halfedgeCotanWeightsQ.ensureHave();
+  cornerAnglesQ.ensureHave();
+
+  crouzeixRaviartConnectionLaplacian = Eigen::SparseMatrix<std::complex<double>>(mesh.nEdges(), mesh.nEdges());
+  std::vector<Eigen::Triplet<std::complex<double>>> tripletList;
+  for (Face f : mesh.faces()) {
+    for (Halfedge he : f.adjacentHalfedges()) {
+      Halfedge heA = he.next();
+      Halfedge heB = heA.next();
+      GC_SAFETY_ASSERT(heB.next() == he, "Crouzeix-Raviart Laplacian is not yet implemented for non-triangle meshes.");
+
+      Corner c = heB.corner(); // corner between edges A and B
+      size_t iE_i = edgeIndices[heA.edge()];
+      size_t iE_j = edgeIndices[heB.edge()];
+
+      double weight = 4.0 * halfedgeCotanWeights[he];
+      double s_ij = (heA.orientation() == heB.orientation()) ? 1. : -1.;
+      std::complex<double> rot_ij = -Vector2::fromAngle(-cornerAngles[c]);
+      std::complex<double> rot_ji = -Vector2::fromAngle(cornerAngles[c]);
+
+      tripletList.emplace_back(iE_i, iE_i, weight);
+      tripletList.emplace_back(iE_j, iE_j, weight);
+      tripletList.emplace_back(iE_i, iE_j, -weight * rot_ij * s_ij);
+      tripletList.emplace_back(iE_j, iE_i, -weight * rot_ji * s_ij);
+    }
+  }
+  crouzeixRaviartConnectionLaplacian.setFromTriplets(tripletList.begin(), tripletList.end());
+}
+void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian() {
+  crouzeixRaviartConnectionLaplacianQ.require();
+}
+void IntrinsicGeometryInterface::unrequireCrouzeixRaviartConnectionLaplacian() {
+  crouzeixRaviartConnectionLaplacianQ.unrequire();
+}
 
 
 void IntrinsicGeometryInterface::computeDECOperators() {

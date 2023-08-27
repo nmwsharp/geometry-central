@@ -69,7 +69,6 @@ void PointPositionGeometry::unrequireNeighbors() { neighborsQ.unrequire(); }
 
 // Normals
 void PointPositionGeometry::computeNormals() {
-  using namespace Eigen;
 
   neighborsQ.ensureHave();
 
@@ -78,7 +77,7 @@ void PointPositionGeometry::computeNormals() {
   for (Point p : cloud.points()) {
     size_t nNeigh = neighbors->neighbors[p].size();
     Vector3 center = positions[p];
-    MatrixXd localMat(3, nNeigh);
+    Eigen::MatrixXd localMat(3, nNeigh);
 
     for (size_t iN = 0; iN < nNeigh; iN++) {
       Vector3 neighPos = positions[neighbors->neighbors[p][iN]] - center;
@@ -88,8 +87,8 @@ void PointPositionGeometry::computeNormals() {
     }
 
     // Smallest singular vector is best normal
-    JacobiSVD<MatrixXd> svd(localMat, ComputeThinU);
-    Vector3d bestNormal = svd.matrixU().col(2);
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(localMat, Eigen::ComputeThinU);
+    Eigen::Vector3d bestNormal = svd.matrixU().col(2);
 
     Vector3 N{bestNormal(0), bestNormal(1), bestNormal(2)};
     N = unit(N);
@@ -246,7 +245,7 @@ void PointPositionGeometry::computeConnectionLaplacian() {
       bool inverted;
       std::tie(r_ij, inverted) = transportBetweenOriented(pJ, pI);
 
-      //bool inverted = dot(normals[pI], normals[pJ]) < 0.;
+      // bool inverted = dot(normals[pI], normals[pJ]) < 0.;
 
       addComplexCoef(i, j, thisVal * r_ij, inverted);
       addComplexCoef(i, i, -thisVal * Vector2{1., 0}, false);

@@ -7,7 +7,7 @@
 `Vector3` is a POD type, so you should use brace-initialization sytax:
 
 ```cpp
-#include "geometrycentral/vector3.h
+#include "geometrycentral/utilities/vector3.h
 using namespace geometrycentral;
 
 Vector3 myVec{3.8, 2.9, 1.1}; //create

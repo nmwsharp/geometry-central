@@ -4,8 +4,6 @@
 #include "geometrycentral/utilities/vector2.h"
 
 
-using namespace Eigen;
-
 namespace geometrycentral {
 
 template class LinearSolver<double>;
@@ -27,4 +25,3 @@ template double residual(const SparseMatrix<std::complex<double>>& matrix, const
                          const Vector<std::complex<double>>& rhs);
 
 } // namespace geometrycentral
-

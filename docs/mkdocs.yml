@@ -33,8 +33,6 @@ extra_css:
 extra_javascript:
   - 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML'
 
-google_analytics: ['UA-58346315-3', 'auto']
-
 repo_name: 'nmwsharp/geometry-central'
 repo_url: 'https://github.com/nmwsharp/geometry-central'
 
@@ -60,6 +58,7 @@ nav:
       - 'Basics' : 'surface/surface_mesh/basics.md'
       - 'Elements' : 'surface/surface_mesh/elements.md'
       - 'Boundaries' : 'surface/surface_mesh/boundaries.md'
+      - 'Indexing' : 'surface/surface_mesh/indexing.md'
       - 'Navigation and Iteration' : 'surface/surface_mesh/navigation.md'
       - 'Containers' : 'surface/surface_mesh/containers.md'
       - 'Mutation' : 'surface/surface_mesh/mutation.md'
@@ -72,14 +71,20 @@ nav:
       - 'Simple Polygon Mesh' : 'surface/utilities/simple_polygon_mesh.md'
       - 'I/O' : 'surface/utilities/io.md'
       - 'Surface Point' : 'surface/utilities/surface_point.md'
+      - 'Barycentric Vector': 'surface/utilities/barycentric_vector.md'
     - Algorithms: 
       - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
-      - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
-      - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
-      - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
-      - 'Mesh Graph Algorithms' : 'surface/algorithms/mesh_graph_algorithms.md'
-      - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
+      - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
+      - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
+      - 'Intersection' : 'surface/algorithms/intersection.md'
+      - 'Parameterization' : 'surface/algorithms/parameterization.md'
+      - 'Remeshing' : 'surface/algorithms/remeshing.md'
+      - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
+      - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
+      - 'Surface Sampling' : 'surface/algorithms/surface_sampling.md'
+      - 'Tracing Geodesic Paths' : 'surface/algorithms/geodesic_paths.md'
+      - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
     - Intrinsic Triangulations:
       - 'Basics' : 'surface/intrinsic_triangulations/basics.md'
       - 'Common Subdivision' : 'surface/intrinsic_triangulations/common_subdivision.md'

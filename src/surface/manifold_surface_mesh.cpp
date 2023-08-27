@@ -531,6 +531,10 @@ bool ManifoldSurfaceMesh::isManifold() { return true; }
 bool ManifoldSurfaceMesh::isEdgeManifold() { return true; }
 bool ManifoldSurfaceMesh::isOriented() { return true; }
 
+VertexData<bool> ManifoldSurfaceMesh::getVertexManifoldStatus() { return VertexData<bool>(*this, true); }
+EdgeData<bool> ManifoldSurfaceMesh::getEdgeManifoldStatus() { return EdgeData<bool>(*this, true); }
+EdgeData<bool> ManifoldSurfaceMesh::getEdgeOrientedStatus() { return EdgeData<bool>(*this, true); }
+
 
 // ==========================================================
 // ================        Mutation        ==================
@@ -1263,6 +1267,64 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
   modificationTick++;
 }
 
+Face ManifoldSurfaceMesh::removeEdge(Edge e) {
+  if (e.isBoundary()) {
+    throw std::runtime_error("not implemented");
+  }
+
+  // Halfedges/edges/faces that will be removed
+  // (except first face)
+  std::vector<Halfedge> toRemove{e.halfedge(), e.halfedge().twin()};
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge heStart : toRemove) {
+    Halfedge he = heStart.next();
+    while (he != heStart) {
+      // The one-ring must not contain any other copies of e, or we cannot remove the edge
+      if (he.edge() == e) {
+        return Face();
+      }
+      ringHalfedges.push_back(he);
+      he = he.next();
+    }
+  }
+
+  // If both faces are the same, we cannot remove the edge. This should have been caught above
+  if (toRemove[0].face() == toRemove[1].face()) {
+    return Face();
+  }
+  Face keepFace = toRemove[0].face();
+
+
+  // Record these before we break pointers
+  Vertex src = e.halfedge().vertex();
+  Vertex dst = e.halfedge().twin().vertex();
+  Halfedge altSrcHedge = e.halfedge().twin().next();
+  Halfedge altDstHedge = e.halfedge().next();
+
+  // Hook up next and face refs for the halfedges along the ring
+  size_t N = ringHalfedges.size();
+  for (size_t i = 0; i < N; i++) {
+    heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + 1) % N].getIndex();
+    heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
+  }
+
+  // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
+  if (src.halfedge().edge() == e) {
+    vHalfedgeArr[src.getIndex()] = altSrcHedge.getIndex();
+  }
+  if (dst.halfedge().edge() == e) {
+    vHalfedgeArr[dst.getIndex()] = altDstHedge.getIndex();
+  }
+
+  fHalfedgeArr[keepFace.getIndex()] = ringHalfedges[0].getIndex();
+
+  // Actually delete all of the elements
+  deleteElement(toRemove[1].face());
+  deleteEdgeBundle(e);
+
+  modificationTick++;
+  return keepFace;
+}
 
 
 bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
@@ -1473,34 +1535,79 @@ Face ManifoldSurfaceMesh::removeVertex(Vertex v) {
     throw std::runtime_error("not implemented");
   }
 
+  // Maintain sets of edges/vertices which should be unique in the neighborhood around the vertex to be removed
+  // This ensures no fishy cases happen with repeated elements on the boundary etc.
+  // Some of these checks may be overly cautious: it could be possible to remove the vertex with a better algorithm.
+  std::unordered_set<Edge> uniqueEdges;
+  auto checkAndAddUniqueEdge = [&](Edge e) {
+    if (uniqueEdges.find(e) != uniqueEdges.end()) return false;
+    uniqueEdges.insert(e);
+    return true;
+  };
+  std::unordered_set<Vertex> uniqueVertices;
+  auto checkAndAddUniqueVertex = [&](Vertex v) {
+    if (uniqueVertices.find(v) != uniqueVertices.end()) return false;
+    uniqueVertices.insert(v);
+    return true;
+  };
+  checkAndAddUniqueVertex(v);
+
+
   // Halfedges/edges/faces that will be removed
   // (except first face)
   std::vector<Halfedge> toRemove;
-  std::vector<Halfedge> ringHalfedges;
   for (Halfedge he : v.outgoingHalfedges()) {
+    if (!checkAndAddUniqueEdge(he.edge())) return Face(); // check that the ring is distinct/safe
     toRemove.push_back(he);
+  }
 
-    // The one-ring must not contain any other copies of v, or we cannot remove the vertex
-    Halfedge oppHe = he.next();
-    if (oppHe.vertex() == v || oppHe.twin().vertex() == v) {
-      return Face();
+  // Halfedges along the outer ring boundary which will remain but need to be updated
+  std::vector<Halfedge> ringHalfedges;
+  for (Halfedge outgoingHe : v.outgoingHalfedges()) { // this orbits cw
+
+    Halfedge ringHe = outgoingHe.next();
+
+    size_t iStart = ringHalfedges.size();
+    while (true) {
+
+      if (!checkAndAddUniqueEdge(ringHe.edge())) return Face(); // check that the ring is distinct/safe
+      if (!checkAndAddUniqueVertex(ringHe.tailVertex())) return Face();
+
+      ringHalfedges.push_back(ringHe);
+
+      ringHe = ringHe.next();
+      if (ringHe.next() == outgoingHe) {
+        break;
+      }
     }
-    ringHalfedges.push_back(oppHe);
+
+    // we just added a run of halfedges in ccw order, reverse them so the whole list is ccw
+    size_t iEnd = ringHalfedges.size();
+    std::reverse(ringHalfedges.begin() + iStart, ringHalfedges.begin() + iEnd);
   }
 
   Face keepFace = toRemove[0].face();
 
-  // Hook up next and face refs for the halfedges along the ring
-  size_t N = ringHalfedges.size();
-  for (size_t i = 0; i < N; i++) {
-    heNextArr[ringHalfedges[(i + 1) % N].getIndex()] = ringHalfedges[i].getIndex(); // since outgoingHalfedges orbits CW
-    heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
-
-    if (toRemove[i].twin().vertex().halfedge().twin() == toRemove[i]) {
-      // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
-      vHalfedgeArr[toRemove[i].twin().vertex().getIndex()] = ringHalfedges[i].getIndex();
+  { // Hook up next for the halfedges along the ring
+    size_t N = ringHalfedges.size();
+    for (size_t i = 0; i < N; i++) {
+      heNextArr[ringHalfedges[i].getIndex()] = ringHalfedges[(i + N - 1) % N].getIndex(); // list is cw
+      heFaceArr[ringHalfedges[i].getIndex()] = keepFace.getIndex();
     }
   }
+
+  // Make sure vertex.halfedge() is still valid, if it points to one of the halfedges we're about to remove
+  for (size_t i = 0; i < toRemove.size(); i++) {
+    Halfedge outHe = toRemove[i];
+    Halfedge outHeTwin = outHe.twin();
+    Vertex outVert = outHeTwin.tailVertex();
+    if (outVert.halfedge() == outHeTwin) {
+      // only update vHalfedgeArr if needed to avoid disturbing boundary halfedges
+      vHalfedgeArr[outVert.getIndex()] = outHe.next().getIndex();
+    }
+  }
+
+  // Make sure face.halfedge() is valid
   fHalfedgeArr[keepFace.getIndex()] = ringHalfedges[0].getIndex();
 
   // Actually delete all of the elements

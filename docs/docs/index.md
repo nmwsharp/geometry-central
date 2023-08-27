@@ -43,7 +43,7 @@ A introductory talk on geometry-central was given at SGP 2020, check it out to g
 **Bindings & Plugins:**
 
 - **Python:** [Potpourri3d](https://github.com/nmwsharp/potpourri3d)
-- **Grasshopper/Rhino:** [Lionfish](https://www.food4rhino.com/app/lion-fish#comment-34610) by Math Whittaker
+- **Grasshopper/Rhino:** [Lionfish](https://www.food4rhino.com/app/lion-fish) by Math Whittaker
 
 If you're interested in creating additional bindings/plugins, feel free to reach out!
 
@@ -69,11 +69,11 @@ and many others.
 
 If geometry-central contributes to an academic publication, cite it as:
 ```bib
-@misc{geometrycentral,
-  title = {geometry-central},
-  author = {Nicholas Sharp and Keenan Crane and others},
-  note = {www.geometry-central.net},
-  year = {2019}
+@article{geometrycentral,
+  title={GeometryCentral: A modern C++ library of data structures and algorithms for geometry processing},
+  author={Nicholas Sharp and Keenan Crane and others},
+  howpublished="\url{https://geometry-central.net/}",
+  year={2019}
 }
 ```
 

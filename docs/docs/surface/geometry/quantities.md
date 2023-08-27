@@ -3,14 +3,14 @@ This page enumerates the surface geometry quantities available in geometry centr
 Recall that these quantities are each associated with a [geometry interface](geometry.md#geometry-hierarchy) specifying what can be computed from the given input data. Instantiating a geometry from data, classes like `VertexPositionGeometry` extend these interfaces and give access to all of the quantities therein.  Quantities should usually be accessed via the [managed caches](geometry.md#managed-quantities), as in the example below.
 
 ```cpp
-#include "geometrycentral/surface/geometry.h"
+#include "geometrycentral/surface/vertex_position_geometry.h"
 #include "geometrycentral/surface/meshio.h"
 using namespace geometrycentral::surface;
 
 // Load a mesh and geometry from file
 std::unique_ptr<SurfaceMesh> mesh;
 std::unique_ptr<VertexPositionGeometry> positionGeometry;
-std::tie<mesh, positionGeometry> = loadMesh("spot.obj");
+std::tie<mesh, positionGeometry> = readSurfaceMesh("spot.obj");
 
 // For the sake of the example, use an interface type that offers
 // only the quantities which we will actually use below.
@@ -224,7 +224,7 @@ These quantities are defined for any `IntrinsicGeometryInterface`, which is the 
 
 ## Curvatures
 
-Different curvatures are available depending on whether geometry is intrinsic or extrinsic.  In particular, Gaussian curvature is available for any `IntrinsicGeometryInterface` (such as `EdgeLengthGeometry`), which is the base class of all other geometry objects, whereas mean and principal curvatures are available only from an `ExtrinsicGeometryInterface` (such as `VertexPositionGeometry`).  All curvatures are rigid motion invariant.  Importantly, Gaussian and mean curvatures correspond to the _integral_ of curvature over a local neighborhood, and are hence scale invariant---to get the pointwise curvatures you should divide by area (see details below).  Principal curvatures are pointwise values.  See also `vertexPrincipalCurvatureDirections`, which provides curvature directions (rather than curvature magnitudes).  See [this video](vertexPrincipalCurvatureDirections) for further background on discrete curvature.
+Different curvatures are available depending on whether geometry is intrinsic or extrinsic.  In particular, Gaussian curvature is available for any `IntrinsicGeometryInterface` (such as `EdgeLengthGeometry`), which is the base class of all other geometry objects, whereas mean and principal curvatures are available only from an `ExtrinsicGeometryInterface` (such as `VertexPositionGeometry`).  All curvatures are rigid motion invariant.  Importantly, Gaussian and mean curvatures correspond to the _integral_ of curvature over a local neighborhood, and are hence scale invariant---to get the pointwise curvatures you should divide by area (see details below).  Principal curvatures are pointwise values.  See also `vertexPrincipalCurvatureDirections`, which provides curvature directions (rather than curvature magnitudes).  See [this video](https://www.youtube.com/watch?v=NlU1m-OfumE&ab_channel=KeenanCrane) for further background on discrete curvature.
 
 ![vertex scalar curvatures](/media/vertex_scalar_curvatures.jpg)
 
@@ -256,8 +256,8 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     Only valid on triangular meshes.
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMeanCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMeanCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMeanCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMeanCurvatures()`
 
     The inline immediate method can be used to compute this value directly from input data for a single element:
 
@@ -274,11 +274,11 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     Only valid on triangular meshes.
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMinPrincipalCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMinPrincipalCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMinPrincipalCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMinPrincipalCurvatures()`
 
-    - **member:** `VertexData<double> IntrinsicGeometryInterface::vertexMaxPrincipalCurvatures`
-    - **require:** `void IntrinsicGeometryInterface::requireVertexMaxPrincipalCurvatures()`
+    - **member:** `VertexData<double> ExtrinsicGeometryInterface::vertexMaxPrincipalCurvatures`
+    - **require:** `void ExtrinsicGeometryInterface::requireVertexMaxPrincipalCurvatures()`
 
     The inline immediate methods can be used to compute this value directly from input data for a single element:
 
@@ -299,6 +299,7 @@ Different curvatures are available depending on whether geometry is intrinsic or
 
     - **member:** `FaceData<double> IntrinsicGeometryInterface::faceGaussianCurvatures`
     - **require:** `void IntrinsicGeometryInterface::requireFaceGaussianCurvatures()`
+
 
 ## Tangent vectors and transport
 
@@ -340,19 +341,19 @@ See [face tangent basis](#face-tangent-basis) to convert these vectors to world 
 
     Only valid on triangular meshes. Not defined for halfedges (interior or exterior) incident on boundary edges, these boundary values are set to NaN so errors can be caught quickly.
 
-    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorAcrossHalfedge`
+    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorsAcrossHalfedge`
     - **require:** `void IntrinsicGeometryInterface::requireTransportVectorAcrossHalfedge()`
     
     Example usage:
     ```cpp
-    geometry.requireTransportVectorAcrossHalfedge();
+    geometry.requireTransportVectorsAcrossHalfedge();
 
     Face f = /* ... */;        // a face of interest
     Vector2 myVec = /* ... */; // tangent vector in face f
     
     for(Halfedge he : f.adjacentHalfedges()) {
 
-      Vertex neighborFace = he.twin().face();
+      Face neighborFace = he.twin().face();
       Vector2 rot = geometry.transportVectorAcrossHalfedge[he];
       Vector2 neighVec = rot * myVec;    // now in the basis of neighborFace
     }
@@ -391,12 +392,12 @@ See [vertex tangent basis](#vertex-tangent-basis) to convert these tangent vecto
 
     Only valid on triangular meshes.
 
-    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorAlongHalfedge`
-    - **require:** `void IntrinsicGeometryInterface::requireTransportVectorAlongHalfedge()`
+    - **member:** `HalfedgeData<Vector2> IntrinsicGeometryInterface::transportVectorsAlongHalfedge`
+    - **require:** `void IntrinsicGeometryInterface::requireTransportVectorsAlongHalfedge()`
     
     Example usage:
     ```cpp
-    geometry.requireTransportVectorAlongHalfedge();
+    geometry.requireTransportVectorsAlongHalfedge();
 
     Vertex v = /* ... */;        // a vertex of interest
     Vector2 myVec = /* ... */;   // tangent vector in vertex v
@@ -471,7 +472,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     Only valid on triangular meshes.
 
-    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::vertexConnectionLaplacian`
+    - **member:** `Eigen::SparseMatrix<std::complex<double>> IntrinsicGeometryInterface::vertexConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireVertexConnectionLaplacian()`
 
 ??? func "DEC operators"
@@ -496,6 +497,51 @@ All operators are indexed over mesh elements according to the natural iteration 
     Only valid on triangular meshes.
 
     - **require:** `void IntrinsicGeometryInterface::requireDECOperators()`
+
+While the vertex-based cotan Laplacian above is standard in geometry processing, one can also construct a discrete Laplacian using different basis functions. The following matrices are the result of using _Crouzeix-Raviart_ basis functions, which are Lagrange elements based at edge midpoints: Each function is piecewise linear, has a value at 1 at its associated edge midpoint, and is 0 at all other adjacent edge midpoints.
+
+In graphics and geometry processing, Crouzeix-Raviart elements have been used, for example, to [discretize bending energies](https://cims.nyu.edu/gcl/papers/wardetzky2007dqb.pdf) and [discretize vector Dirichlet energy](https://odedstein.com/projects/a-simple-discretization/a-simple-discretization.pdf). Because there are typically more edges than vertices in a mesh, and there are only two faces in the support of each Crouzeix-Raviart basis function, Crouzeix-Raviart operators also typically have more DOFs than vertex-based operators.
+
+??? func "Crouzeix-Raviart Laplacian"
+    
+    ##### Crouzeix-Raviart Laplacian
+
+    The discrete Laplace operator, discretized via the piecewise linear *Crouzeix-Raviart* basis functions associated with edge midpoints.
+
+    A $|E| \times |E|$ real matrix. Always symmetric and positive semi-definite. This is the _weak_ Laplace operator, if we use it to evaluate $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at edge midpoints, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each edge midpoint. If used to solve a Poisson problem, a mass matrix is likely necessary on the right hand side.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartLaplacian()`
+
+??? func "Crouzeix-Raviart mass matrix"
+
+    ##### Crouzeix-Raviart mass matrix
+
+    A mass matrix at edges, where the edge area is $1/3$ the incident face areas.
+
+    A $|E| \times |E|$ real diagonal matrix. Corresponds to the Galerkin mass matrix for Crouzeix-Raviart elements, which is already diagonal without lumping.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartMassMatrix`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartMassMatrix()`
+
+??? func "Crouzeix-Raviart connection Laplacian"
+
+    ##### Crouzeix-Raviart connection Laplacian
+
+    A discrete connection Laplacian operator, which applies to vector fields defined in edge tangent spaces
+
+    A $|E| \times |E|$ complex matrix. Always Hermitian and positive semi-definite.
+
+    Given a complex vector $\mathsf{x}$ of tangent vectors at edge midpoints, apply the operator by multiplying $\mathsf{L} * \mathsf{x}$. Like other mesh elements, the $x$-axis of the tangent space at edge `e` points in the direction of `e.halfedge()`.
+
+    Only valid on triangular meshes.
+
+    - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
+    - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
 
 
 ## Extrinsic angles
@@ -568,6 +614,26 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     - **member:** `VertexData<Vector3> EmbeddedGeometryInterface::faceNormals`
     - **require:** `void EmbeddedGeometryInterface::requireFaceNormals()`
+    
+??? func "vertex dual mean curvature normal"
+    
+    ##### vertex dual mean curvature normal
+    
+    Conceptually, the _mean curvature normal_ at any location on a surface is a vector which points in the normal direction, and has magnitude equal to the mean curvature at that location. In practice, we discretize this using the fact that applying the [Laplacian](#cotangent-laplacian) to the position function yields the mean curvature normals.
+
+
+    Should be interpreted as an _integrated_ mean curvature normal (units: $m$), giving the integral of the mean curvature curvature in the neighborhood of the vertex.  A corresponding _pointwise_ mean curvature (units: $1/m$) can be obtained by dividing by the `vertexDualArea`.
+
+    Only valid on triangular meshes.
+
+    - **member:** `VertexData<double> EmbeddedGeometryInterface::vertexDualMeanCurvatureNormals`
+    - **require:** `void EmbeddedGeometryInterface::requireVertexDualMeanCurvatureNormals()`
+
+    The inline immediate method can be used to compute this value directly from input data for a single element:
+
+    - **immediate:** `Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v)`
+    
+    Fun fact: these vertex dual mean curvature normals are also the derivative of the mesh's surface area with respect to vertex positions.
 
 ??? func "face tangent basis"
 
@@ -588,8 +654,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     for(Face f : mesh.faces()) {
       Vector2 field = myTangentVectorField[f];
 
-      Vector3 basisX = geometry.faceTangentBasis[f];
-      Vector3 basisY = geometry.faceTangentBasis[f];
+      Vector3 basisX = geometry.faceTangentBasis[f][0];
+      Vector3 basisY = geometry.faceTangentBasis[f][1];
 
       Vector3 fieldInWorldCoords = basisX * field.x + basisY * field.y;
     }
@@ -619,8 +685,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     for(Vertex v : mesh.vertices()) {
       Vector2 field = myTangentVectorField[v];
 
-      Vector3 basisX = geometry.vertexTangentBasis[v];
-      Vector3 basisY = geometry.vertexTangentBasis[v];
+      Vector3 basisX = geometry.vertexTangentBasis[v][0];
+      Vector3 basisY = geometry.vertexTangentBasis[v][1];
 
       Vector3 fieldInWorldCoords = basisX * field.x + basisY * field.y;
     }

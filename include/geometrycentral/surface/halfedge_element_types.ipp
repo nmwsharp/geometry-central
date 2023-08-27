@@ -35,8 +35,17 @@ inline Corner Vertex::corner() const        { return halfedge().corner(); }
 inline bool Vertex::isDead() const          { return mesh->vertexIsDead(ind); }
 
 // Properties
-inline bool Vertex::isBoundary() const { return !halfedge().twin().isInterior(); }
-inline bool Vertex::isManifoldAndOriented() const { 
+inline bool Vertex::isBoundary() const {
+  if(mesh->usesImplicitTwin()) {
+    return !halfedge().twin().isInterior();
+  } else {
+    for (Edge e : adjacentEdges()) {
+      if (e.isBoundary()) {return true;}
+    }
+    return false;
+  }
+}
+inline bool Vertex::isManifoldAndOriented() const {
   // TODO this routine is actually pretty nontrivial, it probably deserves some more thought
   // strategy: bootstrap off of the adjacency iterator, which already has functionality for nonmanifold vertices
   if(mesh->usesImplicitTwin()) return true;

@@ -22,6 +22,10 @@ namespace surface {
 double displacementLength2(Vector3 displacement, Vector3 triangleLengths);
 double displacementLength(Vector3 displacement, Vector3 triangleLengths);
 
+// Convert between cartesian and barycentric coordinates
+Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec);
+Vector2 barycentricDisplacementToCartesian(const std::array<Vector2, 3>& vertCoords, Vector3 baryVec);
+
 // Normalize to sum to 1 (does nothing else)
 Vector3 normalizeBarycentric(Vector3 baryCoords); // Allows not-normalized input
 
@@ -33,7 +37,7 @@ Vector3 normalizeBarycentricDisplacement(Vector3 baryVec);
 Vector3 projectInsideTriangle(Vector3 baryCoords); // Allows not-normalized input
 
 // Is the point inside the triangle?
-bool isInsideTriangle(Vector3 baryCoords); 
+bool isInsideTriangle(Vector3 baryCoords);
 
 // The index of the halfedge in a triangular face,
 int halfedgeIndexInTriangle(Halfedge he);

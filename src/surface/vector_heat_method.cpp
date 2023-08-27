@@ -49,8 +49,24 @@ void VectorHeatMethodSolver::ensureHaveVectorHeatSolver() {
 
   // Build the operator
   SparseMatrix<std::complex<double>> vectorOp = massMat.cast<std::complex<double>>() + shortTime * Lconn;
-  vectorHeatSolver.reset(new SquareSolver<std::complex<double>>(vectorOp)); // not necessarily SPD without Delaunay
-  // vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
+
+  // Check the Delaunay condition. If the mesh is Delaunay, then vectorOp is SPD, and we can use a
+  // PositiveDefiniteSolver. Otherwise, we must use a SquareSolver
+  geom.requireEdgeCotanWeights();
+  bool isDelaunay = true;
+  for (Edge e : mesh.edges()) {
+    if (geom.edgeCotanWeights[e] < -1e-6) {
+      isDelaunay = false;
+      break;
+    }
+  }
+  geom.unrequireEdgeCotanWeights();
+
+  if (isDelaunay) {
+    vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
+  } else {
+    vectorHeatSolver.reset(new SquareSolver<std::complex<double>>(vectorOp)); // not necessarily SPD without Delaunay
+  }
 
   geom.unrequireVertexConnectionLaplacian();
 }
@@ -334,6 +350,20 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVe
   return result;
 }
 
+VertexData<double> VectorHeatMethodSolver::scalarDiffuse(const VertexData<double>& rhs) {
+  ensureHaveScalarHeatSolver();
+  return VertexData<double>(mesh, scalarHeatSolver->solve(rhs.toVector()));
+}
+
+VertexData<std::complex<double>> VectorHeatMethodSolver::vectorDiffuse(const VertexData<std::complex<double>>& rhs) {
+  ensureHaveVectorHeatSolver();
+  return VertexData<std::complex<double>>(mesh, vectorHeatSolver->solve(rhs.toVector()));
+}
+
+VertexData<double> VectorHeatMethodSolver::poissonSolve(const VertexData<double>& rhs) {
+  ensureHavePoissonSolver();
+  return VertexData<double>(mesh, poissonSolver->solve(rhs.toVector()));
+}
 
 void VectorHeatMethodSolver::addVertexOutwardBall(Vertex vert, Vector<std::complex<double>>& distGradRHS) {
 
@@ -429,6 +459,7 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& so
     }
 
     geom.unrequireHalfedgeVectorsInVertex();
+    return resultMap;
     break;
   }
   case SurfacePointType::Face: {

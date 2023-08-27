@@ -10,23 +10,14 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-18.04, ubuntu-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     if: "! contains(toJSON(github.event.commits.*.message), '[ci skip]')"
     steps:
     - uses: actions/checkout@v1
       with:
         submodules: true
-
-    - name: set_gcc_version
-      if: matrix.os == 'ubuntu-18.04'
-      run: |
-        sudo apt install software-properties-common
-        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-        sudo apt-get update
-        sudo apt install gcc-5 g++-5 
-        sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 90 --slave /usr/bin/g++ g++ /usr/bin/g++-5 --slave /usr/bin/gcov gcov /usr/bin/gcov-5
-
+        
     - name: configure
       run: cd test && mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
 

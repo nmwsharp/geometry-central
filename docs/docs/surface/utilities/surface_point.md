@@ -33,3 +33,5 @@ Surface points have a few useful utility methods:
     Returns the nearest vertex which is adjacent to this point.
 
     For surface points which are vertices, it will return the same vertex.  For surface points which are along edges, it will return one of the two incident vertices.  For surface points which are inside faces, it will return one of the three incident vertices.
+
+In addition, surface points can be used to construct [barycentric vectors](../barycentric_vector).

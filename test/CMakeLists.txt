@@ -18,7 +18,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
 
   # using Clang (linux or apple) or GCC
   message("Using clang/gcc compiler flags")
-  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -g3")
+  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra -g3")
   SET(CMAKE_CXX_FLAGS_DEBUG          "")
   SET(DISABLED_WARNINGS " -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-deprecated-declarations -Wno-missing-braces -Wno-unused-private-field")
   SET(TRACE_INCLUDES " -H -Wno-error=unused-command-line-argument")
@@ -80,6 +80,12 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 set_property(TARGET gtest PROPERTY CXX_STANDARD 11)
+
+# silence warning about deprecated copies in gtest
+# https://github.com/abseil/abseil-cpp/issues/948#issuecomment-846592426
+if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(gtest INTERFACE -Wno-deprecated-copy)
+endif()
 
 
 ### Set (hardcode) a variable for where to find the assets

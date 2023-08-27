@@ -7,8 +7,6 @@
 #include <umfpack.h>
 #endif
 
-using namespace Eigen;
-
 namespace geometrycentral {
 
 template <typename T>

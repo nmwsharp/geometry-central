@@ -38,7 +38,7 @@ inline double VertexPositionGeometry::faceArea(Face f) const {
   he = he.next();
   Vector3 pC = vertexPositions[he.vertex()];
 
-  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces mush be triangular");
+  GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
 
   double area = 0.5 * norm(cross(pB - pA, pC - pA));
   return area;
@@ -64,7 +64,7 @@ inline double VertexPositionGeometry::cornerAngle(Corner c) const {
   he = he.next();
   Vector3 pC = vertexPositions[he.vertex()];
 
-  GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces mush be triangular");
+  GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces must be triangular");
 
   double q = dot(unit(pB - pA), unit(pC - pA));
   q = clamp(q, -1.0, 1.0);
@@ -81,7 +81,7 @@ inline double VertexPositionGeometry::halfedgeCotanWeight(Halfedge heI) const {
     Vector3 pC = vertexPositions[he.vertex()];
     he = he.next();
     Vector3 pA = vertexPositions[he.vertex()];
-    GC_SAFETY_ASSERT(he.next() == heI, "faces mush be triangular");
+    GC_SAFETY_ASSERT(he.next() == heI, "faces must be triangular");
 
     Vector3 vecR = pB - pA;
     Vector3 vecL = pC - pA;
@@ -198,6 +198,16 @@ inline double VertexPositionGeometry::vertexPrincipalCurvature(int whichCurvatur
     return std::min(k1, k2);
   else
     return std::max(k1, k2);
+}
+
+inline Vector3 VertexPositionGeometry::vertexDualMeanCurvatureNormal(Vertex v) const {
+  // WARNING: Logic duplicated between cached and immediate version
+  Vector3 hN = Vector3::zero();
+  for (Halfedge he : v.outgoingHalfedges()) {
+    double w = edgeCotanWeight(he.edge());
+    hN += w * (vertexPositions[v] - vertexPositions[he.tipVertex()]) / 2.;
+  }
+  return hN;
 }
 
 } // namespace surface

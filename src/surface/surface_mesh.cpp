@@ -407,6 +407,38 @@ bool SurfaceMesh::isOriented() {
   return true;
 }
 
+VertexData<bool> SurfaceMesh::getVertexManifoldStatus() {
+  VertexData<bool> vertexIsManifold(*this);
+  for (Vertex v : vertices()) {
+    vertexIsManifold[v] = v.isManifold();
+  }
+  return vertexIsManifold;
+}
+
+EdgeData<bool> SurfaceMesh::getEdgeManifoldStatus() {
+  EdgeData<bool> edgeIsManifold(*this);
+  for (Edge e : edges()) {
+    edgeIsManifold[e] = e.isManifold();
+  }
+  return edgeIsManifold;
+}
+
+EdgeData<bool> SurfaceMesh::getEdgeOrientedStatus() {
+  EdgeData<bool> edgeIsOriented(*this);
+  for (Edge e : edges()) {
+    edgeIsOriented[e] = e.isManifold() && e.isOriented();
+  }
+  return edgeIsOriented;
+}
+
+VertexData<bool> SurfaceMesh::getVertexBoundaryStatus() {
+  VertexData<bool> vertexIsBoundary(*this);
+  for (Vertex v : vertices()) {
+    vertexIsBoundary[v] = v.isBoundary();
+  }
+  return vertexIsBoundary;
+}
+
 size_t SurfaceMesh::nConnectedComponents() {
   VertexData<size_t> vertInd = getVertexIndices();
   DisjointSets dj(nVertices());
@@ -848,10 +880,10 @@ bool SurfaceMesh::flip(Edge eFlip, bool preventSelfEdges) {
   if (preventSelfEdges) {
     // If enabled, make sure it is not a duplicate
     for (Vertex v : vc.adjacentVertices()) {
-      if(v == vd) return false;
+      if (v == vd) return false;
     }
   }
-  
+
   Face fa = ha1.face();
   Face fb = hb1.face();
 
@@ -1908,6 +1940,10 @@ void SurfaceMesh::compress() {
   compressFaces();
   compressVertices();
   isCompressedFlag = true;
+
+  for (auto& f : compressCallbackList) {
+    f();
+  }
 }
 
 

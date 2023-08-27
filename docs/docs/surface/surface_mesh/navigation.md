@@ -15,17 +15,17 @@ Use these routines to iterate over all of the elements in the mesh.
     ```
 
 ??? func "`#!cpp SurfaceMesh::halfedges()`"
-    Iterate over all of the halfedges in a mesh (both real and imaginary, if the mesh has boundary).
+    Iterate over all of the halfedges in a mesh (both interior and exterior, if the mesh has boundary).
     ```cpp
     for(Halfedge he : mesh.halfedges()) {
       // do science here
     }
     ```
 
-??? func "`#!cpp SurfaceMesh::realHalfedges()`"
-    Iterate over the real halfedges in a mesh.
+??? func "`#!cpp SurfaceMesh::interiorHalfedges()`"
+    Iterate over the interior halfedges in a mesh.
     ```cpp
-    for(Halfedge he : mesh.realHalfedges()) {
+    for(Halfedge he : mesh.interiorHalfedges()) {
       // do science here
     }
     ```

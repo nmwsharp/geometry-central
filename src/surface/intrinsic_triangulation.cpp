@@ -58,6 +58,8 @@ void IntrinsicTriangulation::setMarkedEdges(const EdgeData<bool>& markedEdges_) 
   markedEdges.setDefault(false);
 }
 
+void IntrinsicTriangulation::clearMarkedEdges() { markedEdges = EdgeData<bool>(); }
+
 // ======================================================
 // ======== Queries & Accessors
 // ======================================================
@@ -184,6 +186,25 @@ Face IntrinsicTriangulation::getParentFace(Face f) const {
   return Face();
 }
 
+double IntrinsicTriangulation::getCornerAngle(Corner c) const {
+  Halfedge heA = c.halfedge();
+  Halfedge heOpp = heA.next();
+  Halfedge heB = heOpp.next();
+
+  GC_SAFETY_ASSERT(heB.next() == heA, "faces must be triangular");
+
+  double lOpp = edgeLengths[heOpp.edge()];
+  double lA = edgeLengths[heA.edge()];
+  double lB = edgeLengths[heB.edge()];
+
+  double angleCosine = (lA * lA + lB * lB - lOpp * lOpp) / (2. * lA * lB);
+  angleCosine = clamp(angleCosine, -1.0, 1.0);
+
+  double angle = std::acos(angleCosine);
+
+  return angle;
+}
+
 double IntrinsicTriangulation::minAngleDegreesAtValidFaces(double minAngleSum) const {
   auto faceHasLargeAngleSums = [&](Face f) -> bool {
     for (Vertex v : f.adjacentVertices()) {
@@ -269,6 +290,37 @@ Vertex IntrinsicTriangulation::insertBarycenter(Face f) {
   return insertVertex(barycenterOnIntrinsic);
 }
 
+std::vector<double> IntrinsicTriangulation::recoverTraceTValues(const std::vector<SurfacePoint>& edgeTrace) {
+  std::vector<double> tVals(edgeTrace.size());
+
+  // Walk along the curve, measuring the length of each segment from its barcentric coordinates and the geometry of the
+  // underlying triangulation
+  tVals[0] = 0.;
+  for (size_t iP = 0; iP + 1 < edgeTrace.size(); iP++) {
+    SurfacePoint prev = edgeTrace[iP];
+    SurfacePoint next = edgeTrace[iP + 1];
+    Face f = sharedFace(prev, next);
+    prev = prev.inFace(f);
+    next = next.inFace(f);
+
+    // lengths[i] is the length of the edge opposite the i'th vertex
+    Vector3 triangleLengths{inputGeom.edgeLengths[f.halfedge().next().edge()],
+                            inputGeom.edgeLengths[f.halfedge().next().next().edge()],
+                            inputGeom.edgeLengths[f.halfedge().edge()]};
+    Vector3 disp = next.faceCoords - prev.faceCoords;
+    double len = displacementLength(disp, triangleLengths);
+    tVals[iP + 1] = tVals[iP] + len;
+  }
+
+  // normalize to [0,1]
+  double totalLen = tVals.back();
+  for (double& t : tVals) {
+    t /= totalLen;
+  }
+
+  return tVals;
+}
+
 // ======================================================
 // ======== High-Level Mutators
 // ======================================================
@@ -325,9 +377,33 @@ void IntrinsicTriangulation::delaunayRefine(double angleThreshDegrees, double ci
   // Build a function to test if a face violates the circumradius ratio condition
   auto needsCircumcenterRefinement = [&](Face f) {
     size_t nNeedle = 0;
-    for (Vertex v : f.adjacentVertices()) {
-      if (vertexAngleSums[v] < M_PI / 3.) nNeedle++;
+    // for (Vertex v : f.adjacentVertices()) {
+    //   if (vertexAngleSums[v] < M_PI / 3.) nNeedle++;
+    // }
+    // std::cout << "face check begin" << std::endl;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      double angleSum = 0;
+      Halfedge heCurr = he;
+      // std::cout << "Loop 1 begin" << std::endl;
+      do {
+        angleSum += cornerAngle(heCurr.corner());
+        heCurr = heCurr.next().next().twin();
+      } while (heCurr != he && !isFixed(heCurr.edge()));
+      // std::cout << "Loop 1 end" << std::endl;
+
+      if (heCurr != he && !isFixed(he.edge())) {
+        // std::cout << "Loop 2 begin" << std::endl;
+        heCurr = he;
+        do {
+          heCurr = heCurr.twin().next();
+          angleSum += cornerAngle(heCurr.corner());
+        } while (!isFixed(heCurr.edge()));
+        // std::cout << "Loop 2 end" << std::endl;
+      }
+
+      if (angleSum < M_PI / 3.) nNeedle++;
     }
+    // std::cout << "face check end" << std::endl;
     if (nNeedle == 1) return false;
 
     Face inputFace = getParentFace(f);

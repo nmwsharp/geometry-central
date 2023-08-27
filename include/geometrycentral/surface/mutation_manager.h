@@ -106,6 +106,45 @@ public:
   // Create a connectivity-only mutation manager, which does not touch any geometry by default
   MutationManager(ManifoldSurfaceMesh& mesh);
 
+  // ======================================================
+  // ======== Constraints
+  // ======================================================
+
+  // Set up callbacks to update edge constraint data following an edge split
+  // TODO: work out sane policies for updating after other operations?
+  void setConstraintCallbacks();
+
+  // Vertices which are allowed to be repositioned.
+  // (set to an array which holds true if a vertex may be moved, and false if it should stay fixed)
+  // Note that this array may be uninitialized, in which case all vertices are allowed to be repositioned
+  // By default, any newly created vertices are repositionable, unless otherwise specified
+  // Warning: this prevents vertices from being moved by calls to `repositionVertex()`, and also prevents incident edges
+  // from being collapsed (since this might move the vertex)
+  VertexData<bool> repositionableVertices;
+  void setRepositionableVertices(const VertexData<bool>& repositionableVertex, bool defaultValue = true);
+  void clearRepositionableVertices();
+  bool mayRepositionVertex(Vertex v) const;
+
+  EdgeData<bool> splittableEdges;
+  void setSplittableEdges(const EdgeData<bool>& splittableEdge, bool defaultValue = true);
+  void clearSplittableEdges();
+  bool maySplitEdge(Edge e) const;
+
+  EdgeData<bool> collapsibleEdges;
+  void setCollapsibleEdges(const EdgeData<bool>& collapsibleEdge, bool defaultValue = true);
+  void clearCollapsibleEdges();
+  bool mayCollapseEdge(Edge e) const;
+
+  EdgeData<bool> flippableEdges;
+  void setFlippableEdges(const EdgeData<bool>& flippableEdge, bool defaultValue = true);
+  void clearFlippableEdges();
+  bool mayFlipEdge(Edge e) const;
+
+  FaceData<bool> splittableFaces;
+  void setSplittableFaces(const FaceData<bool>& splittableFace, bool defaultValue = true);
+  void clearSplittableFaces();
+  bool maySplitFace(Face f) const;
+
 
   // ======================================================
   // ======== Low-level mutations
@@ -117,7 +156,8 @@ public:
   // many of these, since each adds the burden of a corresponding callback policy to update data.
 
   // Move a vertex in 3D space
-  void repositionVertex(Vertex vert, Vector3 offset);
+  // Returns true if vertex was repositioned (May return false if, e.g., repositionalVertices[vert] is false)
+  bool repositionVertex(Vertex vert, Vector3 offset);
 
   // Flip an edge.
   bool flipEdge(Edge e);
@@ -128,20 +168,25 @@ public:
   // to `tSplit`.
   // In general, both the `tSplit` and the `newVertexPosition` are used; `tSplit` is necessary to allow callbacks to
   // interpolate data; if called with either the other will be inferred.
-  void splitEdge(Edge e, double tSplit);
-  void splitEdge(Edge e, Vector3 newVertexPosition);
-  void splitEdge(Edge e, double tSplit, Vector3 newVertexPosition);
+  // Returns the new halfedge which points away from the new vertex (so he.vertex() is the new vertex), and is the same
+  // direction as e.halfedge() on the original edge. The halfedge direction of the other part of the new split edge is
+  // also preserved.
+  // Returns Halfedge() if edge was not split (e.g. if splittableEdges[e] is false)
+  Halfedge splitEdge(Edge e, double tSplit);
+  Halfedge splitEdge(Edge e, Vector3 newVertexPosition);
+  Halfedge splitEdge(Edge e, double tSplit, Vector3 newVertexPosition);
 
   // Collapse an edge.
-  // Returns true if the edge could actually be collapsed.
-  bool collapseEdge(Edge e, double tCollapse);
-  bool collapseEdge(Edge e, Vector3 newVertexPosition);
-  bool collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition);
+  // Returns the new vertex if the edge could be collapsed, and Vertex() otherwise
+  Vertex collapseEdge(Edge e, double tCollapse);
+  Vertex collapseEdge(Edge e, Vector3 newVertexPosition);
+  Vertex collapseEdge(Edge e, double tCollapse, Vector3 newVertexPosition);
 
-  // Split a face (i.e. insert a vertex into the face)
-  void splitFace(Face f, const std::vector<double>& bSplit);
-  void splitFace(Face f, Vector3 newVertexPosition);
-  void splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
+  // Split a face (i.e. insert a vertex into the face), and return the new vertex
+  // Returns Vertex() if face was not split (e.g. if splittableFaces[f] is false)
+  Vertex splitFace(Face f, const std::vector<double>& bSplit);
+  Vertex splitFace(Face f, Vector3 newVertexPosition);
+  Vertex splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
 
   // ======================================================
   // ======== High-level mutations

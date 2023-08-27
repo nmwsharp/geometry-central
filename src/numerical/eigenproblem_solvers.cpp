@@ -3,9 +3,6 @@
 #include "geometrycentral/numerical/linear_algebra_utilities.h"
 
 
-using namespace Eigen;
-
-
 namespace geometrycentral {
 
 // Helper

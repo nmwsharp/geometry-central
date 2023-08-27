@@ -269,6 +269,7 @@ SurfacePoint SignpostIntrinsicTriangulation::equivalentPointOnInput(const Surfac
 // ======== Queries & Accessors
 // ======================================================
 
+bool SignpostIntrinsicTriangulation::checkEdgeOriginal(Edge e) const { return edgeIsOriginal[e]; }
 
 // ======================================================
 // ======== Mutators
@@ -735,7 +736,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     outgoingVec = -inputTraceResult.endingDir;
   }
 
-
   // Set the location of our newly inserted vertex
   vertexLocations[newV] = newPositionOnInput;
 
@@ -757,35 +757,6 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
     if (!currHe.isInterior()) break;
     currHe = currHe.next().next().twin();
   } while (currHe != firstHe);
-}
-
-std::vector<double> SignpostIntrinsicTriangulation::recoverTraceTValues(const std::vector<SurfacePoint>& edgeTrace) {
-  std::vector<double> tVals(edgeTrace.size());
-
-  // Walk along the curve, measuring the length of each segment from its barcentric coordinates and the geometry of the
-  // underlying triangulation
-  tVals[0] = 0.;
-  for (size_t iP = 1; iP + 1 < edgeTrace.size(); iP++) {
-    SurfacePoint prev = edgeTrace[iP - 1];
-    SurfacePoint next = edgeTrace[iP];
-    Face f = sharedFace(prev, next);
-    prev = prev.inFace(f);
-    next = next.inFace(f);
-    Vector3 triangleLengths{inputGeom.edgeLengths[f.halfedge().edge()],
-                            inputGeom.edgeLengths[f.halfedge().next().edge()],
-                            inputGeom.edgeLengths[f.halfedge().next().next().edge()]};
-    Vector3 disp = next.faceCoords - prev.faceCoords;
-    double len = displacementLength(disp, triangleLengths);
-    tVals[iP] = tVals[iP - 1] + len;
-  }
-
-  // normalize to [0,1]
-  double totalLen = tVals.back();
-  for (double& t : tVals) {
-    t /= totalLen;
-  }
-
-  return tVals;
 }
 
 void SignpostIntrinsicTriangulation::constructCommonSubdivision() {

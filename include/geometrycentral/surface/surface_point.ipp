@@ -111,7 +111,7 @@ inline SurfacePoint SurfacePoint::inFace(Face targetFace) const {
   case SurfacePointType::Edge: {
 
     double thisT = tEdge;
-    for (Halfedge targetHe : {edge.halfedge(), edge.halfedge().twin()}) {
+    for (Halfedge targetHe : edge.adjacentHalfedges()) {
 
       int i = 0;
       for (Halfedge he : targetFace.adjacentHalfedges()) {
@@ -147,6 +147,27 @@ inline SurfacePoint SurfacePoint::inFace(Face targetFace) const {
   return *this;
 }
 
+inline SurfacePoint SurfacePoint::inEdge(Edge targetEdge) const {
+  switch (type) {
+  case SurfacePointType::Vertex:
+    if (vertex == targetEdge.halfedge().tailVertex()) {
+      return SurfacePoint(targetEdge, 0);
+    } else if (vertex == targetEdge.halfedge().tipVertex()) {
+      return SurfacePoint(targetEdge, 1);
+    }
+    break;
+  case SurfacePointType::Edge:
+    if (edge == targetEdge) {
+      return *this;
+    }
+    break;
+  default:
+    break;
+  }
+  throw std::logic_error("SurfacePoint " + std::to_string(*this) + " not adjacent to target edge " +
+                         std::to_string(targetEdge));
+  return *this;
+}
 
 inline Vertex SurfacePoint::nearestVertex() const {
 
@@ -266,11 +287,8 @@ inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
 
   case SurfacePointType::Edge:
 
-    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().face(), Vector3::zero()), pB)) {
-      return pA.edge.halfedge().face();
-    }
-    if (checkAdjacent(SurfacePoint(pA.edge.halfedge().twin().face(), Vector3::zero()), pB)) {
-      return pA.edge.halfedge().twin().face();
+    for (Face f : pA.edge.adjacentFaces()) {
+      if (checkAdjacent(SurfacePoint(f, Vector3::zero()), pB)) return f;
     }
     break;
 
@@ -282,6 +300,53 @@ inline Face sharedFace(const SurfacePoint& pA, const SurfacePoint& pB) {
   // no shared face
   return Face();
 }
+
+inline Edge sharedEdge(const SurfacePoint& pA, const SurfacePoint& pB) {
+
+  if (pA.type == SurfacePointType::Face || pB.type == SurfacePointType::Face) return Edge();
+
+  // This is kind of ugly code, esp. since there's only two options for the switch statement. But a nested-if looks even
+  // worse...
+  switch (pA.type) {
+  case SurfacePointType::Vertex: {
+    switch (pB.type) {
+    case SurfacePointType::Vertex:
+      for (Halfedge he : pA.vertex.outgoingHalfedges()) {
+        if (he.tipVertex() == pB.vertex) return he.edge();
+      }
+      break;
+    case SurfacePointType::Edge:
+      for (Edge e : pA.vertex.adjacentEdges()) {
+        if (e == pB.edge) return e;
+      }
+      break;
+    default:
+      break;
+    }
+    break;
+  }
+  case SurfacePointType::Edge: {
+    switch (pB.type) {
+    case SurfacePointType::Vertex:
+      for (Edge e : pB.vertex.adjacentEdges()) {
+        if (e == pB.edge) return e;
+      }
+      break;
+    case SurfacePointType::Edge:
+      if (pA.edge == pB.edge) return pA.edge;
+      break;
+    default:
+      break;
+    }
+    break;
+  }
+  default:
+    break;
+  }
+
+  // no shared edge
+  return Edge();
+}
 } // namespace surface
 } // namespace geometrycentral
 
@@ -292,4 +357,3 @@ inline std::string to_string(geometrycentral::surface::SurfacePoint p) {
   return output.str();
 }
 } // namespace std
-

@@ -6,10 +6,6 @@
 #include "geometrycentral/numerical/suitesparse_utilities.h"
 #endif
 
-using namespace Eigen;
-using std::cout;
-using std::endl;
-
 namespace geometrycentral {
 
 template <typename T>

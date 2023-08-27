@@ -52,11 +52,6 @@ inline Vector2 baryCoordsToFaceCoords(const std::array<Vector2, 3>& vertCoords, 
   return vertCoords[0] * baryCoord.x + vertCoords[1] * baryCoord.y + vertCoords[2] * baryCoord.z;
 }
 
-inline Vector2 barycentricDisplacementToCartesian(const std::array<Vector2, 3>& vertCoords, Vector3 baryVec) {
-  // Note: happens to be the same as baryCoordsToFaceCoords()
-  return vertCoords[0] * baryVec.x + vertCoords[1] * baryVec.y + vertCoords[2] * baryVec.z;
-}
-
 inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
 
 
@@ -207,6 +202,7 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     result.terminated = true;
     result.endPoint = SurfacePoint(face, endPoint);
     result.incomingDirToPoint = vecCartesianDir;
+    result.traceVectorInHalfedgeLen = 0;
     return result;
   }
 
@@ -272,6 +268,7 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     result.terminated = true;
     result.endPoint = SurfacePoint(face, startPoint);
     result.incomingDirToPoint = vecCartesianDir;
+    result.traceVectorInHalfedgeLen = 0;
     return result;
   }
 
@@ -310,6 +307,7 @@ inline TraceSubResult traceInFaceBarycentric(IntrinsicGeometryInterface& geom, F
     result.terminated = true;
     result.endPoint = SurfacePoint(crossHe.edge(), convertTToEdge(crossHe, tCross));
     result.incomingDirToPoint = remainingDirInHalfedge;
+    result.traceVectorInHalfedgeLen = lenRemaining;
 
     return result;
   }
@@ -638,6 +636,11 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
       // Use the last trace as ending data
       result.endPoint = SurfacePoint(prevTraceEnd.crossHe, prevTraceEnd.tCross);
       result.endingDir = prevTraceEnd.traceVectorInHalfedgeDir;
+      result.length -= prevTraceEnd.traceVectorInHalfedgeLen;
+
+      if (traceOptions.includePath) {
+        result.pathPoints.push_back(result.endPoint);
+      }
 
       return;
     }
@@ -667,6 +670,9 @@ void traceGeodesic_iterative(IntrinsicGeometryInterface& geom, TraceGeodesicResu
   }
   result.endPoint = prevTraceEnd.endPoint;
   result.endingDir = prevTraceEnd.incomingDirToPoint;
+
+  // if we still have remaining length, subtract off from result length
+  result.length -= prevTraceEnd.traceVectorInHalfedgeLen;
 
   // if (std::abs(norm(result.endingDir) - 1.) > .1) throw std::runtime_error("norm problem");
 
@@ -700,6 +706,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
     geom.unrequireHalfedgeVectorsInFace();
 
     result.endingDir = Vector2::zero();
+    result.length = 0;
 
     // probably want to ensure we still return a point in a face...
     if (traceOptions.errorOnProblem) {
@@ -709,6 +716,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, SurfacePoint
     return result;
   }
 
+  result.length = norm(traceVec); // store length in result for now
 
   // Trace the first point, based on what kind of input we got
   TraceSubResult prevTraceEnd;
@@ -772,6 +780,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
     }
 
     result.endingDir = Vector2::zero();
+    result.length = 0;
     return result;
   }
 
@@ -782,6 +791,7 @@ TraceGeodesicResult traceGeodesic(IntrinsicGeometryInterface& geom, Face startFa
   // Construct the cartesian equivalent
   std::array<Vector2, 3> vertexCoords = vertexCoordinatesInTriangle(geom, startFace);
   Vector2 traceVectorCartesian = barycentricDisplacementToCartesian(vertexCoords, traceBaryVec);
+  result.length = norm(traceVectorCartesian); // store length in result for now
 
   // Trace the first point starting inside the face
   TraceSubResult prevTraceEnd =

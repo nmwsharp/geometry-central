@@ -12,11 +12,12 @@ namespace surface {
 EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) : 
   ExtrinsicGeometryInterface(mesh_),
 
-  vertexPositionsQ      (&vertexPositions,      std::bind(&EmbeddedGeometryInterface::computeVertexPositions, this),        quantities),
-  faceNormalsQ          (&faceNormals,          std::bind(&EmbeddedGeometryInterface::computeFaceNormals, this),            quantities),
-  vertexNormalsQ        (&vertexNormals,        std::bind(&EmbeddedGeometryInterface::computeVertexNormals, this),          quantities),
-  faceTangentBasisQ     (&faceTangentBasis,     std::bind(&EmbeddedGeometryInterface::computeFaceTangentBasis, this),       quantities),
-  vertexTangentBasisQ   (&vertexTangentBasis,   std::bind(&EmbeddedGeometryInterface::computeVertexTangentBasis, this),     quantities)
+  vertexPositionsQ                (&vertexPositions,                std::bind(&EmbeddedGeometryInterface::computeVertexPositions, this),                quantities),
+  faceNormalsQ                    (&faceNormals,                    std::bind(&EmbeddedGeometryInterface::computeFaceNormals, this),                    quantities),
+  vertexNormalsQ                  (&vertexNormals,                  std::bind(&EmbeddedGeometryInterface::computeVertexNormals, this),                  quantities),
+  faceTangentBasisQ               (&faceTangentBasis,               std::bind(&EmbeddedGeometryInterface::computeFaceTangentBasis, this),               quantities),
+  vertexTangentBasisQ             (&vertexTangentBasis,             std::bind(&EmbeddedGeometryInterface::computeVertexTangentBasis, this),             quantities),
+  vertexDualMeanCurvatureNormalsQ (&vertexDualMeanCurvatureNormals, std::bind(&EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals, this), quantities)
   
   {}
 // clang-format on
@@ -208,6 +209,35 @@ void EmbeddedGeometryInterface::computeVertexTangentBasis() {
 }
 void EmbeddedGeometryInterface::requireVertexTangentBasis() { vertexTangentBasisQ.require(); }
 void EmbeddedGeometryInterface::unrequireVertexTangentBasis() { vertexTangentBasisQ.unrequire(); }
+
+void EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals() {
+  edgeCotanWeightsQ.ensureHave();
+  vertexPositionsQ.ensureHave();
+
+  vertexDualMeanCurvatureNormals = VertexData<Vector3>(mesh, Vector3::zero());
+
+  // These are defined by the property that the mean curvature normals are the (half) the laplacian of the vertex
+  // positions
+  // WARNING: this means that vertexMeanCurvatures != vertexMeanCurvatureNormals.norm()
+
+  // Rather than building the whole cotan laplacian, we evaluate 0.5 * L * positions using our edge cotan weights
+  for (Edge e : mesh.edges()) {
+    double w = edgeCotanWeights[e];
+
+    Vertex vTail = e.halfedge().tailVertex();
+    Vertex vTip = e.halfedge().tipVertex();
+
+    Vector3 pTail = vertexPositions[vTail];
+    Vector3 pTip = vertexPositions[vTip];
+
+    vertexDualMeanCurvatureNormals[vTail] += w * (pTail - pTip) / 2;
+    vertexDualMeanCurvatureNormals[vTip] += w * (pTip - pTail) / 2;
+  }
+}
+void EmbeddedGeometryInterface::requireVertexDualMeanCurvatureNormals() { vertexDualMeanCurvatureNormalsQ.require(); }
+void EmbeddedGeometryInterface::unrequireVertexDualMeanCurvatureNormals() {
+  vertexDualMeanCurvatureNormalsQ.unrequire();
+}
 
 
 // == Overrides to compute things better using vertex positions
