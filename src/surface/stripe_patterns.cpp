@@ -462,7 +462,8 @@ extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const Cor
   std::vector<Vector3> points;
   std::vector<std::array<int, 2>> edges;
   EdgeData<std::vector<int>> indicesPerEdge;
-  std::tie(points, edges, indicesPerEdge) = extractCrossingsFromStripePattern(geometry, values, stripeIndices);
+  std::tie(points, edges, indicesPerEdge) =
+      extractCrossingsFromStripePattern(geometry, values, stripeIndices, fieldIndices);
 
   if (connectOnSingularities) {
     // convert vertex-based direction field to a face-based representation
