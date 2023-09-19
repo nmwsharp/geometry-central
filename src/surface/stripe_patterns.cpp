@@ -248,220 +248,276 @@ computeStripePattern(IntrinsicGeometryInterface& geometry, const VertexData<doub
 namespace {
 
 // lists all the k's \in \mathbb{Z} such that val1 < 2 k \pi < val2 or val2 < 2 k \pi < val1
-std::vector<std::pair<double, int>> crossingsModulo2Pi(double val1, double val2) {
-  std::vector<std::pair<double, int>> barys;
+std::vector<double> crossingsModulo2Pi(double val1, double val2) {
+  std::vector<double> barys;
   if (val1 == val2) return barys;
 
   int maxCrossings = std::ceil(std::abs(val1 - val2) / (2 * PI));
 
-  for (int i = 0; i < maxCrossings; ++i) {
-    int k = std::ceil(std::min(val1, val2) / (2 * PI)) + i;
-    double isoval = 2 * PI * k;
+  if (val1 < val2) {
+    for (int i = 0; i < maxCrossings; ++i) {
+      int k = std::ceil(val1 / (2 * PI)) + i;
+      double isoval = 2 * PI * k;
 
-    if (std::max(val1, val2) > isoval) {
-      barys.emplace_back((isoval - val2) / (val1 - val2), k);
+      if (isoval < val2) {
+        barys.push_back((isoval - val2) / (val1 - val2));
+      }
+    }
+  } else {
+    for (int i = maxCrossings - 1; i >= 0; --i) {
+      int k = std::ceil(val2 / (2 * PI)) + i;
+      double isoval = 2 * PI * k;
+
+      if (isoval < val1) {
+        barys.push_back((isoval - val2) / (val1 - val2));
+      }
     }
   }
+
   return barys;
 }
 
-std::tuple<std::vector<Vector3>, std::vector<std::array<int, 2>>, EdgeData<std::vector<int>>>
+// Matches crossings based on a strategy proposed in "Navigating intrinsic triangulations" [Sharp et al. 2019].
+// See https://github.com/nmwsharp/geometry-central/pull/89#issuecomment-936150222 for more details
+std::vector<std::array<size_t, 2>> matchCrossings(const std::vector<std::vector<size_t>>& crossings) {
+  assert(crossings.size() == 3);
+
+  int idxIJ = 2;
+  if (crossings[0].size() >= crossings[1].size() && crossings[0].size() >= crossings[2].size()) {
+    idxIJ = 0;
+  } else if (crossings[1].size() >= crossings[2].size() && crossings[1].size() >= crossings[0].size()) {
+    idxIJ = 1;
+  }
+  int idxJK = (idxIJ + 1) % 3;
+  int idxKI = (idxIJ + 2) % 3;
+
+  const std::vector<size_t>& IJ = crossings[idxIJ];
+  const std::vector<size_t>& JK = crossings[idxJK];
+  const std::vector<size_t>& KI = crossings[idxKI];
+
+  int nIJ = IJ.size();
+  int nJK = JK.size();
+  int nKI = KI.size();
+
+  assert(nIJ >= nJK && nIJ >= nKI);
+  assert(nIJ <= nJK + nKI);
+  assert((nIJ + nJK + nKI) % 2 == 0);
+
+  std::vector<std::array<size_t, 2>> matchings;
+  if (nIJ == nJK + nKI) { // Case 1: all edges intersecting ijk cross a common edge ij
+    // match IJ with IK
+    for (int m = 0; m < nKI; ++m) {
+      matchings.push_back({IJ[m], KI[nKI - m - 1]});
+    }
+    // match IJ with KJ
+    for (int m = 0; m < nJK; ++m) {
+      matchings.push_back({IJ[nKI + m], JK[nJK - m - 1]});
+    }
+  } else { // Case 2: there is no common edge
+    int nRemainingCrossings = (nIJ + nJK + nKI) / 2;
+    int m = 0;
+    while (nRemainingCrossings > nJK) {
+      matchings.push_back({IJ[m], KI[nKI - m - 1]});
+      ++m;
+      nRemainingCrossings -= 1;
+    }
+
+    int l = 0;
+    while (nRemainingCrossings > nKI - m) {
+      matchings.push_back({IJ[nIJ - 1 - l], JK[l]});
+      nRemainingCrossings -= 1;
+      ++l;
+    }
+
+    int p = 0;
+    while (nRemainingCrossings > 0) {
+      matchings.push_back({JK[nJK - 1 - p], KI[p]});
+      ++p;
+      nRemainingCrossings -= 1;
+    }
+  }
+
+  return matchings;
+}
+
+std::tuple<std::vector<Vector3>, std::vector<std::array<size_t, 2>>, EdgeData<std::vector<size_t>>>
 extractCrossingsFromStripePattern(EmbeddedGeometryInterface& geometry, const CornerData<double>& stripeValues,
                                   const FaceData<int>& stripeIndices, const FaceData<int>& fieldIndices) {
   SurfaceMesh& mesh = geometry.mesh;
 
   std::vector<Vector3> vertices;
-  std::vector<std::array<int, 2>> edges;
+  std::vector<std::array<size_t, 2>> edges;
   // list of per-edge indices pointing to the vertices list
-  EdgeData<std::vector<int>> polylineIndices(mesh);
+  EdgeData<std::vector<size_t>> polylineIndices(mesh);
 
   for (Face f : mesh.faces()) {
     if (stripeIndices[f] != 0 || fieldIndices[f] != 0) continue; // singularities are ignored in this function
 
-    std::vector<int> faceIsovalues;
-    std::vector<int> edgeIndices;
+    std::vector<std::vector<size_t>> edgeIndices(3);
+    int idx = 0;
     for (Halfedge he : f.adjacentHalfedges()) {
       // list all the crossings along halfedge he
-      std::vector<std::pair<double, int>> isoPoints =
-          crossingsModulo2Pi(stripeValues[he.corner()], stripeValues[he.next().corner()]);
+      std::vector<double> isoPoints = crossingsModulo2Pi(stripeValues[he.corner()], stripeValues[he.next().corner()]);
 
-      // add them to vertices and isovalues lists
-      for (const auto& pair : isoPoints) {
-        faceIsovalues.push_back(pair.second);
-      }
       // only add new isoline vertices if he.edge() has not yet been visited
       if (polylineIndices[he.edge()].size() == 0) {
         // add polyline vertex indices to the corresponding edge
-        for (const auto& pair : isoPoints) {
-          double bary = pair.first;
+        for (double bary : isoPoints) {
           polylineIndices[he.edge()].push_back(vertices.size());
           vertices.push_back(bary * geometry.vertexPositions[he.tailVertex()] +
                              (1 - bary) * geometry.vertexPositions[he.tipVertex()]);
         }
-        edgeIndices.insert(edgeIndices.end(), polylineIndices[he.edge()].begin(), polylineIndices[he.edge()].end());
+        edgeIndices[idx] = polylineIndices[he.edge()];
+      } else {
+        edgeIndices[idx].insert(edgeIndices[idx].end(), polylineIndices[he.edge()].rbegin(),
+                                polylineIndices[he.edge()].rend());
       }
-      // otherwise reuse the existing polylineIndices to build the edgeIndices
-      else {
-        // need to make sure the polylineIndices are enumerated in the right order, otherwise we flip them
-        if (stripeValues[he.corner()] < stripeValues[he.next().corner()] &&
-                stripeValues[he.twin().corner()] < stripeValues[he.twin().next().corner()] ||
-            stripeValues[he.corner()] > stripeValues[he.next().corner()] &&
-                stripeValues[he.twin().corner()] > stripeValues[he.twin().next().corner()])
-          edgeIndices.insert(edgeIndices.end(), polylineIndices[he.edge()].rbegin(), polylineIndices[he.edge()].rend());
-        else
-          edgeIndices.insert(edgeIndices.end(), polylineIndices[he.edge()].begin(), polylineIndices[he.edge()].end());
-      }
+      ++idx;
     }
 
-    // build up list of edges
-    std::vector<bool> visited(faceIsovalues.size(), false);
-    std::vector<std::array<int, 2>> faceEdges;
-    // match vertices by their isovalues (if point hasn't been visited yet, find the one which has the same isovalue)
-    for (int i = 0; i < faceIsovalues.size(); ++i) {
-      if (visited[i]) continue;
-
-      visited[i] = true;
-      // find the (unique) point with index j which has the same isovalue as point i
-      for (int j = i; j < faceIsovalues.size(); ++j) {
-        if (visited[j]) continue;
-
-        if (faceIsovalues[j] == faceIsovalues[i]) {
-          visited[j] = true;
-          faceEdges.push_back({edgeIndices[i], edgeIndices[j]});
-        }
-      }
-    }
-    edges.insert(edges.end(), faceEdges.begin(), faceEdges.end());
+    std::vector<std::array<size_t, 2>> matchings = matchCrossings(edgeIndices);
+    edges.insert(edges.end(), matchings.begin(), matchings.end());
   }
   return std::make_tuple(vertices, edges, polylineIndices);
 }
 
+// Returns positions of maximum values, skipping some values to focus on IJ if the triangular inequality needs to be
+// preserved. M = nIJ - nJK - nKI, should be at most 0
+std::vector<std::vector<size_t>> removeCrossings(std::vector<std::pair<double, std::array<size_t, 2>>>& values, int N,
+                                                 std::vector<std::vector<size_t>>& faceIndices) {
+  using elemType = std::pair<double, std::array<size_t, 2>>;
+  std::sort(values.begin(), values.end(), [](elemType& a, elemType& b) { return a.first > b.first; });
+
+  std::array<std::vector<bool>, 3> removed;
+  for (int i = 0; i < 3; ++i) removed[i] = std::vector<bool>(faceIndices[i].size(), false);
+
+  assert(faceIndices.size() == 3);
+  size_t idxIJ = 0;
+  if (faceIndices[1].size() >= faceIndices[2].size() && faceIndices[1].size() >= faceIndices[0].size()) {
+    idxIJ = 1;
+  } else if (faceIndices[2].size() >= faceIndices[1].size() && faceIndices[2].size() >= faceIndices[0].size()) {
+    idxIJ = 2;
+  }
+
+  int M = faceIndices[idxIJ].size() - faceIndices[(idxIJ + 1) % 3].size() - faceIndices[(idxIJ + 2) % 3].size();
+  int nbRemoved = 0; // total number of removed points
+  int i = 0;
+  while (nbRemoved < N) {
+    std::array<size_t, 2> indices = values[i].second;
+    if (indices[0] == idxIJ) {
+      --M;
+    } else {
+      if (N - nbRemoved <= M) {
+        ++i;
+        continue;
+      }
+      ++M;
+    }
+
+    removed[indices[0]][indices[1]] = true;
+    ++nbRemoved;
+    ++i;
+  }
+  assert(M <= 0);
+
+  std::vector<std::vector<size_t>> crossingIndices(3);
+  for (size_t i = 0; i < 3; ++i)
+    for (size_t j = 0; j < faceIndices[i].size(); ++j)
+      if (!removed[i][j]) crossingIndices[i].push_back(faceIndices[i][j]);
+
+  return crossingIndices;
+}
+
+// finds the minimum of abs(dot(v - w, vector)) for all points w except those on ignoredEdge
+double findMin(const std::vector<std::vector<Vector3>>& points, const Vector3& v, const Vector3& vector,
+               size_t ignoredEdge) {
+  double min = std::numeric_limits<double>::max();
+  for (size_t i = 0; i < points.size(); ++i) {
+    if (i == ignoredEdge) continue;
+    for (size_t j = 0; j < points[i].size(); ++j) {
+      Vector3 w = points[i][j];
+      if (abs(dot(v - w, vector)) < min) {
+        min = abs(dot(v - w, vector));
+      }
+    }
+  }
+  return min;
+}
 
 /**
  * This part tries to connect the isolines on singularities
- * tries to connect isolines that are (a) close together and
+ * Tries to connect isolines that are (a) close together and
  * (b) whose crossing is as aligned with the input direction field as possible
  */
 void connectIsolinesOnSingularities(EmbeddedGeometryInterface& geometry, const CornerData<double>& stripeValues,
                                     const FaceData<int>& stripeIndices, const FaceData<int>& branchIndices,
-                                    EdgeData<std::vector<int>>& polylineIndices, const FaceData<Vector3>& vectorField,
-                                    std::vector<Vector3>& points, std::vector<std::array<int, 2>>& edges) {
+                                    EdgeData<std::vector<size_t>>& polylineIndices,
+                                    const FaceData<Vector3>& vectorField, std::vector<Vector3>& vertices,
+                                    std::vector<std::array<size_t, 2>>& edges) {
   SurfaceMesh& mesh = geometry.mesh;
+  geometry.requireFaceIndices();
+
   for (Face f : mesh.faces()) {
-    if (branchIndices[f] != 0) {
-      // do nothing for now
-    } else if (stripeIndices[f] != 0) {
-      int pointsCount = 0;
-      std::vector<std::pair<std::vector<double>, Halfedge>> crossings;
+    if (stripeIndices[f] != 0) {
+      std::vector<std::vector<Vector3>> facePoints;
+      std::vector<std::vector<size_t>> faceIndices;
       for (Halfedge he : f.adjacentHalfedges()) {
-        std::vector<std::pair<double, int>> isoPoints;
+        std::vector<double> isoPoints;
         if (he.next() == f.halfedge())
           isoPoints = crossingsModulo2Pi(stripeValues[he.corner()],
                                          stripeValues[he.next().corner()] + 2 * stripeIndices[f] * PI);
         else
           isoPoints = crossingsModulo2Pi(stripeValues[he.corner()], stripeValues[he.next().corner()]);
-        pointsCount += isoPoints.size();
 
-        std::vector<double> barys;
-        for (const auto& pair : isoPoints) {
-          barys.push_back(pair.first);
+        std::vector<Vector3> points;
+        for (double bary : isoPoints) {
+          points.push_back(bary * geometry.vertexPositions[he.tailVertex()] +
+                           (1 - bary) * geometry.vertexPositions[he.tipVertex()]);
         }
-        crossings.emplace_back(barys, he);
+        if (polylineIndices[he.edge()].size() > 0) { // use the existing indices in reverse order
+          std::vector<size_t> reverseIndices(polylineIndices[he.edge()].rbegin(), polylineIndices[he.edge()].rend());
+          faceIndices.push_back(reverseIndices);
+        } else { // add the intersections to the vertices lists and initialize the corresponding list of indices
+          for (Vector3 point : points) {
+            polylineIndices[he.edge()].push_back(vertices.size());
+            vertices.push_back(point);
+          }
+          faceIndices.push_back(polylineIndices[he.edge()]);
+        }
+        facePoints.push_back(points);
       }
 
-      std::array<std::vector<Vector3>, 3> facePoints;
-      std::array<std::vector<int>, 3> faceIndices;
-      int idx = 0;
-      bool ignoreFace = false;
-      std::sort(crossings.begin(), crossings.end(),
-                [](std::pair<std::vector<double>, Halfedge> a, std::pair<std::vector<double>, Halfedge> b) {
-                  return a.first.size() > b.first.size();
-                });
-
-      for (auto crossing : crossings) {
-        if (crossing.first.size() == 0) continue;
-        Halfedge he = crossing.second;
-
-        for (double bary : crossing.first) {
-          facePoints[idx].push_back(bary * geometry.vertexPositions[he.tailVertex()] +
-                                    (1 - bary) * geometry.vertexPositions[he.tipVertex()]);
+      // compute minimum of abs(dot(v - w, vectorField[f])) for all pairs v, w
+      std::vector<std::pair<double, std::array<size_t, 2>>> minValues;
+      for (size_t i = 0; i < 3; ++i) {
+        for (size_t j = 0; j < facePoints[i].size(); ++j) {
+          Vector3 v = facePoints[i][j];
+          double min = findMin(facePoints, v, vectorField[f], i);
+          minValues.push_back({min, {i, j}});
         }
-
-        if (polylineIndices[he.edge()].size() > 0) { // use the existing indices
-          // need to make sure the polylineIndices are enumerated in the right order, otherwise we flip them
-          if (norm(facePoints[idx][0] - points[polylineIndices[he.edge()][0]]) > 1e-6) {
-            faceIndices[idx].insert(faceIndices[idx].end(), polylineIndices[he.edge()].rbegin(),
-                                    polylineIndices[he.edge()].rend());
-          } else {
-            faceIndices[idx] = polylineIndices[he.edge()];
-          }
-        } else { // add the intersections to the points lists and initialize the corresponding list of indices
-          for (double bary : crossing.first) {
-            points.push_back(bary * geometry.vertexPositions[he.tailVertex()] +
-                             (1 - bary) * geometry.vertexPositions[he.tipVertex()]);
-            polylineIndices[he.edge()].push_back(points.size() - 1);
-          }
-          faceIndices[idx] = polylineIndices[he.edge()];
-        }
-        ++idx;
       }
 
-      if (ignoreFace) continue;
+      // remove the indices corresponding to the largest elements in minValues
+      int N = abs(stripeIndices[f]);
+      std::vector<std::vector<size_t>> crossingIndices = removeCrossings(minValues, N, faceIndices);
 
-      std::vector<std::vector<bool>> matched(3);
-      for (int i = 0; i < 3; ++i) matched[i] = std::vector<bool>(facePoints[i].size(), false);
-
-      // match points v and w which minimize abs(dot(v - w, vectorField[f]))
-      while (pointsCount > std::abs(stripeIndices[f])) {
-        std::array<int, 4> minIdx;
-        double minVal = std::numeric_limits<double>::max();
-
-        // if triangular inequality doesn't hold, don't examine the second edge
-        int nI;
-        if (faceIndices[0].size() > faceIndices[1].size() + faceIndices[2].size())
-          nI = 1;
-        else
-          nI = 2;
-
-        for (int i = 0; i < nI; ++i) {
-          for (int k = 0; k < facePoints[i].size(); ++k) {
-            if (matched[i][k]) continue;
-
-            for (int j = i + 1; j < 3; ++j) {
-              for (int l = 0; l < facePoints[j].size(); ++l) {
-                if (matched[j][l]) continue;
-
-                Vector3 v = facePoints[i][k];
-                Vector3 w = facePoints[j][l];
-                if (abs(dot(v - w, vectorField[f])) < minVal) {
-                  minVal = abs(dot(v - w, vectorField[f]));
-                  minIdx = {i, k, j, l};
-                }
-              }
-            }
-          }
-        }
-
-        matched[minIdx[0]][minIdx[1]] = true;
-        matched[minIdx[2]][minIdx[3]] = true;
-        edges.push_back({faceIndices[minIdx[0]][minIdx[1]], faceIndices[minIdx[2]][minIdx[3]]});
-        pointsCount -= 2;
-      }
+      std::vector<std::array<size_t, 2>> matchings = matchCrossings(crossingIndices);
+      edges.insert(edges.end(), matchings.begin(), matchings.end());
     }
   }
 }
 
 } // namespace
 
-std::tuple<std::vector<Vector3>, std::vector<std::array<int, 2>>>
+std::tuple<std::vector<Vector3>, std::vector<std::array<size_t, 2>>>
 extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const CornerData<double>& values,
                                   const FaceData<int>& stripeIndices, const FaceData<int>& fieldIndices,
                                   const VertexData<Vector2>& directionField, bool connectOnSingularities) {
   SurfaceMesh& mesh = geometry.mesh;
 
   std::vector<Vector3> points;
-  std::vector<std::array<int, 2>> edges;
-  EdgeData<std::vector<int>> indicesPerEdge;
+  std::vector<std::array<size_t, 2>> edges;
+  EdgeData<std::vector<size_t>> indicesPerEdge;
   std::tie(points, edges, indicesPerEdge) =
       extractCrossingsFromStripePattern(geometry, values, stripeIndices, fieldIndices);
 
@@ -489,7 +545,7 @@ extractPolylinesFromStripePattern(EmbeddedGeometryInterface& geometry, const Cor
 }
 
 
-std::tuple<std::vector<Vector3>, std::vector<std::array<int, 2>>>
+std::tuple<std::vector<Vector3>, std::vector<std::array<size_t, 2>>>
 computeStripePatternPolylines(EmbeddedGeometryInterface& geometry, const VertexData<double>& frequencies,
                               const VertexData<Vector2>& directionField, bool connectIsolines) {
   CornerData<double> stripeValues;
