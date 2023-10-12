@@ -52,9 +52,7 @@ inline Vector2 baryCoordsToFaceCoords(const std::array<Vector2, 3>& vertCoords, 
   return vertCoords[0] * baryCoord.x + vertCoords[1] * baryCoord.y + vertCoords[2] * baryCoord.z;
 }
 
-inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
-
-
+inline Vector3 cartesianVectorToBarycentricOLD(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
   // Build matrix for linear transform problem
   // (last constraint comes from chosing the displacement vector with sum = 0)
   Eigen::Matrix3d A;
@@ -81,6 +79,30 @@ inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCo
   }
 
   return resultBary;
+}
+
+// Version of cartesianVectorToBarycentric which is immensely faster thanks to avoiding the eigen
+// overhead or whatever else is going on with their systems of equations solver.
+//
+// From: https://gamedev.stackexchange.com/a/23745
+//
+// Which is from: http://realtimecollisiondetection.net/ by Christer Ericson
+inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
+  Vector2 v0 = vertCoords[1] - vertCoords[0];
+  Vector2 v1 = vertCoords[2] - vertCoords[0];
+  Vector2 v2 = faceVec - vertCoords[0];
+
+  double d00 = dot(v0, v0);
+  double d01 = dot(v0, v1);
+  double d11 = dot(v1, v1);
+  double d20 = dot(v2, v0);
+  double d21 = dot(v2, v1);
+  double denom = d00 * d11 - d01 * d01;
+
+  double v = (d11 * d20 - d01 * d21) / denom;
+  double w = (d00 * d21 - d01 * d20) / denom;
+  double u = 0. - v - w;
+  return Vector3{u, v, w};
 }
 
 // Converts tCross from halfedge to edge coordinates, handling sign conventions
