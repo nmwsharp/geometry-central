@@ -52,41 +52,12 @@ inline Vector2 baryCoordsToFaceCoords(const std::array<Vector2, 3>& vertCoords, 
   return vertCoords[0] * baryCoord.x + vertCoords[1] * baryCoord.y + vertCoords[2] * baryCoord.z;
 }
 
-inline Vector3 cartesianVectorToBarycentricOLD(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
-  // Build matrix for linear transform problem
-  // (last constraint comes from chosing the displacement vector with sum = 0)
-  Eigen::Matrix3d A;
-  Eigen::Vector3d rhs;
-  const std::array<Vector2, 3>& c = vertCoords; // short name
-  A << c[0].x, c[1].x, c[2].x, c[0].y, c[1].y, c[2].y, 1., 1., 1.;
-  rhs << faceVec.x, faceVec.y, 0.;
-
-  // Solve
-  Eigen::Vector3d result = A.colPivHouseholderQr().solve(rhs);
-  Vector3 resultBary{result(0), result(1), result(2)};
-
-  resultBary = normalizeBarycentricDisplacement(resultBary);
-
-  if (TRACE_PRINT) {
-    cout << "       cartesianVectorToBarycentric() " << endl;
-    cout << "         input = " << faceVec << endl;
-    cout << "         positions = " << vertCoords[0] << " " << vertCoords[1] << " " << vertCoords[2] << endl;
-    cout << "         transform result = " << resultBary << endl;
-    cout << "         transform back = " << barycentricDisplacementToCartesian(vertCoords, resultBary) << endl;
-    cout << " A = " << endl << A << endl;
-    cout << " rhs = " << endl << rhs << endl;
-    cout << " Ax = " << endl << A * result << endl;
-  }
-
-  return resultBary;
-}
-
-// Version of cartesianVectorToBarycentric which is immensely faster thanks to avoiding the eigen
-// overhead or whatever else is going on with their systems of equations solver.
+// Specialized barycentric coordinate conversion by solving the system of equations directly
+// via Cramer's rule.  Significantly faster than using a generic solver from Eigen.
 //
-// From: https://gamedev.stackexchange.com/a/23745
+// Adapted from: https://gamedev.stackexchange.com/a/23745
 //
-// Which is from: http://realtimecollisiondetection.net/ by Christer Ericson
+// Which itself is from: http://realtimecollisiondetection.net/ by Christer Ericson
 inline Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec) {
   Vector2 v0 = vertCoords[1] - vertCoords[0];
   Vector2 v1 = vertCoords[2] - vertCoords[0];
