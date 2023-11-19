@@ -85,6 +85,7 @@ nav:
       - 'Surface Sampling' : 'surface/algorithms/surface_sampling.md'
       - 'Tracing Geodesic Paths' : 'surface/algorithms/geodesic_paths.md'
       - 'Vector Heat Method' : 'surface/algorithms/vector_heat_method.md'
+      - 'Stripes' : 'surface/algorithms/stripes.md'
     - Intrinsic Triangulations:
       - 'Basics' : 'surface/intrinsic_triangulations/basics.md'
       - 'Common Subdivision' : 'surface/intrinsic_triangulations/common_subdivision.md'
