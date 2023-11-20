@@ -1,4 +1,4 @@
-The [Stripe Patterns on Surfaces](https://www.cs.cmu.edu/~kmcrane/Projects/StripePatterns/) algorithm efficiently computes evenly-spaced stripes on a surface, aligned with some direction field given as input. This section describes an implementation in geometry-central, along with functions to extract the isolines of the stripes as polyline curves along the surface.
+The [Stripe Patterns on Surfaces](https://www.cs.cmu.edu/~kmcrane/Projects/StripePatterns/) algorithm efficiently computes evenly-spaced stripes on a surface, aligned with some direction field given as input. This section describes an implementation in geometry-central, along with functions to extract the isolines of the stripes as polyline curves along the surface. The original reference implementation of the Stripes algorithm can be [found here](https://www.cs.cmu.edu/~kmcrane/Projects/StripePatterns/code.zip).
 
 **Authors:** Original algorithm by Felix Knöppel, Keenan Cranel, Ulrich Pinkall, Peter Schröder. Extraction & geometry-central integration by [David Jourdan](https://djourdan.gitlabpages.inria.fr/).
 
@@ -34,7 +34,7 @@ std::tie(isolineVerts, isolineEdges) = extractPolylinesFromStripePattern(
 
 !!! warning "No surface interpolation"
 
-    The Stripe Patterns paper describes a customized interpolation scheme to smoothly extend the scalar function on the interior of each triangle, even in the presence of singularities. That scheme is not yet implemented here; this implementation just computes a scalar function per-corner and extracts isolines.
+    The Stripe Patterns paper describes a customized interpolation scheme to smoothly extend the scalar function on the interior of each triangle, even in the presence of singularities. That scheme is not yet implemented here; this implementation just computes a scalar function per-corner and extracts isolines. For the full scheme, see the [original reference implementation](https://www.cs.cmu.edu/~kmcrane/Projects/StripePatterns/code.zip).
 
 
 ??? func "`#!cpp std::tuple<CornerData<double>, FaceData<int>, FaceData<int>> computeStripePattern(IntrinsicGeometryInterface& geometry, const VertexData<double>& frequencies, const VertexData<Vector2>& directionField)`"
