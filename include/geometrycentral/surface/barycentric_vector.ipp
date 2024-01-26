@@ -195,28 +195,19 @@ inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface
 
   switch (type) {
   case BarycentricVectorType::Face: {
-    double ui = faceCoords[0];
-    double uj = faceCoords[1];
-    double uk = faceCoords[2];
-    geom.requireEdgeLengths();
-    double l_ij = geom.edgeLengths[face.halfedge().edge()];
-    double l_jk = geom.edgeLengths[face.halfedge().next().edge()];
-    double l_ki = geom.edgeLengths[face.halfedge().next().next().edge()];
-    geom.unrequireEdgeLengths();
-    // coefficients of matrix D taking barycentric coords to 3D local coords, squared and multiplied by 2
-    double ai = l_ij * l_ij - l_jk * l_jk + l_ki * l_ki;
-    double aj = l_jk * l_jk - l_ki * l_ki + l_ij * l_ij;
-    double ak = l_ki * l_ki - l_ij * l_ij + l_jk * l_jk;
-    double s = 0.5 * (l_ij + l_jk + l_ki);
-    double A = std::sqrt(s * (s - l_ij) * (s - l_jk) * (s - l_ki));
-    Vector3 newCoords = {ak * uk - aj * uj, ai * ui - ak * uk, aj * uj - ai * ui};
-    newCoords /= (4. * A);
-    return BarycentricVector(face, newCoords);
+    return faceVectorRotated90(*this, geom);
     break;
   }
-  case BarycentricVectorType::Edge:
-    throw std::logic_error("Cannot rotate BarycentricVector of Type::Edge");
+  case BarycentricVectorType::Edge: {
+    // Convert to a face-type vector, then rotate.
+    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
+    if (!he.isInterior()) {
+      throw std::logic_error("Cannot rotate barycentric vector on boundary edge 90 CCW onto a non-existent face.");
+    }
+    BarycentricVector w = this->inFace(he.face());
+    return faceVectorRotated90(w, geom);
     break;
+  }
   default:
     // If vertex-type, do nothing
     break;
@@ -518,8 +509,8 @@ inline Face sharedFace(const BarycentricVector& u, const BarycentricVector& w) {
     case BarycentricVectorType::Face:
       for (Edge e : w.face.adjacentEdges()) {
         if (e == u.edge) return w.face;
-        break;
       }
+      break;
     case BarycentricVectorType::Edge:
       for (Face f : u.edge.adjacentFaces()) {
         for (Edge e : f.adjacentEdges()) {
