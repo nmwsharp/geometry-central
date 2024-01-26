@@ -78,6 +78,9 @@ struct BarycentricVector {
   BarycentricVector rotated90(IntrinsicGeometryInterface& geom) const; // return a new vector
 };
 
+// Helper function for rotated90()
+BarycentricVector faceVectorRotated90(const BarycentricVector& v, IntrinsicGeometryInterface& geom);
+
 // Returns an arbitrary face shared by two vectors, if one exists; returns Face() if none.
 Face sharedFace(const BarycentricVector& u, const BarycentricVector& v);
 // Returns the edge shared by two vectors, if one exists; return Edge() if none.
