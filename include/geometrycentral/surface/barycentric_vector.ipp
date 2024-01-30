@@ -89,19 +89,19 @@ inline BarycentricVector BarycentricVector::inFace(Face targetFace) const {
   case BarycentricVectorType::Edge: {
     Halfedge he = targetFace.halfedge();
     if (edge == he.edge()) {
-      Vector3 faceCoords = (he == edge.halfedge()) ? Vector3{edgeCoords[0], edgeCoords[1], 0.}
-                                                   : Vector3{edgeCoords[1], edgeCoords[0], 0.};
+      Vector3 faceCoords =
+          he.orientation() ? Vector3{edgeCoords[0], edgeCoords[1], 0.} : Vector3{edgeCoords[1], edgeCoords[0], 0.};
       return BarycentricVector(targetFace, faceCoords);
     }
     he = he.next();
     if (edge == he.edge()) {
-      Vector3 faceCoords = (he == edge.halfedge()) ? Vector3{0., edgeCoords[0], edgeCoords[1]}
-                                                   : Vector3{0., edgeCoords[1], edgeCoords[0]};
+      Vector3 faceCoords =
+          he.orientation() ? Vector3{0., edgeCoords[0], edgeCoords[1]} : Vector3{0., edgeCoords[1], edgeCoords[0]};
       return BarycentricVector(targetFace, faceCoords);
     }
     he = he.next();
     Vector3 faceCoords =
-        (he == edge.halfedge()) ? Vector3{edgeCoords[1], 0., edgeCoords[0]} : Vector3{edgeCoords[0], 0., edgeCoords[1]};
+        he.orientation() ? Vector3{edgeCoords[1], 0., edgeCoords[0]} : Vector3{edgeCoords[0], 0., edgeCoords[1]};
     return BarycentricVector(targetFace, faceCoords);
     break;
   }
@@ -226,15 +226,16 @@ inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& 
     // Convert to a face-type vector, then rotate.
     Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
     double theta = regularizeAngle(angle);
-    if (!he.isInterior() && theta < 180.) {
+    if (!he.isInterior() && theta < M_PI) {
       throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
     }
-    if (he.isInterior() && theta > 180.) {
+    if (edge.isBoundary() && he.isInterior() && theta > M_PI) {
       throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
     }
-    if (theta == 180. || theta == -180.) {
+    if (theta == M_PI || theta == -M_PI) {
       return BarycentricVector(edge, -edgeCoords);
     }
+    if (theta > M_PI) he = he.twin();
     BarycentricVector w = this->inFace(he.face());
     return faceVectorRotated(w, geom, angle);
     break;
