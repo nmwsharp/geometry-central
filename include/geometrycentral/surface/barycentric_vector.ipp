@@ -215,6 +215,37 @@ inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface
   return *this;
 }
 
+inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& geom, double angle) const {
+
+  switch (type) {
+  case BarycentricVectorType::Face: {
+    return faceVectorRotated(*this, geom, angle);
+    break;
+  }
+  case BarycentricVectorType::Edge: {
+    // Convert to a face-type vector, then rotate.
+    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
+    double theta = regularizeAngle(angle);
+    if (!he.isInterior() && theta < 180.) {
+      throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
+    }
+    if (he.isInterior() && theta > 180.) {
+      throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
+    }
+    if (theta == 180. || theta == -180.) {
+      return BarycentricVector(edge, -edgeCoords);
+    }
+    BarycentricVector w = this->inFace(he.face());
+    return faceVectorRotated(w, geom, angle);
+    break;
+  }
+  default:
+    // If vertex-type, do nothing
+    break;
+  }
+  return *this;
+}
+
 // == Overloaded operators
 
 inline BarycentricVector BarycentricVector::operator+(const BarycentricVector& w) const {

@@ -76,10 +76,14 @@ struct BarycentricVector {
   // Rotate the vector 90 degrees CCW within the face it belongs to.
   // This requires the geometry, since the meaning of "90 degrees" depends on the geometry of the triangle.
   BarycentricVector rotated90(IntrinsicGeometryInterface& geom) const; // return a new vector
+  // Rotate the vector the specified amount of radians CCW within the face it belongs to.
+  // This again requires the geometry.
+  BarycentricVector rotated(IntrinsicGeometryInterface& geom, double angle) const;
 };
 
-// Helper function for rotated90()
+// Helper functions for rotations
 BarycentricVector faceVectorRotated90(const BarycentricVector& v, IntrinsicGeometryInterface& geom);
+BarycentricVector faceVectorRotated(const BarycentricVector& w, IntrinsicGeometryInterface& geom, double angle);
 
 // Returns an arbitrary face shared by two vectors, if one exists; returns Face() if none.
 Face sharedFace(const BarycentricVector& u, const BarycentricVector& v);

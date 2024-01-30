@@ -2,7 +2,7 @@ A `BarycentricVector` is a vector that lies along a surface. This vector can lie
 
 ![example of a barycentric vector within a face of an intrinsic triangulation](/media/barycentric_vector.svg)
 
-Although a barycentric vector can be constructed as the difference of two barycentric points, a barycentric vector technically does not define a single unique vector along the surface but rather a constant vector field within a face.
+Although a barycentric vector can be constructed as the difference of two barycentric points, a barycentric vector technically does not define a single unique vector along the surface but rather a constant vector field within a face --- barycentric vectors really are **vectors** (displacements), **not** rays.
 
 Using barycentric vectors, one can easily do vector arithmetic on a surface. Barycentric vectors are especially useful when working with an intrinsic representation of a surface; they can be used to do computations on vectors that depend only on intrinsic geometry, such as inner products.
 
@@ -56,7 +56,11 @@ Barycentric vectors support addition, subtraction, scalar multiplication, and sc
 
 ??? func "`#!cpp BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface& geom) const`"
 
-    Rotate the vector 90 degrees counter-clockwise within the face it belongs to. This requires the geometry, since the meaning of "90 degrees" depends on the geometry of the triangle.
+    Rotate the given tangent vector 90 degrees counter-clockwise within the face it belongs to. This function requires the geometry, since the meaning of "90 degrees" depends on the geometry of the triangle.
+
+??? func "`#!cpp BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& geom, double angle) const`"
+
+    Rotate the given tangent vector counter-clockwise within the face it belongs to, by the given angle (specified in radians). This function requires the geometry, since the rotation depends on the geometry of the triangle.
 
 Barycentric vectors also have a few utility functions:
 
