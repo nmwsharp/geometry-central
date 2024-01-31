@@ -58,6 +58,8 @@ public:
 
   // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
 
+  FaceData<Vector<double>> virtualRefinementAreaWeights;
+
   // Laplacian
   Eigen::SparseMatrix<double> virtualRefinementLaplacian;
   void requireVirtualRefinementPolygonLaplacian();
@@ -142,6 +144,19 @@ protected:
   // == Polygon Operators
 
   // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
+
+  // helper functions
+  DependentQuantityD<FaceData<Eigen::VectorXd>> virtualRefinementAreaWeightsQ; // affine weights for each virtual node
+  virtual void computeVirtualRefinementAreaWeights();
+  virtual Eigen::MatrixXd buildPolygonMassMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd buildPolygonStiffnessMatrix(const Face& f) const;
+  virtual SparseMatrix<double> buildDivergenceMatrix() const;
+  virtual SparseMatrix<double> buildGradientMatrix() const;
+  virtual SparseMatrix<double> buildGradientMassMatrix() const;
+  virtual SparseMatrix<double> buildProlongationMatrix() const;
+  virtual Eigen::MatrixXd getPolygonPositionMatrix(const Face& f) const;
+  virtual Eigen::VectorXd computeVirtualVertex(const Eigen::MatrixXd& poly) const;
+  virtual Vector3 gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const;
 
   // Laplacian
   DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementLaplacianQ;
