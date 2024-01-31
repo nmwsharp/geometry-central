@@ -202,7 +202,7 @@ inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface
     // Convert to a face-type vector, then rotate.
     Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
     if (!he.isInterior()) {
-      throw std::logic_error("Cannot rotate barycentric vector on boundary edge 90 CCW onto a non-existent face.");
+      he = he.twin();
     }
     BarycentricVector w = this->inFace(he.face());
     return faceVectorRotated90(w, geom);
@@ -223,19 +223,19 @@ inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& 
     break;
   }
   case BarycentricVectorType::Edge: {
-    // Convert to a face-type vector, then rotate.
-    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
     double theta = regularizeAngle(angle);
-    if (!he.isInterior() && theta < M_PI) {
-      throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
-    }
-    if (edge.isBoundary() && he.isInterior() && theta > M_PI) {
-      throw std::logic_error("Cannot rotate barycentric vector on boundary edge onto a non-existent face.");
-    }
     if (theta == M_PI || theta == -M_PI) {
       return BarycentricVector(edge, -edgeCoords);
     }
-    if (theta > M_PI) he = he.twin();
+    // Convert to a face-type vector, then rotate.
+    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
+    if (!he.isInterior() && theta < M_PI) {
+      he = edge.halfedge(); // interior halfedge
+    } else if (edge.isBoundary() && he.isInterior() && theta > M_PI) {
+      he = edge.halfedge(); // interior halfedge
+    } else if (theta > M_PI) {
+      he = he.twin();
+    }
     BarycentricVector w = this->inFace(he.face());
     return faceVectorRotated(w, geom, angle);
     break;
@@ -245,7 +245,7 @@ inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& 
     break;
   }
   return *this;
-}
+} // namespace surface
 
 // == Overloaded operators
 
