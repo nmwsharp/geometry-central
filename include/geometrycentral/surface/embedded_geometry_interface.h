@@ -54,6 +54,60 @@ public:
   void requireVertexDualMeanCurvatureNormals();
   void unrequireVertexDualMeanCurvatureNormals();
 
+  // == Polygon Operators
+
+  // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
+
+  // Laplacian
+  Eigen::SparseMatrix<double> virtualRefinementLaplacian;
+  void requireVirtualRefinementPolygonLaplacian();
+  void unrequireVirtualRefinementPolygonLaplacian();
+
+  // Vertex Galerkin mass matrix (unlumped)
+  Eigen::SparseMatrix<double> virtualRefinementVertexGalerkinMassMatrix;
+  void requireVirtualRefinementVertexGalerkinMassMatrix();
+  void unrequireVirtualRefinementVertexGalerkinMassMatrix();
+
+  // Vertex mass matrix (lumped)
+  Eigen::SparseMatrix<double> virtualRefinementVertexLumpedMassMatrix;
+  void requireVirtualRefinementVertexLumpedMassMatrix();
+  void unrequireVirtualRefinementVertexLumpedMassMatrix();
+
+  // DEC Operators
+  Eigen::SparseMatrix<double> virtualRefinementHodge0, virtualRefinementHodge0Inverse, virtualRefinementHodge1,
+      virtualRefinementHodge1Inverse, virtualRefinementHodge2, virtualRefinementHodge2Inverse, virtualRefinementD0,
+      virtualRefinementD1;
+  void requireVirtualRefinementDECOperators();
+  void unrequireVirtualRefinementDECOperators();
+
+  // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
+
+  // Laplacian
+  Eigen::SparseMatrix<double> virtualElementLaplacian;
+  void requireVirtualElementLaplacian();
+  void unrequireVirtualElementLaplacian();
+
+  // Vertex mass matrix (unlumped)
+  Eigen::SparseMatrix<double> virtualElementVertexGalerkinMassMatrix;
+  void requireVirtualElementVertexGalerkinMassMatrix();
+  void requireVirtualElementVertexGalerkinMassMatrix();
+
+  // Vertex mass matrix (lumped)
+  Eigen::SparseMatrix<double> virtualElementVertexLumpedMassMatrix;
+  void requireVirtualElementVertexLumpedMassMatrix();
+  void unrequireVirtualElementVertexLumpedMassMatrix();
+
+  // Vertex connection Laplacian
+  Eigen::SparseMatrix<std::complex<double>> virtualElementVertexConnectionLaplacian;
+  void requireVirtualElementVertexConnectionLaplacian();
+  void unrequireVirtualElementVertexConnectionLaplacian();
+
+  Eigen::SparseMatrix<double> virtualElementHodge0, virtualElementHodge0Inverse, virtualElementHodge1,
+      virtualElementHodge1Inverse, virtualElementHodge2, virtualElementHodge2Inverse, virtualElementD0,
+      virtualElementD1;
+  void requireVirtualElementDECOperators();
+  void unrequireVirtualElementDECOperators();
+
 protected:
   // == Implmentations of quantities from base classes
   virtual void computeEdgeLengths() override;
@@ -84,6 +138,50 @@ protected:
   virtual void computeCornerAngles() override;
   virtual void computeHalfedgeCotanWeights() override;
   virtual void computeEdgeCotanWeights() override;
+
+  // == Polygon Operators
+
+  // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
+
+  // Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementLaplacianQ;
+  virtual void computeVirtualRefinementLaplacian();
+
+  // Vertex mass matrix (unlumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementVertexGalerkinMassMatrixQ;
+  virtual void computeVirtualRefinementVertexGalerkinMassMatrix();
+
+  // Vertex mass matrix (lumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementVertexLumpedMassMatrixQ;
+  virtual void computeVirtualRefinementVertexLumpedMassMatrix();
+
+  // DEC Operators
+  std::array<Eigen::SparseMatrix<double>*, 8> virtualRefinementDECOperatorArray;
+  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> virtualRefinementDECOperatorsQ;
+  virtual void computeVirtualRefinementDECOperators();
+
+  // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
+
+  // Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementLaplacianQ;
+  virtual void computeVirtualElementLaplacian();
+
+  // Vertex mass matrix (unlumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementVertexGalerkinMassMatrixQ;
+  virtual void computeVirtualElementVertexGalerkinMassMatrix();
+
+  // Vertex mass matrix (lumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementVertexLumpedMassMatrixQ;
+  virtual void computeVirtualElementVertexLumpedMassMatrix();
+
+  // Vertex connection Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> virtualElementVertexConnectionLaplacianQ;
+  virtual void computeVirtualElementVertexConnectionLaplacian();
+
+  // DEC Operators
+  std::array<Eigen::SparseMatrix<double>*, 8> virtualElementDECOperatorArray;
+  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> virtualElementDECOperatorsQ;
+  virtual void computeVirtualElementDECOperators();
 };
 
 

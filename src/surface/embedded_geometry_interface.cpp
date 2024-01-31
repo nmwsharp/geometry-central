@@ -17,7 +17,26 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   vertexNormalsQ                  (&vertexNormals,                  std::bind(&EmbeddedGeometryInterface::computeVertexNormals, this),                  quantities),
   faceTangentBasisQ               (&faceTangentBasis,               std::bind(&EmbeddedGeometryInterface::computeFaceTangentBasis, this),               quantities),
   vertexTangentBasisQ             (&vertexTangentBasis,             std::bind(&EmbeddedGeometryInterface::computeVertexTangentBasis, this),             quantities),
-  vertexDualMeanCurvatureNormalsQ (&vertexDualMeanCurvatureNormals, std::bind(&EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals, this), quantities)
+  vertexDualMeanCurvatureNormalsQ (&vertexDualMeanCurvatureNormals, std::bind(&EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals, this), quantities),
+
+  virtualRefinementLaplacianQ                (&virtualRefinementLaplacian,                std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementLaplacian, this),                quantities),
+  virtualRefinementVertexGalerkinMassMatrixQ (&virtualRefinementVertexGalerkinMassMatrix, std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementVertexGalerkinMassMatrix, this), quantities),
+  virtualRefinementVertexLumpedMassMatrixQ   (&virtualRefinementVertexLumpedMassMatrix,   std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementVertexLumpedMassMatrix, this),   quantities),
+ 
+  virtualElementLaplacianQ                 (&virtualElementLaplacian,                 std::bind(&EmbeddedGeometryInterface::computeVirtualElementLaplacian, this),                 quantities),
+  virtualElementVertexGalerkinMassMatrixQ  (&virtualElementVertexGalerkinMassMatrix,  std::bind(&EmbeddedGeometryInterface::computeVirtualElementVertexGalerkinMassMatrix, this),  quantities),
+  virtualElementVertexLumpedMassMatrixQ    (&virtualElementVertexLumpedMassMatrix,    std::bind(&EmbeddedGeometryInterface::computeVirtualElementVertexLumpedMassMatrix, this),    quantities),
+  virtualElementVertexConnectionLaplacianQ (&virtualElementVertexConnectionLaplacian, std::bind(&EmbeddedGeometryInterface::computeVirtualElementVertexConnectionLaplacian, this), quantities),
+
+  virtualRefinementDECOperatorArray{&virtualRefinementHodge0, &virtualRefinementHodge0Inverse, &virtualRefinementHodge1, 
+                                    &virtualRefinementHodge1Inverse, &virtualRefinementHodge2, 
+                                    &virtualRefinementHodge2Inverse, &virtualRefinementD0, &virtualRefinementD1},
+  virtualRefinementDECOperatorsQ(&virtualRefinementDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementDECOperators, this), quantities)
+  
+  virtualElementDECOperatorArray{&virtualElementHodge0, &virtualElementHodge0Inverse, &virtualElementHodge1, 
+                                 &virtualElementHodge1Inverse, &virtualElementHodge2, &virtualElementHodge2Inverse, 
+                                 &virtualElementD0, &virtualElementD1},
+  virtualElementDECOperatorsQ(&virtualElementDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computeVirtualElementDECOperators, this), quantities)
   
   {}
 // clang-format on
@@ -349,6 +368,102 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
   }
 }
 
+// === Polygon Operators
+
+// = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
+
+// Laplacian
+void EmbeddedGeometryInterface::computeVirtualRefinementLaplacian() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualRefinementLaplacian() { virtualRefinementLaplacianQ.require(); }
+void EmbeddedGeometryInterface::unrequireVirtualRefinementLaplacian() { virtualRefinementLaplacianQ.unrequire(); }
+
+
+// Vertex Galerkin mass matrix (unlumped)
+void EmbeddedGeometryInterface::computeVirtualRefinementVertexGalerkinMassMatrix() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualRefinementVertexGalerkinMassMatrix() {
+  virtualRefinementVertexGalerkinMassMatrixQ.require();
+}
+void EmbeddedGeometryInterface::unrequireVirtualRefinementVertexGalerkinMassMatrix() {
+  virtualRefinementVertexGalerkinMassMatrixQ.unrequire();
+}
+
+
+// Vertex mass matrix (lumped)
+void EmbeddedGeometryInterface::computeVirtualRefinementVertexLumpedMassMatrix() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualRefinementVertexLumpedMassMatrix() {
+  virtualRefinementVertexLumpedMassMatrixQ.require();
+}
+void EmbeddedGeometryInterface::unrequireVirtualRefinementVertexLumpedMassMatrix() {
+  virtualRefinementVertexLumpedMassMatrixQ.unrequire();
+}
+
+
+// DEC Operators
+void EmbeddedGeometryInterface::computeVirtualRefinementDECOperators() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualRefinementDECOperators() { virtualRefinementDECOperatorsQ.require(); }
+void EmbeddedGeometryInterface::unrequireVirtualRefinementDECOperators() { virtualRefinementDECOperatorsQ.unrequire(); }
+
+
+// = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
+
+// Laplacian
+void EmbeddedGeometryInterface::computeVirtualElementLaplacian() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualElementLaplacian() { virtualElementLaplacianQ.require(); }
+void EmbeddedGeometryInterface::unrequireVirtualElementLaplacian() { virtualElementLaplacianQ.unrequire(); }
+
+
+// Vertex Galerkin mass matrix (unlumped)
+void EmbeddedGeometryInterface::computeVirtualElementVertexGalerkinMassMatrix() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualElementVertexGalerkinMassMatrix() {
+  virtualElementVertexGalerkinMassMatrixQ.require();
+}
+void EmbeddedGeometryInterface::unrequireVirtualElementVertexGalerkinMassMatrix() {
+  virtualElementVertexGalerkinMassMatrixQ.unrequire();
+}
+
+
+// Vertex mass matrix (lumped)
+void EmbeddedGeometryInterface::computeVirtualElementVertexLumpedMassMatrix() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualElementVertexLumpedMassMatrix() {
+  virtualElementVertexLumpedMassMatrixQ.require();
+}
+void EmbeddedGeometryInterface::unrequireVirtualElementVertexLumpedMassMatrix() {
+  virtualElementVertexLumpedMassMatrixQ.unrequire();
+}
+
+
+// vertex connection Laplacian
+void EmbeddedGeometryInterface::computeVirtualElementVertexConnectionLaplacian() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualElementVertexConnectionLaplacian() {
+  virtualElementVertexConnectionLaplacianQ.require();
+}
+void EmbeddedGeometryInterface::unrequireVirtualElementVertexConnectionLaplacian() {
+  virtualElementVertexConnectionLaplacianQ.unrequire();
+}
+
+
+// DEC Operators
+void EmbeddedGeometryInterface::computeVirtualElementDECOperators() {
+  // TODO
+}
+void EmbeddedGeometryInterface::requireVirtualElementDECOperators() { virtualElementDECOperatorsQ.require(); }
+void EmbeddedGeometryInterface::unrequireVirtualElementDECOperators() { virtualElementDECOperatorsQ.unrequire(); }
 
 } // namespace surface
 } // namespace geometrycentral
