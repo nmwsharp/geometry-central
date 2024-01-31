@@ -547,7 +547,7 @@ In graphics and geometry processing, Crouzeix-Raviart elements have been used, f
 
 These quantities are defined for any `EmbeddedGeometryInterface`, meaning they will be available for any geometry whose embedding in 3D space is specified (for example, with vertex positions.) These operators were specifically designed for polygon meshes, though they will reduce to the classical discrete exterior calculus & finite element operators on triangular meshes (described above). 
 
-Two classes of polygon operators are provided: those based on [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf), whose discretization is based on virtual refinement of the polygon mesh; and those based on [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf), whose discretization is based on an adaptation of the virtual element method. Both methods build local operators whose matrices are assembled per-polygon, so they will run out-of-the-box on non-manifold meshes (but no guarantees are provided!)
+Two classes of polygon operators are provided: those based on [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf), whose discretization is based on virtual refinement of the polygon mesh; and those based on [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf), whose discretization is based on an adaptation of the virtual element method. The former uses [Astrid Bunge and Mario Botsch's implementation of their paper](https://github.com/mbotsch/polygon-laplacian), while the latter uses [David Coeurjolly, Jacques-Olivier Lachaud, and Baptiste Genest's DGtal implementation of de Goes et al.'s paper](https://www.dgtal.org/doc/stable/modulePolygonalCalculus.html). Both methods build local operators whose matrices are assembled per-polygon, so they will run out-of-the-box on non-manifold meshes (but no guarantees are provided!) 
 
 All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `SurfaceMesh::getVertexIndices()` (etc).
 
@@ -557,7 +557,9 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     The discrete Laplace operator acting on polygon meshes, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
 
-    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian. (Note: We build the positive operator to align with the convention set by the cotan Laplacian, in contrast to Bunge et al.'s definition.) 
+    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian. 
+
+    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
 
     Only valid on an `EmbeddedGeometryInterface`.
 

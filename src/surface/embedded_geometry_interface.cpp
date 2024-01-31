@@ -19,6 +19,7 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   vertexTangentBasisQ             (&vertexTangentBasis,             std::bind(&EmbeddedGeometryInterface::computeVertexTangentBasis, this),             quantities),
   vertexDualMeanCurvatureNormalsQ (&vertexDualMeanCurvatureNormals, std::bind(&EmbeddedGeometryInterface::computeVertexDualMeanCurvatureNormals, this), quantities),
 
+  virtualRefinementAreaWeightsQ              (&virtualRefinementAreaWeights,              std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementAreaWeights, this),              quantities),
   virtualRefinementLaplacianQ                (&virtualRefinementLaplacian,                std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementLaplacian, this),                quantities),
   virtualRefinementVertexGalerkinMassMatrixQ (&virtualRefinementVertexGalerkinMassMatrix, std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementVertexGalerkinMassMatrix, this), quantities),
   virtualRefinementVertexLumpedMassMatrixQ   (&virtualRefinementVertexLumpedMassMatrix,   std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementVertexLumpedMassMatrix, this),   quantities),
@@ -31,7 +32,7 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   virtualRefinementDECOperatorArray{&virtualRefinementHodge0, &virtualRefinementHodge0Inverse, &virtualRefinementHodge1, 
                                     &virtualRefinementHodge1Inverse, &virtualRefinementHodge2, 
                                     &virtualRefinementHodge2Inverse, &virtualRefinementD0, &virtualRefinementD1},
-  virtualRefinementDECOperatorsQ(&virtualRefinementDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementDECOperators, this), quantities)
+  virtualRefinementDECOperatorsQ(&virtualRefinementDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computeVirtualRefinementDECOperators, this), quantities),
   
   virtualElementDECOperatorArray{&virtualElementHodge0, &virtualElementHodge0Inverse, &virtualElementHodge1, 
                                  &virtualElementHodge1Inverse, &virtualElementHodge2, &virtualElementHodge2Inverse, 
@@ -374,7 +375,27 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
 
 // Laplacian
 void EmbeddedGeometryInterface::computeVirtualRefinementLaplacian() {
-  // TODO
+  vertexIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  virtualRefinementLaplacian = Eigen::SparseMatrix<double>(V, V);
+  std::vector<Eigen::Triplet<double>> triplets;
+  std::vector<size_t> vIndices; // indices of vertices of polygon face
+  Eigen::MatrixXd Si;           // local per-polygon matrix
+  for (Face f : mesh.faces()) {
+    vIndices.clear();
+    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
+    int n = f.degree();
+    // Get local stiffness matrix.
+    Si = buildPolygonStiffnessMatrix(f);
+    // Add contribution to global mass matrix.
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < n; i++) {
+        triplets.emplace_back(vIndices[i], vIndices[j], Si(i, j));
+      }
+    }
+  }
+  virtualRefinementLaplacian.setFromTriplets(triplets.begin(), triplets.end());
 }
 void EmbeddedGeometryInterface::requireVirtualRefinementLaplacian() { virtualRefinementLaplacianQ.require(); }
 void EmbeddedGeometryInterface::unrequireVirtualRefinementLaplacian() { virtualRefinementLaplacianQ.unrequire(); }
@@ -382,7 +403,27 @@ void EmbeddedGeometryInterface::unrequireVirtualRefinementLaplacian() { virtualR
 
 // Vertex Galerkin mass matrix (unlumped)
 void EmbeddedGeometryInterface::computeVirtualRefinementVertexGalerkinMassMatrix() {
-  // TODO
+  vertexIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  virtualRefinementVertexGalerkinMassMatrix = Eigen::SparseMatrix<double>(V, V);
+  std::vector<Eigen::Triplet<double>> triplets;
+  std::vector<size_t> vIndices; // indices of vertices of polygon face
+  Eigen::MatrixXd Mi;           // local per-polygon matrix
+  for (Face f : mesh.faces()) {
+    vIndices.clear();
+    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
+    int n = f.degree();
+    // Get local mass matrix.
+    Mi = buildPolygonMassMatrix(f);
+    // Add contribution to global mass matrix.
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < n; i++) {
+        triplets.emplace_back(vIndices[i], vIndices[j], Si(i, j));
+      }
+    }
+  }
+  virtualRefinementVertexGalerkinMassMatrix.setFromTriplets(triplets.begin(), triplets.end());
 }
 void EmbeddedGeometryInterface::requireVirtualRefinementVertexGalerkinMassMatrix() {
   virtualRefinementVertexGalerkinMassMatrixQ.require();
@@ -394,7 +435,27 @@ void EmbeddedGeometryInterface::unrequireVirtualRefinementVertexGalerkinMassMatr
 
 // Vertex mass matrix (lumped)
 void EmbeddedGeometryInterface::computeVirtualRefinementVertexLumpedMassMatrix() {
-  // TODO
+  vertexIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  virtualRefinementVertexGalerkinMassMatrix = Eigen::SparseMatrix<double>(V, V);
+  std::vector<Eigen::Triplet<double>> triplets;
+  std::vector<size_t> vIndices; // indices of vertices of polygon face
+  Eigen::MatrixXd Mi;           // local per-polygon matrix
+  for (Face f : mesh.faces()) {
+    vIndices.clear();
+    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
+    int n = f.degree();
+    // Get local mass matrix.
+    Mi = buildPolygonMassMatrix(f);
+    // Add contribution to global mass matrix.
+    for (int j = 0; j < n; j++) {
+      for (int i = 0; i < n; i++) {
+        triplets.emplace_back(vIndices[i], vIndices[i], Si(i, j));
+      }
+    }
+  }
+  virtualRefinementVertexGalerkinMassMatrix.setFromTriplets(triplets.begin(), triplets.end());
 }
 void EmbeddedGeometryInterface::requireVirtualRefinementVertexLumpedMassMatrix() {
   virtualRefinementVertexLumpedMassMatrixQ.require();
@@ -410,6 +471,311 @@ void EmbeddedGeometryInterface::computeVirtualRefinementDECOperators() {
 }
 void EmbeddedGeometryInterface::requireVirtualRefinementDECOperators() { virtualRefinementDECOperatorsQ.require(); }
 void EmbeddedGeometryInterface::unrequireVirtualRefinementDECOperators() { virtualRefinementDECOperatorsQ.unrequire(); }
+
+
+// Helper functions
+
+Eigen::MatrixXd EmbeddedGeometryInterface::buildPolygonMassMatrix(const Face& f) const {
+  virtualRefinementAreaWeightsQ.ensureHave();
+
+  int n = f.degree();
+  Eigen::MatrixXd poly = getPolygonPositionMatrix(f);
+  Eigen::MatrixXd M = Eigen::MatrixXd::Zero(n, n);
+  const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
+  Eigen::Vector3d virtualVertex = poly.transpose() * weights;
+  Eigen::VectorXd ln = Eigen::VectorXd::Zero(n + 1);
+  double l[3], l2[3]; // lengths, lengths squared
+  // Build triangle fan mass and cotan matrices
+  for (int i = 0; i < n; i++) {
+    const int i1 = (i + 1) % n;
+    l2[2] = (poly.row(i) - poly.row(i1)).squaredNorm();
+    l2[0] = (poly.row(i1) - virtualVertex.transpose()).squaredNorm();
+    l2[1] = (poly.row(i) - virtualVertex.transpose()).squaredNorm();
+    l[0] = std::sqrt(l2[0]);
+    l[1] = std::sqrt(l2[1]);
+    l[2] = std::sqrt(l2[2]);
+    const double arg =
+        (l[0] + (l[1] + l[2])) * (l[2] - (l[0] - l[1])) * (l[2] + (l[0] - l[1])) * (l[0] + (l[1] - l[2]));
+    const double area = 0.25 * std::sqrt(arg);
+    l[0] = 1.0 / 6.0 * area;
+    l[1] = 1.0 / 12.0 * area;
+    M(i1, i1) += 1.0 / 6.0 * area;
+    M(i, i) += 1.0 / 6.0 * area;
+    M(i1, i) += 1.0 / 12.0 * area;
+    M(i, i1) += 1.0 / 12.0 * area;
+    ln(i1) += l[1];
+    ln(i) += l[1];
+    ln(n) += l[0];
+  }
+  // Apply prolongation
+  for (int j = 0; j < n; ++j)
+    for (int i = 0; i < n; ++i) M(i, j) += weights(i) * ln(j) + weights(j) * ln(i) + weights(i) * weights(j) * ln(n);
+
+  return M;
+}
+
+Eigen::MatrixXd EmbeddedGeometryInterface::buildPolygonStiffnessMatrix(const Face& f) const {
+  virtualRefinementAreaWeightsQ.ensureHave();
+
+  int n = f.degree();
+  Eigen::MatrixXd poly = getPolygonPositionMatrix(f);
+  Eigen::MatrixXd S = Eigen::MatrixXd::Zero(n, n);
+  const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
+  Eigen::Vector3d virtualVertex = poly.transpose() * weights;
+  Eigen::VectorXd ln = Eigen::VectorXd::Zero(n + 1);
+  double l[3], l2[3]; // lengths, lengths squared
+  // Build triangle fan mass and cotan matrices
+  for (int i = 0; i < n; i++) {
+    const int i1 = (i + 1) % n;
+    l2[2] = (poly.row(i) - poly.row(i1)).squaredNorm();
+    l2[0] = (poly.row(i1) - virtualVertex.transpose()).squaredNorm();
+    l2[1] = (poly.row(i) - virtualVertex.transpose()).squaredNorm();
+    l[0] = std::sqrt(l2[0]);
+    l[1] = std::sqrt(l2[1]);
+    l[2] = std::sqrt(l2[2]);
+    const double arg =
+        (l[0] + (l[1] + l[2])) * (l[2] - (l[0] - l[1])) * (l[2] + (l[0] - l[1])) * (l[0] + (l[1] - l[2]));
+    const double area = 0.5 * std::sqrt(arg);
+    if (area > 1e-7) {
+      l[0] = 0.25 * (l2[1] + l2[2] - l2[0]) / area;
+      l[1] = 0.25 * (l2[2] + l2[0] - l2[1]) / area;
+      l[2] = 0.25 * (l2[0] + l2[1] - l2[2]) / area;
+
+      S(i1, i1) += l[0];
+      S(i, i) += l[1];
+      S(i1, i) -= l[2];
+      S(i, i1) -= l[2];
+      S(i, i) += l[2];
+      S(i1, i1) += l[2];
+
+      ln(i1) -= l[0];
+      ln(i) -= l[1];
+      ln(n) += l[0] + l[1];
+    }
+  }
+  // Apply prolongation
+  for (int j = 0; j < n; ++j)
+    for (int i = 0; i < n; ++i) S(i, j) += weights(i) * ln(j) + weights(j) * ln(i) + weights(i) * weights(j) * ln(n);
+
+  return S;
+}
+
+SparseMatrix<double> EmbeddedGeometryInterface::buildDivergenceMatrix() const {
+  SparseMatrix<double> G = buildGradientMatrix();
+  SparseMatrix<double> M = buildGradientMassMatrix();
+  return -G.transpose() * M; // take convention that outflow is positive
+}
+
+SparseMatrix<double> EmbeddedGeometryInterface::buildGradientMatrix() const {
+  virtualRefinementAreaWeightsQ.ensureHave();
+  vertexIndicesQ.ensureHave();
+  vertexPositionsQ.ensureHave();
+  faceIndicesQ.ensureHave();
+
+  // Builds a matrix G ∈ (R^3)^{|T^f| x |V|}, which gets built as a 3|T^f| x |V| matrix.
+  size_t V = mesh.nVertices();
+  size_t F = mesh.nFaces();
+  SparseMatrix<double> G;
+  std::vector<Eigen::Triplet<double>> triplets;
+  size_t nTriangles = 0;
+  size_t k = 0;
+  for (Face f : mesh.faces()) {
+    size_t fIdx = faceIndices[f];
+    nTriangles += f.degree();
+    Eigen::MatrixXd poly = getPolygonPositionMatrix(f);
+    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
+    Eigen::Vector3d p = poly.transpose() * weights;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      size_t v0 = vertexIndices[he.tailVertex()];
+      size_t v1 = vertexIndices[he.tipVertex()];
+      Vector3 p0 = vertexPositions[v0];
+      Vector3 p1 = vertexPositions[v1];
+      Vector3 grad_p = gradientHatFunction(p, p0, p1);
+      Vector3 grad_p0 = gradientHatFunction(p0, p1, p);
+      Vector3 grad_p1 = gradientHatFunction(p1, p, p0);
+      for (size_t j = 0; j < 3; j++) {
+        triplets.emplace_back(3 * k + j, V + fIdx, grad_p[j]);
+        triplets.emplace_back(3 * k + j, v0, grad_p0[j]);
+        triplets.emplace_back(3 * k + j, v1, grad_p1[j]);
+      }
+      k++;
+    }
+  }
+  G.resize(3 * nTriangles, V + F);
+  G.setFromTriplets(triplets.begin(), triplets.end());
+  SparseMatrix<double> P = buildProlongationMatrix();
+  G = G * P;
+  return G;
+}
+
+SparseMatrix<double> EmbeddedGeometryInterface::buildGradientMassMatrix() const {
+  virtualRefinementAreaWeightsQ.ensureHave();
+  vertexPositionsQ.ensureHave();
+
+  // Block diagonal matrix whose i-th block consists of the 3×3 identity matrix multiplied by the area of the i-th
+  // triangle.
+  SparseMatrix<double> M;
+  std::vector<Eigen::Triplet<double>> triplets;
+  size_t c = 0;
+  for (Face f : mesh.faces()) {
+    Eigen::MatrixXd poly = getPolygonPositionMatrix(f);
+    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
+    Eigen::Vector3d areaPoint = poly.transpose() * weights;
+    Vector3 ap = {areaPoint[0], areaPoint[1], areaPoint[2]};
+    size_t i = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      Vector3 p0 = vertexPositions[he.tailVertex()];
+      Vector3 p1 = vertexPositions[he.tipVertex()];
+      double area = 0.5 * cross(p0 - ap, p1 - ap).norm();
+      for (size_t j = 0; j < 3; j++) {
+        size_t idx = c + 3 * i + j;
+        triplets.emplace_back(idx, idx, area);
+      }
+      i++;
+    }
+    c += f.degree() * 3;
+  }
+  M.resize(c, c);
+  M.setFromTriplets(triplets.begin(), triplets.end());
+  return M;
+}
+
+SparseMatrix<double> EmbeddedGeometryInterface::buildProlongationMatrix() const {
+  virtualRefinementAreaWeightsQ.ensureHave();
+  vertexIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  size_t F = mesh.nFaces();
+  std::vector<Eigen::Triplet<double>> triplets;
+  SparseMatrix<double> P(V + F, V);
+  for (size_t i = 0; i < V; i++) triplets.emplace_back(i, i, 1);
+  int j = 0;
+  for (Face f : mesh.faces()) {
+    Eigen::VectorXd weights = virtualRefinementAreaWeights[f];
+    int i = 0;
+    for (Vertex v : f.adjacentVertices()) {
+      size_t vIdx = vertexIndices[v];
+      triplets.emplace_back(V + j, vIdx, weights[i]);
+      i++;
+    }
+    j++;
+  }
+  P.setFromTriplets(triplets.begin(), triplets.end());
+  return P;
+}
+
+void EmbeddedGeometryInterface::computeVirtualRefinementAreaWeights() {
+  vertexPositionsQ.ensureHave();
+
+  virtualRefinementAreaWeights = FaceData<Eigen::VectorXd>(mesh);
+
+  for (Face f : mesh.faces()) {
+    Eigen::MatrixXd poly = getPolygonPositionMatrix(f);
+    Eigen::VectorXd weights = computeVirtualVertex(poly);
+    virtualRefinementAreaWeights[f] = weights;
+  }
+}
+
+Eigen::MatrixXd EmbeddedGeometryInterface::getPolygonPositionMatrix(const Face& f) const {
+  vertexPositionsQ.ensureHave();
+
+  Eigen::MatrixXd poly(f.degree(), 3);
+  int i = 0;
+  for (Vertex v : f.adjacentVertices()) {
+    for (int j = 0; j < 3; j++) {
+      poly(i, j) = vertexPositions[v][j];
+    }
+    i++;
+  }
+  return poly;
+}
+
+Eigen::VectorXd EmbeddedGeometryInterface::computeVirtualVertex(const Eigen::MatrixXd& poly) const {
+
+  // Given a polygon face, computes the affine weights that determine the position of the virtual vertex that minimizes
+  // the sum of the squared areas of the triangles in the induced triangle fan. While the location of this vertex (the
+  // minimizer) is unique, its expression as an affine combination of the polygon verties may not be -- regularize by
+  // picking the weights with minimum L_2 norm, which encourages the weights to be as uniform as possible.
+
+  int n = poly.rows();
+  Eigen::VectorXd weights(n);
+  Eigen::MatrixXd J(n, n);
+  Eigen::VectorXd b(n);
+  for (int i = 0; i < n; i++) {
+    Eigen::Vector3d pk = poly.row(i);
+
+    double Bk1_d2 = 0.0;
+    double Bk1_d1 = 0.0;
+
+    double Bk2_d0 = 0.0;
+    double Bk2_d2 = 0.0;
+
+    double Bk3_d0 = 0.0;
+    double Bk3_d1 = 0.0;
+
+    double CBk = 0.0;
+    Eigen::Vector3d d = Eigen::MatrixXd::Zero(3, 1);
+
+    for (int j = 0; j < n; j++) {
+      Eigen::Vector3d pi = poly.row(j);
+      Eigen::Vector3d pj = poly.row((j + 1) % n);
+      d = pi - pj;
+
+      double Bik1 = d(1) * pk(2) - d(2) * pk(1);
+      double Bik2 = d(2) * pk(0) - d(0) * pk(2);
+      double Bik3 = d(0) * pk(1) - d(1) * pk(0);
+
+      double Ci1 = d(1) * pi(2) - d(2) * pi(1);
+      double Ci2 = d(2) * pi(0) - d(0) * pi(2);
+      double Ci3 = d(0) * pi(1) - d(1) * pi(0);
+
+      Bk1_d1 += d(1) * Bik1;
+      Bk1_d2 += d(2) * Bik1;
+
+      Bk2_d0 += d(0) * Bik2;
+      Bk2_d2 += d(2) * Bik2;
+
+      Bk3_d0 += d(0) * Bik3;
+      Bk3_d1 += d(1) * Bik3;
+
+      CBk += Ci1 * Bik1 + Ci2 * Bik2 + Ci3 * Bik3;
+    }
+    for (int k = 0; k < n; k++) {
+      Eigen::Vector3d xj = poly.row(k);
+      J(i, k) =
+          0.5 * (xj(2) * Bk1_d1 - xj(1) * Bk1_d2 + xj(0) * Bk2_d2 - xj(2) * Bk2_d0 + xj(1) * Bk3_d0 - xj(0) * Bk3_d1);
+    }
+    b(i) = 0.5 * CBk;
+  }
+
+  Eigen::MatrixXd M(n + 1, n);
+  M.block(0, 0, n, n) = 4 * J;
+  M.block(n, 0, 1, n).setOnes();
+
+  Eigen::VectorXd b_(n + 1);
+  b_.block(0, 0, n, 1) = 4 * b;
+
+  b_(n) = 1.;
+  weights = M.completeOrthogonalDecomposition().solve(b_).topRows(n);
+
+  return weights;
+}
+
+Vector3 EmbeddedGeometryInterface::gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const {
+  Vector3 gradient;
+  Vector3 site = a - b;
+  Vector3 base = c - b;
+  double area = 0.5 * (cross(site, base)).norm();
+  double baseNorm = base.norm();
+  Vector3 grad = site - (dot(site, base) / baseNorm) * base / baseNorm;
+  if (area < 1e-10) {
+    gradient = Vector3::Zero;
+  } else {
+    grad = baseNorm * grad / grad.norm();
+    gradient = grad / (2.0 * area);
+  }
+  return gradient;
+}
 
 
 // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
