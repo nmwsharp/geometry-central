@@ -56,11 +56,11 @@ Barycentric vectors support addition, subtraction, scalar multiplication, and sc
 
 ??? func "`#!cpp BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface& geom) const`"
 
-    Rotate the given tangent vector 90 degrees counter-clockwise within the face it belongs to. This function requires the geometry, since the meaning of "90 degrees" depends on the geometry of the triangle. If the vector is initially an edge-type vector, this function will return a face-type vector whose face is the one the rotated vector "points into"; if the edge is a boundary edge, however, the returned vector will always lie within an interior face.
+    Rotate the given tangent vector 90 degrees counter-clockwise within the face it belongs to. This function requires the geometry, since the meaning of "90 degrees" depends on the geometry of the triangle. If the vector is initially an edge-type vector, this function will return a face-type vector whose face is the one the rotated vector "points into"; though if the edge is a boundary edge, the returned vector will always lie within an interior face.
 
 ??? func "`#!cpp BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& geom, double angle) const`"
 
-    Rotate the given tangent vector counter-clockwise within the face it belongs to, by the given angle (specified in radians). This function requires the geometry, since the rotation depends on the geometry of the triangle. If the vector is initially an edge-type vector, this function will return a face-type vector whose face is the one the rotated vector "points into"; if the edge is a boundary edge, however, the returned vector will always lie within an interior face.
+    Rotate the given tangent vector counter-clockwise within the face it belongs to, by the given angle (specified in radians). This function requires the geometry, since the rotation depends on the geometry of the triangle. If the vector is initially an edge-type vector, this function will return a face-type vector whose face is the one the rotated vector "points into"; though if the edge is a boundary edge, the returned vector will always lie within an interior face.
 
 Barycentric vectors also have a few utility functions:
 
