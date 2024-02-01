@@ -543,13 +543,15 @@ In graphics and geometry processing, Crouzeix-Raviart elements have been used, f
     - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
 
-## Polygon Mesh Operators
+## Polygon mesh operators
 
-These quantities are defined for any `EmbeddedGeometryInterface`, meaning they will be available for any geometry whose embedding in 3D space is specified (for example, with vertex positions.) These operators were specifically designed for polygon meshes, though they will reduce to the classical discrete exterior calculus & finite element operators on triangular meshes (described above). 
+The following quantities are designed for general polygon meshes, and are defined for any `EmbeddedGeometryInterface`. On triangle meshes, they will reduce to the classical discrete exterior calculus & finite element operators. 
 
 Two classes of polygon operators are provided: those based on [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf), whose discretization is based on virtual refinement of the polygon mesh; and those based on [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf), whose discretization is based on an adaptation of the virtual element method. The former uses [Astrid Bunge and Mario Botsch's implementation of their paper](https://github.com/mbotsch/polygon-laplacian), while the latter uses [David Coeurjolly, Jacques-Olivier Lachaud, and Baptiste Genest's DGtal implementation of de Goes et al.'s paper](https://www.dgtal.org/doc/stable/modulePolygonalCalculus.html). Both methods build local operators whose matrices are assembled per-polygon, so they will run out-of-the-box on non-manifold meshes (but no guarantees are provided!) 
 
 All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `SurfaceMesh::getVertexIndices()` (etc).
+
+Here are polygon mesh operators from [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf).
 
 ??? func "polygon Laplacian (simple)"
     
@@ -559,7 +561,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian. 
 
-    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
+    This is the _weak_ Laplace operator.
 
     Only valid on an `EmbeddedGeometryInterface`.
 
@@ -611,7 +613,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonDECOperators()`
 
-Described below are polygon mesh operators from [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf).
+And here are polygon mesh operators from [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf).
 
 ??? func "polygon Laplacian"
     
@@ -621,7 +623,7 @@ Described below are polygon mesh operators from [de Goes et al.'s _Discrete Diff
 
     A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure discrete inner products remain positive-definite on non-triangular faces. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian with $\lambda=0$.
 
-    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
+    This is the _weak_ Laplace operator.
 
     Only valid on an `EmbeddedGeometryInterface`.
 
