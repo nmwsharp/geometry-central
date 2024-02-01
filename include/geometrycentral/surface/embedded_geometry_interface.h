@@ -61,54 +61,52 @@ public:
   FaceData<Vector<double>> virtualRefinementAreaWeights;
 
   // Laplacian
-  Eigen::SparseMatrix<double> virtualRefinementLaplacian;
-  void requireVirtualRefinementPolygonLaplacian();
-  void unrequireVirtualRefinementPolygonLaplacian();
+  Eigen::SparseMatrix<double> simplePolygonLaplacian;
+  void requireSimplePolygonLaplacian();
+  void unrequireSimplePolygonLaplacian();
 
   // Vertex Galerkin mass matrix (unlumped)
-  Eigen::SparseMatrix<double> virtualRefinementVertexGalerkinMassMatrix;
-  void requireVirtualRefinementVertexGalerkinMassMatrix();
-  void unrequireVirtualRefinementVertexGalerkinMassMatrix();
+  Eigen::SparseMatrix<double> simplePolygonVertexGalerkinMassMatrix;
+  void requireSimplePolygonVertexGalerkinMassMatrix();
+  void unrequireSimplePolygonVertexGalerkinMassMatrix();
 
   // Vertex mass matrix (lumped)
-  Eigen::SparseMatrix<double> virtualRefinementVertexLumpedMassMatrix;
-  void requireVirtualRefinementVertexLumpedMassMatrix();
-  void unrequireVirtualRefinementVertexLumpedMassMatrix();
+  Eigen::SparseMatrix<double> simplePolygonVertexLumpedMassMatrix;
+  void requireSimplePolygonVertexLumpedMassMatrix();
+  void unrequireSimplePolygonVertexLumpedMassMatrix();
 
   // DEC Operators
-  Eigen::SparseMatrix<double> virtualRefinementHodge0, virtualRefinementHodge0Inverse, virtualRefinementHodge1,
-      virtualRefinementHodge1Inverse, virtualRefinementHodge2, virtualRefinementHodge2Inverse, virtualRefinementD0,
-      virtualRefinementD1;
-  void requireVirtualRefinementDECOperators();
-  void unrequireVirtualRefinementDECOperators();
+  Eigen::SparseMatrix<double> simplePolygonHodge0, simplePolygonHodge0Inverse, simplePolygonHodge1,
+      simplePolygonHodge1Inverse, simplePolygonHodge2, simplePolygonHodge2Inverse, simplePolygonD0, simplePolygonD1;
+  void requireSimplePolygonDECOperators();
+  void unrequireSimplePolygonDECOperators();
 
   // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
 
   // Laplacian
-  Eigen::SparseMatrix<double> virtualElementLaplacian;
-  void requireVirtualElementLaplacian();
-  void unrequireVirtualElementLaplacian();
+  Eigen::SparseMatrix<double> polygonLaplacian;
+  void requirePolygonLaplacian();
+  void unrequirePolygonLaplacian();
 
   // Vertex mass matrix (unlumped)
-  Eigen::SparseMatrix<double> virtualElementVertexGalerkinMassMatrix;
-  void requireVirtualElementVertexGalerkinMassMatrix();
-  void requireVirtualElementVertexGalerkinMassMatrix();
+  Eigen::SparseMatrix<double> polygonVertexGalerkinMassMatrix;
+  void requirePolygonVertexGalerkinMassMatrix();
+  void requirePolygonVertexGalerkinMassMatrix();
 
   // Vertex mass matrix (lumped)
-  Eigen::SparseMatrix<double> virtualElementVertexLumpedMassMatrix;
-  void requireVirtualElementVertexLumpedMassMatrix();
-  void unrequireVirtualElementVertexLumpedMassMatrix();
+  Eigen::SparseMatrix<double> polygonVertexLumpedMassMatrix;
+  void requirePolygonVertexLumpedMassMatrix();
+  void unrequirePolygonVertexLumpedMassMatrix();
 
   // Vertex connection Laplacian
-  Eigen::SparseMatrix<std::complex<double>> virtualElementVertexConnectionLaplacian;
-  void requireVirtualElementVertexConnectionLaplacian();
-  void unrequireVirtualElementVertexConnectionLaplacian();
+  Eigen::SparseMatrix<std::complex<double>> polygonVertexConnectionLaplacian;
+  void requirePolygonVertexConnectionLaplacian();
+  void unrequirePolygonVertexConnectionLaplacian();
 
-  Eigen::SparseMatrix<double> virtualElementHodge0, virtualElementHodge0Inverse, virtualElementHodge1,
-      virtualElementHodge1Inverse, virtualElementHodge2, virtualElementHodge2Inverse, virtualElementD0,
-      virtualElementD1;
-  void requireVirtualElementDECOperators();
-  void unrequireVirtualElementDECOperators();
+  Eigen::SparseMatrix<double> polygonHodge0, polygonHodge0Inverse, polygonHodge1, polygonHodge1Inverse, polygonHodge2,
+      polygonHodge2Inverse, polygonD0, polygonD1;
+  void requirePolygonDECOperators();
+  void unrequirePolygonDECOperators();
 
 protected:
   // == Implmentations of quantities from base classes
@@ -145,58 +143,91 @@ protected:
 
   // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
 
+  // Laplacian
+  DependentQuantityD<Eigen::SparseMatrix<double>> simplePolygonLaplacianQ;
+  virtual void computeSimplePolygonLaplacian();
+
+  // Vertex mass matrix (unlumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> simplePolygonVertexGalerkinMassMatrixQ;
+  virtual void computeSimplePolygonVertexGalerkinMassMatrix();
+
+  // Vertex mass matrix (lumped)
+  DependentQuantityD<Eigen::SparseMatrix<double>> simplePolygonVertexLumpedMassMatrixQ;
+  virtual void computeSimplePolygonVertexLumpedMassMatrix();
+
+  // DEC Operators
+  std::array<Eigen::SparseMatrix<double>*, 8> simplePolygonDECOperatorArray;
+  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> simplePolygonDECOperatorsQ;
+  virtual void computeSimplePolygonDECOperators();
+
   // helper functions
   DependentQuantityD<FaceData<Eigen::VectorXd>> virtualRefinementAreaWeightsQ; // affine weights for each virtual node
   virtual void computeVirtualRefinementAreaWeights();
-  virtual Eigen::MatrixXd buildPolygonMassMatrix(const Face& f) const;
-  virtual Eigen::MatrixXd buildPolygonStiffnessMatrix(const Face& f) const;
-  virtual SparseMatrix<double> buildDivergenceMatrix() const;
-  virtual SparseMatrix<double> buildGradientMatrix() const;
-  virtual SparseMatrix<double> buildGradientMassMatrix() const;
-  virtual SparseMatrix<double> buildProlongationMatrix() const;
-  virtual Eigen::MatrixXd getPolygonPositionMatrix(const Face& f) const;
-  virtual Eigen::VectorXd computeVirtualVertex(const Eigen::MatrixXd& poly) const;
-  virtual Vector3 gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const;
-
-  // Laplacian
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementLaplacianQ;
-  virtual void computeVirtualRefinementLaplacian();
-
-  // Vertex mass matrix (unlumped)
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementVertexGalerkinMassMatrixQ;
-  virtual void computeVirtualRefinementVertexGalerkinMassMatrix();
-
-  // Vertex mass matrix (lumped)
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualRefinementVertexLumpedMassMatrixQ;
-  virtual void computeVirtualRefinementVertexLumpedMassMatrix();
-
-  // DEC Operators
-  std::array<Eigen::SparseMatrix<double>*, 8> virtualRefinementDECOperatorArray;
-  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> virtualRefinementDECOperatorsQ;
-  virtual void computeVirtualRefinementDECOperators();
+  virtual Eigen::MatrixXd simplePolygonMassMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd simplePolygonStiffnessMatrix(const Face& f) const;
+  virtual SparseMatrix<double> simplePolygonDivergenceMatrix() const;   // TODO: axe?
+  virtual SparseMatrix<double> simplePolygonGradientMatrix() const;     // TODO: axe?
+  virtual SparseMatrix<double> simplePolygonGradientMassMatrix() const; // TODO: axe?
+  virtual SparseMatrix<double> simplePolygonProlongationMatrix() const;
+  virtual Eigen::MatrixXd polygonPositionMatrix(const Face& f) const;
+  virtual Eigen::VectorXd simplePolygonVirtualVertex(const Eigen::MatrixXd& poly) const;
+  virtual Vector3 gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const; // TODO: axe?
 
   // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
 
   // Laplacian
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementLaplacianQ;
-  virtual void computeVirtualElementLaplacian();
+  DependentQuantityD<Eigen::SparseMatrix<double>> polygonLaplacianQ;
+  virtual void computePolygonLaplacian();
 
   // Vertex mass matrix (unlumped)
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementVertexGalerkinMassMatrixQ;
-  virtual void computeVirtualElementVertexGalerkinMassMatrix();
+  DependentQuantityD<Eigen::SparseMatrix<double>> polygonVertexMassMatrixQ;
+  virtual void computePolygonVertexMassMatrix();
 
   // Vertex mass matrix (lumped)
-  DependentQuantityD<Eigen::SparseMatrix<double>> virtualElementVertexLumpedMassMatrixQ;
-  virtual void computeVirtualElementVertexLumpedMassMatrix();
+  DependentQuantityD<Eigen::SparseMatrix<double>> polygonVertexLumpedMassMatrixQ;
+  virtual void computePolygonVertexLumpedMassMatrix();
 
   // Vertex connection Laplacian
-  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> virtualElementVertexConnectionLaplacianQ;
-  virtual void computeVirtualElementVertexConnectionLaplacian();
+  DependentQuantityD<Eigen::SparseMatrix<std::complex<double>>> polygonVertexConnectionLaplacianQ;
+  virtual void computePolygonVertexConnectionLaplacian();
 
   // DEC Operators
-  std::array<Eigen::SparseMatrix<double>*, 8> virtualElementDECOperatorArray;
-  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> virtualElementDECOperatorsQ;
-  virtual void computeVirtualElementDECOperators();
+  std::array<Eigen::SparseMatrix<double>*, 8> polygonDECOperatorArray;
+  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> polygonDECOperatorsQ;
+  virtual void computePolygonDECOperators();
+
+  // helper functions
+  virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f) const;
+  virtual Eigen::MatrixXd polygonPerFaceDivergence(const Face& f) const; // TODO: axe?
+  virtual Eigen::MatrixXd polygonPerFaceMassMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonCoGradientMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonGradientMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonAveragingMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonDerivativeMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonEdgeVectorMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonEdgeMidpointMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonFlat(const Face& f) const;
+  virtual Eigen::MatrixXd polygonSharp(const Face& f) const;
+  virtual Eigen::Vector3d polygonVectorArea(const Face& f) const;
+  virtual double polygonArea(const Face& f) const;
+  virtual Eigen::Vector3d polygonNormal(const Face& f) const;
+  virtual Eigen::Vector3d polygonCentroid(const Face& f) const;
+  // connections
+  virtual Eigen::MatrixXd polygonPerFaceConnectionLaplacian(const Face& f) const;
+  virtual Eigen::MatrixXd polygonBlockConnection(const Face& f) const;
+  virtual Eigen::MatrixXd polygonCovariantGradient(const Face& f) const;
+  virtual Eigen::MatrixXd polygonCovariantProjection(const Face& f) const;
+  // tangent space helpers
+  virtual Eigen::MatrixXd Tv(const Vertex& v) const;
+  virtual Eigen::MatrixXd Tf(const Face& f) const;
+  virtual Eigen::Matrix2d Rvf(const Vertex& v, const Face& f) const;
+  virtual Eigen::Matrix3d Qvf(const Vertex& v, const Face& f) const;
+  // helpers to the helper functions: generic linear algebra stuff, though probably wouldn't find much use elsewhere
+  // so keeping them here -- also they use Eigen::Vectors here for matrix-multiply compatibility.
+  virtual Eigen::Matrix3d bracket(const Eigen::Vector3d& n) const;
+  virtual Eigen::Vector3d project(const Eigen::Vector3d& u, const Eigen::Vector3d& n) const;
+  virtual Eigen::MatrixXd kroneckerWithI2(const Eigen::MatrixXd& M) const;
 };
 
 
