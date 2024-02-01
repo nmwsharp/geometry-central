@@ -467,7 +467,56 @@ void EmbeddedGeometryInterface::unrequireSimplePolygonVertexLumpedMassMatrix() {
 
 // DEC Operators
 void EmbeddedGeometryInterface::computeSimplePolygonDECOperators() {
-  // TODO
+  vertexIndicesQ.ensureHave();
+  faceIndicesQ.ensureHave();
+  vertexPositionsQ.ensureHave();
+  virtualRefinementAreaWeightsQ.ensureHave();
+
+  // The simple polygon DEC operators are defined by prolonging the standard DEC operators defined on the refined
+  // triangle mesh, to the original polygon mesh.
+  size_t V = mesh.nVertices();
+  size_t E = mesh.nEdges();
+  size_t F = mesh.nFaces();
+  size_t tV = V + F; // # of vertices in the refinement
+  std::vector<Eigen::Triplet<double>> tripletsD0, tripletsD1, tripletsD2, tripletsH0, tripletsH1, tripletsH2;
+
+  // TODO: Build d^k matrices on the (virtual) refined triangle mesh.
+
+  // TODO: Build Hodge stars on the (virtual) refined triangle mesh.
+  SparseMatrix<double> h0(tV, tV);
+  for (Face f : mesh.faces()) {
+    Eigen::MatrixXd poly = polygonPositionMatrix(f);
+    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
+    Eigen::Vector3d areaPoint = poly.transpose() * weights;
+    Vector3 ap = {areaPoint[0], areaPoint[1], areaPoint[2]};
+    size_t fIdx = faceIndices[f];
+    for (Halfedge he : f.adjacentHalfedges()) {
+      size_t v0 = vertexIndices[he.tailVertex()];
+      size_t v1 = vertexIndices[he.tipVertex()];
+      Vector3 p0 = vertexPositions[v0];
+      Vector3 p1 = vertexPositions[v1];
+      double area = 0.5 * cross(p0 - ap, p1 - ap).norm();
+      double w = area / 3.;
+      tripletsH0.emplace_back(v0, v0, w);
+      tripletsH0.emplace_back(v1, v1, w);
+      tripletsH0.emplace_back(V + fIdx, V + fIdx, w);
+    }
+  }
+  h0.setFromTriplets(tripletsH0.begin(), tripletsH0.end());
+
+  SparseMatrix<double> h1(E, E);
+  h1.setFromTriplets(tripletsH1.begin(), tripletsH1.end());
+
+  SparseMatrix<double> h2(F, F);
+  h2.setFromTriplets(tripletsH2.begin(), tripletsH2.end());
+
+  // TODO: Apply prolongation.
+  SparseMatrix<double> P0 = simplePolygonProlongationMatrix();
+  simplePolygonHodge0 = P0.transpose() * h0 * P0;
+
+  simplePolygonHodge1 = P1.transpose() * h1 * P1;
+
+  simplePolygonHodge2 = P2.transpose() * h2 * P2;
 }
 void EmbeddedGeometryInterface::requireSimplePolygonDECOperators() { simplePolygonDECOperatorsQ.require(); }
 void EmbeddedGeometryInterface::unrequireSimplePolygonDECOperators() { simplePolygonDECOperatorsQ.unrequire(); }
