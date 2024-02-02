@@ -149,9 +149,6 @@ protected:
   virtual void computeVirtualRefinementAreaWeights();
   virtual Eigen::MatrixXd simplePolygonMassMatrix(const Face& f) const;
   virtual Eigen::MatrixXd simplePolygonStiffnessMatrix(const Face& f) const;
-  virtual SparseMatrix<double> simplePolygonDivergenceMatrix() const;   // TODO: axe?
-  virtual SparseMatrix<double> simplePolygonGradientMatrix() const;     // TODO: axe?
-  virtual SparseMatrix<double> simplePolygonGradientMassMatrix() const; // TODO: axe?
   virtual SparseMatrix<double> simplePolygonProlongationMatrix() const;
   virtual Eigen::MatrixXd polygonPositionMatrix(const Face& f) const;
   virtual Eigen::VectorXd simplePolygonVirtualVertex(const Eigen::MatrixXd& poly) const;
@@ -177,6 +174,7 @@ protected:
   virtual void computePolygonDECOperators();
 
   // helper functions
+  const double polygonLambda = 1.0;
   virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f) const;
   virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f) const;

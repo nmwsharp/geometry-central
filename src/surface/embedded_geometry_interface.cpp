@@ -542,86 +542,6 @@ Eigen::MatrixXd EmbeddedGeometryInterface::simplePolygonStiffnessMatrix(const Fa
   return S;
 }
 
-SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonDivergenceMatrix() const {
-  SparseMatrix<double> G = simplePolygonGradientMatrix();
-  SparseMatrix<double> M = simplePolygonGradientMassMatrix();
-  return -G.transpose() * M; // take convention that outflow is positive
-}
-
-SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonGradientMatrix() const {
-  virtualRefinementAreaWeightsQ.ensureHave();
-  vertexIndicesQ.ensureHave();
-  vertexPositionsQ.ensureHave();
-  faceIndicesQ.ensureHave();
-
-  // Builds a matrix G ∈ (R^3)^{|T^f| x |V|}, which gets built as a 3|T^f| x |V| matrix.
-  size_t V = mesh.nVertices();
-  size_t F = mesh.nFaces();
-  SparseMatrix<double> G;
-  std::vector<Eigen::Triplet<double>> triplets;
-  size_t nTriangles = 0;
-  size_t k = 0;
-  for (Face f : mesh.faces()) {
-    size_t fIdx = faceIndices[f];
-    nTriangles += f.degree();
-    Eigen::MatrixXd poly = polygonPositionMatrix(f);
-    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
-    Eigen::Vector3d p = poly.transpose() * weights;
-    for (Halfedge he : f.adjacentHalfedges()) {
-      size_t v0 = vertexIndices[he.tailVertex()];
-      size_t v1 = vertexIndices[he.tipVertex()];
-      Vector3 p0 = vertexPositions[v0];
-      Vector3 p1 = vertexPositions[v1];
-      Vector3 grad_p = gradientHatFunction(p, p0, p1);
-      Vector3 grad_p0 = gradientHatFunction(p0, p1, p);
-      Vector3 grad_p1 = gradientHatFunction(p1, p, p0);
-      for (size_t j = 0; j < 3; j++) {
-        triplets.emplace_back(3 * k + j, V + fIdx, grad_p[j]);
-        triplets.emplace_back(3 * k + j, v0, grad_p0[j]);
-        triplets.emplace_back(3 * k + j, v1, grad_p1[j]);
-      }
-      k++;
-    }
-  }
-  G.resize(3 * nTriangles, V + F);
-  G.setFromTriplets(triplets.begin(), triplets.end());
-  SparseMatrix<double> P = simplePolygonProlongationMatrix();
-  G = G * P;
-  return G;
-}
-
-SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonGradientMassMatrix() const {
-  virtualRefinementAreaWeightsQ.ensureHave();
-  vertexPositionsQ.ensureHave();
-
-  // Block diagonal matrix whose i-th block consists of the 3×3 identity matrix multiplied by the area of the i-th
-  // triangle.
-  SparseMatrix<double> M;
-  std::vector<Eigen::Triplet<double>> triplets;
-  size_t c = 0;
-  for (Face f : mesh.faces()) {
-    Eigen::MatrixXd poly = polygonPositionMatrix(f);
-    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
-    Eigen::Vector3d areaPoint = poly.transpose() * weights;
-    Vector3 ap = {areaPoint[0], areaPoint[1], areaPoint[2]};
-    size_t i = 0;
-    for (Halfedge he : f.adjacentHalfedges()) {
-      Vector3 p0 = vertexPositions[he.tailVertex()];
-      Vector3 p1 = vertexPositions[he.tipVertex()];
-      double area = 0.5 * cross(p0 - ap, p1 - ap).norm();
-      for (size_t j = 0; j < 3; j++) {
-        size_t idx = c + 3 * i + j;
-        triplets.emplace_back(idx, idx, area);
-      }
-      i++;
-    }
-    c += f.degree() * 3;
-  }
-  M.resize(c, c);
-  M.setFromTriplets(triplets.begin(), triplets.end());
-  return M;
-}
-
 SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonProlongationMatrix() const {
   virtualRefinementAreaWeightsQ.ensureHave();
   vertexIndicesQ.ensureHave();
@@ -930,14 +850,14 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceInnerProductMatrix(cons
   Eigen::MatrixXd Uf = polygonSharp(f);
   Eigen::MatrixXd Pf = polygonProjectionMatrix(f);
   double A = polygonArea(f);
-  return A * Uf.transpose() * Uf + lambda * Pf.transpose() * Pf;
+  return A * Uf.transpose() * Uf + polygonLambda * Pf.transpose() * Pf;
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceConnectionLaplacian(const Face& f) const {
   Eigen::MatrixXd G = polygonCovariantGradient(f);
   Eigen::MatrixXd P = polygonCovariantProjection(f);
   double A = polygonArea(f);
-  Eigen::MatrixXd L = A * G.transpose() * G + lambda * P.transpose() * P; // build positive-definite
+  Eigen::MatrixXd L = A * G.transpose() * G + polygonLambda * P.transpose() * P; // build positive-definite
   return L;
 }
 
