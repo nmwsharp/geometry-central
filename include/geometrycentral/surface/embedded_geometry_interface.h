@@ -82,6 +82,16 @@ public:
   void requirePolygonLaplacian();
   void unrequirePolygonLaplacian();
 
+  // Gradient matrix
+  Eigen::SparseMatrix<double> polygonGradientMatrix;
+  void requirePolygonGradientMatrix();
+  void unrequirePolygonGradientMatrix();
+
+  // Divergence matrix
+  Eigen::SparseMatrix<double> polygonDivergenceMatrix;
+  void requirePolygonDivergenceMatrix();
+  void unrequirePolygonDivergenceMatrix();
+
   // Vertex mass matrix (lumped)
   Eigen::SparseMatrix<double> polygonVertexLumpedMassMatrix;
   void requirePolygonVertexLumpedMassMatrix();
@@ -152,13 +162,18 @@ protected:
   virtual SparseMatrix<double> simplePolygonProlongationMatrix() const;
   virtual Eigen::MatrixXd polygonPositionMatrix(const Face& f) const;
   virtual Eigen::VectorXd simplePolygonVirtualVertex(const Eigen::MatrixXd& poly) const;
-  virtual Vector3 gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const; // TODO: axe?
 
   // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
 
   // Laplacian
   DependentQuantityD<Eigen::SparseMatrix<double>> polygonLaplacianQ;
   virtual void computePolygonLaplacian();
+
+  DependentQuantityD<Eigen::SparseMatrix<double>> polygonGradientMatrixQ;
+  virtual void computePolygonGradientMatrix();
+
+  DependentQuantityD<Eigen::SparseMatrix<double>> polygonDivergenceMatrixQ;
+  virtual void computePolygonDivergenceMatrix();
 
   // Vertex mass matrix (lumped)
   DependentQuantityD<Eigen::SparseMatrix<double>> polygonVertexLumpedMassMatrixQ;
@@ -178,8 +193,8 @@ protected:
   virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f) const;
   virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonPerFaceGradientMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonCoGradientMatrix(const Face& f) const;
-  virtual Eigen::MatrixXd polygonGradientMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonAveragingMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonDerivativeMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonEdgeVectorMatrix(const Face& f) const;

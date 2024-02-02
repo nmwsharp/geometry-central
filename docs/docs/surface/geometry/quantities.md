@@ -426,7 +426,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. If and only the underlying geometry is _Delaunay_, the matrix will furthermore have all negative off-diagonal entries, satisfy a maximum principle, and be an _M-matrix_.
 
-    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
+    This is the _weak_ Laplace operator, if we use it to evaluate $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
 
     Only valid on triangular meshes.
 
@@ -596,9 +596,9 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
     
     ##### polygon Laplacian
 
-    The discrete Laplace operator acting on polygon meshes, using de Goes et al.'s virtual element method in _Discrete Differential Operators on Polygonal Meshes_.
+    The discrete Laplace operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
-    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. Takes in an additional parameter $\lambda$ whose default is $1$. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian with $\lambda=0$.
+    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. Uses an additional parameter $\lambda$ whose default value is $1$. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian.
 
     This is the _weak_ Laplace operator.
 
@@ -607,11 +607,39 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
     - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonLaplacian`
     - **require:** `void EmbeddedGeometryInterface::requirePolygonLaplacian()`
 
+??? func "polygon gradient matrix"
+    
+    ##### polygon gradient matrix
+
+    The discrete gradient operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    A $3|F| \times |V|$ real matrix $\mathsf{G}$. If $\mathsf{x}\in\mathbb{R}^{|V|}$ holds pointwise quantities at vertices, then $\mathsf{y} \leftarrow \mathsf{G}\mathsf{x}\in\mathbb{R}^{3|F|}$ gives the face-wise constant gradient of $\mathsf{x}$, where the gradient in face $f$ is the vector $[\mathsf{y}_{3f}, \mathsf{y}_{3f+1}, \mathsf{y}_{3f+2}]^\top$.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonGradientMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonGradientMatrix()`
+
+??? func "polygon divergence matrix"
+    
+    ##### polygon divergence matrix
+
+    The discrete divergence operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as pointwise quantities at vertices.
+
+    The divergence matrix $\mathsf{D}$ is related to the gradient matrix $\mathsf{G}$ as $\mathsf{D} = \mathsf{G}^\top\mathsf{M}$, where $\mathsf{M}\in\mathbb{R}^{3|F|}$ is a diagonal mass matrix containing face areas (the same that appear in `EmbeddedGeometryInterface::polygonHodge2`.) We use the convention that inflow corresponds to positive divergence.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonGradientMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonGradientMatrix()`
+
 ??? func "polygon mesh vertex lumped mass matrix"
 
     ##### polygon mesh vertex lumped mass matrix
 
-    A $|V| \times |V|$ real diagonal matrix, using de Goes et al.'s virtual element method in _Discrete Differential Operators on Polygonal Meshes_.
+    A $|V| \times |V|$ real diagonal matrix, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
     Only valid on an `EmbeddedGeometryInterface`.
 
@@ -639,9 +667,9 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
 
     ##### polygon DEC operators
 
-    These operators are the basic building blocks for _discrete exterior calculus_ on polygon meshes, using de Goes et al.'s virtual element method in _Discrete Differential Operators on Polygonal Meshes_. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure inner products of discrete 1-forms remain positive-definite on non-triangular faces.
+    These operators are the basic building blocks for _discrete exterior calculus_ on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure inner products of discrete 1-forms remain positive-definite on non-triangular faces.
 
-    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requirePolygonDECOperators()` function which manages all 8 of the members listed below.
+    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requirePolygonDECOperators()` function which manages all 7 of the members listed below.
 
     The following members are constructed:
 

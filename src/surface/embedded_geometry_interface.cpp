@@ -25,6 +25,8 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   simplePolygonVertexLumpedMassMatrixQ   (&simplePolygonVertexLumpedMassMatrix,   std::bind(&EmbeddedGeometryInterface::computeSimplePolygonVertexLumpedMassMatrix, this),   quantities),
  
   polygonLaplacianQ                 (&polygonLaplacian,                 std::bind(&EmbeddedGeometryInterface::computePolygonLaplacian, this),                 quantities),
+  polygonGradientMatrixQ            (&polygonGradientMatrix,            std::bind(&EmbeddedGeometryInterface::computePolygonGradientMatrix, this),            quantities),
+  polygonDivergenceMatrixQ          (&polygonDivergenceMatrix,          std::bind(&EmbeddedGeometryInterface::computePolygonDivergenceMatrix, this),          quantities),
   polygonVertexLumpedMassMatrixQ    (&polygonVertexLumpedMassMatrix,    std::bind(&EmbeddedGeometryInterface::computePolygonVertexLumpedMassMatrix, this),    quantities),
   polygonVertexConnectionLaplacianQ (&polygonVertexConnectionLaplacian, std::bind(&EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian, this), quantities),
   
@@ -663,22 +665,6 @@ Eigen::VectorXd EmbeddedGeometryInterface::simplePolygonVirtualVertex(const Eige
   return weights;
 }
 
-Vector3 EmbeddedGeometryInterface::gradientHatFunction(const Vector3& a, const Vector3& b, const Vector3& c) const {
-  Vector3 gradient;
-  Vector3 site = a - b;
-  Vector3 base = c - b;
-  double area = 0.5 * (cross(site, base)).norm();
-  double baseNorm = base.norm();
-  Vector3 grad = site - (dot(site, base) / baseNorm) * base / baseNorm;
-  if (area < 1e-10) {
-    gradient = Vector3::Zero;
-  } else {
-    grad = baseNorm * grad / grad.norm();
-    gradient = grad / (2.0 * area);
-  }
-  return gradient;
-}
-
 
 // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
 
@@ -708,6 +694,69 @@ void EmbeddedGeometryInterface::computePolygonLaplacian() {
 }
 void EmbeddedGeometryInterface::requirePolygonLaplacian() { polygonLaplacianQ.require(); }
 void EmbeddedGeometryInterface::unrequirePolygonLaplacian() { polygonLaplacianQ.unrequire(); }
+
+
+// Gradient matrix
+void EmbeddedGeometryInterface::computePolygonGradientMatrix() {
+  vertexIndicesQ.ensureHave();
+  faceIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  size_t F = mesh.nFaces();
+  polygonGradientMatrix = Eigen::SparseMatrix<double>(3 * F, V);
+  std::vector<Eigen::Triplet<double>> triplets;
+  // Assemble per-face operators.
+  Eigen::MatrixXd Gf;           // local per-polygon matrix
+  std::vector<size_t> vIndices; // indices of vertices of polygon face
+  for (Face f : mesh.faces()) {
+    size_t fIdx = faceIndices[f];
+    vIndices.clear();
+    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
+    size_t n = f.degree();
+    // Add contribution to global matrix.
+    Gf = polygonPerFaceGradientMatrix(f); // 3 x nf
+    for (size_t i = 0; i < 3; i++) {
+      for (size_t j = 0; j < n; j++) {
+        triplets.emplace_back(3 * fIdx + i, vIndices[j], Gf(i, j));
+      }
+    }
+  }
+  polygonGradientMatrix.setFromTriplets(triplets.begin(), triplets.end());
+}
+void EmbeddedGeometryInterface::requirePolygonGradientMatrix() { polygonGradientMatrixQ.require(); }
+void EmbeddedGeometryInterface::unrequirePolygonGradientMatrix() { polygonGradientMatrixQ.unrequire(); }
+
+
+// Gradient matrix
+void EmbeddedGeometryInterface::computePolygonDivergenceMatrix() {
+  vertexIndicesQ.ensureHave();
+  faceIndicesQ.ensureHave();
+
+  size_t V = mesh.nVertices();
+  size_t F = mesh.nFaces();
+  polygonDivergenceMatrix = Eigen::SparseMatrix<double>(V, 3 * F);
+  std::vector<Eigen::Triplet<double>> triplets;
+  // Assemble per-face operators.
+  Eigen::MatrixXd Gf;           // local per-polygon matrix
+  std::vector<size_t> vIndices; // indices of vertices of polygon face
+  for (Face f : mesh.faces()) {
+    size_t fIdx = faceIndices[f];
+    double area = polygonArea(f);
+    vIndices.clear();
+    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
+    size_t n = f.degree();
+    // Add contribution to global matrix.
+    Gf = polygonPerFaceGradientMatrix(f); // 3 x nf
+    for (size_t i = 0; i < 3; i++) {
+      for (size_t j = 0; j < n; j++) {
+        triplets.emplace_back(vIndices[j], 3 * fIdx + i, Gf(i, j) * area);
+      }
+    }
+  }
+  polygonDivergenceMatrix.setFromTriplets(triplets.begin(), triplets.end());
+}
+void EmbeddedGeometryInterface::requirePolygonDivergenceMatrix() { polygonDivergenceMatrixQ.require(); }
+void EmbeddedGeometryInterface::unrequirePolygonDivergenceMatrix() { polygonDivergenceMatrixQ.unrequire(); }
 
 
 // Vertex mass matrix (lumped)
@@ -874,7 +923,7 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonBlockConnection(const Face& f)
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonCovariantGradient(const Face& f) const {
-  return kroneckerWithI2(Tf(f).transpose() * polygonGradientMatrix(f)) * blockConnection(f);
+  return kroneckerWithI2(Tf(f).transpose() * polygonPerFaceGradientMatrix(f)) * blockConnection(f);
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonCovariantProjection(const Face& f) const {
@@ -887,15 +936,16 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonProjectionMatrix(const Face& f
   return P;
 }
 
-Eigen::MatrixXd EmbeddedGeometryInterface::polygonCoGradientMatrix(const Face& f) const {
-  return polygonEdgeVectorMatrix(f).transpose() * polygonAveragingMatrix(f);
-}
-
-Eigen::MatrixXd EmbeddedGeometryInterface::polygonGradientMatrix(const Face& f) const {
+Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceGradientMatrix(const Face& f) const {
+  // equivalent to applying the (per-face) sharp operator to the (per-face) exterior derivative
   Eigen::Vector3d An = vectorArea(f);
   double A = An.norm();
   Eigen::Vector3d N = An / A;
   return -1. / A * bracket(N) * polygonCoGradientMatrix(f);
+}
+
+Eigen::MatrixXd EmbeddedGeometryInterface::polygonCoGradientMatrix(const Face& f) const {
+  return polygonEdgeVectorMatrix(f).transpose() * polygonAveragingMatrix(f);
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonAveragingMatrix(const Face& f) const {
