@@ -75,23 +75,12 @@ public:
   void requireSimplePolygonVertexLumpedMassMatrix();
   void unrequireSimplePolygonVertexLumpedMassMatrix();
 
-  // DEC Operators
-  Eigen::SparseMatrix<double> simplePolygonHodge0, simplePolygonHodge0Inverse, simplePolygonHodge1,
-      simplePolygonHodge1Inverse, simplePolygonHodge2, simplePolygonHodge2Inverse, simplePolygonD0, simplePolygonD1;
-  void requireSimplePolygonDECOperators();
-  void unrequireSimplePolygonDECOperators();
-
   // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
 
   // Laplacian
   Eigen::SparseMatrix<double> polygonLaplacian;
   void requirePolygonLaplacian();
   void unrequirePolygonLaplacian();
-
-  // Vertex mass matrix (unlumped)
-  Eigen::SparseMatrix<double> polygonVertexGalerkinMassMatrix;
-  void requirePolygonVertexGalerkinMassMatrix();
-  void requirePolygonVertexGalerkinMassMatrix();
 
   // Vertex mass matrix (lumped)
   Eigen::SparseMatrix<double> polygonVertexLumpedMassMatrix;
@@ -103,8 +92,8 @@ public:
   void requirePolygonVertexConnectionLaplacian();
   void unrequirePolygonVertexConnectionLaplacian();
 
-  Eigen::SparseMatrix<double> polygonHodge0, polygonHodge0Inverse, polygonHodge1, polygonHodge1Inverse, polygonHodge2,
-      polygonHodge2Inverse, polygonD0, polygonD1;
+  Eigen::SparseMatrix<double> polygonHodge0, polygonHodge0Inverse, polygonHodge1, polygonHodge2, polygonHodge2Inverse,
+      polygonD0, polygonD1;
   void requirePolygonDECOperators();
   void unrequirePolygonDECOperators();
 
@@ -155,11 +144,6 @@ protected:
   DependentQuantityD<Eigen::SparseMatrix<double>> simplePolygonVertexLumpedMassMatrixQ;
   virtual void computeSimplePolygonVertexLumpedMassMatrix();
 
-  // DEC Operators
-  std::array<Eigen::SparseMatrix<double>*, 8> simplePolygonDECOperatorArray;
-  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> simplePolygonDECOperatorsQ;
-  virtual void computeSimplePolygonDECOperators();
-
   // helper functions
   DependentQuantityD<FaceData<Eigen::VectorXd>> virtualRefinementAreaWeightsQ; // affine weights for each virtual node
   virtual void computeVirtualRefinementAreaWeights();
@@ -179,10 +163,6 @@ protected:
   DependentQuantityD<Eigen::SparseMatrix<double>> polygonLaplacianQ;
   virtual void computePolygonLaplacian();
 
-  // Vertex mass matrix (unlumped)
-  DependentQuantityD<Eigen::SparseMatrix<double>> polygonVertexMassMatrixQ;
-  virtual void computePolygonVertexMassMatrix();
-
   // Vertex mass matrix (lumped)
   DependentQuantityD<Eigen::SparseMatrix<double>> polygonVertexLumpedMassMatrixQ;
   virtual void computePolygonVertexLumpedMassMatrix();
@@ -192,14 +172,13 @@ protected:
   virtual void computePolygonVertexConnectionLaplacian();
 
   // DEC Operators
-  std::array<Eigen::SparseMatrix<double>*, 8> polygonDECOperatorArray;
-  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 8>> polygonDECOperatorsQ;
+  std::array<Eigen::SparseMatrix<double>*, 7> polygonDECOperatorArray;
+  DependentQuantityD<std::array<Eigen::SparseMatrix<double>*, 7>> polygonDECOperatorsQ;
   virtual void computePolygonDECOperators();
 
   // helper functions
   virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f) const;
-  virtual Eigen::MatrixXd polygonPerFaceDivergence(const Face& f) const; // TODO: axe?
-  virtual Eigen::MatrixXd polygonPerFaceMassMatrix(const Face& f) const;
+  virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonCoGradientMatrix(const Face& f) const;
   virtual Eigen::MatrixXd polygonGradientMatrix(const Face& f) const;

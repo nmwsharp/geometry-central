@@ -25,20 +25,11 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   simplePolygonVertexLumpedMassMatrixQ   (&simplePolygonVertexLumpedMassMatrix,   std::bind(&EmbeddedGeometryInterface::computeSimplePolygonVertexLumpedMassMatrix, this),   quantities),
  
   polygonLaplacianQ                 (&polygonLaplacian,                 std::bind(&EmbeddedGeometryInterface::computePolygonLaplacian, this),                 quantities),
-  polygonVertexMassMatrixQ          (&polygonVertexMassMatrix,          std::bind(&EmbeddedGeometryInterface::computePolygonVertexMassMatrix, this),  quantities),
   polygonVertexLumpedMassMatrixQ    (&polygonVertexLumpedMassMatrix,    std::bind(&EmbeddedGeometryInterface::computePolygonVertexLumpedMassMatrix, this),    quantities),
   polygonVertexConnectionLaplacianQ (&polygonVertexConnectionLaplacian, std::bind(&EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian, this), quantities),
-
-  simplePolygonDECOperatorArray{&simplePolygonHodge0, &simplePolygonHodge0Inverse, &simplePolygonHodge1, 
-                                    &simplePolygonHodge1Inverse, &simplePolygonHodge2, 
-                                    &simplePolygonHodge2Inverse, &simplePolygonD0, &simplePolygonD1},
-  simplePolygonDECOperatorsQ(&simplePolygonDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computeSimplePolygonDECOperators, this), quantities),
   
-  polygonDECOperatorArray{&polygonHodge0, &polygonHodge0Inverse, &polygonHodge1, 
-                                 &polygonHodge1Inverse, &polygonHodge2, &polygonHodge2Inverse, 
-                                 &polygonD0, &polygonD1},
+  polygonDECOperatorArray{&polygonHodge0, &polygonHodge0Inverse, &polygonHodge1, &polygonHodge2, &polygonHodge2Inverse, &polygonD0, &polygonD1},
   polygonDECOperatorsQ(&polygonDECOperatorArray, std::bind(&EmbeddedGeometryInterface::computePolygonDECOperators, this), quantities)
-  
   {}
 // clang-format on
 
@@ -464,64 +455,6 @@ void EmbeddedGeometryInterface::unrequireSimplePolygonVertexLumpedMassMatrix() {
   simplePolygonVertexLumpedMassMatrixQ.unrequire();
 }
 
-
-// DEC Operators
-void EmbeddedGeometryInterface::computeSimplePolygonDECOperators() {
-  vertexIndicesQ.ensureHave();
-  faceIndicesQ.ensureHave();
-  vertexPositionsQ.ensureHave();
-  virtualRefinementAreaWeightsQ.ensureHave();
-
-  // The simple polygon DEC operators are defined by prolonging the standard DEC operators defined on the refined
-  // triangle mesh, to the original polygon mesh.
-  size_t V = mesh.nVertices();
-  size_t E = mesh.nEdges();
-  size_t F = mesh.nFaces();
-  size_t tV = V + F; // # of vertices in the refinement
-  std::vector<Eigen::Triplet<double>> tripletsD0, tripletsD1, tripletsD2, tripletsH0, tripletsH1, tripletsH2;
-
-  // TODO: Build d^k matrices on the (virtual) refined triangle mesh.
-
-  // TODO: Build Hodge stars on the (virtual) refined triangle mesh.
-  SparseMatrix<double> h0(tV, tV);
-  for (Face f : mesh.faces()) {
-    Eigen::MatrixXd poly = polygonPositionMatrix(f);
-    const Eigen::VectorXd& weights = virtualRefinementAreaWeights[f];
-    Eigen::Vector3d areaPoint = poly.transpose() * weights;
-    Vector3 ap = {areaPoint[0], areaPoint[1], areaPoint[2]};
-    size_t fIdx = faceIndices[f];
-    for (Halfedge he : f.adjacentHalfedges()) {
-      size_t v0 = vertexIndices[he.tailVertex()];
-      size_t v1 = vertexIndices[he.tipVertex()];
-      Vector3 p0 = vertexPositions[v0];
-      Vector3 p1 = vertexPositions[v1];
-      double area = 0.5 * cross(p0 - ap, p1 - ap).norm();
-      double w = area / 3.;
-      tripletsH0.emplace_back(v0, v0, w);
-      tripletsH0.emplace_back(v1, v1, w);
-      tripletsH0.emplace_back(V + fIdx, V + fIdx, w);
-    }
-  }
-  h0.setFromTriplets(tripletsH0.begin(), tripletsH0.end());
-
-  SparseMatrix<double> h1(E, E);
-  h1.setFromTriplets(tripletsH1.begin(), tripletsH1.end());
-
-  SparseMatrix<double> h2(F, F);
-  h2.setFromTriplets(tripletsH2.begin(), tripletsH2.end());
-
-  // TODO: Apply prolongation.
-  SparseMatrix<double> P0 = simplePolygonProlongationMatrix();
-  simplePolygonHodge0 = P0.transpose() * h0 * P0;
-
-  simplePolygonHodge1 = P1.transpose() * h1 * P1;
-
-  simplePolygonHodge2 = P2.transpose() * h2 * P2;
-}
-void EmbeddedGeometryInterface::requireSimplePolygonDECOperators() { simplePolygonDECOperatorsQ.require(); }
-void EmbeddedGeometryInterface::unrequireSimplePolygonDECOperators() { simplePolygonDECOperatorsQ.unrequire(); }
-
-
 // Helper functions
 
 Eigen::MatrixXd EmbeddedGeometryInterface::simplePolygonMassMatrix(const Face& f) const {
@@ -844,7 +777,7 @@ void EmbeddedGeometryInterface::computePolygonLaplacian() {
     for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
     size_t n = f.degree();
     // Add contribution to global matrix.
-    Lf = buildPerFaceLaplacian(f);
+    Lf = polygonPerFaceLaplacian(f);
     for (size_t j = 0; j < n; j++) {
       for (size_t i = 0; i < n; i++) {
         triplets.emplace_back(vIndices[i], vIndices[j], Lf(i, j));
@@ -857,50 +790,21 @@ void EmbeddedGeometryInterface::requirePolygonLaplacian() { polygonLaplacianQ.re
 void EmbeddedGeometryInterface::unrequirePolygonLaplacian() { polygonLaplacianQ.unrequire(); }
 
 
-// Vertex mass matrix (unlumped)
-void EmbeddedGeometryInterface::computePolygonVertexMassMatrix() {
-  vertexIndicesQ.ensureHave();
-
-  size_t V = mesh.nVertices();
-  polygonVertexMassMatrix = Eigen::SparseMatrix<double>(V, V);
-  std::vector<Eigen::Triplet<double>> triplets;
-  // Assemble per-face operators.
-  Eigen::MatrixXd Mf;           // local per-polygon matrix
-  std::vector<size_t> vIndices; // indices of vertices of polygon face
-  for (Face f : mesh.faces()) {
-    vIndices.clear();
-    for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
-    size_t n = f.degree();
-    // Add contribution to global mass matrix.
-    Mf = polygonPerFaceMassMatrix(f);
-    for (size_t j = 0; j < n; j++) {
-      for (size_t i = 0; i < n; i++) {
-        triplets.emplace_back(vIndices[i], vIndices[j], Mf(i, j));
-      }
-    }
-  }
-  polygonVertexMassMatrix.setFromTriplets(triplets.begin(), triplets.end());
-}
-void EmbeddedGeometryInterface::requirePolygonVertexMassMatrix() { polygonVertexMassMatrixQ.require(); }
-void EmbeddedGeometryInterface::unrequirePolygonVertexMassMatrix() { polygonVertexMassMatrixQ.unrequire(); }
-
-
 // Vertex mass matrix (lumped)
 void EmbeddedGeometryInterface::computePolygonVertexLumpedMassMatrix() {
   vertexIndicesQ.ensureHave();
 
   size_t V = mesh.nVertices();
-  polygonVertexLumpedMassMatrix = Eigen::SparseMatrix<double>(V, V);
-  std::vector<Eigen::Triplet<double>> triplets;
+  Eigen::VectorXd hodge0(V);
   for (Vertex v : mesh.vertices()) {
     size_t vIdx = vertexIndices[v];
     double area = 0.;
     for (Face f : v.adjacentFaces()) {
       area += polygonArea(f) / f.degree();
     }
-    triplets.emplace_back(vIdx, vIdx, area);
+    hodge0[vIdx] = area;
   }
-  polygonVertexLumpedMassMatrix.setFromTriplets(triplets.begin(), triplets.end());
+  polygonVertexLumpedMassMatrix = hodge0.asDiagonal();
 }
 void EmbeddedGeometryInterface::requirePolygonVertexLumpedMassMatrix() { polygonVertexLumpedMassMatrixQ.require(); }
 void EmbeddedGeometryInterface::unrequirePolygonVertexLumpedMassMatrix() { polygonVertexLumpedMassMatrixQ.unrequire(); }
@@ -942,9 +846,74 @@ void EmbeddedGeometryInterface::unrequirePolygonVertexConnectionLaplacian() {
 }
 
 
-// DEC Operators
 void EmbeddedGeometryInterface::computePolygonDECOperators() {
-  // TODO
+  vertexIndicesQ.ensureHave();
+  edgeIndicesQ.ensureHave();
+  faceIndicesQ.ensureHave();
+  std::vector<Eigen::Triplet<double>> tripletsD0, tripletsD1, tripletsH1;
+
+  // exterior derivatives the same as the simplicial case
+  polygonD0 = Eigen::SparseMatrix<double>(E, V);
+  for (Edge e : mesh.edges()) {
+    size_t eIdx = edgeIndices[e];
+    size_t vA = vertexIndices[e.firstVertex()];
+    size_t vB = vertexIndices[e.secondVertex()];
+    tripletsD0.emplace(eIdx, vA, 1.);
+    tripletsD0.emplace(eIdx, vB, -1.);
+  }
+  polygonD0.setFromTriplets(tripletsD0.begin(), tripletsD0.end());
+
+  polygonD1 = Eigen::SparseMatrix<double>(F, E);
+  for (Face f : mesh.faces()) {
+    size_t fIdx = faceIndices[f];
+    for (Halfedge he : f.adjacentHalfedges()) {
+      size_t eIdx = edgeIndices[he.edge()];
+      double sign = he.orientation() ? 1. : -1.;
+      tripletsD1.emplace_back(fIdx, eIdx, sign);
+    }
+  }
+  polygonD1.setFromTriplets(tripletsD1.begin(), tripletsD1.end());
+
+  // hodge0
+  Eigen::VectorXd h0(V);
+  for (Vertex v : mesh.vertices()) {
+    size_t vIdx = vertexIndices[v];
+    double area = 0.;
+    for (Face f : v.adjacentFaces()) {
+      area += polygonArea(f) / f.degree();
+    }
+    h0[vIdx] = area;
+  }
+  polygonHodge0 = h0.asDiagonal();
+  polygonHodge0Inverse = h0.asDiagonal().inverse();
+
+  // hodge1 (inner product matrix on 1-forms)
+  polygonHodge1 = Eigen::SparseMatrix<double>(E, E);
+  Eigen::MatrixXd Mf;           // local per-polygon matrix
+  std::vector<size_t> eIndices; // indices of edges of polygon face
+  for (Face f : mesh.faces()) {
+    eIndices.clear();
+    // Assumes edge iterator goes in same order as vertex iterator around a face
+    for (Edge e : f.adjacentVertices()) eIndices.push_back(edgeIndices[e]);
+    size_t n = f.degree();
+    // Add contribution to global mass matrix.
+    Mf = polygonPerFaceInnerProductMatrix(f);
+    for (size_t j = 0; j < n; j++) {
+      for (size_t i = 0; i < n; i++) {
+        triplets.emplace_back(eIndices[i], eIndices[j], Mf(i, j));
+      }
+    }
+  }
+  polygonHodge1.setFromTriplets(tripletsH1.begin(), tripletsH1.end());
+
+  // hodge2
+  Eigen::VectorXd h2(F);
+  for (Face f : mesh.faces()) {
+    size_t fIdx = faceIndices[f];
+    h2[fIdx] = polygonArea(f);
+  }
+  polygonHodge2 = h0.asDiagonal();
+  polygonHodge2Inverse = h0.asDiagonal().inverse();
 }
 void EmbeddedGeometryInterface::requirePolygonDECOperators() { polygonDECOperatorsQ.require(); }
 void EmbeddedGeometryInterface::unrequirePolygonDECOperators() { polygonDECOperatorsQ.unrequire(); }
@@ -957,12 +926,8 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceLaplacian(const Face& f
   return Df.transpose() * buildPerFaceMassMatrix(f) * Df; // build positive-definite
 }
 
-Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceDivergence(const Face& f) const {
-  return -1. * polygonDerivativeMatrix(f).transpose() * buildPerFaceMassMatrix(f);
-}
-
-Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceMassMatrix(const Face& f) const {
-  Eigen::MatrixXd Uf = sharp(f);
+Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceInnerProductMatrix(const Face& f) const {
+  Eigen::MatrixXd Uf = polygonSharp(f);
   Eigen::MatrixXd Pf = polygonProjectionMatrix(f);
   double A = polygonArea(f);
   return A * Uf.transpose() * Uf + lambda * Pf.transpose() * Pf;
