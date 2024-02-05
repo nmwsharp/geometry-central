@@ -832,8 +832,8 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
     size_t eIdx = edgeIndices[e];
     size_t vA = vertexIndices[e.firstVertex()];
     size_t vB = vertexIndices[e.secondVertex()];
-    tripletsD0.emplace_back(eIdx, vA, 1.);
-    tripletsD0.emplace_back(eIdx, vB, -1.);
+    tripletsD0.emplace_back(eIdx, vA, -1.);
+    tripletsD0.emplace_back(eIdx, vB, 1.);
   }
   polygonD0.setFromTriplets(tripletsD0.begin(), tripletsD0.end());
 
@@ -884,10 +884,10 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   Eigen::VectorXd h2(F);
   for (Face f : mesh.faces()) {
     size_t fIdx = faceIndices[f];
-    h2[fIdx] = polygonArea(f);
+    h2[fIdx] = 1. / polygonArea(f);
   }
-  polygonHodge2 = h0.asDiagonal();
-  polygonHodge2Inverse = h0.asDiagonal().inverse();
+  polygonHodge2 = h2.asDiagonal();
+  polygonHodge2Inverse = h2.asDiagonal().inverse();
 }
 void EmbeddedGeometryInterface::requirePolygonDECOperators() { polygonDECOperatorsQ.require(); }
 void EmbeddedGeometryInterface::unrequirePolygonDECOperators() { polygonDECOperatorsQ.unrequire(); }
