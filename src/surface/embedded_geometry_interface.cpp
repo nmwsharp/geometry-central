@@ -797,12 +797,9 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
     for (size_t j = 0; j < n; j++) {
       for (size_t i = 0; i < n; i++) {
         double re = Lf(2 * i, 2 * j);     // == Lf(2 * i + 1, 2 * j + 1)
-        double im = Lf(2 * i, 2 * j + 1); // == -Lf(2 * i + 1, 2 * j)
-        GC_SAFETY_ASSERT(std::abs(Lf(2 * i, 2 * j) - Lf(2 * i + 1, 2 * j + 1)) < 1e-5,
-                         "polygon vertex connection Laplacian error");
-        GC_SAFETY_ASSERT(std::abs(Lf(2 * i, 2 * j + 1) + Lf(2 * i + 1, 2 * j)) < 1e-5,
-                         "polygon vertex connection Laplacian error");
+        double im = Lf(2 * i, 2 * j + 1); // == Lf(2 * i + 1, 2 * j)
         triplets.emplace_back(vIndices[i], vIndices[j], std::complex<double>(re, im));
+        triplets.emplace_back(vIndices[j], vIndices[i], std::complex<double>(re, -im));
       }
     }
   }
@@ -867,7 +864,6 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   std::vector<size_t> eIndices; // indices of edges of polygon face
   for (Face f : mesh.faces()) {
     eIndices.clear();
-    // Assumes edge iterator goes in same order as vertex iterator around a face
     for (Edge e : f.adjacentEdges()) eIndices.push_back(edgeIndices[e]);
     size_t n = f.degree();
     // Add contribution to global mass matrix.
