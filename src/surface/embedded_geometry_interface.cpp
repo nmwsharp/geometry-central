@@ -765,14 +765,13 @@ void EmbeddedGeometryInterface::computePolygonVertexLumpedMassMatrix() {
   vertexIndicesQ.ensureHave();
 
   size_t V = mesh.nVertices();
-  Eigen::VectorXd hodge0(V);
-  for (Vertex v : mesh.vertices()) {
-    size_t vIdx = vertexIndices[v];
-    double area = 0.;
-    for (Face f : v.adjacentFaces()) {
-      area += polygonArea(f) / f.degree();
+  Eigen::VectorXd hodge0 = Eigen::VectorXd::Zero(V);
+  for (Face f : mesh.faces()) {
+    double w = polygonArea(f) / f.degree();
+    for (Vertex v : f.adjacentVertices()) {
+      size_t vIdx = vertexIndices[v];
+      hodge0[vIdx] += w;
     }
-    hodge0[vIdx] = area;
   }
   polygonVertexLumpedMassMatrix = hodge0.asDiagonal();
 }
@@ -799,11 +798,24 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
         double re = Lf(2 * i, 2 * j);     // == Lf(2 * i + 1, 2 * j + 1)
         double im = Lf(2 * i, 2 * j + 1); // == Lf(2 * i + 1, 2 * j)
         triplets.emplace_back(vIndices[i], vIndices[j], std::complex<double>(re, im));
-        triplets.emplace_back(vIndices[j], vIndices[i], std::complex<double>(re, -im));
+        // triplets.emplace_back(vIndices[j], vIndices[i], std::complex<double>(re, -im));
+
+        // triplets.emplace_back(vIndices[i], vIndices[j], -std::complex<double>(re, im));
+        // triplets.emplace_back(vIndices[j], vIndices[i], -std::complex<double>(re, -im));
+
+        // if (i == j) {
+        //   std::cerr << Lf(2 * i, 2 * j) << " " << Lf(2 * i, 2 * j + 1) << std::endl;
+        //   std::cerr << Lf(2 * i + 1, 2 * j) << " " << Lf(2 * i + 1, 2 * j + 1) << "\n" << std::endl;
+        // }
+        // triplets.emplace_back(2 * vIndices[i], 2 * vIndices[j], Lf(2 * i, 2 * j));
+        // triplets.emplace_back(2 * vIndices[i], 2 * vIndices[j] + 1, Lf(2 * i, 2 * j + 1));
+        // triplets.emplace_back(2 * vIndices[i] + 1, 2 * vIndices[j], Lf(2 * i + 1, 2 * j));
+        // triplets.emplace_back(2 * vIndices[i] + 1, 2 * vIndices[j] + 1, Lf(2 * i + 1, 2 * j + 1));
       }
     }
   }
   polygonVertexConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
+  // std::cerr << polygonVertexConnectionLaplacian << std::endl;
 }
 void EmbeddedGeometryInterface::requirePolygonVertexConnectionLaplacian() {
   polygonVertexConnectionLaplacianQ.require();
@@ -846,33 +858,129 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   polygonD1.setFromTriplets(tripletsD1.begin(), tripletsD1.end());
 
   // hodge0
-  Eigen::VectorXd h0(V);
-  for (Vertex v : mesh.vertices()) {
-    size_t vIdx = vertexIndices[v];
-    double area = 0.;
-    for (Face f : v.adjacentFaces()) {
-      area += polygonArea(f) / f.degree();
+  Eigen::VectorXd h0 = Eigen::VectorXd::Zero(V);
+  for (Face f : mesh.faces()) {
+    double w = polygonArea(f) / f.degree();
+    for (Vertex v : f.adjacentVertices()) {
+      size_t vIdx = vertexIndices[v];
+      h0[vIdx] += w;
     }
-    h0[vIdx] = area;
   }
   polygonHodge0 = h0.asDiagonal();
   polygonHodge0Inverse = h0.asDiagonal().inverse();
 
-  // hodge1 (inner product matrix on 1-forms)
+  // Eigen::SparseMatrix<double> testD0 = Eigen::SparseMatrix<double>(E, V);
+  // Eigen::SparseMatrix<double> DtD = Eigen::SparseMatrix<double>(V, V);
+  // std::vector<Eigen::Triplet<double>> tripletsTest, tripletsDtD;
+  // std::vector<size_t> testIndices, testVIndices;
+  // std::vector<bool> testSigns;
+  // for (Face f : mesh.faces()) {
+  //   testIndices.clear();
+  //   testVIndices.clear();
+  //   testSigns.clear();
+  //   for (Halfedge he : f.adjacentHalfedges()) {
+  //     testIndices.push_back(edgeIndices[he.edge()]);
+  //     testVIndices.push_back(vertexIndices[he.vertex()]);
+  //     testSigns.push_back(he.orientation());
+  //   }
+  //   size_t n = f.degree();
+  //   Eigen::MatrixXd Df = polygonDerivativeMatrix(f);
+  //   for (size_t j = 0; j < n; j++) {
+  //     for (size_t i = 0; i < n; i++) {
+  //       double s = testSigns[i] ? 1. : -1;
+  //       double w = mesh.edge(testIndices[i]).degree();
+  //       tripletsTest.emplace_back(testIndices[i], testVIndices[j], s * Df(i, j) / w); // local to global
+  //     }
+  //   }
+  //   for (size_t i = 0; i < n; i++) {
+  //     double w = mesh.edge(testIndices[i]).degree();
+  //     tripletsDtD.emplace_back(testVIndices[i], testVIndices[(i + 1) % n], -1 / w);
+  //     tripletsDtD.emplace_back(testVIndices[(i + 1) % n], testVIndices[i], -1 / w);
+  //     tripletsDtD.emplace_back(testVIndices[i], testVIndices[i], 1. / w);
+  //     tripletsDtD.emplace_back(testVIndices[(i + 1) % n], testVIndices[(i + 1) % n], 1. / w);
+  //   }
+  //   // for (Halfedge he : f.adjacentHalfedges()) {
+  //   //   double w = he.edge().degree();
+  //   //   size_t i = vertexIndices[he.tailVertex()];
+  //   //   size_t j = vertexIndices[he.tipVertex()];
+  //   //   tripletsDtD.emplace_back(i, j, -1 / w);
+  //   //   tripletsDtD.emplace_back(j, i, -1 / w);
+  //   //   tripletsDtD.emplace_back(i, i, 1. / w);
+  //   //   tripletsDtD.emplace_back(j, j, 1. / w);
+  //   // }
+  // }
+  // testD0.setFromTriplets(tripletsTest.begin(), tripletsTest.end());
+  // DtD.setFromTriplets(tripletsDtD.begin(), tripletsDtD.end());
+  // std::cerr << (testD0 - polygonD0).norm() << std::endl;
+  // // std::cerr << DtD << "\n" << std::endl;
+  // // std::cerr << polygonD0.transpose() * polygonD0 << "\n" << std::endl;
+  // // std::cerr << DtD - polygonD0.transpose() * polygonD0 << std::endl;
+
+  // hodge1 (inner product matrix on 1-forms).
   polygonHodge1 = Eigen::SparseMatrix<double>(E, E);
   Eigen::MatrixXd Mf;           // local per-polygon matrix
   std::vector<size_t> eIndices; // indices of edges of polygon face
+  std::vector<bool> eSigns;
   for (Face f : mesh.faces()) {
     eIndices.clear();
+    eSigns.clear();
     for (Edge e : f.adjacentEdges()) eIndices.push_back(edgeIndices[e]);
+    for (Halfedge he : f.adjacentHalfedges()) eSigns.push_back(he.orientation());
     size_t n = f.degree();
     // Add contribution to global mass matrix.
-    Mf = polygonPerFaceInnerProductMatrix(f);
+    Mf = polygonPerFaceInnerProductMatrix(f); // technically on halfedges
     for (size_t j = 0; j < n; j++) {
+      size_t dj = mesh.edge(eIndices[j]).degree();
       for (size_t i = 0; i < n; i++) {
-        tripletsH1.emplace_back(eIndices[i], eIndices[j], Mf(i, j));
+        size_t di = mesh.edge(eIndices[i]).degree();
+        double w = di * dj;
+        double s = (eSigns[i] == eSigns[j]) ? 1. : -1.;
+        // double s = eSigns[i] ? 1. : -1.;
+        // tripletsH1.emplace_back(eIndices[i], eIndices[i], Mf(i, j) / di);
       }
     }
+  }
+  // polygonHodge1.setFromTriplets(tripletsH1.begin(), tripletsH1.end());
+
+  halfedgeIndicesQ.ensureHave();
+  polygonLaplacianQ.ensureHave();
+  Eigen::SparseMatrix<double> testH1 =
+      Eigen::SparseMatrix<double>(mesh.nInteriorHalfedges(), mesh.nInteriorHalfedges());
+  Eigen::SparseMatrix<double> testD0 = Eigen::SparseMatrix<double>(mesh.nInteriorHalfedges(), V);
+  std::vector<Eigen::Triplet<double>> tripletsTestH1, tripletsTestD0;
+  for (Face f : mesh.faces()) {
+    size_t n = f.degree();
+    Mf = polygonPerFaceInnerProductMatrix(f); // on halfedges
+    std::vector<size_t> hIndices;
+    for (Halfedge he : f.adjacentHalfedges()) hIndices.push_back(halfedgeIndices[he]);
+    for (size_t j = 0; j < n; j++) {
+      for (size_t i = 0; i < n; i++) {
+        tripletsTestH1.emplace_back(hIndices[i], hIndices[j], Mf(i, j));
+      }
+    }
+    size_t ctr = 0;
+    for (Halfedge he : f.adjacentHalfedges()) {
+      tripletsTestD0.emplace_back(hIndices[ctr], vertexIndices[he.tailVertex()], -1);
+      tripletsTestD0.emplace_back(hIndices[ctr], vertexIndices[he.tipVertex()], 1);
+      ctr++;
+    }
+  }
+  testH1.setFromTriplets(tripletsTestH1.begin(), tripletsTestH1.end());
+  testD0.setFromTriplets(tripletsTestD0.begin(), tripletsTestD0.end());
+  std::cerr << "|L - testD0T*H1*D0|: " << (polygonLaplacian - testD0.transpose() * testH1 * testD0).norm() << std::endl;
+
+  for (Edge e : mesh.edges()) {
+    size_t eIdx = edgeIndices[e];
+    double w = 0.;
+    for (Halfedge he : e.adjacentHalfedges()) {
+      size_t hIdx = halfedgeIndices[he];
+      for (SparseMatrix<double>::InnerIterator it(testH1, hIdx); it; ++it) {
+        Halfedge otherHe = mesh.halfedge(it.row());
+        double s = (he.orientation() == otherHe.orientation()) ? 1. : -1.;
+        w += s * it.value() / e.degree();
+      }
+    }
+    tripletsH1.emplace_back(eIdx, eIdx, w);
   }
   polygonHodge1.setFromTriplets(tripletsH1.begin(), tripletsH1.end());
 
