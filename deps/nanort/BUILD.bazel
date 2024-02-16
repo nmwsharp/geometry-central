@@ -3,6 +3,5 @@ package(default_visibility = ["//visibility:public"])
 cc_library(
     name = "nanort",
     hdrs = ["include/nanort/nanort.h"],
-    #include_prefix = "nanort",
     strip_include_prefix = "include",
 )
