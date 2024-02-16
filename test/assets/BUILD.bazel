@@ -1,0 +1,6 @@
+package(default_visibility = ["//test:__subpackages__"])
+
+filegroup(
+    name = "assets",
+    srcs = glob(["*.*"]),
+)

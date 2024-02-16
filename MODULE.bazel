@@ -6,3 +6,4 @@
 ###############################################################################
 
 bazel_dep(name = "eigen", version = "3.4.0.bcr.1")
+bazel_dep(name = "googletest", version = "1.14.0", repo_name = "com_google_googletest")
