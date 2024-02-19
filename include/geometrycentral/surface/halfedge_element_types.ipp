@@ -134,18 +134,18 @@ inline bool VertexRangeF::elementOkay(const SurfaceMesh& mesh, size_t ind) {
 // Our data structure offers iteration around the outgoing halfedges from each vertex, which takes care of outoing halfedges. Furthermore one thing we know is that for every face in which the vertex appears, there is at least one incoming and one outgoing halfedge. We can use this to find the faces and outgoing halfedges.  For edges and vertices, 
 // In both the mannifold and nonmanifold case, if a vertex appears in a face multiple times, (aka its a Delta-complex), then these iterators will return elements multiple times.
 
-inline VertexNeighborIteratorState::VertexNeighborIteratorState(Halfedge currHe_, bool useImplicitTwin_) : useImplicitTwin(useImplicitTwin_), currHe(currHe_), firstHe(currHe_) {}
+inline VertexNeighborIteratorState::VertexNeighborIteratorState(Halfedge currHe_, bool useImplicitTwin_) : useImplicitTwinFlag(useImplicitTwin_), currHe(currHe_), firstHe(currHe_) {}
 
 // clang-format on
 inline void VertexNeighborIteratorState::advance() {
-  if (useImplicitTwin) {
+  if (useImplicitTwinFlag) {
     currHe = currHe.nextOutgoingNeighbor(); // twin().next()
   } else {
-    if (!processingIncoming) {
+    if (!processingIncomingFlag) {
       // this happens first
       currHe = currHe.nextOutgoingNeighbor();
       if (currHe == firstHe) { // switch to processing incoming if needed
-        processingIncoming = true;
+        processingIncomingFlag = true;
         currHe = firstHe.prevOrbitFace();
         firstHe = currHe;
       }
@@ -153,7 +153,7 @@ inline void VertexNeighborIteratorState::advance() {
       // this happens second
       currHe = currHe.nextIncomingNeighbor();
       if (currHe == firstHe) { // switch back to processing outgoing if needed (returning to initial state)
-        processingIncoming = false;
+        processingIncomingFlag = false;
         currHe = firstHe.next();
         firstHe = currHe;
       }
@@ -164,7 +164,7 @@ inline void VertexNeighborIteratorState::advance() {
 inline bool VertexNeighborIteratorState::isHalfedgeCanonical() const {
   // TODO I _think_ that this leads to different Delta-complex behavior on implicit twin vs. without wrt yielding
   // elements multiple times when there is a self-edge...
-  if (useImplicitTwin) {
+  if (useImplicitTwinFlag) {
     return true;
   } else {
     return currHe == currHe.edge().halfedge();
@@ -172,17 +172,17 @@ inline bool VertexNeighborIteratorState::isHalfedgeCanonical() const {
 }
 
 inline bool VertexNeighborIteratorState::operator==(const VertexNeighborIteratorState& rhs) const {
-  return currHe == rhs.currHe && processingIncoming == rhs.processingIncoming;
+  return currHe == rhs.currHe && processingIncomingFlag == rhs.processingIncomingFlag;
 }
 // clang-format off
 
 inline void VertexAdjacentVertexNavigator::advance() { currE.advance(); }
 inline bool VertexAdjacentVertexNavigator::isValid() const { return currE.isHalfedgeCanonical(); }
 inline Vertex VertexAdjacentVertexNavigator::getCurrent() const {
-  if(currE.useImplicitTwin || !currE.processingIncoming) {
-    return currE.currHe.next().vertex();
+  if(currE.useImplicitTwin() || !currE.processingIncoming()) {
+    return currE.currentHalfedge().next().vertex();
   } else {
-    return currE.currHe.vertex();
+    return currE.currentHalfedge().vertex();
   }
 }
 
@@ -200,7 +200,7 @@ inline Corner VertexAdjacentCornerNavigator::getCurrent() const { return currE.c
 
 inline void VertexAdjacentEdgeNavigator::advance() { currE.advance(); }
 inline bool VertexAdjacentEdgeNavigator::isValid() const { return currE.isHalfedgeCanonical(); }
-inline Edge VertexAdjacentEdgeNavigator::getCurrent() const { return currE.currHe.edge(); }
+inline Edge VertexAdjacentEdgeNavigator::getCurrent() const { return currE.currentHalfedge().edge(); }
 
 inline void VertexAdjacentFaceNavigator::advance() { currE = currE.nextOutgoingNeighbor(); }
 inline bool VertexAdjacentFaceNavigator::isValid() const { return currE.isInterior(); }
