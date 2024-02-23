@@ -1,4 +1,13 @@
-package(default_visibility = ["//test:__subpackages__"])
+# By granting public visibility, these assets can be used by client projects as follows:
+#
+# In the BUILD rule:
+#   data = [
+#       "@geometry_central//test/assets",
+#   ],
+#
+# And then on the command line:
+# bazel run src:main external/geometry_central/test/assets/fox.ply
+package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "assets",
