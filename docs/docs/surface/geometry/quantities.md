@@ -626,7 +626,7 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
 
     The discrete divergence operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
-    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as pointwise quantities at vertices.
+    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as _integrated_ quantities at vertices. To obtain pointwise quantities, one would compute $\mathsf{A}^{-1}\mathsf{D}$, where $\mathsf{A}\in\RR^{|V|\times|V|}$ is a diagonal mass matrix of local areas at vertices.
 
     The divergence matrix $\mathsf{D}$ is related to the gradient matrix $\mathsf{G}$ as $\mathsf{D} = \mathsf{G}^\top\mathsf{M}$, where $\mathsf{M}\in\mathbb{R}^{3|F|}$ is a diagonal mass matrix containing face areas. Note that this assumes the convention that inflow corresponds to positive divergence, corresponding to the convention that $\mathsf{D}\mathsf{G}$ yields a positive-semidefinite Laplacian.
 
@@ -669,17 +669,17 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
 
     These operators are the basic building blocks for _discrete exterior calculus_ on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure inner products of discrete 1-forms remain positive-definite on non-triangular faces.
 
-    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requirePolygonDECOperators()` function which manages all 7 of the members listed below. There is no `polygonHodge1Inverse`, since although `polygonHodge1` will be diagonal on triangle meshes, on general polygon meshes it will not be diagonal. 
+    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requirePolygonDECOperators()` function which manages all 7 of the members listed below. There is no `polygonHodge1Inverse`, since although `polygonHodge1` will be diagonal on triangle meshes, on general polygon meshes it will not be diagonal. Also note that the coboundary operators `polygonD0` and `polygonD1` have row/column dimension equal to the number of halfedges $|H|$ rather than $|E|$.
 
     The following members are constructed:
 
     - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge0` A $|V| \times |V|$ diagonal matrix
     - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge0Inverse` A $|V| \times |V|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge1` An $|E| \times |E|$ matrix, not necessarily diagonal
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge1` An $|H| \times |H|$ matrix, not necessarily diagonal
     - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge2` An $|F| \times |F|$ diagonal matrix
     - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge2Inverse` An $|F| \times |F|$ diagonal matrix
-    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD0` An $|E| \times |V|$ matrix with $\{-1, 0, 1\}$ entries
-    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD1` An $|F| \times |E|$ matrix with $\{-1, 0, 1\}$ entries
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD0` An $|H| \times |V|$ matrix with $\{-1, 0, 1\}$ entries
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD1` An $|F| \times |H|$ matrix with $\{-1, 0, 1\}$ entries
 
     Only valid on an `EmbeddedGeometryInterface`.
 
