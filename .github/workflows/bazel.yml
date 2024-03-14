@@ -1,0 +1,22 @@
+name: Bazel CI
+
+on:
+    push:
+      branches: [ master ]
+    pull_request:
+      branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest 
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Bazel
+        run: |
+          curl -LO https://github.com/bazelbuild/bazel/releases/download/7.0.2/bazel-7.0.2-installer-linux-x86_64.sh
+          chmod +x bazel-7.0.2-installer-linux-x86_64.sh
+          ./bazel-7.0.2-installer-linux-x86_64.sh
+      - name: Build with Bazel
+        run: bazel build //... 
+      - name: Test with Bazel
+        run: bazel test //...  
