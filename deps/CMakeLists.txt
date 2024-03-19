@@ -86,8 +86,15 @@ else()
   add_library (Eigen3::Eigen ALIAS eigen)
   target_include_directories(eigen INTERFACE
       $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
-      $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
       )
+  install(TARGETS eigen
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 list(APPEND GC_DEP_LIBS Eigen3::Eigen)
@@ -142,6 +149,13 @@ endif()
 if (NOT TARGET nanort)
     add_library(nanort INTERFACE)
     target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+    install(TARGETS nanort
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 if (NOT TARGET nanoflann)
@@ -154,11 +168,25 @@ if (NOT TARGET nanoflann)
         ${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include/nanoflann.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann/nanoflann.hpp SYMBOLIC)
     target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    install(TARGETS nanoflann
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 if (NOT TARGET happly)
     add_library(happly INTERFACE)
     target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+    install(TARGETS happly
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 # Find other simpler dependencies

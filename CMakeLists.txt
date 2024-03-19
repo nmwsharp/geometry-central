@@ -34,6 +34,10 @@ if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
   endif()
 endif()
 
+### Get software version
+find_package(Git)
+include(GetProjectVersionFromGit)
+get_project_version_from_git("${PROJECT_NAME}" "${CMAKE_CURRENT_SOURCE_DIR}" "${GIT_EXECUTABLE}")
 
 ### Handle windows-specific fixes
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
@@ -41,11 +45,11 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   add_definitions (-D_USE_MATH_DEFINES)  # match unix behavior of constants in cmath
 endif()
 
+# Set up our directory structure for output libraries and binaries
+include(GNUInstallDirs)
+
 ### Do anything needed for dependencies and bring their stuff in to scope
 add_subdirectory(deps)
-
-# copy variables set by deps upward
-SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 
 ### Recurse to the source code
 add_subdirectory(src)
@@ -53,9 +57,10 @@ add_subdirectory(src)
 # install
 install(
   TARGETS geometry-central
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib)
+  EXPORT GeometryCentral
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(
   DIRECTORY ${CMAKE_SOURCE_DIR}/include/
@@ -63,3 +68,31 @@ install(
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "*.ipp")
+
+install(EXPORT GeometryCentral
+  FILE
+    geometrycentral.cmake
+  NAMESPACE
+    geometrycentral::
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/geometrycentral-config-install.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/geometrycentral-config.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/geometrycentral-config-version.cmake"
+    VERSION ${${PROJECT_NAME}_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/geometrycentral-config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/geometrycentral-config-version.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}
+)
