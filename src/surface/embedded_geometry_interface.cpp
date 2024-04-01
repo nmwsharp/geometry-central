@@ -797,13 +797,19 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
       for (size_t i = 0; i < n; i++) {
         double re = Lf(2 * i, 2 * j);
         double im = Lf(2 * i, 2 * j + 1);
-        triplets.emplace_back(vIndices[i], vIndices[j], std::complex<double>(re, im));
-        triplets.emplace_back(vIndices[j], vIndices[i], std::complex<double>(re, -im));
+        double s = (i == j) ? 1. : -1;
+        triplets.emplace_back(vIndices[i], vIndices[j], 0.5 * std::complex<double>(re, s * im));
+        // Average across two elements to ensure Hermitian-ness.
+        triplets.emplace_back(vIndices[j], vIndices[i], 0.5 * std::complex<double>(re, -s * im));
+        if (vIndices[i] == 12 || vIndices[j] == 12) {
+          std::cerr << vIndices[i] << " " << vIndices[j] << std::endl;
+          std::cerr << "\t" << Lf(2 * i, 2 * j) << " " << Lf(2 * i, 2 * j + 1) << std::endl;
+          std::cerr << "\t" << Lf(2 * i + 1, 2 * j) << " " << Lf(2 * i + 1, 2 * j + 1) << std::endl;
+        }
       }
     }
   }
   polygonVertexConnectionLaplacian.setFromTriplets(triplets.begin(), triplets.end());
-  // std::cerr << polygonVertexConnectionLaplacian << std::endl;
 }
 void EmbeddedGeometryInterface::requirePolygonVertexConnectionLaplacian() {
   polygonVertexConnectionLaplacianQ.require();
@@ -908,7 +914,7 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceConnectionLaplacian(con
   Eigen::MatrixXd G = polygonCovariantGradient(f);
   Eigen::MatrixXd P = polygonCovariantProjection(f);
   double A = polygonArea(f);
-  Eigen::MatrixXd L = A * G.transpose() * G + polygonLambda * P.transpose() * P; // build positive-definite
+  Eigen::MatrixXd L = A * G.transpose() * G + polygonLambda * P.transpose() * P;
   return L;
 }
 
