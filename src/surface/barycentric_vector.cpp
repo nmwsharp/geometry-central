@@ -4,7 +4,7 @@
 namespace geometrycentral {
 namespace surface {
 
-BarycentricVector faceVectorRotated90(const BarycentricVector& w, IntrinsicGeometryInterface& geom) {
+BarycentricVector faceVectorRotate90(const BarycentricVector& w, IntrinsicGeometryInterface& geom) {
   // Found via (D(fj - fi) x (fk - fi))/(2A) x (Dw), where D is the matrix taking barycentric coords to 3D local coords,
   // where (fj - fi) x (fk - fi)/(2A) is the unit normal vector to the 3D-embedded local triangle. Then we apply D^{-1}
   // to map back to barycentric coords.
@@ -27,7 +27,7 @@ BarycentricVector faceVectorRotated90(const BarycentricVector& w, IntrinsicGeome
   return BarycentricVector(w.face, newCoords);
 }
 
-BarycentricVector faceVectorRotated(const BarycentricVector& w, IntrinsicGeometryInterface& geom, double angle) {
+BarycentricVector faceVectorRotate(const BarycentricVector& w, IntrinsicGeometryInterface& geom, double angle) {
   // Found by applying the 3D axis-angle rotation matrix in 3D local coordinates (then transforming back to barycentric
   // coordinates), which conveniently avoids (almost all) square roots.
   double ui = w.faceCoords[0];

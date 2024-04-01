@@ -191,11 +191,11 @@ inline BarycentricVector BarycentricVector::normalizedDisplacement() const {
   return *this;
 }
 
-inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface& geom) const {
+inline BarycentricVector BarycentricVector::rotate90(IntrinsicGeometryInterface& geom) const {
 
   switch (type) {
   case BarycentricVectorType::Face: {
-    return faceVectorRotated90(*this, geom);
+    return faceVectorRotate90(*this, geom);
     break;
   }
   case BarycentricVectorType::Edge: {
@@ -205,7 +205,7 @@ inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface
       he = he.twin();
     }
     BarycentricVector w = this->inFace(he.face());
-    return faceVectorRotated90(w, geom);
+    return faceVectorRotate90(w, geom);
     break;
   }
   default:
@@ -215,11 +215,11 @@ inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface
   return *this;
 }
 
-inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& geom, double angle) const {
+inline BarycentricVector BarycentricVector::rotate(IntrinsicGeometryInterface& geom, double angle) const {
 
   switch (type) {
   case BarycentricVectorType::Face: {
-    return faceVectorRotated(*this, geom, angle);
+    return faceVectorRotate(*this, geom, angle);
     break;
   }
   case BarycentricVectorType::Edge: {
@@ -237,7 +237,7 @@ inline BarycentricVector BarycentricVector::rotated(IntrinsicGeometryInterface& 
       he = he.twin();
     }
     BarycentricVector w = this->inFace(he.face());
-    return faceVectorRotated(w, geom, angle);
+    return faceVectorRotate(w, geom, angle);
     break;
   }
   default:
