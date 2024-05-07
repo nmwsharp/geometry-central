@@ -3,11 +3,11 @@
 #include "happly.h"
 
 #include <algorithm>
+#include <iomanip>
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
-#include <iomanip>
 #include <unordered_set>
 // For strncmp
 #include <string.h>
@@ -267,7 +267,7 @@ void SimplePolygonMesh::readMeshFromAsciiStlFile(std::istream& in) {
     return token == prefix;
   };
   // Eat the header line
-  nextLine();  
+  nextLine();
   // Parse STL file
   while (nextLine() && !startsWithToken(line, "endsolid")) {
     assertToken("facet");
@@ -350,23 +350,22 @@ void SimplePolygonMesh::readMeshFromStlFile(std::istream& in) {
   clear();
 
   // Parse the STL format by looking for the keyword "solid"
-  // as the first 5 bytes of the file.  If found, this is 
+  // as the first 5 bytes of the file.  If found, this is
   // our indication we are reading an ASCII format STL file.
   std::array<char, 16> buffer;
-  std::fill(begin(buffer), end(buffer),0);
+  std::fill(begin(buffer), end(buffer), 0);
   in.read(buffer.data(), 5);
   // Conver to lower case for string comparison
-  std::transform(begin(buffer), end(buffer), begin(buffer), 
-    [](char c)->char {return std::tolower(c);});
+  std::transform(begin(buffer), end(buffer), begin(buffer), [](char c) -> char { return std::tolower(c); });
   // In both cases, go ahead and rewind the file
   // to the beginning.  We will handle the STL
   // header in each of the specialized read functions.
   in.seekg(-5, std::ios::cur);
-  if(strncmp("solid", buffer.data(), 5) == 0) {
+  if (strncmp("solid", buffer.data(), 5) == 0) {
     readMeshFromAsciiStlFile(in);
   } else {
     readMeshFromBinaryStlFile(in);
-  }  
+  }
 }
 
 void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
@@ -509,7 +508,7 @@ std::vector<size_t> SimplePolygonMesh::stripUnusedVertices() {
     }
   }
 
-  return newInd; 
+  return newInd;
 }
 
 void SimplePolygonMesh::clear() {
@@ -519,36 +518,74 @@ void SimplePolygonMesh::clear() {
 }
 
 
-void SimplePolygonMesh::stripFacesWithDuplicateVertices() {
+void SimplePolygonMesh::stripFacesWithDuplicateVertices() { stripInvalidFaceWorker(false, false, true); }
+
+void SimplePolygonMesh::stripInvalidFaces() { stripInvalidFaceWorker(true, true, true); }
+
+void SimplePolygonMesh::stripInvalidFaceWorker(bool removeWithBadInds, bool removeLowDegree,
+                                               bool removeWithRepeatedInds) {
 
   std::vector<std::vector<size_t>> newFaces;
-  for (const std::vector<size_t>& face : polygons) {
+  std::vector<std::vector<Vector2>> newParamCoordinates;
 
-    // Generally use a simple search
-    size_t D = face.size();
-    bool hasRepeat = false;
-    if (D < 8) {
-      for (size_t i = 0; i < D; i++) {
-        for (size_t j = i + 1; j < D; j++) {
-          if (face[i] == face[j]) hasRepeat = true;
+  for (size_t iF = 0; iF < nFaces(); iF++) {
+
+    const std::vector<size_t>& face = polygons[iF];
+
+    bool cullFace = false;
+
+    // Test out-of-bounds vertex indices
+    if (removeWithBadInds) {
+      for (const size_t ind : face) {
+        if (ind >= nVertices()) {
+          cullFace = true;
         }
       }
     }
-    // Use a hashset to avoid n^2 for big faces
-    else {
-      std::unordered_set<size_t> inds;
-      for (size_t ind : face) {
-        if (inds.find(ind) != inds.end()) hasRepeat = true;
-        inds.insert(ind);
+
+    // Test faces with degree < 3
+    if (removeWithBadInds) {
+      if (face.size() < 3) {
+        cullFace = true;
       }
     }
 
-    if (!hasRepeat) {
+    // Test out-of-bounds vertex indices
+    if (removeWithRepeatedInds) {
+
+      // Generally use a simple search
+      size_t D = face.size();
+      if (D < 8) {
+        for (size_t i = 0; i < D; i++) {
+          for (size_t j = i + 1; j < D; j++) {
+            if (face[i] == face[j]) cullFace = true;
+          }
+        }
+      }
+      // Use a hashset to avoid n^2 for big faces
+      else {
+        std::unordered_set<size_t> inds;
+        for (size_t ind : face) {
+          if (inds.find(ind) != inds.end()) cullFace = true;
+          inds.insert(ind);
+        }
+      }
+    }
+
+
+    if (!cullFace) {
       newFaces.push_back(face);
+      if (hasParameterization()) {
+        newParamCoordinates.push_back(paramCoordinates[iF]);
+      }
     }
   }
 
+  // Update the face set for this mesh to be the newly created face set
   polygons = newFaces;
+  if (hasParameterization()) {
+    paramCoordinates = newParamCoordinates;
+  }
 }
 
 

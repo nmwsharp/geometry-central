@@ -49,6 +49,12 @@ public:
   // Mutate this mesh by removing any faces with repeated vertices.
   void stripFacesWithDuplicateVertices();
 
+  // Delete any faces which:
+  //   - have < 3 vertices
+  //   - OR have out of bounds vertex indices
+  //   - OR have repated vertices
+  void stripInvalidFaces();
+
   // Mutate this mesh and by naively triangulating polygons
   void triangulate();
 
@@ -79,6 +85,9 @@ private:
 
   // Write helpers
   void writeMeshObj(std::ostream& out);
+
+  // Other helpers
+  void stripInvalidFaceWorker(bool removeWithBadInds, bool removeLowDegree, bool removeWithRepeatedInds);
 };
 
 std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMesh>& meshes);
