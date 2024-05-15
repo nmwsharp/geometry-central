@@ -118,6 +118,24 @@ The desired file type can be passed as the `type` to any of the routines below a
 
     Remove any faces from `polygons` for which some vertex index appears multiple times.
 
+??? func "`#!cpp void SimplePolygonMesh::stripInvalidFaces()`"
+
+    Remove any faces from `polygons` which:
+        - have < 3 vertices
+        - OR have out of bounds vertex indices
+        - OR have repated vertices
+
+??? func "`#!cpp void SimplePolygonMesh::stripDuplicateFaces()`"
+
+    Remove repeated faces from `polygons`, defined as having identical vertex sets even if the permutation of the vertices may be different.
+
+??? func "`#!cpp void SimplePolygonMesh::consistentlyOrientFaces(bool outwardOrient=true)`"
+
+    Greedily re-orient faces by flipping them to have consistent orientation within each manifold subpatch.
+
+    The inward/outward orientation is arbitrary, unless `outwardOrient=true`. In this case, an (approximate) geometric raycasting check will be performed to attempt to orient the patches to face outward. This optional check only supports triangular meshes.
+    
+    In the case of non-orientable patches, there will be a not-matching boundary where greedy outward orientation fails.
 
 ??? func "`#!cpp void SimplePolygonMesh::triangulate()`"
 

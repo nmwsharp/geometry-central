@@ -1,13 +1,15 @@
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 
 #include "happly.h"
+#include "nanort/nanort.h"
 
 #include <algorithm>
+#include <deque>
+#include <iomanip>
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
-#include <iomanip>
 #include <unordered_set>
 // For strncmp
 #include <string.h>
@@ -267,7 +269,7 @@ void SimplePolygonMesh::readMeshFromAsciiStlFile(std::istream& in) {
     return token == prefix;
   };
   // Eat the header line
-  nextLine();  
+  nextLine();
   // Parse STL file
   while (nextLine() && !startsWithToken(line, "endsolid")) {
     assertToken("facet");
@@ -350,23 +352,22 @@ void SimplePolygonMesh::readMeshFromStlFile(std::istream& in) {
   clear();
 
   // Parse the STL format by looking for the keyword "solid"
-  // as the first 5 bytes of the file.  If found, this is 
+  // as the first 5 bytes of the file.  If found, this is
   // our indication we are reading an ASCII format STL file.
   std::array<char, 16> buffer;
-  std::fill(begin(buffer), end(buffer),0);
+  std::fill(begin(buffer), end(buffer), 0);
   in.read(buffer.data(), 5);
   // Conver to lower case for string comparison
-  std::transform(begin(buffer), end(buffer), begin(buffer), 
-    [](char c)->char {return std::tolower(c);});
+  std::transform(begin(buffer), end(buffer), begin(buffer), [](char c) -> char { return std::tolower(c); });
   // In both cases, go ahead and rewind the file
   // to the beginning.  We will handle the STL
   // header in each of the specialized read functions.
   in.seekg(-5, std::ios::cur);
-  if(strncmp("solid", buffer.data(), 5) == 0) {
+  if (strncmp("solid", buffer.data(), 5) == 0) {
     readMeshFromAsciiStlFile(in);
   } else {
     readMeshFromBinaryStlFile(in);
-  }  
+  }
 }
 
 void SimplePolygonMesh::readMeshFromOffFile(std::istream& in) {
@@ -509,7 +510,7 @@ std::vector<size_t> SimplePolygonMesh::stripUnusedVertices() {
     }
   }
 
-  return newInd; 
+  return newInd;
 }
 
 void SimplePolygonMesh::clear() {
@@ -519,38 +520,117 @@ void SimplePolygonMesh::clear() {
 }
 
 
-void SimplePolygonMesh::stripFacesWithDuplicateVertices() {
+void SimplePolygonMesh::stripFacesWithDuplicateVertices() { stripInvalidFaceWorker(false, false, true); }
+
+void SimplePolygonMesh::stripInvalidFaces() { stripInvalidFaceWorker(true, true, true); }
+
+void SimplePolygonMesh::stripInvalidFaceWorker(bool removeWithBadInds, bool removeLowDegree,
+                                               bool removeWithRepeatedInds) {
 
   std::vector<std::vector<size_t>> newFaces;
-  for (const std::vector<size_t>& face : polygons) {
+  std::vector<std::vector<Vector2>> newParamCoordinates;
 
-    // Generally use a simple search
-    size_t D = face.size();
-    bool hasRepeat = false;
-    if (D < 8) {
-      for (size_t i = 0; i < D; i++) {
-        for (size_t j = i + 1; j < D; j++) {
-          if (face[i] == face[j]) hasRepeat = true;
+  for (size_t iF = 0; iF < nFaces(); iF++) {
+
+    const std::vector<size_t>& face = polygons[iF];
+
+    bool cullFace = false;
+
+    // Test out-of-bounds vertex indices
+    if (removeWithBadInds) {
+      for (const size_t ind : face) {
+        if (ind >= nVertices()) {
+          cullFace = true;
         }
       }
     }
-    // Use a hashset to avoid n^2 for big faces
-    else {
-      std::unordered_set<size_t> inds;
-      for (size_t ind : face) {
-        if (inds.find(ind) != inds.end()) hasRepeat = true;
-        inds.insert(ind);
+
+    // Test faces with degree < 3
+    if (removeWithBadInds) {
+      if (face.size() < 3) {
+        cullFace = true;
       }
     }
 
-    if (!hasRepeat) {
+    // Test out-of-bounds vertex indices
+    if (removeWithRepeatedInds) {
+
+      // Generally use a simple search
+      size_t D = face.size();
+      if (D < 8) {
+        for (size_t i = 0; i < D; i++) {
+          for (size_t j = i + 1; j < D; j++) {
+            if (face[i] == face[j]) cullFace = true;
+          }
+        }
+      }
+      // Use a hashset to avoid n^2 for big faces
+      else {
+        std::unordered_set<size_t> inds;
+        for (size_t ind : face) {
+          if (inds.find(ind) != inds.end()) cullFace = true;
+          inds.insert(ind);
+        }
+      }
+    }
+
+
+    if (!cullFace) {
       newFaces.push_back(face);
+      if (hasParameterization()) {
+        newParamCoordinates.push_back(paramCoordinates[iF]);
+      }
     }
   }
 
+  // Update the face set for this mesh to be the newly created face set
   polygons = newFaces;
+  if (hasParameterization()) {
+    paramCoordinates = newParamCoordinates;
+  }
 }
 
+void SimplePolygonMesh::stripDuplicateFaces() {
+
+  // Build a list of each polygon, with its indices sorted and an index
+  // to the original triangle
+  struct IndPoly {
+    std::vector<size_t> inds;
+    size_t orig_iF;
+  };
+  std::vector<IndPoly> sortpolys(nFaces());
+  for (size_t iF = 0; iF < nFaces(); iF++) {
+    sortpolys[iF] = IndPoly{polygons[iF], iF};
+    std::sort(sortpolys[iF].inds.begin(), sortpolys[iF].inds.end());
+  }
+
+  // Sort the overall list lexicographically
+  std::sort(sortpolys.begin(), sortpolys.end(), [](const IndPoly& a, const IndPoly& b) { return a.inds < b.inds; });
+
+
+  // Keep only the first entry from each run of sorted ones
+  std::vector<std::vector<size_t>> newPolygons;
+  std::vector<std::vector<Vector2>> newParamCoordinates;
+  for (size_t iF = 0; iF < nFaces(); /* pass */) {
+
+    // for the first instance of this vertex set, keep it
+    size_t keep_iF = sortpolys[iF].orig_iF;
+    newPolygons.push_back(polygons[keep_iF]);
+    if (hasParameterization()) {
+      newParamCoordinates.push_back(paramCoordinates[keep_iF]);
+    }
+
+    // for any subsequent entries, mark them for removal
+    size_t start_iF = iF;
+    iF++;
+    while (iF < nFaces() && sortpolys[start_iF].inds == sortpolys[iF].inds) {
+      iF++;
+    }
+  }
+
+  polygons = newPolygons;
+  paramCoordinates = newParamCoordinates;
+}
 
 void SimplePolygonMesh::triangulate() {
   std::vector<std::vector<size_t>> newPolygons;
@@ -567,6 +647,233 @@ void SimplePolygonMesh::triangulate() {
   }
 
   polygons = newPolygons;
+}
+
+void SimplePolygonMesh::consistentlyOrientFaces(bool outwardOrient) {
+
+
+  // If we are going to want it, build a raytracing acceleration structure to do the outward orientation step.
+  int32_t N_RAYS_PER_FACE = 4;
+  std::vector<double> rawPositions;
+  std::vector<unsigned int> rawFaces;
+  nanort::BVHAccel<double, nanort::TriangleMesh<double>, nanort::TriangleSAHPred<double>,
+                   nanort::TriangleIntersector<double>>
+      accel;
+  double lengthScale = -1;
+  auto traceDist = [&](Vector3 root, Vector3 dir) {
+    nanort::Ray<double> ray;
+    ray.min_t = 1e-6 * lengthScale;
+    ray.max_t = 1e1 * lengthScale;
+    for (int i = 0; i < 3; i++) ray.org[i] = root[i];
+    for (int i = 0; i < 3; i++) ray.dir[i] = dir[i];
+    nanort::BVHTraceOptions trace_options;
+    nanort::TriangleIntersector<double> triangle_intersector(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    bool hit = accel.Traverse(ray, trace_options, triangle_intersector);
+    return triangle_intersector.intersection.t;
+  };
+  std::random_device rd;
+  std::mt19937 gen(rd()); // we'll use this to generate rays on triangles
+  std::uniform_real_distribution<double> realDist(0., 1.);
+  if (outwardOrient) {
+
+    double INF = std::numeric_limits<double>::infinity();
+    Vector3 bboxMin{INF, INF, INF};
+    Vector3 bboxMax{-INF, -INF, -INF};
+    for (Vector3 v : vertexCoordinates) {
+      rawPositions.push_back(v.x);
+      rawPositions.push_back(v.y);
+      rawPositions.push_back(v.z);
+      bboxMin = componentwiseMin(bboxMin, v);
+      bboxMax = componentwiseMax(bboxMax, v);
+    }
+    lengthScale = norm(bboxMax - bboxMin);
+    for (const std::vector<size_t>& poly : polygons) {
+      if (poly.size() != 3) {
+        throw std::runtime_error("consistentlyOrientFaces() with outwardOrient=true only supports triangular meshes");
+      }
+      rawFaces.push_back(poly[0]);
+      rawFaces.push_back(poly[1]);
+      rawFaces.push_back(poly[2]);
+    }
+
+
+    nanort::TriangleMesh<double> nanortMesh(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    nanort::TriangleSAHPred<double> nanortMeshPred(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
+    nanort::BVHBuildOptions<double> options; // Use default options
+    bool ret = accel.Build(nFaces(), options, nanortMesh, nanortMeshPred);
+    if (!ret) {
+      throw std::runtime_error("BVH construction failed");
+    }
+  }
+
+  // pre-build a connectivity lookup map
+  struct FaceSideEntry {
+    size_t indA;
+    size_t indB;
+    size_t iF;
+    size_t localInd;
+    bool isCanonical;
+  };
+  struct FaceSideNeighbor {
+    bool hasNeighbor;
+    size_t neighF;
+    bool neighSameOrientation;
+  };
+
+  // build out entries for each faceside
+  std::vector<FaceSideEntry> entries;
+  for (size_t iF = 0; iF < polygons.size(); iF++) {
+    const std::vector<size_t>& face = polygons[iF];
+    size_t D = face.size();
+    for (size_t j = 0; j < D; j++) {
+      size_t iV = face[j];
+      size_t iVn = face[(j + 1) % D];
+      FaceSideEntry entry{std::min(iV, iVn), std::max(iV, iVn), iF, j, iV < iVn};
+      entries.push_back(entry);
+    }
+  }
+
+  // sort so that adjacnet facesides appear next to each other in order
+  std::sort(entries.begin(), entries.end(), [](const FaceSideEntry& a, const FaceSideEntry& b) {
+    if (a.indA != b.indA) {
+      return a.indA < b.indA;
+    }
+    return a.indB < b.indB;
+  });
+
+
+  // pre-allocate a list of neighbor entries
+  std::vector<std::vector<FaceSideNeighbor>> neighbors(nFaces());
+  for (size_t iF = 0; iF < polygons.size(); iF++) {
+    const std::vector<size_t>& face = polygons[iF];
+    size_t D = face.size();
+    neighbors[iF] = std::vector<FaceSideNeighbor>(D, FaceSideNeighbor{false, INVALID_IND, true});
+  }
+
+  // walk the list matching up pairs of neighboring facesides
+  for (size_t i = 0; i < entries.size(); /* pass */) {
+    size_t iStart = i;
+
+    const FaceSideEntry& entryStart = entries[i];
+    size_t iEnd = i;
+    iEnd++;
+    // advance the range to cover all matching entries
+    while (iEnd < entries.size() && entries[iEnd].indA == entryStart.indA && entries[iEnd].indB == entryStart.indB) {
+      iEnd++;
+    }
+
+    if (iEnd - iStart == 2) { // exactly two entries --> manifold
+      const FaceSideEntry& entryOther = entries[iStart + 1];
+
+      FaceSideNeighbor& nStart = neighbors[entryStart.iF][entryStart.localInd];
+      FaceSideNeighbor& nEnd = neighbors[entryOther.iF][entryOther.localInd];
+
+      bool sameOrient = entryStart.isCanonical != entryOther.isCanonical;
+
+      nStart.hasNeighbor = true;
+      nStart.neighF = entryOther.iF;
+      nStart.neighSameOrientation = sameOrient;
+
+      nEnd.hasNeighbor = true;
+      nEnd.neighF = entryStart.iF;
+      nEnd.neighSameOrientation = sameOrient;
+
+    } else {
+      // nonmanifold --> no neighbor, which is the default for the preallocated entries
+    }
+
+    i = iEnd;
+  }
+
+  // greedly process manifold patches of faces, flipping faces to be consistently oriented
+  std::vector<char> processed(nFaces(), false);
+  for (size_t startFace = 0; startFace < polygons.size(); startFace++) {
+    if (processed[startFace]) continue;
+
+    // Start processing a new patch
+    std::vector<size_t> allFacesInThisPatch;
+    std::deque<std::tuple<size_t, bool>> processQueue;
+    processQueue.push_back({startFace, false});
+
+    while (!processQueue.empty()) {
+      std::tuple<size_t, bool> thisTup = processQueue.front();
+      processQueue.pop_front();
+      size_t iF = std::get<0>(thisTup);
+      bool needsFlip = std::get<1>(thisTup);
+
+      if (processed[iF]) continue;
+      processed[iF] = true;
+
+      if (outwardOrient) {
+        // we only need this if doing the outward orientation step
+        allFacesInThisPatch.push_back(iF);
+      }
+
+      if (needsFlip) {
+        // actually flip the face
+        // (the entries in the neighbor list point at this face are wrong now, but that won't matter)
+        std::reverse(polygons[iF].begin(), polygons[iF].end());
+        if (hasParameterization()) {
+          std::reverse(paramCoordinates[iF].begin(), paramCoordinates[iF].end());
+        }
+      }
+
+      // add the neighbors for prcessing
+      for (const FaceSideNeighbor& n : neighbors[iF]) {
+        if (!n.hasNeighbor) {
+          continue;
+        }
+        size_t jF = n.neighF;
+        if (processed[jF]) {
+          continue;
+        }
+
+        bool neighNeedsFlip = (n.neighSameOrientation == needsFlip);
+        processQueue.push_back({jF, neighNeedsFlip});
+      }
+    }
+
+    // we finished processing a maximal patch, now flip it for outwardness
+    if (outwardOrient) {
+
+      int32_t outCount = 0;
+      for (size_t iF : allFacesInThisPatch) {
+        for (int32_t iRay = 0; iRay < N_RAYS_PER_FACE; iRay++) {
+
+          // Generate a point in the face
+          double r1 = realDist(gen);
+          double r2 = realDist(gen);
+          Vector3 bcoord{1. - std::sqrt(r1), std::sqrt(r1) * (1. - r2), std::sqrt(r1) * r2};
+          Vector3 p0 = vertexCoordinates[polygons[iF][0]];
+          Vector3 p1 = vertexCoordinates[polygons[iF][1]];
+          Vector3 p2 = vertexCoordinates[polygons[iF][2]];
+          Vector3 root = bcoord[0] * p0 + bcoord[1] * p1 + bcoord[2] * p2;
+          Vector3 outwardNormal = unit(cross(p1 - p0, p2 - p0));
+
+          // Trace in both directions
+          double outwardHitDist = traceDist(root, outwardNormal);
+          double inwardHitDist = traceDist(root, -outwardNormal);
+
+          // Whichever ray goes farther gives a vote for that outward orientation
+          if (outwardHitDist > inwardHitDist) {
+            outCount++;
+          } else {
+            outCount--;
+          }
+        }
+      }
+
+      // if there were more votes for inward than outward, flip the whole patch
+      if (outCount < 0) {
+        for (size_t iF : allFacesInThisPatch) {
+          std::reverse(polygons[iF].begin(), polygons[iF].end());
+          if (hasParameterization()) {
+            std::reverse(paramCoordinates[iF].begin(), paramCoordinates[iF].end());
+          }
+        }
+      }
+    }
+  }
 }
 
 void SimplePolygonMesh::writeMesh(std::string filename, std::string type) {
