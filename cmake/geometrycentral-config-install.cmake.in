@@ -1,0 +1,22 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(Eigen3 3.3 CONFIG)
+
+set(_GeometryCentral_WITH_SUITESPARSE @GC_HAVE_SUITESPARSE@)
+if(_GeometryCentral_WITH_SUITESPARSE)
+  find_dependency(SuiteSparse CONFIG)
+  if(NOT TARGET SuiteSparse::cholmod)
+    message(FATAL_ERROR "SuiteSparse::cholmod target not found.")
+  endif()
+  if(NOT TARGET SuiteSparse::spqr)
+    message(FATAL_ERROR "SuiteSparse::spqr target not found.")
+  endif()
+  if(NOT TARGET SuiteSparse::umfpack)
+    message(FATAL_ERROR "SuiteSparse::umfpack target not found.")
+  endif()
+endif()
+
+# Include the exported targets file
+include("${CMAKE_CURRENT_LIST_DIR}/geometrycentral.cmake")
