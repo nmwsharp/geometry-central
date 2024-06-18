@@ -187,8 +187,11 @@ target_compile_definitions(geometry-central PUBLIC NOMINMAX _USE_MATH_DEFINES)
 # Define CMAKE flag used in these sources (but should be kept OUT of headers)
 if(GC_HAVE_SUITESPARSE)
   target_compile_definitions(geometry-central PUBLIC GC_HAVE_SUITESPARSE)
-  target_include_directories(geometry-central PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
-  target_link_libraries(geometry-central PRIVATE ${SUITESPARSE_LIBRARIES})
+  target_link_libraries(geometry-central PRIVATE 
+    SuiteSparse::cholmod
+    SuiteSparse::spqr
+    SuiteSparse::umfpack
+  )
 endif()
 
 # Export symbols if DLL is requested
