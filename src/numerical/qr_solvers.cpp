@@ -151,11 +151,15 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
   // Solve
   // outVec = SuiteSparseQR<typename Solver<T>::SOLVER_ENTRYTYPE>(cMat, inVec, internals->context);
   // Note that the solve strategy is different for underdetermined systems
+  
+  // The types of QR solves are defined in the SuiteSparse codebase at: 
+  //      github.com/DrTimothyAldenDavis/SuiteSparse/blob/26ababc7f3af725c5fb9168a1b94850eab74b666/SPQR/Include/SuiteSparseQR_definitions.h#L42
+  // Note that the factorization is QR = AE, NOT QR = A; E is a permutation matrix 
   if (underdetermined) {
 
     // solve y = R^-T b
     cholmod_dense* y = SuiteSparseQR_solve<typename SOLVER_ENTRYTYPE<T>::type>(
-        SPQR_RTX_EQUALS_B, internals->factorization, inVec, internals->context);
+        SPQR_RTX_EQUALS_ETB, internals->factorization, inVec, internals->context);
 
     // compute x = Q*y
     outVec = SuiteSparseQR_qmult<typename SOLVER_ENTRYTYPE<T>::type>(SPQR_QX, internals->factorization, y,
@@ -169,7 +173,6 @@ void Solver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
                                                                                inVec, internals->context);
 
     // solve x = R^-1 y
-    // TODO what is this E doing here?
     outVec = SuiteSparseQR_solve<typename SOLVER_ENTRYTYPE<T>::type>(SPQR_RETX_EQUALS_B, internals->factorization, y,
                                                                      internals->context);
 
