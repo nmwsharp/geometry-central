@@ -2,8 +2,12 @@
 
 #include "geometrycentral/surface/surface_mesh.h"
 
+#include <functional>
+
 namespace geometrycentral {
 namespace surface {
+
+using EdgeCollapseFixupCallback = std::function<void(Halfedge, Halfedge)>;
 
 class ManifoldSurfaceMesh : public SurfaceMesh {
 
@@ -68,7 +72,42 @@ public:
 
   // Collapse an edge. Returns the vertex adjacent to that edge which still exists. Returns Vertex() if not
   // collapsible. Assumes triangular simplicial complex as input (at least in neighborhood of collapse).
-  Vertex collapseEdgeTriangular(Edge e);
+  //
+  // However, note that when we edge collapse, we also remove the degenerate face(s) incident to the edge,
+  // which results in removing further edge(s):
+  //  |        x           |
+  // edge degenerate-face edge
+  //
+  //  |        x           +
+  // edge degenerate-face deleted-edge
+  //
+  // This destroys halfedge data that we still need in the neighborhood post collapse:
+  //
+  //  he1 | he2        x            he3 | he4
+  //     edge      degenerate-face     edge
+  //
+  //  he1 | he2        x            -- | --
+  //     edge      degenerate-face    deleted-edge
+  //
+  //  he1 |  he2
+  //     edge (after)
+  //
+  // he2 and he3 become completely unnecessary post collapse, but we've lost he4, which disrupts invariants the user may have wanted to maintain, such as parameterization boundaries (e.g., if he1 and he4 were on opposite sides of a UV boundary).
+  //
+  // Although we'd like to do so, we cannot directly perform
+  //
+  //  he1 | --         x             -- | he4
+  //     edge      degenerate-face     edge
+  //
+  // because this violates the implicit sibling property of manifold meshes (a part of which seems to assume that abs(he - he.twin) = 1).
+  //
+  // Also, the data may be stored in parallel structures outside this mesh object.
+  // Therefore, we should allow the user to provide a callback, |fixup|, that performs, essentially, for all halfedge/corner containers C,
+  //
+  // C[he2] = C[he4] (and analogs)
+  //
+  // after collapse.
+  Vertex collapseEdgeTriangular(Edge e, EdgeCollapseFixupCallback fixup = {});
 
   // Removes a vertex, leaving a high-degree face. If the input is a boundary vertex, preserves an edge along the
   // boundary. Return Face() if impossible (generally because doing so would make a manifold mesh nonmanifold).
