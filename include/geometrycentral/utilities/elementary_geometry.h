@@ -15,6 +15,8 @@ namespace geometrycentral {
 // inequality
 double triangleArea(double lA, double lB, double lC);
 
+// Returns true if and only if the three lengths satisfy the triangle inequalities, up to some given tolerance.
+bool triangleIsValid( double a, double b, double c, double tolerance = 0. );
 
 // For triangle A,B,C, given vertex positions pA and pB, compute pC, such that lengths lBC and lCA are realized.
 // pC will be placed on the side which gives CCW winding of ABC.
@@ -74,6 +76,12 @@ struct TriTriIntersectionResult3D {
 // Determine if two triangles intersect, and if so compute the segment of intersection.
 TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
                                               Vector3 qA, Vector3 qB, Vector3 qC);
+
+// Given three points a, b, c, finds a fourth point d that completes a
+// tetrahedron with side lengths Lad, Lbd, and Lcd, and such that the
+// tetrahedron (a,b,c,d) has positive orientation.
+Vector3 tetFourthPoint(const Vector3& a, const Vector3& b, const Vector3& c,
+                       double Lad, double Lbd, double Lcd );
 
 } // namespace geometrycentral
 
