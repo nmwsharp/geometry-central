@@ -18,7 +18,7 @@ struct EmbedConvexOptions {
    double initialStepSize = 1.; // initial step size for optimization
    int maxSteps = 20; // maximum number of optimization steps
    int maxLineSearchSteps = 100.; // maximum number of line search steps
-   double tolerance = 1e-2; // maximum angle defect for any radial edge
+   double tolerance = 1e-5; // maximum angle defect for any radial edge
 };
 extern const EmbedConvexOptions defaultEmbedConvexOptions;
 
