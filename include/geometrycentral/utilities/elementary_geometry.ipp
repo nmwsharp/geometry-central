@@ -11,7 +11,7 @@ inline double triangleArea(double lAB, double lBC, double lCA) {
   return area;
 }
 
-inline bool triangleIsValid( double a, double b, double c, double tolerance = 0. )
+inline bool triangleIsValid( double a, double b, double c, double tolerance )
 {
    return a + b >= c - tolerance &&
           b + c >= a - tolerance &&
@@ -124,7 +124,7 @@ inline Vector3 tetFourthPoint(const Vector3& a, const Vector3& b, const Vector3&
    // solving a system of three quadratic equations
    double x4 = ( Lad*Lad - Lbd*Lbd + x2*x2 )/( 2.*x2 );
    double y4 = ( Lad*Lad - Lcd*Lcd + x3*x3 + y3*y3 - 2.*x4*x3 )/( 2.*y3 );
-   double z4 = sqrt( max( 0., Lad*Lad - x4*x4 - y4*y4 ));
+   double z4 = sqrt( std::max( 0., Lad*Lad - x4*x4 - y4*y4 ));
 
    // transform these coordinates back into the original coordinate system,
    // considering the two possible solutions (reflected across the base triangle)
