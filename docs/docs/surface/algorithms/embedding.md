@@ -12,6 +12,10 @@ The output is an ordinary triangle mesh with vertex positions in three-dimension
 
     When a metric is read from UV coordinates (e.g., in an OBJ file), lengths should be equal on opposite sides of each seam edge.  These lengths will automatically be averaged if they are not exactly equal.  Also be careful that coordinates written to disk are not truncated to a small number of digits, which can make flat vertices appear to have slight negative curvature.
 
+The basic idea of Bobenko and Izmestiev's algorithm is to create an intrinsic tetrahedral mesh, where every triangle of the given surface mesh is connected to a central "apex" by radial edges that are initially very long, creating long skinny tetrahedra.  The radii of these edges are then optimized until the dihedral angle sum around all of them is equal to 2π, allowing the tetrahedra to be laid out in three-dimensional space without overlap.  During optimization, edge flips are applied to ensure that edges of the boundary (i.e., the surface mesh) remain convex rather than concave.
+
+Note that the Geometry Central implementation of this algorithm is based in part on the [Java reference implementation](https://gitlab.discretization.de/sechel/f1software/-/tree/master/src/alexandrov) by Stefan Sechelmann.  However, our implementation makes some significant modifications not advocated by the original authors.  Users interested in making comparisons (e.g., for academic research papers) are advised to consult the reference implementation.
+
 ### Basic Usage
 
 The easiest way to compute an embedding is through "one shot" wrapper functions that take some description of the intrinsic metric as input, and produce an embedded mesh as output.
@@ -84,10 +88,45 @@ for( int i = 0; i < n; i++ ) {
 }
 ```
 
-Additional data and methods available through the `ConvexEmbedder` class are detailed below.
+!!! warning "final vertex coordinates"
 
-TODO CONTINUE HERE
+    Note that the embedding is primarily represented by the radii stored in `ConvexEmbedder::r`.  When using the class interface, neither vertex positions nor corner positions are computed automatically (since they are not needed by intermediate stages of the algorithm).  One must therefore call `ConvexEmbedder::refreshVertexCoordinates()` before attempting to access `ConvexEmbedder::embedding` or `ConvexEmbedder::localLayout`.
 
+#### Constructors
+
+??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, EdgeData<double>& edgeLengths, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
+
+    Create an embedder from a metric described by a set of edge lengths.  Options are passed as a [RemeshOptions](#options) object.
+
+??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, CornerData<Vector2>& textureCoordinates, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
+
+    Create an embedder from a metric described by a set of UV coordinates.  Options are passed as a [RemeshOptions](#options) object.  Note that since UVs are in general discontinuous, the two lengths across any seam edge must agree (and will be averaged if not).  Note also that shape recovery from UVs will work only if the mesh was unfolded isometrically, i.e., without any stretching or distortion of edges.
+    
+??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& intrinsicGeometry, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
+
+    Create an embedder from a metric described by an `IntrinsicGeometryInterface`.  Note that this could be a purely intrinsic description such as `EdgeLengthGeometry`, but also an extrinsic description such as `VertexPositionGeometry` (e.g., for debugging/sanity checking).  Options are passed as a [RemeshOptions](#options) object.
+
+#### Embedding functions
+
+??? func "`#!cpp bool ConvexEmbedder::init();`"
+
+    Initialize the embedding, returning false if the given triangulation and metric do not meet the criteria for convex embedding (no boundary, triangulated, genus zero, and positive angle defect at all vertices).
+
+??? func "`#!cpp bool ConvexEmbedder::embed();`"
+
+    Embed the given metric, returning true if embedding was successful.  Note that this method "fails gracefully" in the sense that if the embedder can't find an embedding that meets the specified tolerance, it will still construct vertex positions that are as close as possible, by averaging the most recent corner coordinates.
+
+??? func "`#!cpp void ConvexEmbedder::stepEmbedding();`"
+
+    Take a single embedding step.
+
+??? func "`#!cpp void ConvexEmbedder::refreshVertexCoordinates();`"
+
+    Compute extrinsic vertex positions at corners from the current intrinsic embedding, stored in `localLayout`.  Also compute average coordinates at vertices, stored in `embeding`.
+
+#### Embedding data
+
+    TODO
 
 ## Helper Types
 ### Options

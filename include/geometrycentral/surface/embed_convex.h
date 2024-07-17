@@ -72,8 +72,10 @@ class ConvexEmbedder
       // Take a single embedding step (for visualization/debugging)
       void stepEmbedding();
 
-      // Compute extrinsic vertex positions at corners
-      // from the current intrinsic embedding.
+      // Compute extrinsic vertex positions at corners from the
+      // current intrinsic embedding, stored in `localLayout`.
+      // Also compute average coordinates at vertices, stored
+      // in `embeding`.
       void refreshVertexCoordinates();
 
       // Original metric
