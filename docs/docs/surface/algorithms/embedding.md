@@ -63,7 +63,7 @@ EmbedConvexResult result = embedConvex( *mesh, *uvs, options );
 
 ### Advanced Usage
 
-![Animation of embedding progress](/media/embed_convex.gif)
+![Animation of embedding progress](/media/convex_embed.gif)
 
 More options are available when performing an embedding via the `ConvexEmbedder` class.  The basic pattern is:
 
@@ -124,22 +124,41 @@ for( int i = 0; i < n; i++ ) {
 
     Compute extrinsic vertex positions at corners from the current intrinsic embedding, stored in `localLayout`.  Also compute average coordinates at vertices, stored in `embeding`.
 
-#### Embedding data
+#### Embedder data
 
-    TODO
+The current state of the embedding is encoded by edge lengths on a tetrahedral mesh connecting all surface triangles to a central "apex" vertex (`ConvexEmbedder::apex`).  The edge lengths for this tetrahedral mesh are split up into lengths for each edge of a surface mesh (`ConvexEmbedder::intrinsicTriangulation`), as well as radii associated with each vertex of the surface mesh (`ConvexEmbedder::r`).  At any moment, one can update corner and vertex coordinates by calling `ConvexEmbedder::refreshVertexCoordinates()`.  The input metric is also stored in order to, e.g., visualize correspondence between the input metric and embedded triangulation.
+
+??? func "Input metric"
+
+    * `ManifoldSurfaceMesh ConvexEmbedder::originalMesh` — the triangulation used to define the input metric
+    * `IntrinsicGeometryInterface* ConvexEmbedder::originalMetric` - the input metric, which determines edge lengths for `originalMesh`
+
+??? func "Current metric"
+    
+    * `IntegerCoordinatesIntrinsicTriangulation* intrinsicTriangulation` — the triangulation and edge lengths defining the current metric
+
+??? func "Embedding"
+    
+    * `VertexData<double> r` — length of radial edges connecting each vertex to the central apex
+    * `CornerData<Vector3> localLayout` — embedding of current metric (will be discontinuous for non-flat metrics). Update by calling `ConvexEmbedder::refreshVertexCoordinates()`.
+    * `VertexData<Vector3> embedding` — embedding of current metric (average of discontinuous values).  Update by calling `ConvexEmbedder::refreshVertexCoordinates()`.
+    * `Vector3 apex` — location of central vertex, which makes tetrahedra with each triangle.  Update by calling `ConvexEmbedder::refreshVertexCoordinates()`.
 
 ## Helper Types
+
 ### Options
-Options are passed in to `remesh` via a `EmbedConvexOptions` object.
 
-TODO UPDATE THIS TABLE FOR CONVEX EMBEDDER
+Options are passed in to `embedConvex()` and constructors for `ConvexEmbedder` via a `EmbedConvexOptions` object.
 
-| Field                                              | Default value                         | Meaning                                                                                                                                                    |
-|----------------------------------------------------|---------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `#!cpp double targetEdgeLength`                   | `-1`                                  | the target edge length in flat regions. If `targetEdgeLength` is negative, the target edge length is set to relative the input mesh's mean edge length     |
-| `#!cpp size_t maxIterations`                      | `10`                                  | the maximum number of iterations to run for                                                                                                                |
-| `#!cpp double curvatureAdaptation`                | `0`                                   | how much target length should vary due to curvature. Set curvatureAdaptation to 0 if you want edge lengths to be approximately targetEdgeLength everywhere |
-| `#!cpp double minRelativeLength`                  | `0.05`                                | the minimum possible edge length allowed in the output mesh. Defined relative to targetEdgeLength                                                          |
-| `#!cpp RemeshSmoothStyle smoothStyle`             | `RemeshSmoothStyle::Circumcentric`    | the type of vertex smoothing to use (either `RemeshSmoothStyle::Circumcentric` or `RemeshSmoothStyle::Laplacian`)                                          |
-| `#!cpp RemeshBoundaryCondition boundaryCondition` | `RemeshBoundaryCondition::Tangential` | the type of motions allowed for boundary vertices (either `RemeshBoundaryCondition::Fixed`, `RemeshBoundaryCondition::Tangential` or `RemeshBoundaryCondition::Free`)                            |
+| Field                                   | Default value   | Meaning                                                     |
+|-----------------------------------------|-----------------|-------------------------------------------------------------|
+| `#!cpp double metricConvexityTolerance` | `1e-5`          | how negative do we allow input Gaussian curvature to be?    |
+| `#!cpp double edgeConvexityTolerance`   | `1e-3`          | how negative do we allow mean curvature to be?              |
+| `#!cpp double initialStepSize`          | `1`             | initial step size for an embedding step                     |
+| `#!cpp int maxSteps`                    | `20`            | maximum number of embedding steps                           |
+| `#!cpp int maxLineSearchSteps`          | `100`           | maximum number of line search steps                         |
+| `#!cpp double embeddingTolerance`       | `1e-3`          | maximum angle defect for any radial edge                    |
+| `#!cpp int maxNewtonIterations`         | `20`            | maximum number of steps for inner Newton solver             |
+| `#!cpp int maxNewtonLineSearchSteps`    | `32`            | maximum number of line search steps for inner Newton solver |
+| `#!cpp double newtonTolerance`          | `1e-4`          | l2 norm of residual for convergence of Newton's method      |
 

@@ -25,7 +25,7 @@ EmbedConvexResult embedConvex( ManifoldSurfaceMesh& triangulation,
 
    result.success = embedder.embed();
    embedder.refreshVertexCoordinates();
-   result.mesh = embedder.imesh->copy();
+   result.mesh = embedder.currentMesh->copy();
    result.geometry = unique_ptr<VertexPositionGeometry>(
          new VertexPositionGeometry(
             *result.mesh,
@@ -50,7 +50,7 @@ EmbedConvexResult embedConvex( ManifoldSurfaceMesh& triangulation,
 
    result.success = embedder.embed();
    embedder.refreshVertexCoordinates();
-   result.mesh = embedder.imesh->copy();
+   result.mesh = embedder.currentMesh->copy();
    result.geometry = unique_ptr<VertexPositionGeometry>(
          new VertexPositionGeometry(
             *result.mesh,
@@ -75,7 +75,7 @@ EmbedConvexResult embedConvex( ManifoldSurfaceMesh& triangulation,
 
    result.success = embedder.embed();
    embedder.refreshVertexCoordinates();
-   result.mesh = embedder.imesh->copy();
+   result.mesh = embedder.currentMesh->copy();
    result.geometry = unique_ptr<VertexPositionGeometry>(
          new VertexPositionGeometry(
             *result.mesh,
@@ -95,8 +95,8 @@ ConvexEmbedder::ConvexEmbedder(
    originalMetric = new EdgeLengthGeometry( originalMesh, edgeLengths );
    originalMetricLocallyAllocated = true;
 
-   igeom = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
-   imesh = igeom->intrinsicMesh.get();
+   intrinsicTriangulation = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
+   currentMesh = intrinsicTriangulation->intrinsicMesh.get();
 
    options = embedderOptions;
 }
@@ -123,8 +123,8 @@ ConvexEmbedder::ConvexEmbedder(
    originalMetric = new EdgeLengthGeometry( originalMesh, edgeLengths );
    originalMetricLocallyAllocated = true;
 
-   igeom = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
-   imesh = igeom->intrinsicMesh.get();
+   intrinsicTriangulation = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
+   currentMesh = intrinsicTriangulation->intrinsicMesh.get();
 
    options = embedderOptions;
 }
@@ -138,8 +138,8 @@ ConvexEmbedder::ConvexEmbedder(
    originalMetric = &intrinsicGeometry;
    originalMetricLocallyAllocated = false;
 
-   igeom = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
-   imesh = igeom->intrinsicMesh.get();
+   intrinsicTriangulation = new IntegerCoordinatesIntrinsicTriangulation( originalMesh, *originalMetric );
+   currentMesh = intrinsicTriangulation->intrinsicMesh.get();
 
    options = embedderOptions;
 }
@@ -150,20 +150,20 @@ ConvexEmbedder::~ConvexEmbedder()
    {
       delete originalMetric;
    }
-   delete igeom;
+   delete intrinsicTriangulation;
 }
 
 bool ConvexEmbedder::init()
 {
-   if( imesh->hasBoundary() ) {
+   if( currentMesh->hasBoundary() ) {
       cerr << "ConvexEmbedder: cannot embed surfaces with boundary." << endl;
       return false;
    }
-   if( !imesh->isTriangular() ) {
+   if( !currentMesh->isTriangular() ) {
       cerr << "ConvexEmbedder: all faces of input mesh must be triangular." << endl;
       return false;
    }
-   if( imesh->genus() != 0 ) {
+   if( currentMesh->genus() != 0 ) {
       cerr << "ConvexEmbedder: input mesh must have spherical topology." << endl;
       return false;
    }
@@ -172,7 +172,7 @@ bool ConvexEmbedder::init()
       return false;
    }
 
-   flipToDelaunay(*imesh, igeom->edgeLengths);
+   flipToDelaunay(*currentMesh, intrinsicTriangulation->edgeLengths);
    if( !initializeRadii() )
    {
       cerr << "ConvexEmbedder: failed to initialize embedding." << endl;
@@ -197,7 +197,7 @@ bool ConvexEmbedder::embed()
 
    if( step == options.maxSteps ) {
       cerr << "ConvexEmbedder: failed to converge to tolerance of ";
-      cerr << options.tolerance << " after ";
+      cerr << options.embeddingTolerance << " after ";
       cerr << options.maxSteps << " steps." << endl;
       cerr << "(Try using looser tolerance or more steps?)" << endl;
       return false;
@@ -211,9 +211,9 @@ bool ConvexEmbedder::embeddingConverged() {
    // Check if the dihedral angle defect around all radial
    // edges is sufficiently close to zero (i.e., close to
    // being flat, and hence embeddable in ℝ³).
-   for( Vertex i : imesh->vertices() )
+   for( Vertex i : currentMesh->vertices() )
    {
-      if( abs(kappa(i)) > options.tolerance ) {
+      if( abs(kappa(i)) > options.embeddingTolerance ) {
          return false;
       }
    }
@@ -224,9 +224,8 @@ bool ConvexEmbedder::embeddingConverged() {
 // edge lengths l is convex by seeing whether every
 // vertex has nonnegative angle defect
 bool ConvexEmbedder::isMetricConvex() {
-   const double eps = 1e-5; // tolerance for geometric checks of convexity
-   for( Vertex i : imesh->vertices() ) {
-      if( delta(i) < -eps ) {
+   for( Vertex i : currentMesh->vertices() ) {
+      if( delta(i) < -options.metricConvexityTolerance ) {
          return false;
       }
    }
@@ -237,9 +236,8 @@ bool ConvexEmbedder::isMetricConvex() {
 // by the current radii r is convex by seeing if any
 // boundary edge is concave
 bool ConvexEmbedder::isEmbeddingConvex() {
-   const double eps = 1e-3; // numerical tolerance
-   for( Edge e : imesh->edges() ) {
-      if( M_PI - theta(e) < -eps ) {
+   for( Edge e : currentMesh->edges() ) {
+      if( M_PI - theta(e) < -options.edgeConvexityTolerance ) {
          return false;
       }
    }
@@ -253,7 +251,7 @@ bool ConvexEmbedder::isEmbeddingConvex() {
 double ConvexEmbedder::initialRadius()
 {
    double R = 0.;
-   for( Face ijk : imesh->faces() )
+   for( Face ijk : currentMesh->faces() )
    {
       double Rijk = circumradius( ijk );
       R = max( R, Rijk );
@@ -267,12 +265,12 @@ double ConvexEmbedder::initialRadius()
 bool ConvexEmbedder::initializeRadii()
 {
    // initial radii for a convex metric
-   r = VertexData<double>( *imesh );
+   r = VertexData<double>( *currentMesh );
    double R = initialRadius();
    const double initRadiusFactor = 1.5;
    bool polytopeIsValid = false;
    while( true ) {
-      for (Vertex i : imesh->vertices()) {
+      for (Vertex i : currentMesh->vertices()) {
          r[i] = R;
       }
 
@@ -281,10 +279,9 @@ bool ConvexEmbedder::initializeRadii()
          cerr << "Mean curvature is negative for radius " << R << endl;
       }
 
-      for( Vertex i : imesh->vertices() ) {
+      for( Vertex i : currentMesh->vertices() ) {
          if( kappa(i) < -1e-3 || delta(i) < kappa(i) ) {
             polytopeIsValid = false;
-            cerr << "Sectional curvature " << kappa(i) << " is out of bounds for radius " << R << endl;
             break;
          }
       }
@@ -327,25 +324,23 @@ bool ConvexEmbedder::initializeRadii()
 // Returns true if and only if the solve succeeded.
 bool ConvexEmbedder::solveNewton( VertexData<double> kappaStar )
 {
-   const double tolerance = 1e-4;
-   const int maxNewtonIterations = 20;
-   size_t n = imesh->nVertices();
+   size_t n = currentMesh->nVertices();
 
    int iteration;
-   for( iteration = 0; iteration < maxNewtonIterations; iteration++ )
+   for( iteration = 0; iteration < options.maxNewtonIterations; iteration++ )
    {
       // Evaluate u = κ(r)−κ*
       Vector<double> u( n );
-      for( Vertex i : imesh->vertices() ) {
+      for( Vertex i : currentMesh->vertices() ) {
          size_t I = i.getIndex();
          u[I] = kappa(i) - kappaStar[I];
       }
 
       // Check for convergence
-      if( u.norm() < tolerance )
+      if( u.norm() < options.newtonTolerance )
       {
          cout << "Newton solver converged to a tolerance of ";
-         cout << tolerance << " in ";
+         cout << options.newtonTolerance << " in ";
          cout << iteration << " iterations" << endl;
          break;
       }
@@ -367,10 +362,9 @@ bool ConvexEmbedder::solveNewton( VertexData<double> kappaStar )
       // Subtract r ← r − τv
       double tau = 1.;
       VertexData<double> r0 = r;
-      int maxLineSearchSteps = 32;
-      for( int step = 0; step < maxLineSearchSteps; step++ )
+      for( int step = 0; step < options.maxNewtonLineSearchSteps; step++ )
       {
-         for( Vertex i : imesh->vertices() ) {
+         for( Vertex i : currentMesh->vertices() ) {
             size_t I = i.getIndex();
             r[i] = r0[i] - tau*v[I];
          }
@@ -383,11 +377,11 @@ bool ConvexEmbedder::solveNewton( VertexData<double> kappaStar )
       }
    }
 
-   if( iteration == maxNewtonIterations )
+   if( iteration == options.maxNewtonIterations )
    {
       cout << "Warning: Newton solver failed to ";
       cout << "converge to a tolerance of ";
-      cout << tolerance << " after ";
+      cout << options.newtonTolerance << " after ";
       cout << iteration << " iterations" << endl;
       return false;
    }
@@ -410,8 +404,8 @@ void ConvexEmbedder::stepEmbedding()
    for( int step = 0; step < options.maxLineSearchSteps; step++ )
    {
       // Compute next desired curvatures
-      VertexData<double> kappaStar( *imesh );
-      for( Vertex i : imesh->vertices() )
+      VertexData<double> kappaStar( *currentMesh );
+      for( Vertex i : currentMesh->vertices() )
       {
          kappaStar[i] = (1.-tau)*kappa(i);
       }
@@ -467,7 +461,7 @@ ConvexEmbedder::buildHessian()
    // endpoints, which is accounted for by the fact
    // that Eigen will automatically sum contributions
    // from entries with the same row/column indices.
-   for( Halfedge ij : imesh->halfedges() )
+   for( Halfedge ij : currentMesh->halfedges() )
    {
       size_t I = ij.tipVertex().getIndex();
       size_t J = ij.tailVertex().getIndex();
@@ -484,7 +478,7 @@ ConvexEmbedder::buildHessian()
    // Diagonal entries.
    // Unlike off-diagonals, there is only ever one
    // vertex corresponding to each diagonal entry.
-   for( Vertex i : imesh->vertices() )
+   for( Vertex i : currentMesh->vertices() )
    {
       size_t I = i.getIndex();
       double Hii = hessianDiagonal( i );
@@ -495,7 +489,7 @@ ConvexEmbedder::buildHessian()
       }
    }
 
-   size_t n = imesh->nVertices();
+   size_t n = currentMesh->nVertices();
    SparseMatrix<double> hessH( n, n );
 
    if( !failed ) {
@@ -509,7 +503,7 @@ ConvexEmbedder::buildHessian()
 double ConvexEmbedder::minTriSlack() {
    double m = numeric_limits<double>::max();
 
-   for( Halfedge ij : imesh->halfedges() )
+   for( Halfedge ij : currentMesh->halfedges() )
    {
       Vertex i = ij.vertex();
       Vertex j = ij.next().vertex();
@@ -597,13 +591,13 @@ double ConvexEmbedder::phi( Halfedge ij )
 // Returns the intrinsic length of edge ij
 double ConvexEmbedder::l( Edge ij )
 {
-   return igeom->edgeLengths[ij];
+   return intrinsicTriangulation->edgeLengths[ij];
 }
 
 // Returns the intrinsic length of ij.edge()
 double ConvexEmbedder::l( Halfedge ij )
 {
-   return igeom->edgeLengths[ij.edge()];
+   return intrinsicTriangulation->edgeLengths[ij.edge()];
 }
 
 // Returns the dihedral angle around boundary edge ij, on the side containing the halfedge
@@ -714,13 +708,11 @@ double ConvexEmbedder::circumradius( Face f )
 // Flips any edge with a negative dihedral angle
 void ConvexEmbedder::flipToConvex()
 {
-   const double eps = 1e-3; // tolerance for convexity
-
    // Enqueue all edges, and keep track
    // of which edges are in the queue
    queue<Edge> Q;
-   EdgeData<bool> inQ( *imesh, true );
-   for( Edge ij : imesh->edges() ) {
+   EdgeData<bool> inQ( *currentMesh, true );
+   for( Edge ij : currentMesh->edges() ) {
       Q.push( ij );
    }
 
@@ -730,8 +722,8 @@ void ConvexEmbedder::flipToConvex()
       Edge ij = Q.front(); Q.pop();
       inQ[ij] = false;
 
-      if( theta(ij) > M_PI + eps ) {
-         if( igeom->flipEdgeIfPossible(ij) ) {
+      if( theta(ij) > M_PI + options.edgeConvexityTolerance ) {
+         if( intrinsicTriangulation->flipEdgeIfPossible(ij) ) {
             // Enqueue neighbors if not already in queue
             Edge jk = ij.halfedge().next().edge();
             Edge ki = ij.halfedge().next().next().edge();
@@ -757,11 +749,11 @@ void ConvexEmbedder::refreshVertexCoordinates() {
    // laying out tetrahedra defined by the radii.  Note that if the
    // generalized polyhedral metric has nonzero curvature along radial
    // edges, these tetrahedra will not all agree in three-dimensional space.
-   localLayout = CornerData<Vector3>( *imesh );
+   localLayout = CornerData<Vector3>( *currentMesh );
    CornerData<Vector3>& x( localLayout ); // shorthand for "localLayout"
 
    // Embed the tetrahedron corresponding to the first triangle
-   Face ijk = imesh->face(0);
+   Face ijk = currentMesh->face(0);
    Halfedge ij = ijk.halfedge();
    Halfedge jk = ij.next();
    Halfedge ki = jk.next();
@@ -780,7 +772,7 @@ void ConvexEmbedder::refreshVertexCoordinates() {
 
    // Perform breadth-first traversal to incrementally embed neighboring tets
    queue<Halfedge> Q;
-   FaceData<bool> visited( *imesh, false ); // keep track of which tets have been visited
+   FaceData<bool> visited( *currentMesh, false ); // keep track of which tets have been visited
    visited[ijk] = true;
    if( !visited[ij.twin().face() ] ) { Q.push( ij.twin() ); visited[ij.twin().face()] = true; }
    if( !visited[jk.twin().face() ] ) { Q.push( jk.twin() ); visited[jk.twin().face()] = true; }
@@ -804,8 +796,8 @@ void ConvexEmbedder::refreshVertexCoordinates() {
    }
 
    // Average corner values to final vertex values
-   embedding = VertexData<Vector3>( *imesh );
-   for( Vertex i : imesh->vertices() )
+   embedding = VertexData<Vector3>( *currentMesh );
+   for( Vertex i : currentMesh->vertices() )
    {
       embedding[i] = Vector3{0.,0.,0.};
       for( Corner ijk : i.adjacentCorners() )

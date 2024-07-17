@@ -17,8 +17,13 @@ struct EmbedConvexResult {
 struct EmbedConvexOptions {
    double initialStepSize = 1.; // initial step size for optimization
    int maxSteps = 20; // maximum number of optimization steps
-   int maxLineSearchSteps = 100.; // maximum number of line search steps
-   double tolerance = 1e-3; // maximum angle defect for any radial edge
+   int maxLineSearchSteps = 16; // maximum number of line search steps
+   double embeddingTolerance = 1e-3; // maximum angle defect for any radial edge
+   int maxNewtonIterations = 20; // maximum number of steps for inner Newton solver
+   int maxNewtonLineSearchSteps = 32; // maximum number of line search steps for inner Newton solver
+   double newtonTolerance = 1e-4; // l2 norm of residual for convergence of Newton's method
+   double metricConvexityTolerance = 1e-5; // how negative do we allow input Gaussian curvature to be?
+   double edgeConvexityTolerance = 1e-3; // how negative do we allow mean curvature to be?
 };
 extern const EmbedConvexOptions defaultEmbedConvexOptions;
 
@@ -81,16 +86,15 @@ class ConvexEmbedder
       // Original metric
       ManifoldSurfaceMesh& originalMesh;
       IntrinsicGeometryInterface* originalMetric;
-      bool originalMetricLocallyAllocated;
 
       // Intrinsic triangulation used for the embedding
-      IntegerCoordinatesIntrinsicTriangulation* igeom;
-      ManifoldSurfaceMesh* imesh; // points to igeom->intrinsicMesh
+      IntegerCoordinatesIntrinsicTriangulation* intrinsicTriangulation;
+      ManifoldSurfaceMesh* currentMesh; // points to intrinsicTriangulation->intrinsicMesh
 
       // Embedding
       VertexData<double> r; // length of radial edges connecting each vertex to the central apex
-      CornerData<Vector3> localLayout; // coordinates in R^3 for each corner of imesh (may be discontinuous)
-      VertexData<Vector3> embedding; // coordinates in R^3 for each vertex of imesh (average of discontinuous values)
+      CornerData<Vector3> localLayout; // coordinates in R^3 for each corner of currentMesh (may be discontinuous)
+      VertexData<Vector3> embedding; // coordinates in R^3 for each vertex of currentMesh (average of discontinuous values)
       Vector3 apex; // location of central vertex, making tetrahedra with each triangle
 
    protected:
@@ -144,6 +148,10 @@ class ConvexEmbedder
 
       // Edge flipping
       void flipToConvex(); // try to flip all edges with negative mean curvature
+
+      // Keep track of whether originalMetric was locally
+      // allocated, or points to an external instance
+      bool originalMetricLocallyAllocated;
 };
 
 } // namespace surface
