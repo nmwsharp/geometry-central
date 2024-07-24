@@ -238,7 +238,9 @@ bool ConvexEmbedder::initializeRadii() {
 
     polytopeIsValid = isEmbeddingConvex();
     if (!polytopeIsValid) {
-      cerr << "Mean curvature is negative for radius " << R << endl;
+      if( options.verbose ) {
+        cerr << "Mean curvature is negative for radius " << R << endl;
+      }
     }
 
     for (Vertex i : currentMesh->vertices()) {
@@ -253,16 +255,23 @@ bool ConvexEmbedder::initializeRadii() {
     }
 
     if (R > 1e16) {
-      cerr << "Error: could not find valid initial radii" << endl;
+      if( options.verbose ) {
+        cerr << "Error: could not find valid initial radii" << endl;
+      }
       return false;
     }
 
     R *= initRadiusFactor;
   }
-  cout << "Setting initial radii to " << R << endl;
+
+  if( options.verbose ) {
+    cout << "Setting initial radii to " << R << endl;
+  }
 
   if (!isEmbeddingConvex()) {
-    cerr << "Warning: initial generalized polyhedral metric is not convex." << endl;
+    if( options.verbose ) {
+      cerr << "Warning: initial generalized polyhedral metric is not convex." << endl;
+    }
   }
 
   return true;
@@ -298,9 +307,11 @@ bool ConvexEmbedder::solveNewton(VertexData<double> kappaStar) {
 
     // Check for convergence
     if (u.norm() < options.newtonTolerance) {
-      cout << "Newton solver converged to a tolerance of ";
-      cout << options.newtonTolerance << " in ";
-      cout << iteration << " iterations" << endl;
+      if( options.verbose ) {
+        cout << "Newton solver converged to a tolerance of ";
+        cout << options.newtonTolerance << " in ";
+        cout << iteration << " iterations" << endl;
+      }
       break;
     }
 
@@ -310,7 +321,9 @@ bool ConvexEmbedder::solveNewton(VertexData<double> kappaStar) {
     tie(J, failed) = buildHessian();
 
     if (failed) {
-      cerr << "Hessian has invalid entries; shrinking time step..." << endl;
+      if( options.verbose ) {
+        cerr << "Hessian has invalid entries; shrinking time step..." << endl;
+      }
       return false;
     }
 
@@ -335,10 +348,12 @@ bool ConvexEmbedder::solveNewton(VertexData<double> kappaStar) {
   }
 
   if (iteration == options.maxNewtonIterations) {
-    cout << "Warning: Newton solver failed to ";
-    cout << "converge to a tolerance of ";
-    cout << options.newtonTolerance << " after ";
-    cout << iteration << " iterations" << endl;
+    if( options.verbose ) {
+      cerr << "Warning: Newton solver failed to ";
+      cerr << "converge to a tolerance of ";
+      cerr << options.newtonTolerance << " after ";
+      cerr << iteration << " iterations" << endl;
+    }
     return false;
   }
   return true; // Newton's method converged
@@ -659,12 +674,16 @@ void ConvexEmbedder::flipToConvex() {
         }
         nFlips++;
       } else {
-        cerr << "Warning: failed to flip nonconvex edge!" << endl;
+        if( options.verbose ) {
+          cerr << "Warning: failed to flip nonconvex edge!" << endl;
+        }
       }
     }
   }
 
-  cout << "Flipped " << nFlips << " edges." << endl;
+  if( options.verbose ) {
+    cout << "Flipped " << nFlips << " edges." << endl;
+  }
 }
 
 void ConvexEmbedder::refreshVertexCoordinates() {

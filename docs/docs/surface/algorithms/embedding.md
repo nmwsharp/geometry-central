@@ -16,6 +16,10 @@ The basic idea of Bobenko and Izmestiev's algorithm is to create an intrinsic te
 
 Note that the Geometry Central implementation of this algorithm is based in part on the [Java reference implementation](https://gitlab.discretization.de/sechel/f1software/-/tree/master/src/alexandrov) by Stefan Sechelmann.  However, our implementation makes some significant modifications not advocated by the original authors.  Users interested in making comparisons (e.g., for academic research papers) are advised to consult the reference implementation.
 
+!!! warning "convergence"
+
+    Although the convex embedding algorithm is guaranteed to work in exact arithmetic, it can still fail to converge due to floating point error (e.g., when triangulations have near-degenerate elements, or are slightly non-convex due to truncation error in the input data).  In this case, it can sometimes help to loosen the tolerances and/or increase the number of iterations in the [embedder options](#options).  Additional diagnostic information is provided by setting `EmbedConvexOptions::verbose = true`.
+
 ### Basic Usage
 
 The easiest way to compute an embedding is through "one shot" wrapper functions that take some description of the intrinsic metric as input, and produce an embedded mesh as output.
@@ -51,15 +55,15 @@ EmbedConvexResult result = embedConvex( *mesh, *uvs, options );
 
 ??? func "`#!cpp EmbedConvexResult embedConvex(ManifoldSurfaceMesh& mesh, EdgeData<double>& edgeLengths, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Embed a metric described by a set of edge lengths.  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.
+    Embed a metric described by a set of edge lengths.  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.  Input mesh `mesh` and edge lengths `edgeLengths` are unchanged.
 
 ??? func "`#!cpp EmbedConvexResult embedConvex(ManifoldSurfaceMesh& mesh, CornerData<Vector2>& textureCoordinates, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Embed a metric described by a set of UV coordinates.  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.  Note that since UVs are in general discontinuous, the two lengths across any seam edge must agree (and will be averaged if not).  Note also that shape recovery from UVs will work only if the mesh was unfolded isometrically, i.e., without any stretching or distortion of edges.
+    Embed a metric described by a set of UV coordinates.  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.  Note that since UVs are in general discontinuous, the two lengths across any seam edge must agree (and will be averaged if not).  Note also that shape recovery from UVs will work only if the mesh was unfolded isometrically, i.e., without any stretching or distortion of edges.  Input mesh `mesh` and UVs `textureCoordinates` are unchanged.
     
 ??? func "`#!cpp EmbedConvexResult embedConvex(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& intrinsicGeometry, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Embed a metric described by an `IntrinsicGeometryInterface`.  Note that this could be a purely intrinsic description such as `EdgeLengthGeometry`, but also an extrinsic description such as `VertexPositionGeometry` (e.g., for debugging/sanity checking).  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.
+    Embed a metric described by an `IntrinsicGeometryInterface`.  Note that this could be a purely intrinsic description such as `EdgeLengthGeometry`, but also an extrinsic description such as `VertexPositionGeometry` (e.g., for debugging/sanity checking).  Options are passed as a [RemeshOptions](#options) object.  If embedding fails, the flag `EmbedConvexResult::success` will be set to `false`.  Input mesh `mesh` and metric `IntrinsicGeometry` are unchanged.
 
 ### Advanced Usage
 
@@ -96,15 +100,15 @@ for( int i = 0; i < n; i++ ) {
 
 ??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, EdgeData<double>& edgeLengths, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Create an embedder from a metric described by a set of edge lengths.  Options are passed as a [RemeshOptions](#options) object.
+    Create an embedder from a metric described by a set of edge lengths.  Options are passed as a [RemeshOptions](#options) object.  Input mesh `mesh` and edge lengths `edgeLengths` are unchanged.
 
 ??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, CornerData<Vector2>& textureCoordinates, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Create an embedder from a metric described by a set of UV coordinates.  Options are passed as a [RemeshOptions](#options) object.  Note that since UVs are in general discontinuous, the two lengths across any seam edge must agree (and will be averaged if not).  Note also that shape recovery from UVs will work only if the mesh was unfolded isometrically, i.e., without any stretching or distortion of edges.
+    Create an embedder from a metric described by a set of UV coordinates.  Options are passed as a [RemeshOptions](#options) object.  Note that since UVs are in general discontinuous, the two lengths across any seam edge must agree (and will be averaged if not).  Note also that shape recovery from UVs will work only if the mesh was unfolded isometrically, i.e., without any stretching or distortion of edges.  Input mesh `mesh` and UVs `textureCoordinates` are unchanged.
     
 ??? func "`#!cpp ConvexEmbedder::ConvexEmbedder(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& intrinsicGeometry, EmbedConvexOptions options = defaultEmbedConvexOptions);`"
 
-    Create an embedder from a metric described by an `IntrinsicGeometryInterface`.  Note that this could be a purely intrinsic description such as `EdgeLengthGeometry`, but also an extrinsic description such as `VertexPositionGeometry` (e.g., for debugging/sanity checking).  Options are passed as a [RemeshOptions](#options) object.
+    Create an embedder from a metric described by an `IntrinsicGeometryInterface`.  Note that this could be a purely intrinsic description such as `EdgeLengthGeometry`, but also an extrinsic description such as `VertexPositionGeometry` (e.g., for debugging/sanity checking).  Options are passed as a [RemeshOptions](#options) object.  Input mesh `mesh` and metric `IntrinsicGeometry` are unchanged.
 
 #### Embedding functions
 
@@ -161,4 +165,5 @@ Options are passed in to `embedConvex()` and constructors for `ConvexEmbedder` v
 | `#!cpp int maxNewtonIterations`         | `20`            | maximum number of steps for inner Newton solver             |
 | `#!cpp int maxNewtonLineSearchSteps`    | `32`            | maximum number of line search steps for inner Newton solver |
 | `#!cpp double newtonTolerance`          | `1e-4`          | l2 norm of residual for convergence of Newton's method      |
+| `#!cpp bool verbose`                    | `false`         | whether to display diagnostic output
 

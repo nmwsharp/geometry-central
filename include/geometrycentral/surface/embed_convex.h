@@ -24,6 +24,7 @@ struct EmbedConvexOptions {
   double newtonTolerance = 1e-4;          // l2 norm of residual for convergence of Newton's method
   double metricConvexityTolerance = 1e-5; // how negative do we allow input Gaussian curvature to be?
   double edgeConvexityTolerance = 1e-3;   // how negative do we allow mean curvature to be?
+  bool verbose = false;                   // whether to display diagnostic output
 };
 extern const EmbedConvexOptions defaultEmbedConvexOptions;
 
