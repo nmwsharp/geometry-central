@@ -13,6 +13,11 @@
 namespace geometrycentral {
 namespace pointcloud {
 
+#ifndef SHM_H
+#define SHM_H
+enum class LevelSetConstraint { None = 0, ZeroSet, Multiple };
+#endif
+
 class PointCloudHeatSolver {
 
 public:
@@ -34,6 +39,10 @@ public:
 
   // Compute the logarithmic map from a source point
   PointData<Vector2> computeLogMap(const Point& sourcePoint);
+
+  // Solve for signed distance from a curve comprising a sequence of vertices.
+  PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves,
+                                          int levelSetConstraint = LevelSetConstraint::ZeroSet);
 
   // === Options and parameters
 
