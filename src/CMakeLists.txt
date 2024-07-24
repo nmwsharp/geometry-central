@@ -41,6 +41,7 @@ SET(SRCS
   surface/integer_coordinates_intrinsic_triangulation.cpp
   surface/common_subdivision.cpp
   surface/surface_point.cpp
+  surface/barycentric_vector.cpp
   surface/fast_marching_method.cpp
   surface/intersection.cpp
   surface/uniformize.cpp

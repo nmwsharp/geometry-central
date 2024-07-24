@@ -89,19 +89,19 @@ inline BarycentricVector BarycentricVector::inFace(Face targetFace) const {
   case BarycentricVectorType::Edge: {
     Halfedge he = targetFace.halfedge();
     if (edge == he.edge()) {
-      Vector3 faceCoords = (he == edge.halfedge()) ? Vector3{edgeCoords[0], edgeCoords[1], 0.}
-                                                   : Vector3{edgeCoords[1], edgeCoords[0], 0.};
+      Vector3 faceCoords =
+          he.orientation() ? Vector3{edgeCoords[0], edgeCoords[1], 0.} : Vector3{edgeCoords[1], edgeCoords[0], 0.};
       return BarycentricVector(targetFace, faceCoords);
     }
     he = he.next();
     if (edge == he.edge()) {
-      Vector3 faceCoords = (he == edge.halfedge()) ? Vector3{0., edgeCoords[0], edgeCoords[1]}
-                                                   : Vector3{0., edgeCoords[1], edgeCoords[0]};
+      Vector3 faceCoords =
+          he.orientation() ? Vector3{0., edgeCoords[0], edgeCoords[1]} : Vector3{0., edgeCoords[1], edgeCoords[0]};
       return BarycentricVector(targetFace, faceCoords);
     }
     he = he.next();
     Vector3 faceCoords =
-        (he == edge.halfedge()) ? Vector3{edgeCoords[1], 0., edgeCoords[0]} : Vector3{edgeCoords[0], 0., edgeCoords[1]};
+        he.orientation() ? Vector3{edgeCoords[1], 0., edgeCoords[0]} : Vector3{edgeCoords[0], 0., edgeCoords[1]};
     return BarycentricVector(targetFace, faceCoords);
     break;
   }
@@ -191,38 +191,61 @@ inline BarycentricVector BarycentricVector::normalizedDisplacement() const {
   return *this;
 }
 
-inline BarycentricVector BarycentricVector::rotated90(IntrinsicGeometryInterface& geom) const {
+inline BarycentricVector BarycentricVector::rotate90(IntrinsicGeometryInterface& geom) const {
 
   switch (type) {
   case BarycentricVectorType::Face: {
-    double ui = faceCoords[0];
-    double uj = faceCoords[1];
-    double uk = faceCoords[2];
-    geom.requireEdgeLengths();
-    double l_ij = geom.edgeLengths[face.halfedge().edge()];
-    double l_jk = geom.edgeLengths[face.halfedge().next().edge()];
-    double l_ki = geom.edgeLengths[face.halfedge().next().next().edge()];
-    geom.unrequireEdgeLengths();
-    // coefficients of matrix D taking barycentric coords to 3D local coords, squared and multiplied by 2
-    double ai = l_ij * l_ij - l_jk * l_jk + l_ki * l_ki;
-    double aj = l_jk * l_jk - l_ki * l_ki + l_ij * l_ij;
-    double ak = l_ki * l_ki - l_ij * l_ij + l_jk * l_jk;
-    double s = 0.5 * (l_ij + l_jk + l_ki);
-    double A = std::sqrt(s * (s - l_ij) * (s - l_jk) * (s - l_ki));
-    Vector3 newCoords = {ak * uk - aj * uj, ai * ui - ak * uk, aj * uj - ai * ui};
-    newCoords /= (4. * A);
-    return BarycentricVector(face, newCoords);
+    return faceVectorRotate90(*this, geom);
     break;
   }
-  case BarycentricVectorType::Edge:
-    throw std::logic_error("Cannot rotate BarycentricVector of Type::Edge");
+  case BarycentricVectorType::Edge: {
+    // Convert to a face-type vector, then rotate.
+    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
+    if (!he.isInterior()) {
+      he = he.twin();
+    }
+    BarycentricVector w = this->inFace(he.face());
+    return faceVectorRotate90(w, geom);
     break;
+  }
   default:
     // If vertex-type, do nothing
     break;
   }
   return *this;
 }
+
+inline BarycentricVector BarycentricVector::rotate(IntrinsicGeometryInterface& geom, double angle) const {
+
+  switch (type) {
+  case BarycentricVectorType::Face: {
+    return faceVectorRotate(*this, geom, angle);
+    break;
+  }
+  case BarycentricVectorType::Edge: {
+    double theta = regularizeAngle(angle);
+    if (theta == M_PI || theta == -M_PI) {
+      return BarycentricVector(edge, -edgeCoords);
+    }
+    // Convert to a face-type vector, then rotate.
+    Halfedge he = (edgeCoords[0] < 0.) ? edge.halfedge() : edge.halfedge().twin();
+    if (!he.isInterior() && theta < M_PI) {
+      he = edge.halfedge(); // interior halfedge
+    } else if (edge.isBoundary() && he.isInterior() && theta > M_PI) {
+      he = edge.halfedge(); // interior halfedge
+    } else if (theta > M_PI) {
+      he = he.twin();
+    }
+    BarycentricVector w = this->inFace(he.face());
+    return faceVectorRotate(w, geom, angle);
+    break;
+  }
+  default:
+    // If vertex-type, do nothing
+    break;
+  }
+  return *this;
+} // namespace surface
 
 // == Overloaded operators
 
@@ -518,8 +541,8 @@ inline Face sharedFace(const BarycentricVector& u, const BarycentricVector& w) {
     case BarycentricVectorType::Face:
       for (Edge e : w.face.adjacentEdges()) {
         if (e == u.edge) return w.face;
-        break;
       }
+      break;
     case BarycentricVectorType::Edge:
       for (Face f : u.edge.adjacentFaces()) {
         for (Edge e : f.adjacentEdges()) {
