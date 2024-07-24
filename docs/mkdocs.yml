@@ -74,6 +74,7 @@ nav:
       - 'Barycentric Vector': 'surface/utilities/barycentric_vector.md'
     - Algorithms: 
       - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
+      - 'Embedding' : 'surface/algorithms/embedding.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
       - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'

@@ -22,6 +22,7 @@ SET(SRCS
   surface/extrinsic_geometry_interface.cpp
   surface/exact_geodesic_helpers.cpp
   surface/exact_geodesics.cpp
+  surface/embed_convex.cpp
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp

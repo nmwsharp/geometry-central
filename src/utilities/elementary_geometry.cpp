@@ -17,4 +17,4 @@ bool inCircleTest(Vector2 pA, Vector2 pB, Vector2 pC, Vector2 pTest) {
   return A.determinant() > 0.;
 }
 
-}
+} // namespace geometrycentral
