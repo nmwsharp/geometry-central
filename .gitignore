@@ -1,6 +1,7 @@
 # Build directories
 build/
 build_debug/
+bazel-*
 
 # Editor and OS things
 .DS_Store
