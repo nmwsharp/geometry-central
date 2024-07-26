@@ -400,8 +400,9 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
   }
   }
   geom.unrequirePointIndices();
+  PointData<double> GSDF(cloud, phi);
 
-  return phi;
+  return GSDF;
 }
 
 } // namespace pointcloud
