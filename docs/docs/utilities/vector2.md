@@ -103,7 +103,11 @@ vec = vec.rotate90();   // much better
 
     Alias for `normalize()`. 
 
-??? func "`#!cpp Vector2 Vector2::rotate(double theta)`"
+??? func "`#!cpp Vector2 Vector2::rotateCW(double theta)`"
+
+    Rotate the vector by angle $\theta$ in the clockwise direction.
+
+??? func "`#!cpp Vector2 Vector2::rotateCCW(double theta)`"
 
     Rotate the vector by angle $\theta$ in the counter-clockwise direction.
 
