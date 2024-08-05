@@ -91,9 +91,17 @@ inline Vector2 unit(const Vector2& v) { return normalize(v); }
 inline Vector2 normalizeCutoff(const Vector2& v, double mag) { return v.normalizeCutoff(mag); }
 
 inline Vector2 Vector2::rotate(double theta) const {
+  return rotateCW(theta);
+}
+
+inline Vector2 Vector2::rotateCW(double theta) const {
   double cosTh = std::cos(theta);
   double sinTh = std::sin(theta);
   return Vector2{cosTh * x + sinTh * y, -sinTh * x + cosTh * y};
+}
+
+inline Vector2 Vector2::rotateCCW(double theta) const {
+  return rotateCW(-theta);
 }
 
 inline Vector2 Vector2::rotate90() const { return Vector2{-y, x}; }
