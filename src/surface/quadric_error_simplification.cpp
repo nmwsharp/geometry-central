@@ -19,7 +19,7 @@ Quadric::Quadric(const Eigen::Matrix3d& A_, const Eigen::Vector3d& b_, double c_
 
 double Quadric::cost(const Eigen::Vector3d& v) { return v.dot(A * v) + 2 * b.dot(v) + c; }
 
-Eigen::Vector3d Quadric::optimalPoint() { return -A.inverse() * b; }
+Eigen::Vector3d Quadric::optimalPoint() { return -A.colPivHouseholderQr().solve(b); }
 
 Quadric Quadric::operator+=(const Quadric& Q) {
   A += Q.A;
@@ -79,36 +79,38 @@ void quadricErrorSimplify(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geo
     // Stop when collapse becomes too expensive
     double cost = std::get<0>(best);
     if (cost > tol) break;
+    if (!std::isfinite(cost)) continue; // numerical safety
 
     Edge e = std::get<1>(best);
-    if (!e.isDead()) {
+    if (e.isDead()) continue; // edge no longer exists
 
-      Vertex v1 = e.halfedge().tailVertex();
-      Vertex v2 = e.halfedge().tipVertex();
+    Vertex v1 = e.halfedge().tailVertex();
+    Vertex v2 = e.halfedge().tipVertex();
 
-      // Get edge quadric
-      Quadric Qe(Q[v1], Q[v2]);
-      Eigen::Vector3d q = Qe.optimalPoint();
+    // Get edge quadric
+    Quadric Qe(Q[v1], Q[v2]);
+    Eigen::Vector3d q = Qe.optimalPoint();
 
-      // If either vertex has been collapsed since the edge was pushed
-      // onto the queue, the old cost was wrong. In that case, give up
-      if (abs(cost - Qe.cost(q)) > 1e-8) continue;
+    // If either vertex has been collapsed since the edge was pushed
+    // onto the queue, the old cost was wrong. In that case, give up
+    if (abs(cost - Qe.cost(q)) > 1e-8) continue;
+    if (!q.array().isFinite().all()) continue; // numerical safety
 
-      Vertex v = mm.collapseEdge(e, fromEigen(q));
-      if (v == Vertex()) continue;
-      Q[v] = Qe;
+    Vertex v = mm.collapseEdge(e, fromEigen(q));
+    if (v == Vertex()) continue;
+    Q[v] = Qe;
 
-      for (Edge f : v.adjacentEdges()) {
-        Quadric Qf(Q[f.halfedge().tailVertex()], Q[f.halfedge().tipVertex()]);
-        Eigen::Vector3d q = Qf.optimalPoint();
-        double cost = Qf.cost(q);
-        edgesToCheck.push(std::make_tuple(cost, f));
-      }
+    for (Edge f : v.adjacentEdges()) {
+      Quadric Qf(Q[f.halfedge().tailVertex()], Q[f.halfedge().tipVertex()]);
+      Eigen::Vector3d q = Qf.optimalPoint();
+      double cost = Qf.cost(q);
+      edgesToCheck.push(std::make_tuple(cost, f));
     }
   }
 
   mesh.compress();
   return;
 }
+
 } // namespace surface
 } // namespace geometrycentral
