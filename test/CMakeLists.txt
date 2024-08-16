@@ -97,16 +97,17 @@ add_definitions(-DGC_TEST_ASSETS_ABS_PATH=\"${ABS_ASSETS_DIR}\")
 # Build the tests
 set(TEST_SRCS
   src/main_test.cpp
-  src/load_test_meshes.cpp
   src/eigen_interop_helpers_test.cpp
+  src/halfedge_geometry_test.cpp
   src/halfedge_mesh_test.cpp
   src/halfedge_mutation_test.cpp
-  src/halfedge_geometry_test.cpp
-  src/surface_misc_test.cpp
-  src/point_cloud_test.cpp
-  src/linear_algebra_test.cpp
-  src/stl_reader_test.cpp
   src/intrinsic_triangulation_test.cpp
+  src/linear_algebra_test.cpp
+  src/load_test_meshes.cpp
+  src/point_cloud_test.cpp
+  src/poisson_disk_sampler_test.cpp
+  src/stl_reader_test.cpp
+  src/surface_misc_test.cpp
 )
 
 add_executable(geometry-central-test "${TEST_SRCS}")

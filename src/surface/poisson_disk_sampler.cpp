@@ -90,7 +90,7 @@ SurfacePoint PoissonDiskSampler::generateCandidate(const SurfacePoint& xi) const
   TraceGeodesicResult trace;
 
   Vector2 dir = Vector2::fromAngle(randomReal(0., 2. * PI));
-  double dist = std::sqrt(randomReal(rMinDist, 2. * rMinDist));
+  double dist = randomReal(rMinDist, 2. * rMinDist);
   trace = traceGeodesic(geometry, xi, dist * dir);
 
   pathEndpoint = trace.endPoint;
