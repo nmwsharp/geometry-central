@@ -22,6 +22,8 @@ public:
                                    std::vector<SurfacePoint> pointsToAvoid = std::vector<SurfacePoint>(),
                                    int rAvoidance = 1, bool use3DAvoidanceRadius = true);
 
+  double getMeanEdgeLength() const { return meanEdgeLength; }
+
 private:
   // ===== Members
   ManifoldSurfaceMesh& mesh;
