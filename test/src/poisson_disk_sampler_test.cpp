@@ -31,8 +31,11 @@ size_t sampleSquareDisk(double width, double sampling_distance) {
   meanEdgeLength /= mesh->nEdges();
   geometry->unrequireEdgeLengths();
 
+  PoissonDiskOptions options;
+  options.rCoef = sampling_distance / meanEdgeLength;
+
   PoissonDiskSampler sampler(*mesh, *geometry);
-  auto samples = sampler.sample(sampling_distance / meanEdgeLength);
+  auto samples = sampler.sample(options);
   return samples.size();
 }
 

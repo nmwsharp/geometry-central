@@ -256,22 +256,23 @@ void PoissonDiskSampler::clearData() {
 /*
  * The final function.
  */
-std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandidates_,
-                                                     std::vector<SurfacePoint> pointsToAvoid_, int rAvoidance,
-                                                     bool use3DAvoidanceRadius) {
+std::vector<SurfacePoint> PoissonDiskSampler::sample(const PoissonDiskOptions& options) {
 
   clearData();
 
   // Set parameters.
-  rCoef = rCoef_;
-  rMinDist = rCoef * meanEdgeLength;
+  if (options.rCoef > 0.0) {
+    rMinDist = options.rCoef * meanEdgeLength;
+  } else if (options.absoluteRadius > 0.0) {
+    rMinDist = options.absoluteRadius;
+  }
   sideLength = rMinDist / std::sqrt(3.0);
-  kCandidates = kCandidates_;
-  pointsToAvoid = pointsToAvoid_;
+  kCandidates = options.kCandidates;
+  pointsToAvoid = options.pointsToAvoid;
 
   // Add points to avoid.
   for (const SurfacePoint& pt : pointsToAvoid) {
-    addPointToSpatialLookupWithRadius(pt, rAvoidance - 1, use3DAvoidanceRadius);
+    addPointToSpatialLookupWithRadius(pt, options.rAvoidance - 1, options.use3DAvoidanceRadius);
   }
 
   // Carry out sampling process for each connected component.

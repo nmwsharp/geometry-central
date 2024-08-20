@@ -7,6 +7,15 @@
 namespace geometrycentral {
 namespace surface {
 
+struct PoissonDiskOptions {
+  double rCoef = 1.0;           // minimum distance between samples, expressed as a multiple of the mean edge length
+  double absoluteRadius = -1.0; // actual minimum distance between samples
+  int kCandidates = 30;         // number of candidate points chosen from the (r,2r)-annulus around each sample
+  std::vector<SurfacePoint> pointsToAvoid;
+  int rAvoidance = 1; // radius of avoidance, expressed as a multiple of the mean edge length
+  bool use3DAvoidanceRadius = true;
+};
+
 class PoissonDiskSampler {
 
 public:
@@ -18,9 +27,7 @@ public:
   PoissonDiskSampler(ManifoldSurfaceMesh& mesh, VertexPositionGeometry& geometry);
 
   // ===== The main function: Sample the surface using Poisson Disk Sampling.
-  std::vector<SurfacePoint> sample(double rCoef = 1.0, int kCandidates = 30,
-                                   std::vector<SurfacePoint> pointsToAvoid = std::vector<SurfacePoint>(),
-                                   int rAvoidance = 1, bool use3DAvoidanceRadius = true);
+  std::vector<SurfacePoint> sample(const PoissonDiskOptions& options = PoissonDiskOptions());
 
   double getMeanEdgeLength() const { return meanEdgeLength; }
 
@@ -29,7 +36,6 @@ private:
   ManifoldSurfaceMesh& mesh;
   VertexPositionGeometry& geometry;
 
-  double rCoef;    // minimum distance between samples, expressed as a multiple of the mean edge length
   int kCandidates; // number of candidate points chosen from the (r,2r)-annulus around each sample
   std::vector<SurfacePoint> pointsToAvoid;
 
