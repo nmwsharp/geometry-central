@@ -34,6 +34,9 @@ size_t sampleSquareDisk(double width, double sampling_distance) {
   PoissonDiskOptions options;
   options.rCoef = sampling_distance / meanEdgeLength;
 
+  // make tests reproducible
+  geometrycentral::util_mersenne_twister.seed(101);
+
   PoissonDiskSampler sampler(*mesh, *geometry);
   auto samples = sampler.sample(options);
   return samples.size();
