@@ -251,7 +251,7 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 }
 
 PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<std::vector<Point>>& curves,
-                                                              int levelSetConstraint) {
+                                                              LevelSetConstraint levelSetConstraint) {
 
   GC_SAFETY_ASSERT(curves.size() != 0, "must have at least one source");
 
@@ -293,20 +293,20 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
   Vector<double> Xt = vectorHeatSolver->solve(X0);
 
   // Normalize vectors & compute divergence on the tufted cover.
-  geom.tuftedGeom->->requireHalfedgeCotanWeights();
-  geom.tuftedGeom->->requireVertexIndices();
+  geom.tuftedGeom->requireHalfedgeCotanWeights();
+  geom.tuftedGeom->requireVertexIndices();
   Vector<double> divYt = Vector<double>::Zero(N);
-  for (Face f : geom.tuftedMesh->faces()) {
+  for (surface::Face f : geom.tuftedMesh->faces()) {
     // Compute averaged vector on each face.
     Vector3 grad = {0, 0, 0};
-    for (Vertex v : f.adjacentVertices()) {
+    for (surface::Vertex v : f.adjacentVertices()) {
       size_t idx = geom.tuftedGeom->vertexIndices[v];
-      Vector3 X = Xt[2 * idx] * geom.tangentBasis[v][0] + Xt[2 * idx + 1] * geom.tangentBasis[v][1];
+      Vector3 X = Xt[2 * idx] * geom.tangentBasis[idx][0] + Xt[2 * idx + 1] * geom.tangentBasis[idx][1];
       grad += X;
     }
     grad = grad.normalize();
     // Accumulate divergence.
-    for (Halfedge he : f.adjacentHalfedges()) {
+    for (surface::Halfedge he : f.adjacentHalfedges()) {
       double cotTheta = geom.tuftedGeom->halfedgeCotanWeights[he];
       size_t vA = geom.tuftedGeom->vertexIndices[he.tailVertex()];
       size_t vB = geom.tuftedGeom->vertexIndices[he.tipVertex()];
@@ -364,7 +364,7 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
     decomposeVector(decomp, divYt, rhsValsA, rhsValsB);
     Vector<double> combinedRHS = rhsValsA;
     shiftDiagonal(decomp.AA, 1e-8);
-    PositiveDefiniteSolver constrainedSolver(decomp.AA);
+    PositiveDefiniteSolver<double> constrainedSolver(decomp.AA);
     Vector<double> Aresult = constrainedSolver.solve(combinedRHS);
     phi = reassembleVector(decomp, Aresult, bcVals);
     break;

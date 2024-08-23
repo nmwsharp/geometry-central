@@ -11,12 +11,13 @@
 #include "geometrycentral/utilities/vector3.h"
 
 namespace geometrycentral {
-namespace pointcloud {
 
 #ifndef SHM_H
 #define SHM_H
 enum class LevelSetConstraint { None = 0, ZeroSet, Multiple };
 #endif
+
+namespace pointcloud {
 
 class PointCloudHeatSolver {
 
@@ -42,7 +43,7 @@ public:
 
   // Solve for signed distance from a curve comprising a sequence of vertices.
   PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves,
-                                          int levelSetConstraint = LevelSetConstraint::ZeroSet);
+                                          LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet);
 
   // === Options and parameters
 

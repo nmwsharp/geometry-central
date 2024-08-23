@@ -1,6 +1,6 @@
 # Heat distance, transport, & logarithmic map on point clouds
 
-Compute geodesic distance, transport tangent vectors, and generate a special parameterization called the logarithmic map using fast solvers based on short-time heat flow.
+Compute signed and unsigned geodesic distance, transport tangent vectors, and generate a special parameterization called the logarithmic map using fast solvers based on short-time heat flow.
 
 ![point cloud heat solve results](/media/point_heat_solvers.jpg)
 
@@ -8,7 +8,8 @@ These routines implement point cloud versions of the algorithms from:
 
 - [The Heat Method for Distance Computation](http://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/index.html) (distance)
 - [The Vector Heat Method](https://nmwsharp.com/research/vector-heat-method) (parallel transport and log map)
-- [A Laplacian for Nonmanifold Triangle Meshes](http://www.cs.cmu.edu/~kmcrane/Projects/NonmanifoldLaplace/NonmanifoldLaplace.pdf) (used to build point cloud Laplacian for both)
+- [A Heat Method for Generalized Signed Distance](https://nzfeng.github.io/research/SignedHeatMethod/index.html) (signed distance)
+- [A Laplacian for Nonmanifold Triangle Meshes](http://www.cs.cmu.edu/~kmcrane/Projects/NonmanifoldLaplace/NonmanifoldLaplace.pdf) (used to build point cloud Laplacian for all)
 
 
 
@@ -40,8 +41,16 @@ PointCloudHeatSolver solver(*cloud, *geom);
 Point pSource = cloud->point(7);
 Point pSource2 = cloud->point(8);
 
+// Pick a source curve or two
+std::vector<std::vector<Point>> curves;
+curves.push_back({cloud->point(11), cloud->point(12), cloud->point(15), cloud->point(14), cloud->point(13)});
+curves.push_back({cloud->point(17), cloud->point(18), cloud->point(19)});
+
 // Compute geodesic distance
 PointData<double> distance = solver.computeDistance(pSource);
+
+// Compute signed distance to a set of curves.
+PointData<double> signedDistance = solver.computeSignedDistance(curves);
 
 // Compute scalar extension
 PointData<double> extended = solver.extendScalars({{pSource,  3.},
@@ -81,6 +90,11 @@ _Geodesic distance_ is the distance from a given source along the surface repres
 
     Like above, but for multiple source points.
 
+## Signed geodesic distance
+
+??? func "`#!cpp PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves, LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet)`"
+
+    Compute the signed geodesic distance from a set of curves `curves` to all other points. Each curve in `curves` is a single connected component specified as a sequence of points.
 
 ## Scalar extension
 

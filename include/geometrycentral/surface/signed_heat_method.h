@@ -5,12 +5,13 @@
 #include "geometrycentral/surface/surface_point.h"
 
 namespace geometrycentral {
-namespace surface {
 
 #ifndef SHM_H
 #define SHM_H
 enum class LevelSetConstraint { None = 0, ZeroSet, Multiple };
 #endif
+
+namespace surface {
 
 struct Curve {
   std::vector<SurfacePoint> nodes;
@@ -25,12 +26,12 @@ public:
 
   VertexData<double> computeDistance(const std::vector<Curve>& curves,
                                      const std::vector<SurfacePoint>& points = std::vector<SurfacePoint>(),
-                                     int levelSetConstraint = LevelSetConstraint::ZeroSet,
+                                     LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet,
                                      bool useSoftLevelSetConstraint = false, double softLevelSetWeight = 0.,
                                      bool solvePiecewiseDistance = false);
 
   VertexData<double> computeDistance(const std::vector<Curve>& curves,
-                                     int levelSetConstraint = LevelSetConstraint::ZeroSet,
+                                     LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet,
                                      bool useSoftLevelSetConstraint = false, double softLevelSetWeight = 0.,
                                      bool solvePiecewiseDistance = false);
 
@@ -56,4 +57,4 @@ private:
   // Helpers
   void ensureHaveVectorHeatSolver();
   void ensureHavePoissonSolver();
-}
+};
