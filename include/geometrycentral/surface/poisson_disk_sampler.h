@@ -8,12 +8,11 @@ namespace geometrycentral {
 namespace surface {
 
 struct PoissonDiskOptions {
-  double rCoef = 1.0;           // minimum distance between samples, expressed as a multiple of the mean edge length
-  double absoluteRadius = -1.0; // actual minimum distance between samples
-  int kCandidates = 30;         // number of candidate points chosen from the (r,2r)-annulus around each sample
+  double r = 1.0;       // minimum distance between samples
+  int kCandidates = 30; // number of candidate points chosen from the (r,2r)-annulus around each sample
   std::vector<SurfacePoint> pointsToAvoid;
-  int rAvoidance = 1; // radius of avoidance, expressed as a multiple of the mean edge length
-  bool use3DAvoidanceRadius = true;
+  double rAvoidance = 1.0; // radius of avoidance
+  bool use3DAvoidance = true;
 };
 
 class PoissonDiskSampler {
@@ -29,8 +28,6 @@ public:
   // ===== The main function: Sample the surface using Poisson Disk Sampling.
   std::vector<SurfacePoint> sample(const PoissonDiskOptions& options = PoissonDiskOptions());
 
-  double getMeanEdgeLength() const { return meanEdgeLength; }
-
 private:
   // ===== Members
   ManifoldSurfaceMesh& mesh;
@@ -39,9 +36,8 @@ private:
   int kCandidates; // number of candidate points chosen from the (r,2r)-annulus around each sample
   std::vector<SurfacePoint> pointsToAvoid;
 
-  double rMinDist;       // the actual minimum distance between samples
-  double meanEdgeLength; // the mean edge length
-  double sideLength;     // side length of each bucket
+  double rMinDist;   // the minimum distance between samples
+  double sideLength; // side length of each bucket
 
   std::vector<Face> faceFromEachComponent; // holds one face for each connected component in the mesh
   std::vector<SurfacePoint> activeList;    // holds candidate points
@@ -59,7 +55,7 @@ private:
   void addNewSample(const SurfacePoint& sample);
   SpatialKey positionKey(const Vector3& position) const;
   void addPointToSpatialLookup(const Vector3& newPos);
-  void addPointToSpatialLookupWithRadius(const SurfacePoint& newPoint, int R = 0, bool use3DAvoidanceRadius = true);
+  void addPointToSpatialLookupWithRadius(const SurfacePoint& newPoint, double radius = 0, bool use3DAvoidance = true);
   bool isCandidateValid(const SurfacePoint& candidate) const;
   void sampleOnConnectedComponent(const Face& f);
   void clearData();
