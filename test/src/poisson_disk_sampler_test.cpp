@@ -23,16 +23,8 @@ size_t sampleSquareDisk(double width, double sampling_distance) {
   std::unique_ptr<VertexPositionGeometry> geometry;
   std::tie(mesh, geometry) = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 
-  geometry->requireEdgeLengths();
-  double meanEdgeLength = 0.;
-  for (auto e : mesh->edges()) {
-    meanEdgeLength += geometry->edgeLengths[e];
-  }
-  meanEdgeLength /= mesh->nEdges();
-  geometry->unrequireEdgeLengths();
-
   PoissonDiskOptions options;
-  options.rCoef = sampling_distance / meanEdgeLength;
+  options.r = sampling_distance;
 
   // make tests reproducible
   geometrycentral::util_mersenne_twister.seed(101);
