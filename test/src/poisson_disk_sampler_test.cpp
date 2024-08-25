@@ -24,7 +24,7 @@ size_t sampleSquareDisk(double width, double sampling_distance) {
   std::tie(mesh, geometry) = makeManifoldSurfaceMeshAndGeometry(simpleMesh.polygons, simpleMesh.vertexCoordinates);
 
   PoissonDiskOptions options;
-  options.r = sampling_distance;
+  options.minDist = sampling_distance;
 
   // make tests reproducible
   geometrycentral::util_mersenne_twister.seed(101);

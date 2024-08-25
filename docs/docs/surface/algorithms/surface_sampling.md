@@ -46,7 +46,7 @@ std::vector<SurfacePoint> samples = poissonSampler.sample(); // sample using def
 
 // Sample with some different parameters.
 PoissonDiskOptions sampleOptions;
-sampleOptions.r = 2.;
+sampleOptions.minDist = 2.;
 std::vector<SurfacePoint> newSamples = poissonSampler.sample(sampleOptions);
 ```
 ## Helper Types
@@ -56,10 +56,10 @@ Options are passed in to `options` via a `PoissonDiskOptions` object.
 
 | Field | Default value |Meaning|
 |---|---|---|
-| `#!cpp double r`| `1` | The minimum distance between samples, expressed in world-space units. |
+| `#!cpp double minDist`| `1` | The minimum distance `r` between samples, expressed in world-space units. |
 | `#!cpp int kCandidates`| `30` | The number of candidate points chosen from the (`r`,2`r`)-annulus around each sample. |
 | `#!cpp std::vector<SurfacePoint> pointsToAvoid`| `std::vector<SurfacePoint>()` | Points which samples should avoid. |
-| `#!cpp double rAvoidance`| `1` | The radius of avoidance around each point to avoid, expressed in world-space units. |
+| `#!cpp double minDistAvoidance`| `1` | The radius of avoidance around each point to avoid, expressed in world-space units. |
 | `#!cpp bool use3DAvoidance`| `true` | If true, the radius of avoidance will specify a solid ball in 3D space around which samples are avoided. Otherwise, samples are avoided within a geodesic ball on the surface. |
 
-Using the `use3DAvoidance` option, the radius of avoidance `rAvoidance` can specify either the radius in 3D space, or in terms of distance along the surface. The former will produce a radius of avoidance that will appear perfectly round, and is likely more visually pleasing, but for very large radii may occlude samples from opposite sides of the mesh. The latter will restrict the radius of avoidance to only be along the surface, but such a metric ball may not appear perfectly round, especially in areas with very large changes in curvature.
+Using the `use3DAvoidance` option, the radius of avoidance `minDistAvoidance` can specify either the radius in 3D space, or in terms of distance along the surface. The former will produce a radius of avoidance that will appear perfectly round, and is likely more visually pleasing, but for very large radii may occlude samples from opposite sides of the mesh. The latter will restrict the radius of avoidance to only be along the surface, but such a metric ball may not appear perfectly round, especially in areas with very large changes in curvature.

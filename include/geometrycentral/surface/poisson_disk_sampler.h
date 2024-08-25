@@ -8,10 +8,10 @@ namespace geometrycentral {
 namespace surface {
 
 struct PoissonDiskOptions {
-  double r = 1.0;       // minimum distance between samples
+  double minDist = 1.0; // minimum distance r between samples
   int kCandidates = 30; // number of candidate points chosen from the (r,2r)-annulus around each sample
   std::vector<SurfacePoint> pointsToAvoid;
-  double rAvoidance = 1.0; // radius of avoidance
+  double minDistAvoidance = 1.0; // radius of avoidance
   bool use3DAvoidance = true;
 };
 
