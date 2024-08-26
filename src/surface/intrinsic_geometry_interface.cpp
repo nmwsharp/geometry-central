@@ -656,11 +656,11 @@ void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
 
       double weight = 4.0 * halfedgeCotanWeights[he];
       double s_ij = (heA.orientation() == heB.orientation()) ? 1. : -1.;
-      double lOpp = geom.edgeLengths[he.edge()];
-      double lA = geom.edgeLengths[heB.edge()];
-      double lB = geom.edgeLengths[heA.edge()];
+      double lOpp = edgeLengths[he.edge()];
+      double lA = edgeLengths[heB.edge()];
+      double lB = edgeLengths[heA.edge()];
       double cosTheta = (lA * lA + lB * lB - lOpp * lOpp) / (2. * lA * lB);
-      double sinTheta = 2. * geom.faceAreas[f] / (lA * lB);
+      double sinTheta = 2. * faceAreas[f] / (lA * lB);
       std::complex<double> rot_ij(-cosTheta, sinTheta);
 
       tripletList.emplace_back(iE_i, iE_i, weight);
