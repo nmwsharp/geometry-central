@@ -251,7 +251,7 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 }
 
 PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<std::vector<Point>>& curves,
-                                                              LevelSetConstraint levelSetConstraint) {
+                                                              const LevelSetConstraint& levelSetConstraint) {
 
   GC_SAFETY_ASSERT(curves.size() != 0, "must have at least one source");
 

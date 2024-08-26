@@ -4,7 +4,7 @@ namespace geometrycentral {
 namespace surface {
 
 SignedHeatMethodSolver::SignedHeatMethodSolver(IntrinsicGeometryInterface& geom_, double tCoef_)
-    : tCoef(tCoef_), mesh(geom_.mesh), geom(geom_)
+    : mesh(geom_.mesh), geom(geom_)
 
 {
   geom.requireEdgeLengths();
@@ -17,7 +17,7 @@ SignedHeatMethodSolver::SignedHeatMethodSolver(IntrinsicGeometryInterface& geom_
   }
   meanEdgeLength /= mesh.nEdges();
   meanNodeDistance = 0.5 * meanEdgeLength;
-  shortTime = tCoef * meanNodeDistance * meanNodeDistance;
+  shortTime = tCoef_ * meanNodeDistance * meanNodeDistance;
 
   massMat = geom.crouzeixRaviartMassMatrix;
   doubleVectorOp = crouzeixRaviartDoubleMassMatrix + shortTime * crouzeixRaviartDoubleConnectionLaplacian();
@@ -44,6 +44,13 @@ VertexData<double> SignedHeatMethodSolver::computeDistance(const std::vector<Sur
 
   // call generic version
   return computeDistance(std::vector<Curve>(), points, options);
+}
+
+void SignedHeatMethodSolver::setDiffusionTimeCoefficient(double tCoef_) {
+
+  timeUpdated = true;
+  shortTime = tCoef_ * meanNodeDistance * meanNodeDistance;
+  doubleVectorOp = crouzeixRaviartDoubleMassMatrix + shortTime * crouzeixRaviartDoubleConnectionLaplacian();
 }
 
 Vector<std::complex<double>> SignedHeatMethodSolver::integrateVectorHeatFlow(const std::vector<Curve>& curves,
@@ -237,9 +244,7 @@ void SignedHeatMethodSolver::buildUnsignedPointSource(const SurfacePoint& point,
     }
     break;
   }
-  default: {
-    throw std::logic_error("buildUnsignedPointSource(): bad switch");
-  }
+  default: { throw std::logic_error("buildUnsignedPointSource(): bad switch"); }
   }
 }
 
@@ -533,7 +538,8 @@ double SignedHeatMethodSolver::computeAverageValueOnSource(const Vector<double>&
 
 void SignedHeatMethodSolver::ensureHaveVectorHeatSolver() {
 
-  if (vectorHeatSolver != nullptr) return;
+  if (vectorHeatSolver != nullptr || timeUpdated) return;
+  timeUpdated = false;
 
   geom.requireCrouzeixRaviartConnectionLaplacian();
 

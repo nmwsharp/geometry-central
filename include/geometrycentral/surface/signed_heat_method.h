@@ -23,7 +23,6 @@ struct SignedHeatOptions {
   bool preserveSourceNormals = false;
   LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet;
   double softLevelSetWeight = -1.;
-  // bool piecewiseDistance = false;
 };
 
 class SignedHeatMethodSolver {
@@ -42,8 +41,7 @@ public:
   VertexData<double> computeDistance(const std::vector<SurfacePoint>& points);
 
   // === Options and parameters
-  const double tCoef; // the time parameter used for heat flow, measured as time = tCoef * mean_edge_length^2
-                      // default: 1.0
+  void setDiffusionTimeCoefficient(double tCoef = 1.0);
 
 private:
   // === Members
@@ -53,6 +51,7 @@ private:
   // Parameters
   double shortTime;
   double meanNodeDistance;
+  bool timeUpdated = false;
 
   // Solvers
   std::unique_ptr<LinearSolver<std::complex<double>>> vectorHeatSolver;
@@ -86,3 +85,6 @@ private:
                                                   const SignedHeatOptions& options);
   double computeAverageValueOnSource(const Vector<double>& phi, const std::vector<Curve>& curves) const;
 };
+
+} // namespace surface
+} // namespace geometrycentral
