@@ -15,6 +15,13 @@ namespace geometrycentral {
 #ifndef SHM_H
 #define SHM_H
 enum class LevelSetConstraint { None = 0, ZeroSet, Multiple };
+
+struct SignedHeatOptions {
+  bool preserveSourceNormals = false;
+  LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet;
+  double softLevelSetWeight = -1.;
+};
+
 #endif
 
 namespace pointcloud {
@@ -44,7 +51,7 @@ public:
   // Solve for signed distance from a curve comprising a sequence of vertices.
   PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves,
                                           const PointData<Vector3>& pointNormals,
-                                          const LevelSetConstraint& levelSetConstraint = LevelSetConstraint::ZeroSet);
+                                          const SignedHeatOptions& options = SignedHeatOptions());
 
   // === Options and parameters
 

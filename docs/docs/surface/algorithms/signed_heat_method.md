@@ -7,22 +7,22 @@ These algorithms are described in [A Heat Method for Generalized Signed Distance
 `#include "geometrycentral/surface/signed_heat_method.h"`
 
 
-## Vector Heat Solver
+## Signed Heat Solver
 
-The stateful class `VectorHeatSolver` shares precomputation for all of the routines below.
+The stateful class `SignedHeatSolver` shares precomputation for all of the routines below.
 
-??? func "`#!cpp VectorHeatSolver::VectorHeatSolver(IntrinsicGeometryInterface& geom, double tCoef=1.0)`"
+??? func "`#!cpp SignedHeatSolver::SignedHeatSolver(IntrinsicGeometryInterface& geom, double tCoef=1.0)`"
 
-    Create a new solver for the Vector Heat Method. Precomputation is performed lazily as needed.
+    Create a new solver for the Signed Heat Method. Precomputation is performed lazily as needed.
 
     - `geom` is the geometry (and hence mesh) on which to compute. Note that nearly any geometry object (`VertexPositionGeometry`, etc) can be passed here.
 
     - `tCoef` is the time to use for short time heat flow, as a factor `m * h^2`, where `h` is the mean edge length. The default value of `1.0` is almost always sufficient.
 
-    Algorithm options (like `tCoef`) cannot be changed after construction; create a new solver object with the new settings.
 
+## Signed & Unsigned Geodesic Distance
 
-## Scalar Extension
+TODO
 
 Given scalar data defined at isolated source locations on a surface, extend it to the entire domain. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
 
@@ -30,87 +30,76 @@ Given scalar data defined at isolated source locations on a surface, extend it t
 
 Example:
 ```cpp
+#include "geometrycentral/surface/signed_heat_method.h"
+
 // your mesh and geometry
 VertexPositionGeometry geometry;
 SurfaceMesh mesh;
 
 // construct a solver
-VectorHeatMethodSolver vhmSolver(geometry);
+SignedHeatSolver signedHeatSolver(geometry);
 
-// some interesting source values
-std::vector<std::tuple<Vertex, double>> points;
-for (/* ... some inputs ... */ ) {
-  Vertex sourceVert = /* something */;
-  double sourceVal = /* something */;
-  points.emplace_back(sourceVert, sourceVal);
-}
+// specify some source geometry
+std::vector<Curve> curves;
+curves.emplace_back();
+curves.back().nodes.emplace_back(mesh.vertex(0));
+curves.back().nodes.emplace_back(mesh.edge(5), 0.3);
 
 // solve!
-VertexData<double> scalarExtension = vhmSolver->extendScalar(points);
+VertexData<double> distance = signedHeatSolver->computeDistance(curves);
 ```
 
-??? func "`#!cpp VertexData<double> VectorHeatSolver::extendScalar( const std::vector<std::tuple<Vertex, double>>& sources)`"
+??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& curves, const std::vector<SurfacePoint>& points, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    Compute the nearest-neighbor extension of scalar data defined at isolated vertices to the entire domain.  The input is a list of vertices and their corresponding values.
+    TODO
 
-??? func "`#!cpp VertexData<double> VectorHeatSolver::extendScalar( const std::vector<std::tuple<SurfacePoint, double>>& sources)`"
+??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& curves, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    Compute the nearest-neighbor extension of scalar data defined at isolated points to the entire domain.  The input is a list of [surface points](../../utilities/surface_point/) and their corresponding values.
+    Compute... TODO. The input is a list of [surface points](../../utilities/surface_point/).
 
+??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<SurfacePoint>& points, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-## Vector Extension
-
-![bean vector extension](/media/bean_vector.jpg)
-
-Given tangent vectors defined at one or more isolated source locations on a surface, extend transport the vectors across the entire domain according to parallel transport. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
-
-??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::transportTangentVectors(Vertex sourceVert, Vector2 sourceVec)`"
-    
-    Compute the parallel transport of a vector defined at a single vertex to the entire domain. The input is defined in the tangent space of the source vertex.
-
-??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::transportTangentVectors( const std::vector<std::tuple<Vertex, Vector2>>& sources)`"
-    
-    Compute the parallel transport of vectors defined at a collection of vertices to the entire domain. The input is defined in the tangent space of each the source vertex.
-
-??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::transportTangentVectors( const std::vector<std::tuple<SurfacePoint, Vector2>>& sources)`"
-
-    Compute the parallel transport of vectors defined at a collection of [surface points](../../utilities/surface_point/) to the entire domain. The input is defined in the tangent space of each the vertex, face, or edge respectively.
-
-## Logarithmic Map
-
-The _logarithmic map_ is a very special 2D local parameterization of a surface about a point, where for each point on the surface the magnitude of the log map gives the geodesic distance from the source, and the polar coordinate of the log map gives the direction at which a geodesic must leave the source to arrive at the point.
-
-![octopus logmap](/media/octopus_logmap.jpg){: style="height:300px; display: block; margin-left: auto; margin-right: auto;"}
-
-These routines compute the logarithmic map using the vector heat method.
-
-??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::computeLogMap(const Vertex& sourceVert)`"
-
-    Compute the logarithmic map with respect to the given source vertex.
-
-    The angular coordinate of the log map will be respect to the tangent space of the source vertex.
+    Compute unsigned distance to a collection of isolated point sources. The input is a list of [surface points](../../utilities/surface_point/).
 
 
-??? func "`#!cpp VertexData<Vector2> VectorHeatSolver::computeLogMap(const SurfacePoint& sourceP)`"
+## Helper Types
 
-    Compute the logarithmic map with respect to the given source point, which is a general [surface point](../../utilities/surface_point/).
+### Curves
 
-    The angular coordinate of the log map will be respect to the tangent space of the source vertex, edge, or face.
+| Field | Default value |Meaning|
+|---|---|---|
+| `#!cpp std::vector<SurfacePoint> nodes`| `std::vector<SurfacePoint>()` | The nodes of the curve, given as an ordered sequence of [surface points](../../utilities/surface_point/). |
+| `#!cpp bool isSigned`| `true` | Whether the curve is oriented or not. If `isSigned` is `true`, then (generalized) signed distance will be computed to the curve; unsigned distance otherwise. |
 
+### Options
+Options are passed in to `computeDistance` via a `SignedHeatOptions` struct, which has the following fields.
+
+| Field | Default value |Meaning|
+|---|---|---|
+| `#!cpp bool preserveSourceNormals`| `false` | If `true`, preserve the initial curve normals at the source curve during vector diffusion. |
+| `#!cpp LevelSetConstraint levelSetConstraint`| `LevelSetConstraint::ZeroSet` | Specifies how/if level sets should be preserved. Can be set to `LevelSetConstraint::ZeroSet`, `LevelSetConstraint::Multiple`, or `LevelSetConstraint::None`, corresponding to preserving the zero set, mulitple level sets (one for each curve component), or no level sets, respectively. |
+| `#!cpp double softLevelSetWeight`| `-1` | If greater than 0, gives the weight with which the given level set constraint is "softly" enforced. |
 
 ## Citation
 
 If these algorithms contribute to academic work, please cite the following paper:
 
 ```bib
-@article{sharp2019vector,
-  title={The Vector Heat Method},
-  author={Sharp, Nicholas and Soliman, Yousuf and Crane, Keenan},
-  journal={ACM Transactions on Graphics (TOG)},
-  volume={38},
-  number={3},
-  pages={24},
-  year={2019},
-  publisher={ACM}
+@article{Feng:2024:SHM,
+  author = {Feng, Nicole and Crane, Keenan},
+  title = {A Heat Method for Generalized Signed Distance},
+  year = {2024},
+  issue_date = {August 2024},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {43},
+  number = {4},
+  issn = {0730-0301},
+  url = {https://doi.org/10.1145/3658220},
+  doi = {10.1145/3658220},
+  journal = {ACM Trans. Graph.},
+  month = {jul},
+  articleno = {92},
+  numpages = {16}
 }
 ```

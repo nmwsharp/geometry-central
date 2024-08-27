@@ -10,6 +10,12 @@ namespace geometrycentral {
 #ifndef SHM_H
 #define SHM_H
 enum class LevelSetConstraint { None = 0, ZeroSet, Multiple };
+
+struct SignedHeatOptions {
+  bool preserveSourceNormals = false;
+  LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet;
+  double softLevelSetWeight = -1.;
+};
 #endif
 
 namespace surface {
@@ -19,17 +25,11 @@ struct Curve {
   bool isSigned = true;
 };
 
-struct SignedHeatOptions {
-  bool preserveSourceNormals = false;
-  LevelSetConstraint levelSetConstraint = LevelSetConstraint::ZeroSet;
-  double softLevelSetWeight = -1.;
-};
-
-class SignedHeatMethodSolver {
+class SignedHeatSolver {
 
 public:
   // === Constructor
-  SignedHeatMethodSolver(IntrinsicGeometryInterface& geom, double tCoef = 1.0);
+  SignedHeatSolver(IntrinsicGeometryInterface& geom, double tCoef = 1.0);
 
   VertexData<double> computeDistance(const std::vector<Curve>& curves,
                                      const std::vector<SurfacePoint>& points = std::vector<SurfacePoint>(),
@@ -91,6 +91,7 @@ private:
   Halfedge determineHalfedgeFromVertices(const Vertex& vA, const Vertex& vB) const;
   void ensureHaveHalfedgeVectorsInVertex();
   Halfedge vertexTangentVectorHalfedge(const Vertex& v, const Vector2& vec) const;
+  double scalarCrouzeixRaviart(const SurfacePoint& p, const Edge& e) const;
 };
 
 } // namespace surface

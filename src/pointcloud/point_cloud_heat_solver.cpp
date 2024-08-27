@@ -54,6 +54,7 @@ void PointCloudHeatSolver::ensureHaveVectorHeatSolver() {
   vectorHeatSolver.reset(new PositiveDefiniteSolver<double>(vectorOp));
 
   geom.unrequireConnectionLaplacian();
+  geom.tuftedGeom->unrequireVertexLumpedMassMatrix();
 }
 
 // === Heat method for distance
@@ -252,7 +253,7 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 
 PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<std::vector<Point>>& curves,
                                                               const PointData<Vector3>& pointNormals,
-                                                              const LevelSetConstraint& levelSetConstraint) {
+                                                              const SignedHeatOptions& options) {
 
   GC_SAFETY_ASSERT(curves.size() != 0, "must have at least one source");
 
@@ -264,6 +265,10 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
   geom.requirePointIndices();
   geom.requireTangentBasis();
   Vector<double> X0 = Vector<double>::Zero(2 * N);
+  std::vector<Eigen::Triplet<double>> triplets;
+  SparseMatrix<double> C;
+  size_t nConstraints = 0;
+  PointData<int> curveIndices(cloud, -1);
   for (const auto& curve : curves) {
     size_t nNodes = curve.size();
     // Iterate over curve segments, and accumulate each segment's contribution onto each of its endpoints.
@@ -272,7 +277,7 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
       const Point& vB = curve[(i + 1) % nNodes];
       Vector3 pA = geom.positions[vA];
       Vector3 pB = geom.positions[vB];
-      Vector3 segment = 0.5 * (pB - pA); // so each endpoint gets "half"
+      Vector3 segment = 0.5 * (pB - pA);
       // Project curve segment onto each tangent plane of its endpoints.
       // Use each tangent plane's normal to determine the curve's in-plane normal, expressed in each tangent basis.
       Vector3 surfaceNormalA = pointNormals[vA].normalize();
@@ -296,11 +301,49 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
         X0[2 * vIdxA + j] = curveNormalA[j];
         X0[2 * vIdxB + j] = curveNormalB[j];
       }
+      if (options.preserveSourceNormals) {
+        if (curveIndices[vA] < 0) {
+          curveIndices[vA] = nConstraints;
+          nConstraints++;
+        }
+        if (curveIndices[vB] < 0) {
+          curveIndices[vB] = nConstraints;
+          nConstraints++;
+        }
+        triplets.emplace_back(curveIndices[vA], 2 * vIdxA, dot(xAxisA, curveTangentA));
+        triplets.emplace_back(curveIndices[vA], 2 * vIdxA + 1, dot(yAxisA, curveTangentA));
+        triplets.emplace_back(curveIndices[vB], 2 * vIdxB, dot(xAxisB, curveTangentB));
+        triplets.emplace_back(curveIndices[vB], 2 * vIdxB + 1, dot(yAxisB, curveTangentB));
+      }
     }
   }
 
   // Diffuse vectors.
-  Vector<double> Xt = vectorHeatSolver->solve(X0);
+  Vector<double> Xt;
+  if (!options.preserveSourceNormals) {
+    Xt = vectorHeatSolver->solve(X0);
+  } else {
+    C.resize(nConstraints, 2 * N);
+    C.setFromTriplets(triplets.begin(), triplets.end());
+
+    geom.requireConnectionLaplacian();
+    geom.tuftedGeom->requireVertexLumpedMassMatrix();
+    SparseMatrix<double>& Lconn = geom.connectionLaplacian;
+    SparseMatrix<double>& massMat = geom.tuftedGeom->vertexLumpedMassMatrix;
+    SparseMatrix<double> vectorOp = complexToReal(massMat.cast<std::complex<double>>().eval()) + shortTime * Lconn;
+    geom.unrequireConnectionLaplacian();
+    geom.tuftedGeom->unrequireVertexLumpedMassMatrix();
+
+    // Solve system.
+    SparseMatrix<double> Z(nConstraints, nConstraints);
+    SparseMatrix<double> LHS1 = horizontalStack<double>({vectorOp, C.transpose()});
+    SparseMatrix<double> LHS2 = horizontalStack<double>({C, Z});
+    SparseMatrix<double> LHS = verticalStack<double>({LHS1, LHS2});
+    Vector<double> RHS = Vector<double>::Zero(2 * N + nConstraints);
+    RHS.head(2 * N) = X0;
+    Vector<double> soln = solveSquare(LHS, RHS);
+    Xt = soln.head(2 * N);
+  }
 
   // Normalize vectors & compute divergence on the tufted cover.
   geom.tuftedGeom->requireHalfedgeCotanWeights();
@@ -332,7 +375,7 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
 
   // Integrate.
   Vector<double> phi = Vector<double>::Zero(N);
-  switch (levelSetConstraint) {
+  switch (options.levelSetConstraint) {
   case (LevelSetConstraint::None): {
     ensureHaveHeatDistanceWorker();
     phi = heatDistanceWorker->poissonSolver->solve(divYt);
@@ -360,23 +403,42 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
     SparseMatrix<double>& L = geom.tuftedGeom->cotanLaplacian;
     geom.tuftedGeom->unrequireCotanLaplacian();
 
-    Vector<bool> setAMembership = Vector<bool>::Ones(N);
-    for (const auto& curve : curves) {
-      size_t nNodes = curve.size();
-      for (size_t i = 0; i < nNodes; i++) {
-        setAMembership[geom.pointIndices[curve[i]]] = false;
+    if (options.softLevelSetWeight < 0) {
+      Vector<bool> setAMembership = Vector<bool>::Ones(N);
+      for (const auto& curve : curves) {
+        size_t nNodes = curve.size();
+        for (size_t i = 0; i < nNodes; i++) {
+          setAMembership[geom.pointIndices[curve[i]]] = false;
+        }
       }
+      size_t nB = N - setAMembership.cast<size_t>().sum();
+      Vector<double> bcVals = Vector<double>::Zero(nB);
+      BlockDecompositionResult<double> decomp = blockDecomposeSquare(L, setAMembership, true);
+      Vector<double> rhsValsA, rhsValsB;
+      decomposeVector(decomp, divYt, rhsValsA, rhsValsB);
+      Vector<double> combinedRHS = rhsValsA;
+      shiftDiagonal(decomp.AA, 1e-8);
+      PositiveDefiniteSolver<double> constrainedSolver(decomp.AA);
+      Vector<double> Aresult = constrainedSolver.solve(combinedRHS);
+      phi = reassembleVector(decomp, Aresult, bcVals);
+    } else {
+      std::vector<Eigen::Triplet<double>> triplets;
+      SparseMatrix<double> A; // constraint matrix
+      size_t m = 0;
+      for (const auto& curve : curves) {
+        size_t nNodes = curve.size();
+        bool isClosed = (curve[0] == curve[nNodes - 1]);
+        size_t uB = isClosed ? nNodes - 1 : nNodes;
+        for (size_t i = 1; i < uB; i++) {
+          triplets.emplace_back(m, geom.pointIndices[curve[i]], 1);
+          m++;
+        }
+      }
+      A.resize(m, N);
+      A.setFromTriplets(triplets.begin(), triplets.end());
+      SparseMatrix<double> LHS = L + options.softLevelSetWeight * A.transpose() * A;
+      phi = solvePositiveDefinite(LHS, divYt);
     }
-    size_t nB = N - setAMembership.cast<size_t>().sum();
-    Vector<double> bcVals = Vector<double>::Zero(nB);
-    BlockDecompositionResult<double> decomp = blockDecomposeSquare(L, setAMembership, true);
-    Vector<double> rhsValsA, rhsValsB;
-    decomposeVector(decomp, divYt, rhsValsA, rhsValsB);
-    Vector<double> combinedRHS = rhsValsA;
-    shiftDiagonal(decomp.AA, 1e-8);
-    PositiveDefiniteSolver<double> constrainedSolver(decomp.AA);
-    Vector<double> Aresult = constrainedSolver.solve(combinedRHS);
-    phi = reassembleVector(decomp, Aresult, bcVals);
     break;
   }
   case (LevelSetConstraint::Multiple): {
@@ -400,14 +462,19 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
     }
     A.resize(m, N);
     A.setFromTriplets(triplets.begin(), triplets.end());
-    SparseMatrix<double> Z(m, m);
-    SparseMatrix<double> LHS1 = horizontalStack<double>({L, A.transpose()});
-    SparseMatrix<double> LHS2 = horizontalStack<double>({A, Z});
-    SparseMatrix<double> LHS = verticalStack<double>({LHS1, LHS2});
-    Vector<double> RHS = Vector<double>::Zero(N + m);
-    RHS.head(N) = divYt;
-    Vector<double> soln = solveSquare(LHS, RHS);
-    phi = soln.head(N);
+    if (options.softLevelSetWeight < 0) {
+      SparseMatrix<double> Z(m, m);
+      SparseMatrix<double> LHS1 = horizontalStack<double>({L, A.transpose()});
+      SparseMatrix<double> LHS2 = horizontalStack<double>({A, Z});
+      SparseMatrix<double> LHS = verticalStack<double>({LHS1, LHS2});
+      Vector<double> RHS = Vector<double>::Zero(N + m);
+      RHS.head(N) = divYt;
+      Vector<double> soln = solveSquare(LHS, RHS);
+      phi = soln.head(N);
+    } else {
+      SparseMatrix<double> LHS = L + options.softLevelSetWeight * A.transpose() * A;
+      phi = solvePositiveDefinite(LHS, divYt);
+    }
     break;
   }
   }
