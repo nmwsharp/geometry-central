@@ -177,6 +177,7 @@ VertexData<double> SignedHeatSolver::integrateVectorField(const Vector<std::comp
   Vector<double> phi;
   switch (options.levelSetConstraint) {
   case (LevelSetConstraint::None): {
+    ensureHavePoissonSolver();
     phi = poissonSolver->solve(div);
     break;
   }
