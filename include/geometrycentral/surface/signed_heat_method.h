@@ -38,7 +38,7 @@ public:
   VertexData<double> computeDistance(const std::vector<Curve>& curves,
                                      const SignedHeatOptions& options = SignedHeatOptions());
 
-  VertexData<double> computeDistance(const std::vector<SurfacePoint>& points);
+  VertexData<double> computeDistance(const std::vector<SurfacePoint>& points, const SignedHeatOptions& options);
 
   // === Options and parameters
   void setDiffusionTimeCoefficient(double tCoef = 1.0);
@@ -53,15 +53,18 @@ private:
   double meanNodeDistance;
   bool timeUpdated = false;
 
+  // data
+  HalfedgeData<std::complex<double>> halfedgeVectorsInVertex;
+
   // Solvers
-  std::unique_ptr<LinearSolver<std::complex<double>>> vectorHeatSolver;
+  std::unique_ptr<LinearSolver<std::complex<double>>> vectorHeatSolver, doubleVectorHeatSolver;
   std::unique_ptr<PositiveDefiniteSolver<double>> poissonSolver;
-  SparseMatrix<double> massMat, doubleVectorOp;
+  SparseMatrix<double> massMat, doubleMassMat, doubleConnectionLaplacian, doubleVectorOp;
 
   // Helpers
   Vector<std::complex<double>> integrateVectorHeatFlow(const std::vector<Curve>& curves,
                                                        const std::vector<SurfacePoint>& points,
-                                                       const SignedHeatOptions& options) const;
+                                                       const SignedHeatOptions& options);
   VertexData<double> integrateVectorField(const Vector<std::complex<double>>& Xt, const std::vector<Curve>& curves,
                                           const std::vector<SurfacePoint>& points, const SignedHeatOptions& options);
 
@@ -72,6 +75,7 @@ private:
   SparseMatrix<double> crouzeixRaviartDoubleMassMatrix() const;
 
   void buildSignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0) const;
+  void buildUnsignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0);
   void buildUnsignedVertexSource(const Vertex& v, Vector<std::complex<double>>& X0, double weight = 1.) const;
   void buildUnsignedPointSource(const SurfacePoint& point, Vector<std::complex<double>>& X0) const;
   double lengthOfSegment(const SurfacePoint& pA, const SurfacePoint& pB) const;
@@ -84,6 +88,9 @@ private:
   Vector<double> integrateWithLevelSetConstraints(const Vector<double>& rhs, const std::vector<Curve>& curves,
                                                   const SignedHeatOptions& options);
   double computeAverageValueOnSource(const Vector<double>& phi, const std::vector<Curve>& curves) const;
+  Halfedge determineHalfedgeFromVertices(const Vertex& vA, const Vertex& vB) const;
+  void ensureHaveHalfedgeVectorsInVertex();
+  Halfedge vertexTangentVectorHalfedge(const Vertex& v, const Vector2& vec) const;
 };
 
 } // namespace surface

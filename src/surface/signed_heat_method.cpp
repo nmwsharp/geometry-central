@@ -20,7 +20,9 @@ SignedHeatMethodSolver::SignedHeatMethodSolver(IntrinsicGeometryInterface& geom_
   shortTime = tCoef_ * meanNodeDistance * meanNodeDistance;
 
   massMat = geom.crouzeixRaviartMassMatrix;
-  doubleVectorOp = crouzeixRaviartDoubleMassMatrix + shortTime * crouzeixRaviartDoubleConnectionLaplacian();
+  doubleMassMat = crouzeixRaviartDoubleMassMatrix();
+  doubleConnectionLaplacian = crouzeixRaviartDoubleConnectionLaplacian();
+  doubleVectorOp = doubleMassMat + shortTime * doubleConnectionLaplacian;
 
   geom.unrequireCrouzeixRaviartMassMatrix();
   geom.unrequireEdgeLengths();
@@ -40,7 +42,8 @@ VertexData<double> SignedHeatMethodSolver::computeDistance(const std::vector<Cur
   return computeDistance(curves, std::vector<SurfacePoint>(), options);
 }
 
-VertexData<double> SignedHeatMethodSolver::computeDistance(const std::vector<SurfacePoint>& points) {
+VertexData<double> SignedHeatMethodSolver::computeDistance(const std::vector<SurfacePoint>& points,
+                                                           const SignedHeatOptions& options) {
 
   // call generic version
   return computeDistance(std::vector<Curve>(), points, options);
@@ -50,7 +53,7 @@ void SignedHeatMethodSolver::setDiffusionTimeCoefficient(double tCoef_) {
 
   timeUpdated = true;
   shortTime = tCoef_ * meanNodeDistance * meanNodeDistance;
-  doubleVectorOp = crouzeixRaviartDoubleMassMatrix + shortTime * crouzeixRaviartDoubleConnectionLaplacian();
+  doubleVectorOp = doubleMassMat + shortTime * doubleConnectionLaplacian;
 }
 
 Vector<std::complex<double>> SignedHeatMethodSolver::integrateVectorHeatFlow(const std::vector<Curve>& curves,
@@ -66,11 +69,12 @@ Vector<std::complex<double>> SignedHeatMethodSolver::integrateVectorHeatFlow(con
   Vector<std::complex<double>> X0 = Vector<std::complex<double>>::Zero(E);
   for (const Curve& curve : curves) {
     if (curve.isSigned) {
-      buildSignedCurveSource(curve, X0)
+      buildSignedCurveSource(curve, X0);
     } else {
-      buildUnsignedCurveSource(curve, X0)
+      buildUnsignedCurveSource(curve, X0);
     }
   }
+
   geom.requireCornerAngles();
   for (const SurfacePoint& point : points) buildUnsignedPointSource(point, X0);
   geom.unrequireCornerAngles();
@@ -109,7 +113,7 @@ Vector<std::complex<double>> SignedHeatMethodSolver::integrateVectorHeatFlow(con
           for (Edge e : f.adjacentEdges()) {
             size_t eIdx = geom.edgeIndices[e];
             // double w = scalarCrouzeixRaviart(b, e);
-            double w = 1.; // TODO
+            double w = 1.; // TODO: experiment whether weighting by scalar Crouzeix-Raviart affects normal preservation
             BarycentricVector heVec = barycentricVectorInFace(e.halfedge(), f);
             heVec /= heVec.norm(geom);
             BarycentricVector heVecN = heVec.rotate90(geom);
@@ -147,6 +151,7 @@ VertexData<double> SignedHeatMethodSolver::integrateVectorField(const Vector<std
                                                                 const std::vector<SurfacePoint>& points,
                                                                 const SignedHeatOptions& options) {
   geom.requireHalfedgeCotanWeights();
+  geom.requireVertexIndices();
 
   size_t V = mesh.nVertices();
   FaceData<BarycentricVector> Y = sampleAtFaceBarycenters(Xt); // sample and normalizes
@@ -168,6 +173,7 @@ VertexData<double> SignedHeatMethodSolver::integrateVectorField(const Vector<std
       div[vIdx] += w2;
     }
   }
+  geom.unrequireHalfedgeCotanWeights();
 
   Vector<double> phi;
   switch (options.levelSetConstraint) {
@@ -185,11 +191,12 @@ VertexData<double> SignedHeatMethodSolver::integrateVectorField(const Vector<std
   }
   }
 
-  geom.unrequireHalfedgeCotanWeights();
-
   double shift = computeAverageValueOnSource(phi, curves);
   phi -= Vector<double>::Ones(V) * shift;
-  return -phi; // since our Laplacian is positive
+
+  geom.unrequireVertexIndices();
+
+  return VertexData<double>(mesh, -phi); // since our Laplacian is positive
 }
 
 void SignedHeatMethodSolver::buildSignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0) const {
@@ -210,6 +217,9 @@ void SignedHeatMethodSolver::buildSignedCurveSource(const Curve& curve, Vector<s
       continue;
     }
     Face commonFace = sharedFace(pA, pB);
+    if (commonFace == Face()) {
+      throw std::logic_error("Each curve segment must be contained within a single face.");
+    }
     for (Edge e : commonFace.adjacentEdges()) {
       size_t eIdx = geom.edgeIndices[e];
       std::complex<double> innerProd = projectedNormal(pA, pB, e); // already incorporates length
@@ -218,25 +228,231 @@ void SignedHeatMethodSolver::buildSignedCurveSource(const Curve& curve, Vector<s
   }
 }
 
-void SignedHeatMethodSolver::buildUnsignedPointSource(const SurfacePoint& point,
-                                                      Vector<std::complex<double>>& X0) const {
+void SignedHeatMethodSolver::buildUnsignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0) {
 
-  switch (point.p.type) {
+  size_t nNodes = curve.nodes.size();
+
+  // Add contributions from interior edges of the curve.
+  for (size_t i = 0; i < nNodes - 1; i++) {
+    const SurfacePoint& pA = curve.nodes[i];
+    const SurfacePoint& pB = curve.nodes[i + 1];
+    if (pA.type != SurfacePointType::Vertex || pB.type != SurfacePointType::Vertex) {
+      throw std::logic_error("Unsigned curves not constrained to edges are not supported.");
+    }
+    Vertex vA = pA.vertex;
+    Vertex vB = pB.vertex;
+    Halfedge commonHalfedge = determineHalfedgeFromVertices(vA, vB);
+    Edge commonEdge = commonHalfedge.edge();
+    for (Halfedge he : commonEdge.adjacentHalfedges()) {
+      // Ordinarily, "double-sided" vector information would cancel out along the edge. So in each face, "smear"
+      // the info out a bit by parallel-transporting the initial vectors to other edges in adjacent faces.
+      Face f = he.face();
+      BarycentricVector segment = barycentricVectorInFace(he, f);
+      BarycentricVector segNormal = segment.rotate90(geom);
+      for (Edge e : f.adjacentEdges()) {
+        if (e == commonEdge) continue;
+        BarycentricVector edgeVec = barycentricVectorInFace(e.halfedge(), f);
+        edgeVec /= edgeVec.norm(geom);
+        double sinTheta = dot(geom, segment, edgeVec);
+        double cosTheta = dot(geom, segNormal, edgeVec);
+        std::complex<double> normal = std::complex<double>(cosTheta, sinTheta); // already length-weighted
+        size_t eIdx = geom.edgeIndices[e];
+        X0[eIdx] += normal; // half since we split the curve's contribution across both sides of the edge
+      }
+    }
+  }
+
+  // At curve endpoints,integrate only along the arc perpendicular to the adjacent curve segment (see Appendix.)
+  Face f1_start, f2_start, f1_end, f2_end;
+  Halfedge heStart_src, heEnd_src, heStart_dst, heEnd_dst;
+  std::vector<std::vector<double>> angleBounds;
+
+  // Determine starting/ending faces around curve endpoints.
+  ensureHaveHalfedgeVectorsInVertex();
+  geom.requireCornerScaledAngles();
+  for (int i = 0; i < 2; i++) {
+    Vertex vSrc, vDst;
+    Vertex v;
+    if (i == 0) {
+      v = curve.nodes[0].vertex;
+      vSrc = curve.nodes[0].vertex;
+      vDst = curve.nodes[1].vertex;
+    } else {
+      v = curve.nodes[nNodes - 1].vertex;
+      vSrc = curve.nodes[nNodes - 2].vertex;
+      vDst = curve.nodes[nNodes - 1].vertex;
+    }
+    Halfedge segHalfedge = determineHalfedgeFromVertices(vSrc, vDst);
+    Vector2 tangent;
+    if (vSrc == v) {
+      tangent = Vector2::fromComplex(halfedgeVectorsInVertex[segHalfedge]);
+    } else {
+      tangent = -Vector2::fromComplex(halfedgeVectorsInVertex[segHalfedge.twin()]);
+    }
+    Vector2 n1 = tangent.rotate90().normalize();
+    Vector2 n2 = -n1;
+    Halfedge heA = vertexTangentVectorHalfedge(v, n1);
+    Halfedge heB = vertexTangentVectorHalfedge(v, n2);
+
+    if (i == 0) {
+      heStart_src = heB;
+      heEnd_src = heA;
+
+      std::complex<double> e1 = halfedgeVectorsInVertex[heStart_src];
+      std::complex<double> e2 = halfedgeVectorsInVertex[heEnd_src];
+      e1 /= std::abs(e1);
+      e2 /= std::abs(e2);
+      std::complex<double> angle1 = std::complex<double>(n1) / e1;
+      std::complex<double> angle2 = std::complex<double>(n2) / e2;
+      angleBounds.push_back({std::arg(angle1), std::arg(angle2)});
+    } else {
+      heStart_dst = heA;
+      heEnd_dst = heB;
+
+      std::complex<double> e1 = halfedgeVectorsInVertex[heStart_dst];
+      std::complex<double> e2 = halfedgeVectorsInVertex[heEnd_dst];
+      e1 /= std::abs(e1);
+      e2 /= std::abs(e2);
+      std::complex<double> angle1 = std::complex<double>(n2) / e1;
+      std::complex<double> angle2 = std::complex<double>(n1) / e2;
+      angleBounds.push_back({std::arg(angle1), std::arg(angle2)});
+    }
+  }
+  geom.unrequireCornerScaledAngles();
+
+  if (curve.nodes[0].type != SurfacePointType::Vertex || curve.nodes[nNodes - 1].type != SurfacePointType::Vertex)
+    throw std::logic_error("Unsigned curves not constrained to edges are not supported.");
+  std::vector<Vertex> endpoints = {curve.nodes[0].vertex, curve.nodes[nNodes - 1].vertex};
+  std::vector<std::vector<Halfedge>> heBounds = {{heStart_src, heEnd_src}, {heStart_dst, heEnd_dst}};
+  std::vector<double> angleSums(2);
+  VertexData<Vector2> arcStarts(mesh);
+  VertexData<Vector2> arcEnds(mesh);
+  std::vector<double> endLengths = {
+      geom.edgeLengths[determineHalfedgeFromVertices(curve.nodes[0].vertex, curve.nodes[1].vertex).edge()],
+
+      geom.edgeLengths[determineHalfedgeFromVertices(curve.nodes[nNodes - 2].vertex, curve.nodes[nNodes - 1].vertex)
+                           .edge()]};
+
+  for (int i = 0; i < 2; i++) {
+
+    // ========= Integrate over partial arcs
+
+    // Determine angle sum
+    double angleSum = 0.;
+    Halfedge startHe = heBounds[i][0];
+    Halfedge currHe = startHe.next().next().twin();
+    while (currHe != heBounds[i][1]) {
+      angleSum += geom.cornerAngles[currHe.corner()];
+      currHe = currHe.next().next().twin();
+    }
+    angleSum += geom.cornerAngles[startHe.corner()] - angleBounds[i][0];
+    angleSum += angleBounds[i][1];
+    angleSums[i] = angleSum;
+
+    Halfedge heA, heB, heC;
+    Edge eA, eB, eOpp;
+    Vertex v = heBounds[i][0].vertex();
+    std::complex<double> im(0., 1.);
+    std::complex<double> expA, expB, w, rot_AB, rot_AC;
+    double sA, sB, sC, theta, thetaC;
+
+    // Integrate over 2nd half of arc in starting face
+    heA = heBounds[i][0];
+    heB = heA.next().next();
+    heC = heA.next();
+    eA = heA.edge();
+    eB = heB.edge();
+    eOpp = heC.edge();
+    theta = geom.cornerAngles[heA.corner()];
+    thetaC = geom.cornerAngles[heC.corner()];
+    expA = Vector2::fromAngle(angleBounds[i][0]);
+    expB = Vector2::fromAngle(theta);
+    w = -im * (expB - expA) / angleSum * endLengths[i];
+    sA = heA.orientation() ? 1. : -1;
+    sB = heB.orientation() ? 1. : -1.;
+    sC = heC.orientation() ? 1. : -1.;
+    rot_AB = -Vector2::fromAngle(-theta) * sB;
+    rot_AC = -Vector2::fromAngle(thetaC) * sC;
+
+    X0[geom.edgeIndices[eA]] += sA * w;
+    X0[geom.edgeIndices[eB]] += rot_AB * w;
+    X0[geom.edgeIndices[eOpp]] += rot_AC * w;
+
+    // Integrate over 1st half of arc in ending face
+    heA = heBounds[i][1];
+    heB = heA.next().next();
+    heC = heA.next();
+    eA = heA.edge();
+    eB = heB.edge();
+    eOpp = heC.edge();
+    theta = geom.cornerAngles[heA.corner()];
+    thetaC = geom.cornerAngles[heC.corner()];
+    expA = Vector2::fromAngle(0.);
+    expB = Vector2::fromAngle(angleBounds[i][1]);
+    sA = heA.orientation() ? 1. : -1;
+    sB = heB.orientation() ? 1. : -1.;
+    sC = heC.orientation() ? 1. : -1.;
+    rot_AB = -Vector2::fromAngle(-theta) * sB;
+    rot_AC = -Vector2::fromAngle(thetaC) * sC;
+    w = -im * (expB - expA) / angleSum * endLengths[i];
+
+    X0[geom.edgeIndices[eA]] += sA * w;
+    X0[geom.edgeIndices[eB]] += rot_AB * w;
+    X0[geom.edgeIndices[eOpp]] += rot_AC * w;
+
+    // ========= Go over middle corners
+
+    startHe = heBounds[i][0];
+    // Go counterclockwise.
+    currHe = startHe.next().next().twin();
+    while (currHe != heBounds[i][1]) {
+      Halfedge ij = currHe;
+      Halfedge jk = ij.next();
+      Halfedge ki = jk.next();
+      size_t eIdx_ij = geom.edgeIndices[ij.edge()];
+      size_t eIdx_jk = geom.edgeIndices[jk.edge()];
+      size_t eIdx_ki = geom.edgeIndices[ki.edge()];
+      Corner c = currHe.corner();
+      double theta_i = geom.cornerAngles[c];
+      double theta_j = geom.cornerAngles[jk.corner()];
+      std::complex<double> exp_i = Vector2::fromAngle(theta_i);
+      std::complex<double> im(0., 1.);
+      double s_ij = ij.orientation() ? 1. : -1.;
+      double s_jk = jk.orientation() ? 1. : -1.;
+      double s_ki = ki.orientation() ? 1. : -1.;
+      std::complex<double> r_jk_ij = -Vector2::fromAngle(theta_j) * s_jk;
+      std::complex<double> r_ki_ij = -Vector2::fromAngle(-theta_i) * s_ki;
+      std::complex<double> w_ij = s_ij * im * (1. - exp_i) / angleSum * endLengths[i];
+      std::complex<double> w_jk = r_jk_ij * im * (1. - exp_i) / angleSum * endLengths[i];
+      std::complex<double> w_ki = r_ki_ij * im * (1. - exp_i) / angleSum * endLengths[i];
+
+      X0[eIdx_ij] += w_ij;
+      X0[eIdx_jk] += w_jk;
+      X0[eIdx_ki] += w_ki;
+
+      currHe = currHe.next().next().twin();
+    }
+  }
+}
+
+void SignedHeatMethodSolver::buildUnsignedPointSource(const SurfacePoint& p, Vector<std::complex<double>>& X0) const {
+
+  switch (p.type) {
   case (SurfacePointType::Vertex): {
-    Vertex v = point.p.vertex;
+    Vertex v = p.vertex;
     buildUnsignedVertexSource(v, X0);
     break;
   }
   case (SurfacePointType::Edge): {
-    Edge e = point.p.edge;
-    double t = point.p.tEdge;
+    Edge e = p.edge;
+    double t = p.tEdge;
     // TODO
     buildUnsignedVertexSource(e.firstVertex(), X0, 1. - t);
     buildUnsignedVertexSource(e.secondVertex(), X0, t);
     break;
   }
   case (SurfacePointType::Face): {
-    Face f = point.p.face;
+    Face f = p.face;
     int idx = 0;
     for (Vertex v : f.adjacentVertices()) {
       buildUnsignedVertexSource(v, X0, p.faceCoords[idx]);
@@ -288,7 +504,6 @@ Vector<double> SignedHeatMethodSolver::integrateWithZeroSetConstraint(const Vect
                                                                       const SignedHeatOptions& options) {
 
   geom.requireCotanLaplacian();
-  geom.requireVertexIndices();
 
   // If curve is constrained to mesh edges, solve the system by omitting DOFs.
   bool allVertices = true;
@@ -302,6 +517,7 @@ Vector<double> SignedHeatMethodSolver::integrateWithZeroSetConstraint(const Vect
   }
 
   size_t V = mesh.nVertices();
+  Vector<double> phi;
   if (allVertices && options.softLevelSetWeight < 0.) {
     Vector<bool> setAMembership = Vector<bool>::Ones(V); // true if interior
     for (const Curve& curve : curves) {
@@ -316,7 +532,7 @@ Vector<double> SignedHeatMethodSolver::integrateWithZeroSetConstraint(const Vect
     Vector<double> rhsValsA, rhsValsB;
     decomposeVector(decomp, rhs, rhsValsA, rhsValsB);
     Vector<double> combinedRHS = rhsValsA;
-    PositiveDefiniteSolver constrainedSolver(decomp.AA);
+    PositiveDefiniteSolver<double> constrainedSolver(decomp.AA);
     Vector<double> Aresult = constrainedSolver.solve(combinedRHS);
     phi = reassembleVector(decomp, Aresult, bcVals);
   } else {
@@ -328,7 +544,6 @@ Vector<double> SignedHeatMethodSolver::integrateWithZeroSetConstraint(const Vect
   }
 
   geom.unrequireCotanLaplacian();
-  geom.unrequireVertexIndices();
 
   return phi;
 }
@@ -338,7 +553,6 @@ Vector<double> SignedHeatMethodSolver::integrateWithLevelSetConstraints(const Ve
                                                                         const SignedHeatOptions& options) {
 
   geom.requireCotanLaplacian();
-  geom.requireVertexIndices();
 
   // Build constraint matrix.
   size_t V = mesh.nVertices();
@@ -401,7 +615,6 @@ Vector<double> SignedHeatMethodSolver::integrateWithLevelSetConstraints(const Ve
   }
 
   geom.unrequireCotanLaplacian();
-  geom.unrequireVertexIndices();
 
   return phi;
 }
@@ -470,7 +683,7 @@ BarycentricVector SignedHeatMethodSolver::barycentricVectorInFace(const Halfedge
     eIdx++;
   }
   Vector3 faceCoords = {0, 0, 0};
-  faceCoords[mod(eIdx + 1, 3)] = 1;
+  faceCoords[(eIdx + 1) % 3] = 1;
   faceCoords[eIdx] = -1;
   return BarycentricVector(f, sign * faceCoords);
 }
@@ -493,7 +706,8 @@ FaceData<BarycentricVector> SignedHeatMethodSolver::sampleAtFaceBarycenters(cons
       faceCoords += std::imag(Xt[eIdx]) * e2.faceCoords;
     }
     BarycentricVector vec(f, faceCoords);
-    X[f] = vec / vec.norm(geom); // normalize
+    double magn = vec.norm(geom);
+    X[f] = (magn == 0) ? BarycentricVector(f, {0, 0, 0}) : vec / magn; // normalize
   }
 
   geom.unrequireEdgeIndices();
@@ -503,8 +717,6 @@ FaceData<BarycentricVector> SignedHeatMethodSolver::sampleAtFaceBarycenters(cons
 
 double SignedHeatMethodSolver::computeAverageValueOnSource(const Vector<double>& phi,
                                                            const std::vector<Curve>& curves) const {
-
-  geom.requireVertexIndices();
 
   // Compute the average value of phi along the input (integrate phi along the input geometry.)
   double shift = 0.;
@@ -531,14 +743,12 @@ double SignedHeatMethodSolver::computeAverageValueOnSource(const Vector<double>&
   }
   shift /= normalization;
 
-  geom.unrequireVertexIndices();
-
   return shift;
 }
 
 void SignedHeatMethodSolver::ensureHaveVectorHeatSolver() {
 
-  if (vectorHeatSolver != nullptr || timeUpdated) return;
+  if (vectorHeatSolver != nullptr && !timeUpdated) return;
   timeUpdated = false;
 
   geom.requireCrouzeixRaviartConnectionLaplacian();
@@ -563,8 +773,6 @@ void SignedHeatMethodSolver::ensureHaveVectorHeatSolver() {
   } else {
     vectorHeatSolver.reset(new SquareSolver<std::complex<double>>(vectorOp));
   }
-
-  geom.unrequireVertexConnectionLaplacian();
 }
 
 void SignedHeatMethodSolver::ensureHavePoissonSolver() {
@@ -665,3 +873,61 @@ SparseMatrix<double> SignedHeatMethodSolver::crouzeixRaviartDoubleMassMatrix() c
 
   return mat;
 }
+
+Halfedge SignedHeatMethodSolver::determineHalfedgeFromVertices(const Vertex& vA, const Vertex& vB) const {
+
+  for (Halfedge he : vA.outgoingHalfedges()) {
+    if (he.tipVertex() == vB) return he;
+  }
+  return Halfedge();
+}
+
+/*
+ * Populate halfedgeVectorsInVertex() for a general SurfaceMesh. May not be valid at non-manifold vertices, or on
+ * non-orientable surfaces.
+ */
+void SignedHeatMethodSolver::ensureHaveHalfedgeVectorsInVertex() {
+
+  if (halfedgeVectorsInVertex.size() > 0) return;
+
+  geom.requireEdgeLengths();
+  geom.requireCornerScaledAngles();
+
+  halfedgeVectorsInVertex = HalfedgeData<std::complex<double>>(mesh);
+
+  for (Vertex v : mesh.vertices()) {
+    double coordSum = 0.0;
+
+    // orbit CCW
+    Halfedge firstHe = v.halfedge();
+    Halfedge currHe = firstHe;
+    do {
+      halfedgeVectorsInVertex[currHe] =
+          std::complex<double>(Vector2::fromAngle(coordSum)) * geom.edgeLengths[currHe.edge()];
+      coordSum += geom.cornerScaledAngles[currHe.corner()];
+      if (!currHe.isInterior()) break;
+      currHe = currHe.next().next().twin();
+    } while (currHe != firstHe);
+  }
+
+  geom.unrequireEdgeLengths();
+  geom.unrequireCornerScaledAngles();
+}
+
+Halfedge SignedHeatMethodSolver::vertexTangentVectorHalfedge(const Vertex& v, const Vector2& vec) const {
+
+  double theta = vec.arg() + M_PI; // in [-pi, pi]
+  double angle = 0.;
+  Halfedge startHe = v.halfedge();
+  Halfedge currHe = startHe;
+  do {
+    Corner c = currHe.corner();
+    angle += geom.cornerScaledAngles[c];
+    if (angle >= theta) return currHe;
+    currHe = currHe.next().next().twin();
+  } while (currHe != startHe);
+  throw std::logic_error("vertexTangentVectorHalfedge(): something went wrong");
+}
+
+} // namespace surface
+} // namespace geometrycentral

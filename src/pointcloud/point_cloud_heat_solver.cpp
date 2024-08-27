@@ -251,15 +251,16 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 }
 
 PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<std::vector<Point>>& curves,
+                                                              const PointData<Vector3>& pointNormals,
                                                               const LevelSetConstraint& levelSetConstraint) {
 
   GC_SAFETY_ASSERT(curves.size() != 0, "must have at least one source");
 
   ensureHaveVectorHeatSolver();
+
   size_t N = cloud.nPoints();
 
   // Build curve sources.
-  geom.requireNormals();
   geom.requirePointIndices();
   geom.requireTangentBasis();
   Vector<double> X0 = Vector<double>::Zero(2 * N);
@@ -274,10 +275,20 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
       Vector3 segment = 0.5 * (pB - pA); // so each endpoint gets "half"
       // Project curve segment onto each tangent plane of its endpoints.
       // Use each tangent plane's normal to determine the curve's in-plane normal, expressed in each tangent basis.
-      Vector3 surfaceNormalA = geom.normals[vA];
-      Vector3 surfaceNormalB = geom.normals[vB];
-      Vector2 curveNormalA = {-dot(geom.tangentBasis[vA][1], segment), dot(geom.tangentBasis[vA][0], segment)};
-      Vector2 curveNormalB = {-dot(geom.tangentBasis[vB][1], segment), dot(geom.tangentBasis[vB][0], segment)};
+      Vector3 surfaceNormalA = pointNormals[vA].normalize();
+      Vector3 surfaceNormalB = pointNormals[vB].normalize();
+      Vector3 xAxisA = geom.tangentBasis[vA][0];
+      Vector3 yAxisA = geom.tangentBasis[vA][1];
+      Vector3 xAxisB = geom.tangentBasis[vB][0];
+      Vector3 yAxisB = geom.tangentBasis[vB][1];
+      Vector3 curveTangentA = dot(xAxisA, segment) * xAxisA + dot(yAxisA, segment) * yAxisA;
+      Vector3 curveTangentB = dot(xAxisB, segment) * xAxisB + dot(yAxisB, segment) * yAxisB;
+      Vector3 inPlaneNormalA = cross(surfaceNormalA, curveTangentA);
+      Vector3 inPlaneNormalB = cross(surfaceNormalB, curveTangentB);
+      Vector2 curveNormalA = {dot(geom.tangentBasis[vA][0], inPlaneNormalA),
+                              dot(geom.tangentBasis[vA][1], inPlaneNormalA)};
+      Vector2 curveNormalB = {dot(geom.tangentBasis[vB][0], inPlaneNormalB),
+                              dot(geom.tangentBasis[vB][1], inPlaneNormalB)};
       // Project onto each point's local coordinate system.
       size_t vIdxA = geom.pointIndices[vA];
       size_t vIdxB = geom.pointIndices[vB];
@@ -287,7 +298,6 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
       }
     }
   }
-  geom.unrequireNormals();
 
   // Diffuse vectors.
   Vector<double> Xt = vectorHeatSolver->solve(X0);
@@ -384,6 +394,8 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
       const Point& p0 = curve[0];
       for (size_t i = 1; i < uB; i++) {
         triplets.emplace_back(m, geom.pointIndices[curve[i]], -1);
+        triplets.emplace_back(m, geom.pointIndices[p0], 1);
+        m++;
       }
     }
     A.resize(m, N);

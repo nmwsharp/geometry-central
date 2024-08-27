@@ -31,6 +31,7 @@ SET(SRCS
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
+  surface/signed_heat_method.cpp
   surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
   surface/normal_coordinates.cpp
@@ -129,6 +130,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
+  ${INCLUDE_ROOT}/surface/signed_heat_method.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h

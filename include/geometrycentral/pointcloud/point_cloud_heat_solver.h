@@ -43,6 +43,7 @@ public:
 
   // Solve for signed distance from a curve comprising a sequence of vertices.
   PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves,
+                                          const PointData<Vector3>& pointNormals,
                                           const LevelSetConstraint& levelSetConstraint = LevelSetConstraint::ZeroSet);
 
   // === Options and parameters
