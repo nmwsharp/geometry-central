@@ -31,8 +31,7 @@ public:
   // === Constructor
   SignedHeatSolver(IntrinsicGeometryInterface& geom, double tCoef = 1.0);
 
-  VertexData<double> computeDistance(const std::vector<Curve>& curves,
-                                     const std::vector<SurfacePoint>& points = std::vector<SurfacePoint>(),
+  VertexData<double> computeDistance(const std::vector<Curve>& curves, const std::vector<SurfacePoint>& points,
                                      const SignedHeatOptions& options = SignedHeatOptions());
 
   VertexData<double> computeDistance(const std::vector<Curve>& curves,
@@ -84,6 +83,7 @@ private:
   BarycentricVector barycentricVectorInFace(const Halfedge& he, const Face& f) const;
   FaceData<BarycentricVector> sampleAtFaceBarycenters(const Vector<std::complex<double>>& Xt);
   Vector<double> integrateWithZeroSetConstraint(const Vector<double>& rhs, const std::vector<Curve>& curves,
+                                                const std::vector<SurfacePoint>& points,
                                                 const SignedHeatOptions& options);
   Vector<double> integrateWithLevelSetConstraints(const Vector<double>& rhs, const std::vector<Curve>& curves,
                                                   const SignedHeatOptions& options);

@@ -182,7 +182,7 @@ VertexData<double> SignedHeatSolver::integrateVectorField(const Vector<std::comp
     break;
   }
   case (LevelSetConstraint::ZeroSet): {
-    phi = integrateWithZeroSetConstraint(div, curves, options);
+    phi = integrateWithZeroSetConstraint(div, curves, points, options);
     break;
   }
   case (LevelSetConstraint::Multiple): {
@@ -190,13 +190,17 @@ VertexData<double> SignedHeatSolver::integrateVectorField(const Vector<std::comp
     break;
   }
   }
-
-  double shift = computeAverageValueOnSource(phi, curves);
-  phi -= Vector<double>::Ones(V) * shift;
+  phi *= -1; // since our Laplacian is positive
+  if (curves.size() > 0) {
+    double shift = computeAverageValueOnSource(phi, curves);
+    phi -= Vector<double>::Ones(V) * shift;
+  } else {
+    phi -= Vector<double>::Ones(V) * phi.minCoeff();
+  }
 
   geom.unrequireVertexIndices();
 
-  return VertexData<double>(mesh, -phi); // since our Laplacian is positive
+  return VertexData<double>(mesh, phi);
 }
 
 void SignedHeatSolver::buildSignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0) const {
@@ -228,6 +232,8 @@ void SignedHeatSolver::buildSignedCurveSource(const Curve& curve, Vector<std::co
   }
 }
 
+int mod(int a, int b) { return (b + (a % b)) % b; }
+
 void SignedHeatSolver::buildUnsignedCurveSource(const Curve& curve, Vector<std::complex<double>>& X0) {
 
   size_t nNodes = curve.nodes.size();
@@ -257,7 +263,7 @@ void SignedHeatSolver::buildUnsignedCurveSource(const Curve& curve, Vector<std::
         double cosTheta = dot(geom, segNormal, edgeVec);
         std::complex<double> normal = std::complex<double>(cosTheta, sinTheta); // already length-weighted
         size_t eIdx = geom.edgeIndices[e];
-        X0[eIdx] += normal; // half since we split the curve's contribution across both sides of the edge
+        X0[eIdx] += normal;
       }
     }
   }
@@ -444,23 +450,18 @@ void SignedHeatSolver::buildUnsignedPointSource(const SurfacePoint& p, Vector<st
     break;
   }
   case (SurfacePointType::Edge): {
-    Edge e = p.edge;
-    double t = p.tEdge;
-    // TODO
-    buildUnsignedVertexSource(e.firstVertex(), X0, 1. - t);
-    buildUnsignedVertexSource(e.secondVertex(), X0, t);
+    // Ideally we'd blend post-diffusion results...
+    throw std::logic_error("Point sources within edges are not supported.");
     break;
   }
   case (SurfacePointType::Face): {
-    Face f = p.face;
-    int idx = 0;
-    for (Vertex v : f.adjacentVertices()) {
-      buildUnsignedVertexSource(v, X0, p.faceCoords[idx]);
-      idx++;
-    }
+    // Ideally we'd blend post-diffusion results...
+    throw std::logic_error("Point sources within faces are not supported.");
     break;
   }
-  default: { throw std::logic_error("buildUnsignedPointSource(): bad switch"); }
+  default: {
+    throw std::logic_error("buildUnsignedPointSource(): bad switch");
+  }
   }
 }
 
@@ -501,6 +502,7 @@ void SignedHeatSolver::buildUnsignedVertexSource(const Vertex& v, Vector<std::co
 
 Vector<double> SignedHeatSolver::integrateWithZeroSetConstraint(const Vector<double>& rhs,
                                                                 const std::vector<Curve>& curves,
+                                                                const std::vector<SurfacePoint>& points,
                                                                 const SignedHeatOptions& options) {
 
   geom.requireCotanLaplacian();
@@ -511,8 +513,14 @@ Vector<double> SignedHeatSolver::integrateWithZeroSetConstraint(const Vector<dou
     for (const SurfacePoint& p : curve.nodes) {
       if (p.type != SurfacePointType::Vertex) {
         allVertices = false;
-        continue;
+        break;
       }
+    }
+  }
+  for (const SurfacePoint& p : points) {
+    if (p.type != SurfacePointType::Vertex) {
+      allVertices = false;
+      break;
     }
   }
 
@@ -525,6 +533,10 @@ Vector<double> SignedHeatSolver::integrateWithZeroSetConstraint(const Vector<dou
         Vertex v = p.vertex;
         setAMembership[geom.vertexIndices[v]] = false;
       }
+    }
+    for (const SurfacePoint& p : points) {
+      Vertex v = p.vertex;
+      setAMembership[geom.vertexIndices[v]] = false;
     }
     int nB = V - setAMembership.cast<int>().sum(); // # of boundary vertices
     Vector<double> bcVals = Vector<double>::Zero(nB);
@@ -540,6 +552,7 @@ Vector<double> SignedHeatSolver::integrateWithZeroSetConstraint(const Vector<dou
     for (const Curve& curve : curves) {
       allCurves.nodes.insert(allCurves.nodes.end(), curve.nodes.begin(), curve.nodes.end());
     }
+    for (const SurfacePoint& p : points) allCurves.nodes.push_back(p);
     phi = integrateWithLevelSetConstraints(rhs, {allCurves}, options);
   }
 
@@ -576,6 +589,13 @@ Vector<double> SignedHeatSolver::integrateWithLevelSetConstraints(const Vector<d
       size_t vB = geom.vertexIndices[p0.edge.secondVertex()];
       p0_data.emplace_back(m, vA, 1. - p0.tEdge);
       p0_data.emplace_back(m, vB, p0.tEdge);
+    } else if (p0.type == SurfacePointType::Face) {
+      int idx = 0;
+      for (Vertex v : p0.face.adjacentVertices()) {
+        size_t vIdx = geom.vertexIndices[v];
+        p0_data.emplace_back(m, vIdx, p0.faceCoords[idx]);
+        idx++;
+      }
     }
     // Add constraints for the rest of the nodes.
     for (size_t i = 1; i < uB; i++) {
@@ -588,6 +608,13 @@ Vector<double> SignedHeatSolver::integrateWithLevelSetConstraints(const Vector<d
         size_t vB = geom.vertexIndices[p.edge.secondVertex()];
         triplets.emplace_back(m, vA, -(1. - p.tEdge));
         triplets.emplace_back(m, vB, -p.tEdge);
+      } else if (p.type == SurfacePointType::Face) {
+        int idx = 0;
+        for (Vertex v : p.face.adjacentVertices()) {
+          size_t vIdx = geom.vertexIndices[v];
+          triplets.emplace_back(m, vIdx, -p.faceCoords[idx]);
+          idx++;
+        }
       }
       for (auto& T : p0_data) {
         triplets.emplace_back(m, T.col(), T.value());
