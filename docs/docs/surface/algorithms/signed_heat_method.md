@@ -9,7 +9,7 @@ These algorithms are described in [A Heat Method for Generalized Signed Distance
 
 ## Signed Heat Solver
 
-The stateful class `SignedHeatSolver` shares precomputation for all of the routines below.
+The stateful class `SignedHeatSolver` shares precomputation for all of the routines below. What this means is that later solves may become significantly faster, as precomputation occurs on earlier solves.
 
 ??? func "`#!cpp SignedHeatSolver::SignedHeatSolver(IntrinsicGeometryInterface& geom, double tCoef=1.0)`"
 

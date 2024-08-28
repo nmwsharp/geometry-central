@@ -212,11 +212,10 @@ void SignedHeatSolver::buildSignedCurveSource(const Curve& curve, Vector<std::co
     Edge commonEdge = sharedEdge(pA, pB);
     if (commonEdge != Edge()) {
       size_t eIdx = geom.edgeIndices[commonEdge];
-      double scalar = 1.;
       std::complex<double> innerProd(0, 1);
       if (pA.vertex == commonEdge.secondVertex()) innerProd.imag(-1);
       double length = lengthOfSegment(pA, pB);
-      std::complex<double> contrib = length * scalar * innerProd;
+      std::complex<double> contrib = length * innerProd;
       X0[eIdx] += contrib;
       continue;
     }
@@ -544,6 +543,7 @@ Vector<double> SignedHeatSolver::integrateWithZeroSetConstraint(const Vector<dou
     Vector<double> rhsValsA, rhsValsB;
     decomposeVector(decomp, rhs, rhsValsA, rhsValsB);
     Vector<double> combinedRHS = rhsValsA;
+    shiftDiagonal(decomp.AA, 1e-16);
     PositiveDefiniteSolver<double> constrainedSolver(decomp.AA);
     Vector<double> Aresult = constrainedSolver.solve(combinedRHS);
     phi = reassembleVector(decomp, Aresult, bcVals);
