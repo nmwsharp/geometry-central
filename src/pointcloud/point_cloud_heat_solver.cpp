@@ -252,7 +252,7 @@ PointData<Vector2> PointCloudHeatSolver::computeLogMap(const Point& sourcePoint)
 }
 
 PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<std::vector<Point>>& curves,
-                                                              const PointData<Vector3>& pointNormals,
+                                                              const PointData<Vector3>& cloudNormals,
                                                               const SignedHeatOptions& options) {
 
   GC_SAFETY_ASSERT(curves.size() != 0, "must have at least one source");
@@ -280,8 +280,8 @@ PointData<double> PointCloudHeatSolver::computeSignedDistance(const std::vector<
       Vector3 segment = 0.5 * (pB - pA);
       // Project curve segment onto each tangent plane of its endpoints.
       // Use each tangent plane's normal to determine the curve's in-plane normal, expressed in each tangent basis.
-      Vector3 surfaceNormalA = pointNormals[vA].normalize();
-      Vector3 surfaceNormalB = pointNormals[vB].normalize();
+      Vector3 surfaceNormalA = cloudNormals[vA].normalize();
+      Vector3 surfaceNormalB = cloudNormals[vB].normalize();
       Vector3 xAxisA = geom.tangentBasis[vA][0];
       Vector3 yAxisA = geom.tangentBasis[vA][1];
       Vector3 xAxisB = geom.tangentBasis[vB][0];

@@ -1,4 +1,4 @@
-This section describes the _Signed Heat Method_ in geometry-central, which computes signed and unsigned distance using heat flow.
+This section describes the _Signed Heat Method_ in geometry-central, which computes signed and unsigned distance to possibly broken geometry using heat flow.
 
 Note that these quantities all depend on the _intrinsic_ geometry of a surface (via the `IntrinsicGeometryInterface`). Therefore, these routines can be run on abstract geometric domains as well as traditional surfaces in 3D.
 
@@ -17,16 +17,12 @@ The stateful class `SignedHeatSolver` shares precomputation for all of the routi
 
     - `geom` is the geometry (and hence mesh) on which to compute. Note that nearly any geometry object (`VertexPositionGeometry`, etc) can be passed here.
 
-    - `tCoef` is the time to use for short time heat flow, as a factor `m * h^2`, where `h` is the mean edge length. The default value of `1.0` is almost always sufficient.
+    - `tCoef` is the time to use for short time heat flow `tCoef * h^2`, where `h` is the mean distance between nodes of the mesh. The default value of `1.0` is almost always sufficient.
 
 
 ## Signed & Unsigned Geodesic Distance
 
-TODO
-
-Given scalar data defined at isolated source locations on a surface, extend it to the entire domain. Each point on the domain will take the value of the nearest source point.  Note that the fast diffusion algorithm means the result is a slightly smoothed-out field.
-
-![bean scalar extension](/media/bean_scalar.jpg)
+![generalized signed distance on a panda and armchair](/media/signed_heat_method.png)
 
 Example:
 ```cpp
@@ -51,16 +47,21 @@ VertexData<double> distance = signedHeatSolver->computeDistance(curves);
 
 ??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& curves, const std::vector<SurfacePoint>& points, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    TODO
+    Compute distance to a collection of curves and points. Curves may be a source of either signed or unsigned distance (see `Curve` object below.) Points are given as a list of [surface points](../../utilities/surface_point/) to which we compute unsigned distance.
 
 ??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<Curve>& curves, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    Compute... TODO. The input is a list of [surface points](../../utilities/surface_point/).
+    Compute distance to a collection of curves. Curves may be a source of either signed or unsigned distance (see `Curve` object below.) 
 
 ??? func "`#!cpp VertexData<double> SignedHeatSolver::computeDistance(const std::vector<SurfacePoint>& points, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    Compute unsigned distance to a collection of isolated point sources. The input is a list of [surface points](../../utilities/surface_point/).
+    Compute unsigned distance to a collection of isolated point sources. Point sources are given as a list of [surface points](../../utilities/surface_point/).
 
+The diffusion time can also be changed using the following function.
+
+??? func "`#!cpp void SignedHeatSolver::setDiffusionTimeCoefficient(double tCoef)`"
+
+    Re-computes the time used for short time heat flow `tCoef * h^2`, where `h` is the mean distance between nodes of the mesh.
 
 ## Helper Types
 
@@ -100,6 +101,6 @@ If these algorithms contribute to academic work, please cite the following paper
   journal = {ACM Trans. Graph.},
   month = {jul},
   articleno = {92},
-  numpages = {16}
+  numpages = {19}
 }
 ```

@@ -2,7 +2,7 @@
 
 Compute signed and unsigned geodesic distance, transport tangent vectors, and generate a special parameterization called the logarithmic map using fast solvers based on short-time heat flow.
 
-![point cloud heat solve results](/media/point_heat_solvers.jpg)
+![point cloud heat solve results](/media/point_heat_solvers_updated.png)
 
 These routines implement point cloud versions of the algorithms from:
 
@@ -92,17 +92,17 @@ _Geodesic distance_ is the distance from a given source along the surface repres
 
 ## Signed geodesic distance
 
-??? func "`#!cpp PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves, const PointData<Vector3>& pointNormals, const SignedHeatOptions& options = SignedHeatOptions())`"
+??? func "`#!cpp PointData<double> computeSignedDistance(const std::vector<std::vector<Point>>& curves, const PointData<Vector3>& cloudNormals, const SignedHeatOptions& options = SignedHeatOptions())`"
 
-    Compute the signed geodesic distance from a set of curves `curves` to all other points. Each curve in `curves` is a single connected component specified as a sequence of points; curve normals are determined using the normals of the point cloud, specified using `pointNormals`. 
+    Compute the signed geodesic distance from a set of curves `curves` to all other points. Each curve in `curves` is a single connected component specified as a sequence of points; curve normals are determined using the normals of the point cloud, specified using `cloudNormals`. 
 
-    The `SignedHeatOptions` struct allows several options:
+The `SignedHeatOptions` struct allows several options:
 
-    | Field | Default value |Meaning|
-    |---|---|---|
-    | `#!cpp bool preserveSourceNormals`| `false` | If `true`, preserve the initial curve normals at the source curve during vector diffusion. |
-    | `#!cpp LevelSetConstraint levelSetConstraint`| `LevelSetConstraint::ZeroSet` | Specifies how/if level sets should be preserved. Can be set to `LevelSetConstraint::ZeroSet`, `LevelSetConstraint::Multiple`, or `LevelSetConstraint::None`, corresponding to preserving the zero set, mulitple level sets (one for each curve component), or no level sets, respectively. |
-    | `#!cpp double softLevelSetWeight`| `-1` | If greater than 0, gives the weight with which the given level set constraint is "softly" enforced. |
+| Field | Default value |Meaning|
+|---|---|---|
+| `#!cpp bool preserveSourceNormals`| `false` | If `true`, preserve the initial curve normals at the source curve during vector diffusion. |
+| `#!cpp LevelSetConstraint levelSetConstraint`| `LevelSetConstraint::ZeroSet` | Specifies how/if level sets should be preserved. Can be set to `LevelSetConstraint::ZeroSet`, `LevelSetConstraint::Multiple`, or `LevelSetConstraint::None`, corresponding to preserving the zero set, mulitple level sets (one for each curve component), or no level sets, respectively. |
+| `#!cpp double softLevelSetWeight`| `-1` | If greater than 0, gives the weight with which the given level set constraint is "softly" enforced. |
 
 ## Scalar extension
 
