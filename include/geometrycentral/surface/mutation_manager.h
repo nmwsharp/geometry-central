@@ -162,16 +162,6 @@ public:
   // Flip an edge.
   bool flipEdge(Edge e);
 
-  // Insert a vertex along edge e at the position specified by `tSplit`.
-  // Returns the new halfedge whose tail vertex is the newly inserted vertex, and points in the same direction as
-  // e.halfedge() (same as the original insertVertexAlongEdge().)
-  Halfedge insertVertexAlongEdge(Edge e, double tSplit);
-  // Inserts a set of vertices along edge e at the specified positions.
-  // Currently just returns the set of newly inserted vertices. I can't get the halfedges version working.
-  // [Ideally returns a vector of new halfedges that point along the original e.halfedge(), whose tail vertices
-  // correspond to the newly-inserted vertices at the positions specified by <tSplits> (in that order.)]
-  std::vector<Vertex> insertVerticesAlongEdge(Edge e, const std::vector<double>& tSplits);
-
   // Split an edge.
   // `tSplit` controls the split location from [0,1]; 0 splits at d.halfedge().tailVertex().
   // `newVertexPosition` can be specified to manually control the insertion location, rather than linearly interpolating
@@ -197,20 +187,6 @@ public:
   Vertex splitFace(Face f, const std::vector<double>& bSplit);
   Vertex splitFace(Face f, Vector3 newVertexPosition);
   Vertex splitFace(Face f, const std::vector<double>& bSplit, Vector3 newVertexPosition);
-
-  // Cut the mesh along the two given SurfacePoints, which must share a common face. The cut must span the face (the
-  // face gets split into two separate faces.) Return the new halfedge whose tail vertex is at pA.
-  Halfedge cutFace(SurfacePoint pA, SurfacePoint pB);
-  // Cut the mesh by connecting two vertices that share a common face. Contrary to
-  // ManifoldSurfaceMesh::connectVertices(), the two vertices can be adjacent, in which case it doesn't alter the mesh
-  // and just returns the halfedge that already exists from vA to vB. This function is basically a nice wrapper around
-  // ManifoldSurfaceMesh::connectVertices().
-  Halfedge cutFace(Vertex vA, Vertex vB);
-  // Cut the mesh along the specified path, where each segment of the path lies within a face.
-  // Returns the list of new halfedges which makes up the newly-inserted cut, in the order of the edges in the cut path.
-  std::vector<Halfedge> cutAlongPath(const std::vector<std::vector<SurfacePoint>>& pathCurves);
-  std::vector<Halfedge> cutAlongPath(const std::vector<SurfacePoint>& pathNodes,
-                                     const std::vector<std::array<size_t, 2>>& pathEdges);
 
   // ======================================================
   // ======== High-level mutations

@@ -6,11 +6,6 @@
 #include "geometrycentral/numerical/suitesparse_utilities.h"
 #endif
 
-using std::chrono::duration;
-using std::chrono::duration_cast;
-using std::chrono::high_resolution_clock;
-using std::chrono::milliseconds;
-
 namespace geometrycentral {
 
 template <typename T>
@@ -54,9 +49,6 @@ PositiveDefiniteSolver<T>::PositiveDefiniteSolver(SparseMatrix<T>& mat)
 
   mat.makeCompressed();
 
-  std::chrono::time_point<high_resolution_clock> t1, t2;
-  std::chrono::duration<double, std::milli> ms_fp;
-
   // Suitesparse version
 #ifdef GC_HAVE_SUITESPARSE
 
@@ -67,30 +59,23 @@ PositiveDefiniteSolver<T>::PositiveDefiniteSolver(SparseMatrix<T>& mat)
   internals->cMat = toCholmod(mat, internals->context, SType::SYMMETRIC);
 
   // Factor
-  t1 = high_resolution_clock::now();
   internals->context.setSimplicial(); // must use simplicial for LDLt
   internals->context.setLDL();        // ensure we get an LDLt internals->factorization
   internals->factorization = cholmod_l_analyze(internals->cMat, internals->context);
   bool success = (bool)cholmod_l_factorize(internals->cMat, internals->factorization, internals->context);
-  t2 = high_resolution_clock::now();
-  ms_fp = t2 - t1;
-  factorTime = ms_fp.count() / 1000.;
 
-  if (!success) {
+  if(!success) {
     throw std::runtime_error("failure in cholmod_l_factorize");
   }
-  if (internals->context.context.status == CHOLMOD_NOT_POSDEF) {
+  if(internals->context.context.status == CHOLMOD_NOT_POSDEF) {
     throw std::runtime_error("matrix is not positive definite");
   }
 
+  
 
   // Eigen version
 #else
-  t1 = high_resolution_clock::now();
   internals->solver.compute(mat);
-  t2 = high_resolution_clock::now();
-  ms_fp = t2 - t1;
-  factorTime = ms_fp.count() / 1000.;
   if (internals->solver.info() != Eigen::Success) {
     std::cerr << "Solver internals->factorization error: " << internals->solver.info() << std::endl;
     throw std::invalid_argument("Solver internals->factorization failed");
@@ -118,45 +103,27 @@ void PositiveDefiniteSolver<T>::solve(Vector<T>& x, const Vector<T>& rhs) {
   checkFinite(rhs);
 #endif
 
-  std::chrono::time_point<high_resolution_clock> t1, t2, s1, s2;
-  std::chrono::duration<double, std::milli> ms_fp;
 
   // Suitesparse version
 #ifdef GC_HAVE_SUITESPARSE
 
   // Convert input to suitesparse format
-  s1 = high_resolution_clock::now();
   cholmod_dense* inVec = toCholmod(rhs, internals->context);
-  s2 = high_resolution_clock::now();
-  ms_fp = s2 - s1;
-  solveConvertTime = ms_fp.count() / 1000.;
 
   // Solve
-  t1 = high_resolution_clock::now();
   cholmod_dense* outVec = cholmod_l_solve(CHOLMOD_A, internals->factorization, inVec, internals->context);
-  t2 = high_resolution_clock::now();
-  ms_fp = t2 - t1;
-  solveTime = ms_fp.count() / 1000.;
 
   // Convert back
-  s1 = high_resolution_clock::now();
   toEigen(outVec, internals->context, x);
 
   // Free
   cholmod_l_free_dense(&outVec, internals->context);
   cholmod_l_free_dense(&inVec, internals->context);
-  s2 = high_resolution_clock::now();
-  ms_fp = s2 - s1;
-  solveConvertTime += ms_fp.count() / 1000.;
 
   // Eigen version
 #else
   // Solve
-  t1 = high_resolution_clock::now();
   x = internals->solver.solve(rhs);
-  t2 = high_resolution_clock::now();
-  ms_fp = t2 - t1;
-  solveTime = ms_fp.count() / 1000.;
   if (internals->solver.info() != Eigen::Success) {
     std::cerr << "Solver error: " << internals->solver.info() << std::endl;
     throw std::invalid_argument("Solve failed");

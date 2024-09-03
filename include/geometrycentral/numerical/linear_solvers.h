@@ -4,7 +4,6 @@
 
 #include "Eigen/Sparse"
 
-#include <chrono>
 #include <iostream>
 #include <memory>
 
@@ -109,9 +108,6 @@ public:
   // Solve!
   void solve(Vector<T>& x, const Vector<T>& rhs) override;
   Vector<T> solve(const Vector<T>& rhs) override;
-  double solveTime;
-  double factorTime;
-  double solveConvertTime = 0.; // time spent converting between matrix formats in solve()
 
 protected:
   std::unique_ptr<PSDSolverInternals<T>> internals;

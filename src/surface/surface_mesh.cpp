@@ -210,16 +210,6 @@ SurfaceMesh::SurfaceMesh(const std::vector<std::vector<size_t>>& polygons,
   initializeHalfedgeNeighbors();
 
   isCompressedFlag = true;
-
-  nEdgesCapacityCount = nEdgesCount;
-  if (!usesImplicitTwin()) {
-    eHalfedgeArr.resize(nEdgesCapacityCount);
-  }
-  // Invoke relevant callback functions
-  for (auto& f : edgeExpandCallbackList) {
-    f(nEdgesCapacityCount);
-  }
-
   // TODO compress here?
 }
 

@@ -99,7 +99,7 @@ public:
   // Connection Laplacian
   // Uses Tufted Intrinsic Laplacian as above. Does _not_ require consistent orientation.
   // NOTE: this is an 2Nx2N-sized real matrix rather than a complex matrix so we can conjugate to handle inverted
-  // normals.
+  // normals. 
   Eigen::SparseMatrix<double> connectionLaplacian;
   void requireConnectionLaplacian();
   void unrequireConnectionLaplacian();
