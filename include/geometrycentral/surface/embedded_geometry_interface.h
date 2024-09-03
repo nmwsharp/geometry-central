@@ -191,7 +191,7 @@ protected:
   const double polygonLambda = 1.0;
   VertexData<Eigen::VectorXd> polygonVertexNormals;
   DependentQuantityD<VertexData<Eigen::VectorXd>> polygonVertexNormalsQ;
-  virtual void computePolygonVertexNormals();
+  virtual void computePolygonVertexNormals(); // area-weighted normals
   virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f);
   virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f);
   virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f);
@@ -203,9 +203,6 @@ protected:
   virtual Eigen::MatrixXd polygonEdgeMidpointMatrix(const Face& f);
   virtual Eigen::MatrixXd polygonFlat(const Face& f);
   virtual Eigen::MatrixXd polygonSharp(const Face& f);
-  virtual Eigen::Vector3d polygonVectorArea(const Face& f);
-  virtual double polygonArea(const Face& f);
-  virtual Eigen::Vector3d polygonNormal(const Face& f);
   virtual Eigen::Vector3d polygonCentroid(const Face& f);
   // connections
   virtual Eigen::MatrixXd polygonPerFaceConnectionLaplacian(const Face& f);
