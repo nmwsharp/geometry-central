@@ -263,18 +263,15 @@ void EmbeddedGeometryInterface::computeFaceAreas() {
   faceAreas = FaceData<double>(mesh);
 
   for (Face f : mesh.faces()) {
-
-    // WARNING: Logic duplicated between cached and immediate version
-    Halfedge he = f.halfedge();
-    Vector3 pA = vertexPositions[he.vertex()];
-    he = he.next();
-    Vector3 pB = vertexPositions[he.vertex()];
-    he = he.next();
-    Vector3 pC = vertexPositions[he.vertex()];
-
-    GC_SAFETY_ASSERT(he.next() == f.halfedge(), "faces must be triangular");
-
-    double area = 0.5 * norm(cross(pB - pA, pC - pA));
+    Vector3 N = {0, 0, 0};
+    for (Halfedge he : f.adjacentHalfedges()) {
+      Vertex vA = he.vertex();
+      Vertex vB = he.next().vertex();
+      Vector3 pA = vertexPositions[vA];
+      Vector3 pB = vertexPositions[vB];
+      N += cross(pA, pB);
+    }
+    double area = 0.5 * norm(N);
     faceAreas[f] = area;
   }
 }
@@ -290,12 +287,8 @@ void EmbeddedGeometryInterface::computeCornerAngles() {
     // WARNING: Logic duplicated between cached and immediate version
     Halfedge he = c.halfedge();
     Vector3 pA = vertexPositions[he.vertex()];
-    he = he.next();
-    Vector3 pB = vertexPositions[he.vertex()];
-    he = he.next();
-    Vector3 pC = vertexPositions[he.vertex()];
-
-    GC_SAFETY_ASSERT(he.next() == c.halfedge(), "faces must be triangular");
+    Vector3 pB = vertexPositions[he.next().vertex()];
+    Vector3 pC = vertexPositions[he.twin().next().next().vertex()];
 
     double q = dot(unit(pB - pA), unit(pC - pA));
     q = clamp(q, -1.0, 1.0);
@@ -732,6 +725,7 @@ void EmbeddedGeometryInterface::unrequirePolygonGradientMatrix() { polygonGradie
 void EmbeddedGeometryInterface::computePolygonDivergenceMatrix() {
   vertexIndicesQ.ensureHave();
   faceIndicesQ.ensureHave();
+  faceAreasQ.ensureHave();
 
   size_t V = mesh.nVertices();
   size_t F = mesh.nFaces();
@@ -742,7 +736,7 @@ void EmbeddedGeometryInterface::computePolygonDivergenceMatrix() {
   std::vector<size_t> vIndices; // indices of vertices of polygon face
   for (Face f : mesh.faces()) {
     size_t fIdx = faceIndices[f];
-    double area = polygonArea(f);
+    double area = faceAreas[f];
     vIndices.clear();
     for (Vertex v : f.adjacentVertices()) vIndices.push_back(vertexIndices[v]);
     size_t n = f.degree();
@@ -763,11 +757,12 @@ void EmbeddedGeometryInterface::unrequirePolygonDivergenceMatrix() { polygonDive
 // Vertex mass matrix (lumped)
 void EmbeddedGeometryInterface::computePolygonVertexLumpedMassMatrix() {
   vertexIndicesQ.ensureHave();
+  faceAreasQ.ensureHave();
 
   size_t V = mesh.nVertices();
   Eigen::VectorXd hodge0 = Eigen::VectorXd::Zero(V);
   for (Face f : mesh.faces()) {
-    double w = polygonArea(f) / f.degree();
+    double w = faceAreas[f] / f.degree();
     for (Vertex v : f.adjacentVertices()) {
       size_t vIdx = vertexIndices[v];
       hodge0[vIdx] += w;
@@ -818,6 +813,7 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   edgeIndicesQ.ensureHave();
   faceIndicesQ.ensureHave();
   halfedgeIndicesQ.ensureHave();
+  faceAreasQ.ensureHave();
 
   size_t V = mesh.nVertices();
   size_t E = mesh.nEdges();
@@ -851,7 +847,7 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   // hodge0
   Eigen::VectorXd h0 = Eigen::VectorXd::Zero(V);
   for (Face f : mesh.faces()) {
-    double w = polygonArea(f) / f.degree();
+    double w = faceAreas[f] / f.degree();
     for (Vertex v : f.adjacentVertices()) {
       size_t vIdx = vertexIndices[v];
       h0[vIdx] += w;
@@ -881,7 +877,7 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   Eigen::VectorXd h2(F);
   for (Face f : mesh.faces()) {
     size_t fIdx = faceIndices[f];
-    h2[fIdx] = 1. / polygonArea(f);
+    h2[fIdx] = 1. / faceAreas[f];
   }
   polygonHodge2 = h2.asDiagonal();
   polygonHodge2Inverse = h2.asDiagonal().inverse();
@@ -898,16 +894,20 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceLaplacian(const Face& f
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceInnerProductMatrix(const Face& f) {
+  faceAreasQ.ensureHave();
+
   Eigen::MatrixXd Uf = polygonSharp(f);
   Eigen::MatrixXd Pf = polygonProjectionMatrix(f);
-  double A = polygonArea(f);
+  double A = faceAreas[f];
   return A * Uf.transpose() * Uf + polygonLambda * Pf.transpose() * Pf;
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceConnectionLaplacian(const Face& f) {
+  faceAreasQ.ensureHave();
+
   Eigen::MatrixXd G = polygonCovariantGradient(f);
   Eigen::MatrixXd P = polygonCovariantProjection(f);
-  double A = polygonArea(f);
+  double A = faceAreas[f];
   Eigen::MatrixXd L = A * G.transpose() * G + polygonLambda * P.transpose() * P;
   return L;
 }
@@ -939,10 +939,13 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonProjectionMatrix(const Face& f
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceGradientMatrix(const Face& f) {
+  faceNormalsQ.ensureHave();
+  faceAreasQ.ensureHave();
+
   // equivalent to applying the (per-face) sharp operator to the (per-face) exterior derivative
-  Eigen::Vector3d An = polygonVectorArea(f);
-  double A = An.norm();
-  Eigen::Vector3d N = An / A;
+  double A = faceAreas[f];
+  Vector3 n = faceNormals[f];
+  Eigen::Vector3d N = {n[0], n[1], n[2]};
   return -1. / A * bracket(N) * polygonCoGradientMatrix(f);
 }
 
@@ -979,62 +982,40 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonEdgeMidpointMatrix(const Face&
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonFlat(const Face& f) {
+  faceNormalsQ.ensureHave();
 
-  Eigen::Vector3d N = polygonNormal(f);
+  Vector3 n = faceNormals[f];
+  Eigen::Vector3d N = {n[0], n[1], n[2]};
   return polygonEdgeVectorMatrix(f) * (Eigen::MatrixXd::Identity(3, 3) - N * N.transpose());
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonSharp(const Face& f) {
+  faceAreasQ.ensureHave();
+  faceNormalsQ.ensureHave();
 
   size_t d = f.degree();
-  Eigen::Vector3d An = polygonVectorArea(f);
-  double A = An.norm();
-  Eigen::Vector3d N = An / A;
+  double A = faceAreas[f];
+  Vector3 n = faceNormals[f];
+  Eigen::Vector3d N = {n[0], n[1], n[2]};
   Eigen::Vector3d c = polygonCentroid(f);
   return 1. / A * bracket(N) * (polygonEdgeMidpointMatrix(f).transpose() - c * Eigen::VectorXd::Ones(d).transpose());
 }
 
 void EmbeddedGeometryInterface::computePolygonVertexNormals() {
+  faceAreasQ.ensureHave();
+  faceNormalsQ.ensureHave();
 
   polygonVertexNormals = VertexData<Eigen::VectorXd>(mesh);
   for (Vertex v : mesh.vertices()) {
-    double totalArea = 0.;
     Eigen::Vector3d vN(0., 0., 0.);
     for (Face f : v.adjacentFaces()) {
-      Eigen::Vector3d N = polygonVectorArea(f);
-      vN += N;
-      totalArea += N.norm();
+      Vector3 n = faceNormals[f];
+      Eigen::Vector3d N = {n[0], n[1], n[2]};
+      vN += N * faceAreas[f];
     }
-    vN /= totalArea;
+    vN /= vN.norm();
     polygonVertexNormals[v] = vN;
   }
-}
-
-Eigen::Vector3d EmbeddedGeometryInterface::polygonVectorArea(const Face& f) {
-  vertexPositionsQ.ensureHave();
-
-  Vector3 N = {0, 0, 0};
-  for (Halfedge he : f.adjacentHalfedges()) {
-    Vertex vA = he.vertex();
-    Vertex vB = he.next().vertex();
-    Vector3 pA = vertexPositions[vA];
-    Vector3 pB = vertexPositions[vB];
-    N += cross(pA, pB);
-  }
-  N *= 0.5;
-  return Eigen::Vector3d(N[0], N[1], N[2]);
-}
-
-double EmbeddedGeometryInterface::polygonArea(const Face& f) {
-  Eigen::Vector3d An = polygonVectorArea(f);
-  double A = An.norm();
-  return A;
-}
-
-Eigen::Vector3d EmbeddedGeometryInterface::polygonNormal(const Face& f) {
-  Eigen::Vector3d N = polygonVectorArea(f);
-  N /= N.norm();
-  return N;
 }
 
 Eigen::Vector3d EmbeddedGeometryInterface::polygonCentroid(const Face& f) {
@@ -1067,9 +1048,11 @@ Eigen::MatrixXd EmbeddedGeometryInterface::Tv(const Vertex& v) {
 
 Eigen::MatrixXd EmbeddedGeometryInterface::Tf(const Face& f) {
   vertexPositionsQ.ensureHave();
+  faceNormalsQ.ensureHave();
 
   // Return 3 x 2 matrix defining the tangent space at face f, with basis vectors in columns.
-  Eigen::Vector3d nf = polygonNormal(f);
+  Vector3 n = faceNormals[f];
+  Eigen::Vector3d nf = {n[0], n[1], n[2]};
   Vector3 pA = vertexPositions[f.halfedge().vertex()];
   Vector3 pB = vertexPositions[f.halfedge().next().vertex()];
   Vector3 heVec = pB - pA;
@@ -1088,9 +1071,11 @@ Eigen::Matrix2d EmbeddedGeometryInterface::Rvf(const Vertex& v, const Face& f) {
 
 Eigen::Matrix3d EmbeddedGeometryInterface::Qvf(const Vertex& v, const Face& f) {
   polygonVertexNormalsQ.ensureHave();
+  faceNormalsQ.ensureHave();
 
   // Return 3 x 3 rotation matrix to align n_v to n_f.
-  Eigen::Vector3d nf = polygonNormal(f);
+  Vector3 n = faceNormals[f];
+  Eigen::Vector3d nf = {n[0], n[1], n[2]};
   Eigen::Vector3d nv = polygonVertexNormals[v];
   double c = nv.dot(nf);
 

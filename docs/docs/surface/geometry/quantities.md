@@ -626,7 +626,7 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
 
     The discrete divergence operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
-    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as _integrated_ quantities at vertices. To obtain pointwise quantities, one would compute $\mathsf{A}^{-1}\mathsf{D}$, where $\mathsf{A}\in\RR^{|V|\times|V|}$ is a diagonal mass matrix of local areas at vertices.
+    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as _integrated_ quantities at vertices. To obtain pointwise quantities, one would compute $\mathsf{A}^{-1}\mathsf{D}$, where $\mathsf{A}\in\mathbb{R}^{|V|\times|V|}$ is a diagonal mass matrix of local areas at vertices.
 
     The divergence matrix $\mathsf{D}$ is related to the gradient matrix $\mathsf{G}$ as $\mathsf{D} = \mathsf{G}^\top\mathsf{M}$, where $\mathsf{M}\in\mathbb{R}^{3|F|}$ is a diagonal mass matrix containing face areas. Note that this assumes the convention that inflow corresponds to positive divergence, corresponding to the convention that $\mathsf{D}\mathsf{G}$ yields a positive-semidefinite Laplacian.
 
