@@ -785,7 +785,8 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
 
   size_t V = mesh.nVertices();
   polygonVertexConnectionLaplacian = Eigen::SparseMatrix<std::complex<double>>(V, V);
-  std::vector<Eigen::Triplet<std::complex<double>>> triplets;
+  std::vector<Eigen::Triplet<std::complex<double>>> triplets, tripletsTest;
+  Eigen::SparseMatrix<std::complex<double>> testMat(2 * V, 2 * V);
   Eigen::MatrixXd Lf;
   std::vector<size_t> vIndices;
   for (Face f : mesh.faces()) {
@@ -796,16 +797,9 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
     for (size_t j = 0; j < n; j++) {
       for (size_t i = 0; i < n; i++) {
         double re = Lf(2 * i, 2 * j);
-        double im = Lf(2 * i, 2 * j + 1);
-        double s = (i == j) ? 1. : -1;
-        triplets.emplace_back(vIndices[i], vIndices[j], 0.5 * std::complex<double>(re, s * im));
-        // Average across two elements to ensure Hermitian-ness.
-        triplets.emplace_back(vIndices[j], vIndices[i], 0.5 * std::complex<double>(re, -s * im));
-        if (vIndices[i] == 12 || vIndices[j] == 12) {
-          std::cerr << vIndices[i] << " " << vIndices[j] << std::endl;
-          std::cerr << "\t" << Lf(2 * i, 2 * j) << " " << Lf(2 * i, 2 * j + 1) << std::endl;
-          std::cerr << "\t" << Lf(2 * i + 1, 2 * j) << " " << Lf(2 * i + 1, 2 * j + 1) << std::endl;
-        }
+        double im = Lf(2 * i + 1, 2 * j);
+        triplets.emplace_back(vIndices[i], vIndices[j], 0.5 * std::complex<double>(re, im));
+        triplets.emplace_back(vIndices[j], vIndices[i], 0.5 * std::complex<double>(re, -im));
       }
     }
   }
