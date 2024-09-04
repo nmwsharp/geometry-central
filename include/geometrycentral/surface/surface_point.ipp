@@ -256,17 +256,18 @@ inline void SurfacePoint::validate() const {
 
 inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
   if (type != other.type) return false;
+  double eps = 1e-5;
   switch (type) {
   case SurfacePointType::Vertex: {
     return vertex == other.vertex;
     break;
   }
   case SurfacePointType::Edge: {
-    return edge == other.edge && tEdge == other.tEdge;
+    return edge == other.edge && abs(tEdge - other.tEdge) < eps;
     break;
   }
   case SurfacePointType::Face: {
-    return face == other.face && faceCoords == other.faceCoords;
+    return face == other.face && (faceCoords - other.faceCoords).norm() < eps;
     break;
   }
   }
@@ -329,7 +330,7 @@ inline Edge sharedEdge(const SurfacePoint& pA, const SurfacePoint& pB) {
     switch (pB.type) {
     case SurfacePointType::Vertex:
       for (Edge e : pB.vertex.adjacentEdges()) {
-        if (e == pB.edge) return e;
+        if (e == pA.edge) return e;
       }
       break;
     case SurfacePointType::Edge:
