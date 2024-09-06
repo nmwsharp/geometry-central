@@ -198,7 +198,6 @@ void EmbeddedGeometryInterface::computeVertexTangentBasis() {
   }
 
   halfedgeVectorsInVertexQ.ensureHave();
-
   for (Vertex v : mesh.vertices()) {
 
     // For general polygons, take the average of each edge vector projected to tangent plane
@@ -793,6 +792,7 @@ void EmbeddedGeometryInterface::computePolygonVertexConnectionLaplacian() {
       for (size_t i = 0; i < n; i++) {
         double re = Lf(2 * i, 2 * j);
         double im = Lf(2 * i + 1, 2 * j);
+        // Split up into symmetric contributions to ensure Hermitian-ness.
         triplets.emplace_back(vIndices[i], vIndices[j], 0.5 * std::complex<double>(re, im));
         triplets.emplace_back(vIndices[j], vIndices[i], 0.5 * std::complex<double>(re, -im));
       }
@@ -1030,16 +1030,13 @@ Eigen::Vector3d EmbeddedGeometryInterface::polygonCentroid(const Face& f) {
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::Tv(const Vertex& v) {
-  polygonVertexNormalsQ.ensureHave();
+  vertexTangentBasisQ.ensureHave();
 
   // Return 3 x 2 matrix defining the tangent space at vertex v, with basis vectors in columns.
-  Eigen::Vector3d nv = polygonVertexNormals[v];
-  Vector3 pA = vertexPositions[v.halfedge().vertex()];
-  Vector3 pB = vertexPositions[v.halfedge().next().vertex()];
-  Vector3 heVec = pB - pA;
-  Eigen::Vector3d w(heVec[0], heVec[1], heVec[2]);
-  Eigen::Vector3d uu = project(w, nv).normalized();
-  Eigen::Vector3d vv = nv.cross(uu);
+  Vector3 xVec = vertexTangentBasis[v][0];
+  Vector3 yVec = vertexTangentBasis[v][1];
+  Eigen::Vector3d uu = {xVec[0], xVec[1], xVec[2]};
+  Eigen::Vector3d vv = {yVec[0], yVec[1], yVec[2]};
   Eigen::MatrixXd B(3, 2);
   B.col(0) = uu;
   B.col(1) = vv;
@@ -1047,18 +1044,13 @@ Eigen::MatrixXd EmbeddedGeometryInterface::Tv(const Vertex& v) {
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::Tf(const Face& f) {
-  vertexPositionsQ.ensureHave();
-  faceNormalsQ.ensureHave();
+  faceTangentBasisQ.ensureHave();
 
   // Return 3 x 2 matrix defining the tangent space at face f, with basis vectors in columns.
-  Vector3 n = faceNormals[f];
-  Eigen::Vector3d nf = {n[0], n[1], n[2]};
-  Vector3 pA = vertexPositions[f.halfedge().vertex()];
-  Vector3 pB = vertexPositions[f.halfedge().next().vertex()];
-  Vector3 heVec = pB - pA;
-  Eigen::Vector3d w(heVec[0], heVec[1], heVec[2]);
-  Eigen::Vector3d uu = project(w, nf).normalized();
-  Eigen::Vector3d vv = nf.cross(uu);
+  Vector3 xVec = faceTangentBasis[f][0];
+  Vector3 yVec = faceTangentBasis[f][1];
+  Eigen::Vector3d uu = {xVec[0], xVec[1], xVec[2]};
+  Eigen::Vector3d vv = {yVec[0], yVec[1], yVec[2]};
   Eigen::MatrixXd B(3, 2);
   B.col(0) = uu;
   B.col(1) = vv;
