@@ -553,9 +553,9 @@ All operators are indexed over mesh elements according to the natural iteration 
 
 Here are polygon mesh operators from [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf).
 
-??? func "polygon Laplacian (simple)"
+??? func "polygon mesh Laplacian (simple)"
     
-    ##### polygon Laplacian (simple)
+    ##### polygon mesh Laplacian (simple)
 
     The discrete Laplace operator acting on polygon meshes, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
 
@@ -592,9 +592,9 @@ Here are polygon mesh operators from [Bunge et al.'s _Polygon Laplacian Made Sim
 
 And here are polygon mesh operators from [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf).
 
-??? func "polygon Laplacian"
+??? func "polygon mesh Laplacian"
     
-    ##### polygon Laplacian
+    ##### polygon mesh Laplacian
 
     The discrete Laplace operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
@@ -607,9 +607,9 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
     - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonLaplacian`
     - **require:** `void EmbeddedGeometryInterface::requirePolygonLaplacian()`
 
-??? func "polygon gradient matrix"
+??? func "polygon mesh gradient matrix"
     
-    ##### polygon gradient matrix
+    ##### polygon mesh gradient matrix
 
     The discrete gradient operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
@@ -620,9 +620,9 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
     - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonGradientMatrix`
     - **require:** `void EmbeddedGeometryInterface::requirePolygonGradientMatrix()`
 
-??? func "polygon divergence matrix"
+??? func "polygon mesh divergence matrix"
     
-    ##### polygon divergence matrix
+    ##### polygon mesh divergence matrix
 
     The discrete divergence operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
 
@@ -663,9 +663,9 @@ And here are polygon mesh operators from [de Goes et al.'s _Discrete Differentia
     - **member:** `Eigen::SparseMatrix<std::complex<double>> EmbeddedGeometryInterface::polygonVertexConnectionLaplacian`
     - **require:** `void EmbeddedGeometryInterface::requirePolygonVertexConnectionLaplacian()`
 
-??? func "polygon DEC operators"
+??? func "polygon mesh DEC operators"
 
-    ##### polygon DEC operators
+    ##### polygon mesh DEC operators
 
     These operators are the basic building blocks for _discrete exterior calculus_ on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure inner products of discrete 1-forms remain positive-definite on non-triangular faces.
 

@@ -78,7 +78,7 @@ Options are passed in to `computeDistance` via a `SignedHeatOptions` struct, whi
 | Field | Default value |Meaning|
 |---|---|---|
 | `#!cpp bool preserveSourceNormals`| `false` | If `true`, preserve the initial curve normals at the source curve during vector diffusion. |
-| `#!cpp LevelSetConstraint levelSetConstraint`| `LevelSetConstraint::ZeroSet` | Specifies how/if level sets should be preserved. Can be set to `LevelSetConstraint::ZeroSet`, `LevelSetConstraint::Multiple`, or `LevelSetConstraint::None`, corresponding to preserving the zero set, mulitple level sets (one for each curve component), or no level sets, respectively. |
+| `#!cpp LevelSetConstraint levelSetConstraint`| `LevelSetConstraint::ZeroSet` | Specifies how/if level sets should be preserved. Can be set to `LevelSetConstraint::ZeroSet`, `LevelSetConstraint::Multiple`, or `LevelSetConstraint::None`, corresponding to preservation of the input curves as the zero set, as multiple level sets (one for each curve component), or no constraint, respectively. |
 | `#!cpp double softLevelSetWeight`| `-1` | If greater than 0, gives the weight with which the given level set constraint is "softly" enforced. |
 
 ## Citation
