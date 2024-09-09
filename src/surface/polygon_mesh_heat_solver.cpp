@@ -24,7 +24,7 @@ PolygonMeshHeatSolver::PolygonMeshHeatSolver(EmbeddedGeometryInterface& geom_, d
       }
     }
   }
-  shortTime = tCoef * maxDiagonal * maxDiagonal;
+  shortTime = tCoef * maxDiagonalLength * maxDiagonalLength;
 
   geom.requirePolygonVertexLumpedMassMatrix();
   geom.requirePolygonLaplacian();
@@ -63,17 +63,53 @@ void PolygonMeshHeatSolver::ensureHavePoissonSolver() {
 }
 
 VertexData<double> PolygonMeshHeatSolver::computeDistance(const Vertex& sourceVert) {
-  std::vector<Point> v{sourcePoint};
+  std::vector<Vertex> v{sourceVert};
   return computeDistance(v);
 }
 
 VertexData<double> PolygonMeshHeatSolver::computeDistance(const std::vector<Vertex>& sourceVerts) {
-  // TODO: update which polygon Laplacian we use, depending on which is more accurate
   GC_SAFETY_ASSERT(sourceVerts.size() != 0, "must have at least one source");
+
+  geom.requirePolygonGradientMatrix();
+  geom.requirePolygonDivergenceMatrix();
+  geom.requireVertexIndices();
+
+  // Flow heat.
+  size_t V = mesh.nVertices();
+  size_t F = mesh.nFaces();
+  Vector<double> rho = Vector<double>::Zero(V);
+  for (Vertex v : sourceVerts) {
+    size_t vIdx = geom.vertexIndices[v];
+    rho[vIdx] += 1;
+  }
+
+  ensureHaveScalarHeatSolver();
+  Vector<double> X = scalarHeatSolver->solve(rho);
+
+  // Normalize gradient.
+  Vector<double> Y = geom.polygonGradientMatrix * X; // 3|F|
+  for (size_t i = 0; i < F; i++) {
+    Vector3 g = {Y[3 * i], Y[3 * i + 1], Y[3 * i + 2]};
+    g /= g.norm();
+    for (int j = 0; j < 3; j++) Y[3 * i + j] = g[j];
+  }
+
+  // Integrate.
+  ensureHavePoissonSolver();
+  Vector<double> div = -geom.polygonDivergenceMatrix * Y;
+  Vector<double> distances = poissonSolver->solve(div);
+
+  // Shift solution.
+  distances -= distances.minCoeff() * Vector<double>::Ones(V);
+
+  geom.unrequirePolygonGradientMatrix();
+  geom.unrequirePolygonDivergenceMatrix();
+  geom.unrequireVertexIndices();
+
+  return VertexData<double>(mesh, distances);
 }
 
 VertexData<double> PolygonMeshHeatSolver::extendScalars(const std::vector<std::tuple<Vertex, double>>& sources) {
-  // TODO: update which polygon Laplacian we use, depending on which is more accurate
   GC_SAFETY_ASSERT(sources.size() != 0, "must have at least one source");
 
   ensureHaveScalarHeatSolver();
@@ -111,7 +147,7 @@ PolygonMeshHeatSolver::transportTangentVectors(const std::vector<std::tuple<Vert
   // Construct rhs
   size_t V = mesh.nVertices();
   Vector<std::complex<double>> dirRHS = Vector<std::complex<double>>::Zero(V);
-  std::vector<std::tuple<SurfacePoint, double>> magnitudeSources;
+  std::vector<std::tuple<Vertex, double>> magnitudeSources;
   bool normsAllSame = true;
   double firstNorm = std::get<1>(sources[0]).norm();
   for (size_t i = 0; i < sources.size(); i++) {
@@ -127,28 +163,26 @@ PolygonMeshHeatSolver::transportTangentVectors(const std::vector<std::tuple<Vert
       normsAllSame = false;
     }
   }
+  geom.unrequireVertexIndices();
 
   // Transport
   Vector<std::complex<double>> vecSolution = vectorHeatSolver->solve(dirRHS);
 
   // Set scale
+  VertexData<Vector2> solution(mesh);
   if (normsAllSame) {
     vecSolution = (vecSolution.array() / vecSolution.array().abs()) * firstNorm;
+    for (size_t i = 0; i < V; i++) solution[i] = Vector2::fromComplex(vecSolution[i]);
   } else {
-    VertexData<double> interpMags = extendScalar(magnitudeSources);
-    for (Vertex v : mesh.vertices()) {
-      size_t idx = geom.vertexIndices[v];
-      Vector2 dir = Vector2::fromComplex(vecSolution[idx]).normalize();
-      vecSolution[idx] = dir * interpMags[v];
+    VertexData<double> interpMags = extendScalars(magnitudeSources);
+    for (size_t i = 0; i < V; i++) {
+      Vector2 dir = Vector2::fromComplex(vecSolution[i]).normalize();
+      solution[i] = dir * interpMags[i];
     }
   }
 
-  geom.unrequireVertexIndices();
-
-  return VertexData<Vector2>(mesh, vecSolution);
+  return solution;
 }
-
-// VertexData<Vector2> PolygonMeshHeatSolver::computeLogMap(const Vertex& sourceVert) {} // TODO?
 
 VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vector<std::vector<Vertex>>& curves,
                                                                 const LevelSetConstraint& levelSetConstraint) {
@@ -163,7 +197,7 @@ VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vecto
   if (X0.norm() == 0) throw std::logic_error("Input curves must be nonempty to run Signed Heat Method.");
 
   ensureHaveVectorHeatSolver();
-  Vector<std::complex<double>> Xt = ectorHeatSolver->solve(X0);
+  Vector<std::complex<double>> Xt = vectorHeatSolver->solve(X0);
 
   // Average onto faces, and normalize.
   size_t F = mesh.nFaces();

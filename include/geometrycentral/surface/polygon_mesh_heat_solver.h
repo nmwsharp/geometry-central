@@ -10,6 +10,7 @@ namespace surface {
 
 class PolygonMeshHeatSolver {
 
+public:
   // === Constructor
   PolygonMeshHeatSolver(EmbeddedGeometryInterface& geom, double tCoef = 1.0);
 
@@ -25,9 +26,6 @@ class PolygonMeshHeatSolver {
   // Compute parallel transport along shortest geodesics from sources at points
   VertexData<Vector2> transportTangentVector(const Vertex& sourceVert, const Vector2& sourceVector);
   VertexData<Vector2> transportTangentVectors(const std::vector<std::tuple<Vertex, Vector2>>& sources);
-
-  // Compute the logarithmic map from a source point
-  // VertexData<Vector2> computeLogMap(const Vertex& sourceVert); // TODO?
 
   // Solve for signed distance from a curve comprising a sequence of vertices.
   VertexData<double> computeSignedDistance(const std::vector<std::vector<Vertex>>& curves,

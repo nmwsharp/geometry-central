@@ -946,7 +946,7 @@ Eigen::MatrixXd EmbeddedGeometryInterface::polygonPerFaceGradientMatrix(const Fa
   double A = faceAreas[f];
   Vector3 n = faceNormals[f];
   Eigen::Vector3d N = {n[0], n[1], n[2]};
-  return -1. / A * bracket(N) * polygonCoGradientMatrix(f);
+  return 1. / A * bracket(N) * polygonCoGradientMatrix(f);
 }
 
 Eigen::MatrixXd EmbeddedGeometryInterface::polygonCoGradientMatrix(const Face& f) {
