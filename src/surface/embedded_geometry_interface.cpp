@@ -358,6 +358,8 @@ void EmbeddedGeometryInterface::computeEdgeCotanWeights() {
 // === Polygon Operators
 
 // = Bunge et al. "Polygon Laplacian Made Simple" (2020), based on virtual refinement (virtual node method).
+// Copyright (C) 2020 Astrid Bunge, Philipp Herholz, Misha Kazhdan, Mario Botsch, MIT license
+// (Modified to work in geometry-central. Original code can be found here: https://github.com/mbotsch/polygon-laplacian)
 
 // Laplacian
 void EmbeddedGeometryInterface::computeSimplePolygonLaplacian() {
@@ -660,6 +662,9 @@ Eigen::VectorXd EmbeddedGeometryInterface::simplePolygonVirtualVertex(const Eige
 
 
 // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
+// Use of this source code is governed by a LGPL-3.0 license.
+// (Modified to work in geometry-central. Original code can be found here:
+// https://github.com/DGtal-team/DGtal/blob/master/src/DGtal/dec/PolygonalCalculus.h)
 
 // Laplacian
 void EmbeddedGeometryInterface::computePolygonLaplacian() {
