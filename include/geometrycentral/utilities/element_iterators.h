@@ -31,6 +31,7 @@ template <typename F>
 class RangeIteratorBase {
 
 public:
+  RangeIteratorBase() = default;
   RangeIteratorBase(typename F::ParentMeshT* mesh_, size_t iStart_, size_t iEnd_);
   const RangeIteratorBase& operator++();
   bool operator==(const RangeIteratorBase& other) const;
