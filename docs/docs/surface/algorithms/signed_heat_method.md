@@ -2,10 +2,11 @@ This section describes the _Signed Heat Method_ in geometry-central, which compu
 
 Note that these quantities all depend on the _intrinsic_ geometry of a surface (via the `IntrinsicGeometryInterface`). Therefore, these routines can be run on abstract geometric domains as well as traditional surfaces in 3D.
 
-These algorithms are described in [A Heat Method for Generalized Signed Distance](https://nzfeng.github.io/research/SignedHeatMethod/SignedDistance.pdf). 
+This algorithm is described in [A Heat Method for Generalized Signed Distance](https://nzfeng.github.io/research/SignedHeatMethod/SignedDistance.pdf). 
 
 `#include "geometrycentral/surface/signed_heat_method.h"`
 
+For the polygon mesh version, see the [polygon mesh heat solver](/surface/algorithms/polygon_heat_solver); for point clouds, see the [point cloud heat solver](/pointcloud/algorithms/heat_solver/).
 
 ## Signed Heat Solver
 

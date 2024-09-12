@@ -2,9 +2,9 @@
 
 Compute signed and unsigned geodesic distance, and transport tangent vectors using fast solvers based on short-time heat flow.
 
-![TODO: polygon mesh heat solve results](/media/point_heat_solvers_updated.png)
+![polygon mesh heat solve results](/media/polygon_heat_solvers.png)
 
-These routines implement general polygon mesh versions of the algorithms from:
+These routines implement polygon mesh versions of the algorithms from:
 
 - [The Heat Method for Distance Computation](http://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/index.html) (distance)
 - [The Vector Heat Method](https://nmwsharp.com/research/vector-heat-method) (parallel transport)
@@ -14,6 +14,7 @@ All computation is encapsulated by the `PolygonMeshHeatSolver` class, which main
 
 `#include "geometrycentral/surface/polygon_mesh_heat_solver.h"`
 
+For the original algorithms on triangle meshes, see the documentation for the [Unsigned Heat Method](/surface/algorithms/geodesic_distance/#heat-method-for-distance), [Vector Heat Method](/surface/algorithms/vector_heat_method), and [Signed Heat Method](/surface/algorithms/signed_heat_method).
 
 **Example:** Basic usage
 

@@ -286,8 +286,12 @@ void EmbeddedGeometryInterface::computeCornerAngles() {
     // WARNING: Logic duplicated between cached and immediate version
     Halfedge he = c.halfedge();
     Vector3 pA = vertexPositions[he.vertex()];
-    Vector3 pB = vertexPositions[he.next().vertex()];
-    Vector3 pC = vertexPositions[he.twin().next().next().vertex()];
+    he = he.next();
+    Vector3 pB = vertexPositions[he.vertex()];
+    do {
+      he = he.next();
+    } while (he.next() != c.halfedge());
+    Vector3 pC = vertexPositions[he.vertex()];
 
     double q = dot(unit(pB - pA), unit(pC - pA));
     q = clamp(q, -1.0, 1.0);
