@@ -80,6 +80,7 @@ nav:
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
       - 'Intersection' : 'surface/algorithms/intersection.md'
       - 'Parameterization' : 'surface/algorithms/parameterization.md'
+      - 'Polygon Mesh Heat Distance & Transport' : 'surface/algorithms/polygon_heat_solver.md'
       - 'Remeshing' : 'surface/algorithms/remeshing.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
       - 'Signed Heat Method' : 'surface/algorithms/signed_heat_method.md'

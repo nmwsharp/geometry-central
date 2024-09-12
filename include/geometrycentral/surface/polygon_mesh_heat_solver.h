@@ -56,6 +56,7 @@ private:
 
   // Helpers
   void buildSignedCurveSource(const std::vector<Vertex>& curve, Vector<std::complex<double>>& X0) const;
+  double computeAverageValue(const std::vector<std::vector<Vertex>>& curves, const Vector<double>& u);
 };
 
 } // namespace surface

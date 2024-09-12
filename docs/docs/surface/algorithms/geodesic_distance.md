@@ -182,6 +182,8 @@ This class also supports any (possibly-nonmanifold) triangle mesh as input, and 
 
 `#include "geometrycentral/surface/heat_method_distance.h"`
 
+For the polygon mesh version, see the [polygon mesh heat solver](/surface/algorithms/polygon_heat_solver); for point clouds, see the [point cloud heat solver](/pointcloud/algorithms/heat_solver/).
+
 ### Single Solves
 
 A one-off utility function is provided which computes the distance from a source vertex using the heat method. Repeated solves or more general source data should use the stateful version below.

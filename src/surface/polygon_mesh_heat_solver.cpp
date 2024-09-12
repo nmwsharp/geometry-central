@@ -7,24 +7,14 @@ PolygonMeshHeatSolver::PolygonMeshHeatSolver(EmbeddedGeometryInterface& geom_, d
     : tCoef(tCoef_), mesh(geom_.mesh), geom(geom_)
 
 {
-  // Compute the maximum length over all polygon diagonals, as suggested by de Goes et al.
-  double maxDiagonalLength = 0.;
-  for (Face f : mesh.faces()) {
-    std::vector<Vertex> vertices;
-    for (Vertex v : f.adjacentVertices()) {
-      vertices.push_back(v);
-    }
-    size_t n = vertices.size();
-    for (size_t i = 0; i < n; i++) {
-      Vector3 pi = geom.vertexPositions[vertices[i]];
-      for (size_t j = i + 1; j < n; j++) {
-        Vector3 pj = geom.vertexPositions[vertices[j]];
-        double length = (pi - pj).norm();
-        maxDiagonalLength = std::max(maxDiagonalLength, length);
-      }
-    }
-  }
-  shortTime = tCoef * maxDiagonalLength * maxDiagonalLength;
+  // Though de Goes et al. suggest using the maximum length over all polygon diagonals, using the mean length seems more
+  // accurate.
+  geom.requireEdgeLengths();
+  double meanEdgeLength = 0.;
+  for (Edge e : mesh.edges()) meanEdgeLength += geom.edgeLengths[e];
+  meanEdgeLength /= mesh.nEdges();
+  shortTime = tCoef * meanEdgeLength * meanEdgeLength;
+  geom.unrequireEdgeLengths();
 
   geom.requirePolygonVertexLumpedMassMatrix();
   geom.requirePolygonLaplacian();
@@ -33,7 +23,6 @@ PolygonMeshHeatSolver::PolygonMeshHeatSolver(EmbeddedGeometryInterface& geom_, d
   geom.unrequirePolygonVertexLumpedMassMatrix();
   geom.unrequirePolygonLaplacian();
 }
-
 
 void PolygonMeshHeatSolver::ensureHaveScalarHeatSolver() {
   if (scalarHeatSolver != nullptr) return;
@@ -116,11 +105,12 @@ VertexData<double> PolygonMeshHeatSolver::extendScalars(const std::vector<std::t
 
   size_t V = mesh.nVertices();
   Vector<double> rhsVals = Vector<double>::Zero(V);
-  Vector<double> rhsOnes = Vector<double>::Ones(V);
+  Vector<double> rhsOnes = Vector<double>::Zero(V);
   for (size_t i = 0; i < sources.size(); i++) {
     size_t ind = std::get<0>(sources[i]).getIndex();
     double val = std::get<1>(sources[i]);
-    rhsVals(ind) = val;
+    rhsVals[ind] = val;
+    rhsOnes[ind] = 1.;
   }
 
   Vector<double> interpVals = scalarHeatSolver->solve(rhsVals);
@@ -194,7 +184,7 @@ VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vecto
   geom.requireVertexNormals();
   for (const auto& curve : curves) buildSignedCurveSource(curve, X0);
   geom.unrequireVertexNormals();
-  if (X0.norm() == 0) throw std::logic_error("Input curves must be nonempty to run Signed Heat Method.");
+  GC_SAFETY_ASSERT(X0.norm() != 0, "must have at least one source");
 
   ensureHaveVectorHeatSolver();
   Vector<std::complex<double>> Xt = vectorHeatSolver->solve(X0);
@@ -227,6 +217,9 @@ VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vecto
   if (levelSetConstraint == LevelSetConstraint::None) {
     ensureHavePoissonSolver();
     phi = poissonSolver->solve(divYt);
+    // Shift so that average value is zero along input curves.
+    double shift = computeAverageValue(curves, phi);
+    phi -= shift * Vector<double>::Ones(V);
   } else if (levelSetConstraint == LevelSetConstraint::ZeroSet) {
     Vector<bool> setAMembership = Vector<bool>::Ones(V);
     for (const auto& curve : curves) {
@@ -267,6 +260,8 @@ VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vecto
     RHS.head(V) = divYt;
     Vector<double> soln = solveSquare(LHS, RHS);
     phi = soln.head(V);
+    double shift = computeAverageValue(curves, phi);
+    phi -= shift * Vector<double>::Ones(V);
   }
 
   geom.unrequireVertexIndices();
@@ -302,6 +297,34 @@ void PolygonMeshHeatSolver::buildSignedCurveSource(const std::vector<Vertex>& cu
     X0[vIdxB] += std::complex<double>(dot(geom.vertexTangentBasis[vB][0], normalB),
                                       dot(geom.vertexTangentBasis[vB][1], normalB));
   }
+}
+
+double PolygonMeshHeatSolver::computeAverageValue(const std::vector<std::vector<Vertex>>& curves,
+                                                  const Vector<double>& u) {
+
+  geom.requireVertexIndices();
+
+  double shift = 0.;
+  double totalLength = 0.;
+  for (const auto& curve : curves) {
+    size_t nNodes = curve.size();
+    for (size_t i = 0; i < nNodes - 1; i++) {
+      Vertex vA = curve[i];
+      Vertex vB = curve[i + 1];
+      size_t vIdxA = geom.vertexIndices[vA];
+      size_t vIdxB = geom.vertexIndices[vB];
+      Vector3 pA = geom.vertexPositions[vA];
+      Vector3 pB = geom.vertexPositions[vB];
+      double length = (pB - pA).norm();
+      shift += 0.5 * length * (u[vIdxA] + u[vIdxB]);
+      totalLength += length;
+    }
+  }
+  shift /= totalLength;
+
+  geom.unrequireVertexIndices();
+
+  return shift;
 }
 
 } // namespace surface

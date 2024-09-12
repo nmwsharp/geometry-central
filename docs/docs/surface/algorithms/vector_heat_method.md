@@ -6,6 +6,7 @@ These algorithms are described in [The Vector Heat Method](http://www.cs.cmu.edu
 
 `#include "geometrycentral/surface/vector_heat_method.h"`
 
+For the polygon mesh version, see the [polygon mesh heat solver](/surface/algorithms/polygon_heat_solver); for point clouds, see the [point cloud heat solver](/pointcloud/algorithms/heat_solver/).
 
 ## Vector Heat Solver
 
