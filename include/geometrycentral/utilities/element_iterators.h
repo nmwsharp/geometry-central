@@ -34,6 +34,8 @@ public:
   RangeIteratorBase() = default;
   RangeIteratorBase(typename F::ParentMeshT* mesh_, size_t iStart_, size_t iEnd_);
   const RangeIteratorBase& operator++();
+  RangeIteratorBase operator++(int);
+
   bool operator==(const RangeIteratorBase& other) const;
   bool operator!=(const RangeIteratorBase& other) const;
   typename F::Etype operator*() const;
