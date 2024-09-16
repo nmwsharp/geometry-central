@@ -86,8 +86,15 @@ else()
   add_library (Eigen3::Eigen ALIAS eigen)
   target_include_directories(eigen INTERFACE
       $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
-      $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
+      $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
       )
+  install(TARGETS eigen
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 list(APPEND GC_DEP_LIBS Eigen3::Eigen)
@@ -117,26 +124,21 @@ else (SUITESPARSE)
   message("-- Building without SuiteSparse.")
 endif (SUITESPARSE)
 
-# HACK BY NICK
-# The SuiteSparse logic above doesn't look for UMFpack, but we need it.
-# This code attempts to find if by assuming that it will be in the same place
-# as cholmod
-if(SUITESPARSE AND SUITESPARSE_FOUND)
-    string(REGEX REPLACE "cholmod" "umfpack" UMFPACK_LIBRARY ${CHOLMOD_LIBRARY})
-    message("-- Guesstimated umfpack location as: ${UMFPACK_LIBRARY}")
-    if(EXISTS ${UMFPACK_LIBRARY})
-        list(APPEND SUITESPARSE_LIBRARIES ${UMFPACK_LIBRARY})
-    else()
-        message(WARNING "UMFPack guess failed, so we don't actually have SUITESPARSE support.")
-        set(SUITESPARSE_FOUND FALSE)
-    endif()
-endif()
-
 if(SUITESPARSE AND SUITESPARSE_FOUND)
     SET(GC_HAVE_SUITESPARSE TRUE)
     SET(GC_HAVE_SUITESPARSE TRUE PARENT_SCOPE)
-    set(SUITESPARSE_INCLUDE_DIRS "${SUITESPARSE_INCLUDE_DIRS}" PARENT_SCOPE)
-    set(SUITESPARSE_LIBRARIES    "${SUITESPARSE_LIBRARIES}"    PARENT_SCOPE)
+    if(NOT TARGET SuiteSparse::cholmod)
+      message(FATAL_ERROR "SuiteSparse::cholmod target not found.")
+    endif()
+    set_target_properties(SuiteSparse::cholmod PROPERTIES IMPORTED_GLOBAL TRUE)
+    if(NOT TARGET SuiteSparse::spqr)
+      message(FATAL_ERROR "SuiteSparse::spqr target not found.")
+    endif()
+    set_target_properties(SuiteSparse::spqr PROPERTIES IMPORTED_GLOBAL TRUE)
+    if(NOT TARGET SuiteSparse::umfpack)
+      message(FATAL_ERROR "SuiteSparse::umfpack target not found.")
+    endif()
+    set_target_properties(SuiteSparse::umfpack PROPERTIES IMPORTED_GLOBAL TRUE)
 else()
     SET(GC_HAVE_SUITESPARSE FALSE)
     SET(GC_HAVE_SUITESPARSE FALSE PARENT_SCOPE)
@@ -147,6 +149,13 @@ endif()
 if (NOT TARGET nanort)
     add_library(nanort INTERFACE)
     target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+    install(TARGETS nanort
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 if (NOT TARGET nanoflann)
@@ -159,11 +168,25 @@ if (NOT TARGET nanoflann)
         ${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include/nanoflann.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann/nanoflann.hpp SYMBOLIC)
     target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    install(TARGETS nanoflann
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 if (NOT TARGET happly)
     add_library(happly INTERFACE)
     target_include_directories(happly INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/happly>)
+    install(TARGETS happly
+      EXPORT GeometryCentral
+      LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+      RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+      INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endif()
 
 # Find other simpler dependencies
