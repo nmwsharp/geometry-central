@@ -827,13 +827,14 @@ void EmbeddedGeometryInterface::computePolygonDECOperators() {
   size_t V = mesh.nVertices();
   size_t E = mesh.nEdges();
   size_t F = mesh.nFaces();
-  size_t H = mesh.nInteriorHalfedges();
+  size_t H = mesh.nHalfedges(); // technically only needs to be nInteriorHalfedges(), but interior halfedges aren't
+                                // indexed densely
   std::vector<Eigen::Triplet<double>> tripletsD0, tripletsD1, tripletsH1;
 
   // exterior derivatives
   polygonD0 = Eigen::SparseMatrix<double>(H, V);
-  for (Edge e : mesh.edges()) {
-    for (Halfedge he : e.adjacentHalfedges()) {
+  for (Face f : mesh.faces()) {
+    for (Halfedge he : f.adjacentHalfedges()) {
       size_t hIdx = halfedgeIndices[he];
       size_t vA = vertexIndices[he.tailVertex()];
       size_t vB = vertexIndices[he.tipVertex()];
