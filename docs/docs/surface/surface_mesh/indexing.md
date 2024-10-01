@@ -106,7 +106,13 @@ size_t i = e.getIndex();
 
 ??? func "`#!cpp size_t Corner::getIndex() const`"
 
-    Returns an index between 0 and _C_-1, where _C_ is the number of corners in the mesh.
+    Returns an index between 0 and _H_-1, where _H_ is the number of halfedges in the mesh.
+
+!!! warning
+
+    **NOTE:** Due to implementation constraints, raw corner indices behave differently from all other indices. Even when a mesh is compressed, `corner.getIndex()` will NOT necessarily be a dense enumeration from [0,C). There will be some unsued indices, and the indices will range up to `H`. Currently, this occurs only on a manifold mesh with boundary; the gaps occur because corners really just syntactic sugar for halfedges, but exterior halfedges are also enumerated.
+
+    The `cornerIndices` containers above do not have this drawback.
 
 ??? func "`#!cpp size_t Vertex::getIndex() const`"
 
