@@ -1037,7 +1037,7 @@ Vertex ManifoldSurfaceMesh::insertVertex(Face fIn) {
 }
 
 
-Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
+Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e, EdgeCollapseFixupCallback fixup) {
   /*  must maintain these
       std::vector<size_t> heNextArr;    // he.next(), forms a circular singly-linked list in each face
       std::vector<size_t> heVertexArr;  // he.vertex()
@@ -1124,6 +1124,12 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
     deleteElement(vA);
     deleteElement(fA);
 
+    if (fixup) {
+      // We destroyed heA2.edge(), but that also destroys heC2.
+      // heC2 (aka heC1.next) shows up in the next configuration as heA1.
+      fixup(heA1, heC2);
+    }
+
     return vB;
   }
 
@@ -1208,6 +1214,15 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
       deleteElement(fA);
       deleteElement(fB);
 
+      if (fixup) {
+        // We destroyed heB1.edge() and heA2.edge() along with their halfedges,
+        // but that also destroys heD1 and heC2 halfedges.
+        // They become heB2 and heA1 in the new configuration.
+        // We need to restore their data.
+        fixup(heB2, heD1);
+        fixup(heA1, heC2);
+      }
+
       return vB;
     }
 
@@ -1255,6 +1270,13 @@ Vertex ManifoldSurfaceMesh::collapseEdgeTriangular(Edge e) {
       deleteElement(fA);
       deleteElement(fB);
 
+      if (fixup) {
+        // We destroyed e, heB1, and heA2 along with their halfedges,
+        // and A2 and B1 are gone. However, that leaves us to reassign
+        // C1, because destroying B1 also destroyed C1, and made it become B2.
+        // We need to fix up data in B2 to match C1.
+        fixup(heB2, heC1);
+      }
       return vB;
     }
 
