@@ -38,7 +38,7 @@ public:
 
 
   // === The Logarithmic map
-  VertexData<Vector2> computeLogMap(const Vertex& sourceVert, double vertexDistanceShift = 0.);
+  VertexData<Vector2> computeLogMap(const Vertex& sourceVert, double vertexDistanceShift = 0., double vertAngleRad = 0.);
   VertexData<Vector2> computeLogMap(const SurfacePoint& sourceP);
 
   // === Options and parameters
