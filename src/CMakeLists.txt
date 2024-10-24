@@ -22,6 +22,7 @@ SET(SRCS
   surface/extrinsic_geometry_interface.cpp
   surface/exact_geodesic_helpers.cpp
   surface/exact_geodesics.cpp
+  surface/embed_convex.cpp
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
@@ -30,6 +31,7 @@ SET(SRCS
   surface/direction_fields.cpp
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
+  surface/signed_heat_method.cpp
   surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
   surface/normal_coordinates.cpp
@@ -40,6 +42,7 @@ SET(SRCS
   surface/integer_coordinates_intrinsic_triangulation.cpp
   surface/common_subdivision.cpp
   surface/surface_point.cpp
+  surface/barycentric_vector.cpp
   surface/fast_marching_method.cpp
   surface/intersection.cpp
   surface/uniformize.cpp
@@ -127,6 +130,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.ipp
   ${INCLUDE_ROOT}/surface/polygon_soup_mesh.h
+  ${INCLUDE_ROOT}/surface/signed_heat_method.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
@@ -187,7 +191,7 @@ target_compile_definitions(geometry-central PUBLIC NOMINMAX _USE_MATH_DEFINES)
 # Define CMAKE flag used in these sources (but should be kept OUT of headers)
 if(GC_HAVE_SUITESPARSE)
   target_compile_definitions(geometry-central PUBLIC GC_HAVE_SUITESPARSE)
-  target_include_directories(geometry-central PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
+  target_include_directories(geometry-central SYSTEM PRIVATE ${SUITESPARSE_INCLUDE_DIRS})
   target_link_libraries(geometry-central PRIVATE ${SUITESPARSE_LIBRARIES})
 endif()
 

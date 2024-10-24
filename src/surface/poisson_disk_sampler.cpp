@@ -6,15 +6,6 @@ namespace surface {
 PoissonDiskSampler::PoissonDiskSampler(ManifoldSurfaceMesh& mesh_, VertexPositionGeometry& geometry_)
     : mesh(mesh_), geometry(geometry_) {
 
-  // Compute mean edge length.
-  geometry.requireEdgeLengths();
-  meanEdgeLength = 0.;
-  for (Edge e : mesh.edges()) {
-    meanEdgeLength += geometry.edgeLengths[e];
-  }
-  meanEdgeLength /= mesh.nEdges();
-  geometry.unrequireEdgeLengths();
-
   // Prepare spatial lookup
   Vector3 bboxMin, bboxMax;
   std::tie(bboxMin, bboxMax) = boundingBox();
@@ -90,7 +81,7 @@ SurfacePoint PoissonDiskSampler::generateCandidate(const SurfacePoint& xi) const
   TraceGeodesicResult trace;
 
   Vector2 dir = Vector2::fromAngle(randomReal(0., 2. * PI));
-  double dist = std::sqrt(randomReal(rMinDist, 2. * rMinDist));
+  double dist = randomReal(rMinDist, 2. * rMinDist);
   trace = traceGeodesic(geometry, xi, dist * dir);
 
   pathEndpoint = trace.endPoint;
@@ -124,17 +115,15 @@ void PoissonDiskSampler::addPointToSpatialLookup(const Vector3& newPos) {
 }
 
 /*
- * Mark all buckets with a radius of <R> buckets as occupied, as well.
+ * Mark all buckets within a radius of <radius> as occupied.
  */
-void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const SurfacePoint& newPoint, int R,
-                                                           bool use3DAvoidanceRadius) {
+void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const SurfacePoint& newPoint, double radius,
+                                                           bool use3DAvoidance) {
 
   Vector3 newPos = newPoint.interpolate(geometry.vertexPositions);
   addPointToSpatialLookup(newPos);
 
-  if (R <= 0) return;
-
-  if (!use3DAvoidanceRadius) {
+  if (!use3DAvoidance) {
     // This places fictitious points in a metric ball approximately of radius R*r centered at <newPoint>.
     // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
     // points in each layer are spaced approx. r apart around the circular layer. The idea is that no point can be added
@@ -144,21 +133,22 @@ void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const SurfacePoint& n
     // "spiky" meshes.
     SurfacePoint pathEndpoint;
     TraceGeodesicResult trace;
-    for (int rIter = 0; rIter <= R; rIter++) {
-      double dist = rIter * rMinDist;
-      for (double theta = 0.; theta <= 2. * PI; theta += rMinDist / dist / 2.) {
-        trace = traceGeodesic(geometry, newPoint, dist * Vector2::fromAngle(theta));
+    double r = rMinDist;
+    while (r < radius) {
+      for (double theta = 0.; theta <= 2. * PI; theta += rMinDist / r / 2.) {
+        trace = traceGeodesic(geometry, newPoint, r * Vector2::fromAngle(theta));
         pathEndpoint = trace.endPoint;
         addPointToSpatialLookup(pathEndpoint.interpolate(geometry.vertexPositions));
       }
+      r += rMinDist;
     }
   } else {
     // This places fictitious points in a *solid 3D ball* approximately of radius R*r centered at <newPoint>.
     // The solid ball is built by constructing R layers, radially outward; each layer is spaced r apart, and
     // points in each layer are spaced approx. r apart in a "grid" (a mapping from the cylinder to the sphere that has
     // been scaled s.t. projected points end up being approx. r apart.)
-    for (int rIter = 0; rIter <= R; rIter++) {
-      double r = rIter * rMinDist;
+    double r = rMinDist;
+    while (r < radius) {
       for (double z = -0.99; z <= 0.99; z += rMinDist) {
         double coeff = std::sqrt(1. - z * z);
         for (double theta = 0.0; theta <= 2.0 * PI; theta += rMinDist / coeff) {
@@ -167,6 +157,7 @@ void PoissonDiskSampler::addPointToSpatialLookupWithRadius(const SurfacePoint& n
           addPointToSpatialLookup(pos);
         }
       }
+      r += rMinDist;
     }
   }
 }
@@ -256,22 +247,19 @@ void PoissonDiskSampler::clearData() {
 /*
  * The final function.
  */
-std::vector<SurfacePoint> PoissonDiskSampler::sample(double rCoef_, int kCandidates_,
-                                                     std::vector<SurfacePoint> pointsToAvoid_, int rAvoidance,
-                                                     bool use3DAvoidanceRadius) {
+std::vector<SurfacePoint> PoissonDiskSampler::sample(const PoissonDiskOptions& options) {
 
   clearData();
 
   // Set parameters.
-  rCoef = rCoef_;
-  rMinDist = rCoef * meanEdgeLength;
+  rMinDist = options.minDist;
   sideLength = rMinDist / std::sqrt(3.0);
-  kCandidates = kCandidates_;
-  pointsToAvoid = pointsToAvoid_;
+  kCandidates = options.kCandidates;
+  pointsToAvoid = options.pointsToAvoid;
 
   // Add points to avoid.
   for (const SurfacePoint& pt : pointsToAvoid) {
-    addPointToSpatialLookupWithRadius(pt, rAvoidance - 1, use3DAvoidanceRadius);
+    addPointToSpatialLookupWithRadius(pt, options.minDistAvoidance, options.use3DAvoidance);
   }
 
   // Carry out sampling process for each connected component.

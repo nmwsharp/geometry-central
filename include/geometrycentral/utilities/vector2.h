@@ -58,9 +58,11 @@ struct Vector2 {
 
   Vector2 normalize() const;
   Vector2 normalizeCutoff(double mag = 0.) const;
-  Vector2 unit() const; // alias for normalize
-  Vector2 rotate(double theta) const;
-  Vector2 rotate90() const;
+  Vector2 unit() const;                  // alias for normalize
+  Vector2 rotate(double theta) const;    // DEPRECATED, WARNING: rotates clockwise
+  Vector2 rotateCW(double theta) const;  // clockwise
+  Vector2 rotateCCW(double theta) const; // counter-clockwise
+  Vector2 rotate90() const;              // counter-clockwise
 
   // Complex functions
   Vector2 pow(double p) const;  // complex power

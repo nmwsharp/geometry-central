@@ -22,6 +22,13 @@ inline const RangeIteratorBase<F>& RangeIteratorBase<F>::operator++() {
 }
 
 template <typename F>
+inline RangeIteratorBase<F> RangeIteratorBase<F>::operator++(int) {
+  RangeIteratorBase<F> tmp = *this;
+  ++(*this);
+  return tmp;
+}
+
+template <typename F>
 inline bool RangeIteratorBase<F>::operator==(const RangeIteratorBase<F>& other) const {
   return iCurr == other.iCurr;
 }

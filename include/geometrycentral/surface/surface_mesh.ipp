@@ -19,10 +19,19 @@ inline size_t SurfaceMesh::nBoundaryLoops()     const { return nBoundaryLoopsCou
 
 // Capacities
 inline size_t SurfaceMesh::nHalfedgesCapacity()        const { return nHalfedgesCapacityCount; }
+inline size_t SurfaceMesh::nCornersCapacity()          const { return nHalfedgesCapacityCount; }
 inline size_t SurfaceMesh::nVerticesCapacity()         const { return nVerticesCapacityCount; }
 inline size_t SurfaceMesh::nEdgesCapacity()            const { return nEdgesCapacityCount; }
 inline size_t SurfaceMesh::nFacesCapacity()            const { return nFacesCapacityCount - nBoundaryLoopsFillCount; }
 inline size_t SurfaceMesh::nBoundaryLoopsCapacity()    const { return nFacesCapacityCount - nFacesFillCount; }
+
+// Index size
+inline size_t SurfaceMesh::halfedgeIndexSize()        const { return nHalfedgesFillCount; }
+inline size_t SurfaceMesh::cornerIndexSize()          const { return nHalfedgesFillCount; }
+inline size_t SurfaceMesh::vertexIndexSize()          const { return nVerticesFillCount; }
+inline size_t SurfaceMesh::edgeIndexSize()            const { return nEdgesFillCount; }
+inline size_t SurfaceMesh::faceIndexSize()            const { return nFacesFillCount; }
+inline size_t SurfaceMesh::boundaryLoopIndexSize()    const { return nBoundaryLoopsFillCount; }
 
 // Connectivity
 inline size_t SurfaceMesh::heNext(size_t iHe)               const { return heNextArr[iHe]; }

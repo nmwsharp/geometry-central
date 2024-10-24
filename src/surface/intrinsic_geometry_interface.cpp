@@ -1,6 +1,6 @@
 #include "geometrycentral/surface/intrinsic_geometry_interface.h"
 
-//#include "geometrycentral/surface/discrete_operators.h"
+// #include "geometrycentral/surface/discrete_operators.h"
 
 #include <fstream>
 #include <limits>
@@ -639,7 +639,8 @@ void IntrinsicGeometryInterface::unrequireCrouzeixRaviartMassMatrix() { crouzeix
 void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
   edgeIndicesQ.ensureHave();
   halfedgeCotanWeightsQ.ensureHave();
-  cornerAnglesQ.ensureHave();
+  faceAreasQ.ensureHave();
+  edgeLengthsQ.ensureHave();
 
   crouzeixRaviartConnectionLaplacian = Eigen::SparseMatrix<std::complex<double>>(mesh.nEdges(), mesh.nEdges());
   std::vector<Eigen::Triplet<std::complex<double>>> tripletList;
@@ -655,13 +656,17 @@ void IntrinsicGeometryInterface::computeCrouzeixRaviartConnectionLaplacian() {
 
       double weight = 4.0 * halfedgeCotanWeights[he];
       double s_ij = (heA.orientation() == heB.orientation()) ? 1. : -1.;
-      std::complex<double> rot_ij = -Vector2::fromAngle(-cornerAngles[c]);
-      std::complex<double> rot_ji = -Vector2::fromAngle(cornerAngles[c]);
+      double lOpp = edgeLengths[he.edge()];
+      double lA = edgeLengths[heB.edge()];
+      double lB = edgeLengths[heA.edge()];
+      double cosTheta = (lA * lA + lB * lB - lOpp * lOpp) / (2. * lA * lB);
+      double sinTheta = 2. * faceAreas[f] / (lA * lB);
+      std::complex<double> rot_ij(-cosTheta, sinTheta);
 
       tripletList.emplace_back(iE_i, iE_i, weight);
       tripletList.emplace_back(iE_j, iE_j, weight);
       tripletList.emplace_back(iE_i, iE_j, -weight * rot_ij * s_ij);
-      tripletList.emplace_back(iE_j, iE_i, -weight * rot_ji * s_ij);
+      tripletList.emplace_back(iE_j, iE_i, -weight * std::conj(rot_ij) * s_ij);
     }
   }
   crouzeixRaviartConnectionLaplacian.setFromTriplets(tripletList.begin(), tripletList.end());

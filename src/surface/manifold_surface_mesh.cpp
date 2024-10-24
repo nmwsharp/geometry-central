@@ -1332,13 +1332,11 @@ bool ManifoldSurfaceMesh::removeFaceAlongBoundary(Face f) {
   // Find the boundary halfedge
   Halfedge heB;
   int bCount = 0;
-  int fCount = 0;
   for (Halfedge he : f.adjacentHalfedges()) {
     if (!he.twin().isInterior()) {
       bCount++;
       heB = he;
     }
-    fCount++;
   }
   if (bCount == 0) {
     throw std::runtime_error("called on non-boundary face");
