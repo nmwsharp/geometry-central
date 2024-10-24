@@ -599,6 +599,8 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
 
     A normal vector for each face.
 
+    If the face is not triangular (more than three edges), returns the normalized [vector area](https://en.wikipedia.org/wiki/Vector_area), computed via the [shoelace formula](https://en.wikipedia.org/wiki/Shoelace_formula).
+
     - **member:** `FaceData<Vector3> EmbeddedGeometryInterface::faceNormals`
     - **require:** `void EmbeddedGeometryInterface::requireFaceNormals()`
 
