@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
+cmake_policy(SET CMP0169 OLD)   # use deprecated FetchContent_Populate
+
 # We will accumulate all depenency includes and link libraries here
 # (can be relative paths when building list, we will convert all to absolute at end)
 SET(GC_DEP_LIBS "")
@@ -74,8 +76,8 @@ else()
       )
       FetchContent_GetProperties(eigen)
       if(NOT eigen_POPULATED)
-          FetchContent_Populate(eigen)
-
+          FetchContent_Populate(eigen) # NOTE: this form was deprecated in 3.30, we set CMP0169 to silence the warning
+          
           include(EigenChecker)
           eigen3checker(${eigen_SOURCE_DIR} 3.3)
       endif()
@@ -84,7 +86,7 @@ else()
   endif()
   add_library (eigen INTERFACE)
   add_library (Eigen3::Eigen ALIAS eigen)
-  target_include_directories(eigen INTERFACE
+  target_include_directories(eigen SYSTEM INTERFACE
       $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:${INCLUDE_INSTALL_DIR}>
       )

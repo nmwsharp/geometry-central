@@ -1,4 +1,3 @@
-
 #include "geometrycentral/surface/manifold_surface_mesh.h"
 #include "geometrycentral/surface/meshio.h"
 #include "geometrycentral/surface/rich_surface_mesh_data.h"
@@ -233,6 +232,66 @@ TEST_F(HalfedgeMeshSuite, IterateBoundaryLoopsTest) {
     }
 
     EXPECT_EQ(seenElements.size(), a.mesh->nBoundaryLoops());
+  }
+}
+
+
+// ============================================================
+// =============== Counts and internals
+// ============================================================
+
+TEST_F(HalfedgeMeshSuite, IndexCountTest) {
+  for (MeshAsset& a : allMeshes()) {
+    a.printThyName();
+    
+    { // Vertices
+      bool maxSeen = false;
+      for (Vertex v : a.mesh->vertices()) {
+        EXPECT_LT(v.getIndex(), a.mesh->vertexIndexSize());
+        if ((v.getIndex() + 1) == a.mesh->vertexIndexSize()) maxSeen = true;
+      }
+      EXPECT_TRUE(maxSeen);
+    }
+
+    { // Halfedges
+      bool maxSeen = false;
+      for (Halfedge he : a.mesh->halfedges()) {
+        EXPECT_LT(he.getIndex(), a.mesh->halfedgeIndexSize());
+        if ((he.getIndex() + 1) == a.mesh->halfedgeIndexSize()) maxSeen = true;
+      }
+      EXPECT_TRUE(maxSeen);
+    }
+    
+    { // Corners
+      bool maxSeen = false;
+      for (Corner c : a.mesh->corners()) {
+        EXPECT_LT(c.getIndex(), a.mesh->cornerIndexSize());
+
+        // special case for corners, they have a weaker guarantee and 
+        // cornerIndexSize() may be not-tight by 1
+        if ((c.getIndex() + 1) == a.mesh->cornerIndexSize()) maxSeen = true;
+        if ((c.getIndex() + 2) == a.mesh->cornerIndexSize()) maxSeen = true;
+      }
+      EXPECT_TRUE(maxSeen);
+    }
+    
+    { // Edges
+      bool maxSeen = false;
+      for (Edge e : a.mesh->edges()) {
+        EXPECT_LT(e.getIndex(), a.mesh->edgeIndexSize());
+        if ((e.getIndex() + 1) == a.mesh->edgeIndexSize()) maxSeen = true;
+      }
+      EXPECT_TRUE(maxSeen);
+    }
+    
+    { // Faces
+      bool maxSeen = false;
+      for (Face f : a.mesh->faces()) {
+        EXPECT_LT(f.getIndex(), a.mesh->faceIndexSize());
+        if ((f.getIndex() + 1) == a.mesh->faceIndexSize()) maxSeen = true;
+      }
+      EXPECT_TRUE(maxSeen);
+    }
   }
 }
 
@@ -763,7 +822,6 @@ TEST_F(HalfedgeMeshSuite, EdgeDiamondNavigator) {
     }
   }
 }
-
 
 // ============================================================
 // =============== Utilities
