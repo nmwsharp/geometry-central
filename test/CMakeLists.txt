@@ -106,6 +106,7 @@ set(TEST_SRCS
   src/load_test_meshes.cpp
   src/point_cloud_test.cpp
   src/poisson_disk_sampler_test.cpp
+  src/polygon_operators_test.cpp
   src/stl_reader_test.cpp
   src/surface_misc_test.cpp
 )
