@@ -1,0 +1,22 @@
+cc_library(
+    name = "test_helpers",
+    hdrs = glob(["include/*.h"]),
+    includes = ["."],
+    strip_include_prefix = "include",
+)
+
+cc_test(
+    name = "all_tests",
+    srcs = glob(["src/*.cpp"]),
+    data = [
+        "//test/assets:assets",
+    ],
+    defines = ["GC_TEST_ASSETS_ABS_PATH=\"\\\"test/assets\\\"\""],
+    deps = [
+        ":test_helpers",
+        "//:numerical",
+        "//:pointcloud",
+        "//:surface",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

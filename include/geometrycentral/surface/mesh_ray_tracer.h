@@ -2,7 +2,6 @@
 
 #include "geometrycentral/surface/geometry.h"
 
-
 #include "nanort/nanort.h"
 
 namespace geometrycentral {
