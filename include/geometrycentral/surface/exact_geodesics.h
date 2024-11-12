@@ -100,6 +100,7 @@ protected:
   bool check_stop_conditions(unsigned& index) const;
 
   void clear();
+  void clear_data();
 
   list_pointer interval_list(Edge e) { return &m_edge_interval_lists[e]; };
   const_list_pointer interval_list(Edge e) const { return &m_edge_interval_lists[e]; };
