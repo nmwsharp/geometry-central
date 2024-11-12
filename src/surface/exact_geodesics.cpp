@@ -16,6 +16,8 @@ GeodesicAlgorithmExact::GeodesicAlgorithmExact(SurfaceMesh& mesh_, IntrinsicGeom
     : m_max_propagation_distance(1e100), mesh(mesh_), geom(geom_), m_memory_allocator(mesh_.nEdges(), mesh_.nEdges()) {
 
   geom.requireEdgeLengths();
+  geom.requireCornerAngles();
+  geom.requireVertexGaussianCurvatures();
 
   m_edge_interval_lists = EdgeData<IntervalList>(mesh);
   for (Edge e : mesh.edges()) {
@@ -443,9 +445,19 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
   m_queue_max_size = 0;
 
   IntervalWithStop candidates[2];
-  geom.requireCornerAngles();
+
+  int itr = 0;
+  auto _start = std::chrono::high_resolution_clock::now();
+  auto _before = _start;
 
   while (!m_queue.empty()) {
+    itr++;
+
+    auto _now = std::chrono::high_resolution_clock::now();
+    // std::cout << "  " << itr << ": " << std::chrono::duration_cast<std::chrono::microseconds>(_now - _before).count() << "us" << std::endl;
+
+    _before = _now;
+
     m_queue_max_size = std::max(m_queue.size(), m_queue_max_size);
 
     unsigned const check_period = 10;
@@ -469,9 +481,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     bool const last_interval = min_interval->next() == nullptr;
 
     auto saddleOrBoundary = [&](Vertex v) -> bool {
-      geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
-      geom.unrequireVertexGaussianCurvatures();
       return saddle || vertexIsBoundary[v];
     };
 
@@ -605,8 +615,6 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
   m_propagation_distance_stopped = m_queue.empty() ? GEODESIC_INF : (*m_queue.begin())->min();
   clock_t stop = clock();
   m_time_consumed = (static_cast<double>(stop) - static_cast<double>(start)) / CLOCKS_PER_SEC;
-
-  geom.unrequireCornerAngles();
 
   /*	for(unsigned i=0; i<m_edge_interval_lists.size(); ++i)
     {
@@ -1379,6 +1387,22 @@ void GeodesicAlgorithmExact::clear() {
   }
   m_propagation_distance_stopped = GEODESIC_INF;
 };
+
+void GeodesicAlgorithmExact::clear_data() {
+  // reset data except:
+  // - m_max_propagation_distance
+  // - mesh
+  // - geom
+  // - m_memory_allocator
+  // - m_edge_interval_lists
+  // - vertexIsManifold
+  // - vertexIsBoundary
+  m_stop_vertices.clear();
+  m_time_consumed = 0.0;
+  m_propagation_distance_stopped = GEODESIC_INF;
+  m_queue.clear();
+  m_sources.clear();
+}
 
 } // namespace surface
 } // namespace geometrycentral
