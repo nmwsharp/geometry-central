@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.8)
 
-cmake_policy(SET CMP0169 OLD)   # use deprecated FetchContent_Populate
+if(POLICY CMP0169)
+    cmake_policy(SET CMP0169 OLD) # use deprecated FetchContent_Populate
+endif()
 
 # We will accumulate all depenency includes and link libraries here
 # (can be relative paths when building list, we will convert all to absolute at end)
