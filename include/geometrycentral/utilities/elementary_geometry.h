@@ -15,6 +15,8 @@ namespace geometrycentral {
 // inequality
 double triangleArea(double lA, double lB, double lC);
 
+// Returns true if and only if the three lengths satisfy the triangle inequalities, up to some given tolerance.
+bool triangleIsValid(double a, double b, double c, double tolerance = 0.);
 
 // For triangle A,B,C, given vertex positions pA and pB, compute pC, such that lengths lBC and lCA are realized.
 // pC will be placed on the side which gives CCW winding of ABC.
@@ -51,8 +53,8 @@ struct RayRayIntersectionResult2D {
 RayRayIntersectionResult2D rayRayIntersection(Vector2 ray1Start, Vector2 ray1Dir, Vector2 ray2Start, Vector2 ray2Dir);
 
 
-
-// Returns true if pTest is inside the incircle of triangle pA-pB-pC. No snazzy exact predicates or numerical epsilons are used; this is just a simple det(A) < 0 test.
+// Returns true if pTest is inside the incircle of triangle pA-pB-pC. No snazzy exact predicates or numerical epsilons
+// are used; this is just a simple det(A) < 0 test.
 bool inCircleTest(Vector2 pA, Vector2 pB, Vector2 pC, Vector2 pTest);
 
 // ======================================================
@@ -65,15 +67,19 @@ double pointLineSegmentDistance(Vector3 p, Vector3 lineA, Vector3 lineB);
 double pointLineSegmentNeaestLocation(Vector3 p, Vector3 lineA, Vector3 lineB);
 
 struct TriTriIntersectionResult3D {
-   Vector3 xA;
-   Vector3 xB;
-   bool intersect;
-   bool coplanar;
+  Vector3 xA;
+  Vector3 xB;
+  bool intersect;
+  bool coplanar;
 };
 
 // Determine if two triangles intersect, and if so compute the segment of intersection.
-TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC,
-                                              Vector3 qA, Vector3 qB, Vector3 qC);
+TriTriIntersectionResult3D triTriIntersection(Vector3 pA, Vector3 pB, Vector3 pC, Vector3 qA, Vector3 qB, Vector3 qC);
+
+// Given three points a, b, c, finds a fourth point d that completes a
+// tetrahedron with side lengths Lad, Lbd, and Lcd, and such that the
+// tetrahedron (a,b,c,d) has positive orientation.
+Vector3 tetFourthPoint(const Vector3& a, const Vector3& b, const Vector3& c, double Lad, double Lbd, double Lcd);
 
 } // namespace geometrycentral
 

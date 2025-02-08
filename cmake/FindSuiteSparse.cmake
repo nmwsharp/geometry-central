@@ -172,6 +172,8 @@ list(APPEND SUITESPARSE_CHECK_INCLUDE_DIRS
   /opt/local/include
   /opt/local/include/ufsparse # Mac OS X
   /usr/local/homebrew/include # Mac OS X
+  /opt/homebrew/include/ # Mac OS X
+  /opt/homebrew/include/suitesparse # Mac OS X
   /usr/local/include
   /usr/local/include/suitesparse
   /usr/include/suitesparse # Ubuntu

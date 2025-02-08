@@ -25,6 +25,10 @@ public:
   // improve vectorization and performance.
   using DATA_T = Eigen::Matrix<T, Eigen::Dynamic, 1>;
 
+  // Types to make it more similar to std::map
+  using key_type    = E;
+  using mapped_type = T;
+  using value_type  = std::pair<key_type,mapped_type>;
 protected:
   // The mesh that this data is defined on
   using ParentMeshT = typename E::ParentMeshT;

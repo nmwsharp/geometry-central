@@ -74,6 +74,7 @@ nav:
       - 'Barycentric Vector': 'surface/utilities/barycentric_vector.md'
     - Algorithms: 
       - 'Direction Fields' : 'surface/algorithms/direction_fields.md'
+      - 'Embedding' : 'surface/algorithms/embedding.md'
       - 'Flip Geodesics' : 'surface/algorithms/flip_geodesics.md'
       - 'Geodesic Distance' : 'surface/algorithms/geodesic_distance.md'
       - 'Geodesic Centroidal Voronoi Tessellations' : 'surface/algorithms/geodesic_voronoi_tessellations.md'
@@ -81,6 +82,7 @@ nav:
       - 'Parameterization' : 'surface/algorithms/parameterization.md'
       - 'Remeshing' : 'surface/algorithms/remeshing.md'
       - 'Robust Geometry' : 'surface/algorithms/robust_geometry.md'
+      - 'Signed Heat Method' : 'surface/algorithms/signed_heat_method.md'
       - 'Surface Centers' : 'surface/algorithms/surface_centers.md'
       - 'Surface Sampling' : 'surface/algorithms/surface_sampling.md'
       - 'Tracing Geodesic Paths' : 'surface/algorithms/geodesic_paths.md'

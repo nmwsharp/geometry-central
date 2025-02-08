@@ -18,7 +18,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" OR "${CMAKE_CXX_COMPILER_ID}" STR
 
   # using Clang (linux or apple) or GCC
   message("Using clang/gcc compiler flags")
-  SET(BASE_CXX_FLAGS "-std=c++11 -Wall -Wextra -g3")
+  SET(BASE_CXX_FLAGS "-std=c++14 -Wall -Wextra -g3")
   SET(CMAKE_CXX_FLAGS_DEBUG          "")
   SET(DISABLED_WARNINGS " -Wno-unused-parameter -Wno-unused-variable -Wno-unused-function -Wno-deprecated-declarations -Wno-missing-braces -Wno-unused-private-field")
   SET(TRACE_INCLUDES " -H -Wno-error=unused-command-line-argument")
@@ -68,7 +68,7 @@ endif()
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY    https://github.com/google/googletest.git
-    GIT_TAG           release-1.10.0
+    GIT_TAG           v1.15.2
     SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-src"
     BINARY_DIR        "${CMAKE_CURRENT_BINARY_DIR}/googletest-build"
 )
@@ -97,16 +97,17 @@ add_definitions(-DGC_TEST_ASSETS_ABS_PATH=\"${ABS_ASSETS_DIR}\")
 # Build the tests
 set(TEST_SRCS
   src/main_test.cpp
-  src/load_test_meshes.cpp
   src/eigen_interop_helpers_test.cpp
+  src/halfedge_geometry_test.cpp
   src/halfedge_mesh_test.cpp
   src/halfedge_mutation_test.cpp
-  src/halfedge_geometry_test.cpp
-  src/surface_misc_test.cpp
-  src/point_cloud_test.cpp
-  src/linear_algebra_test.cpp
-  src/stl_reader_test.cpp
   src/intrinsic_triangulation_test.cpp
+  src/linear_algebra_test.cpp
+  src/load_test_meshes.cpp
+  src/point_cloud_test.cpp
+  src/poisson_disk_sampler_test.cpp
+  src/stl_reader_test.cpp
+  src/surface_misc_test.cpp
 )
 
 add_executable(geometry-central-test "${TEST_SRCS}")
