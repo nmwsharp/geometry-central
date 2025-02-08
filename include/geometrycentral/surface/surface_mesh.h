@@ -203,10 +203,25 @@ public:
   // Check capacity. Needed when implementing expandable containers for mutable meshes to ensure the contain can
   // hold a sufficient number of elements before the next resize event.
   size_t nHalfedgesCapacity() const;
+  size_t nCornersCapacity() const;
   size_t nVerticesCapacity() const;
   size_t nEdgesCapacity() const;
   size_t nFacesCapacity() const;
   size_t nBoundaryLoopsCapacity() const;
+
+  // Return the size corresponding to the largest raw index in the mesh (except corners, see below). That is, the
+  // maximum value of he.getIndex()+1 for all halfedges, etc. This may differ from `nHalfedges()` or
+  // `nHalfedgesCapacity()` for non-compressed meshes. It also may differ for corners even in the case of a compressed
+  // mesh. These values may change after any mutation, not just on resize events.
+  //
+  // Due to implementaiton constraints, for corners the guarantee is slightly weaker: this value may be one greater than
+  // the largest index of any corner.
+  size_t halfedgeIndexSize() const;
+  size_t cornerIndexSize() const; // NOTE: this one is not tight like the others
+  size_t vertexIndexSize() const;
+  size_t edgeIndexSize() const;
+  size_t faceIndexSize() const;
+  size_t boundaryLoopIndexSize() const;
 
   // == Debugging, etc
 

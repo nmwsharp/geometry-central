@@ -49,8 +49,24 @@ public:
   // Mutate this mesh by removing any faces with repeated vertices.
   void stripFacesWithDuplicateVertices();
 
+  // Delete any faces which:
+  //   - have < 3 vertices
+  //   - OR have out of bounds vertex indices
+  //   - OR have repated vertices
+  void stripInvalidFaces();
+ 
+  // Remove any faces which appear twice
+  // (defined by having identical vertex sets)
+  void stripDuplicateFaces();
+
   // Mutate this mesh and by naively triangulating polygons
   void triangulate();
+
+  // Greedily re-orient faces to be consistent within each manifold subpatch
+  // In the case of non-orientable patches, there will be a not-matching boundary
+  // The inward/outward orientation is arbitrary, unless outwardOrient=true. In this
+  // case, an (approximate) geometric check will be performed to attempt to orient the patches to face outward.
+  void consistentlyOrientFaces(bool outwardOrient=true);
 
   // Empty all data arrays
   void clear();
@@ -79,6 +95,9 @@ private:
 
   // Write helpers
   void writeMeshObj(std::ostream& out);
+
+  // Other helpers
+  void stripInvalidFaceWorker(bool removeWithBadInds, bool removeLowDegree, bool removeWithRepeatedInds);
 };
 
 std::unique_ptr<SimplePolygonMesh> unionMeshes(const std::vector<SimplePolygonMesh>& meshes);
