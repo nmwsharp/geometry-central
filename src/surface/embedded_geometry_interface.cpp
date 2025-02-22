@@ -281,23 +281,20 @@ void EmbeddedGeometryInterface::computeCornerAngles() {
 
   cornerAngles = CornerData<double>(mesh);
 
-  for (Corner c : mesh.corners()) {
+  for (Face f : mesh.faces()) {
+    for (Halfedge he : f.adjacentHalfedges()) {
+      // WARNING: Logic duplicated between cached and immediate version
+      Vector3 pA = vertexPositions[he.vertex()];
+      Halfedge heNext = he.next();
+      Vector3 pB = vertexPositions[heNext.vertex()];
+      Vector3 pC = vertexPositions[heNext.next().vertex()];
 
-    // WARNING: Logic duplicated between cached and immediate version
-    Halfedge he = c.halfedge();
-    Vector3 pA = vertexPositions[he.vertex()];
-    he = he.next();
-    Vector3 pB = vertexPositions[he.vertex()];
-    do {
-      he = he.next();
-    } while (he.next() != c.halfedge());
-    Vector3 pC = vertexPositions[he.vertex()];
+      double q = dot(unit(pC - pB), unit(pA - pB));
+      q = clamp(q, -1.0, 1.0);
+      double angle = std::acos(q);
 
-    double q = dot(unit(pB - pA), unit(pC - pA));
-    q = clamp(q, -1.0, 1.0);
-    double angle = std::acos(q);
-
-    cornerAngles[c] = angle;
+      cornerAngles[heNext.corner()] = angle;
+    }
   }
 }
 
