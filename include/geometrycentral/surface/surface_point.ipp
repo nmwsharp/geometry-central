@@ -256,7 +256,6 @@ inline void SurfacePoint::validate() const {
 
 inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
   if (type != other.type) return false;
-  double eps = 1e-5;
   switch (type) {
   case SurfacePointType::Vertex: {
     return vertex == other.vertex;
