@@ -155,15 +155,16 @@ protected:
   DependentQuantityD<Eigen::SparseMatrix<double>> simplePolygonVertexLumpedMassMatrixQ;
   virtual void computeSimplePolygonVertexLumpedMassMatrix();
 
-  // helper functions
-  FaceData<Eigen::VectorXd> virtualRefinementAreaWeights;
-  DependentQuantityD<FaceData<Eigen::VectorXd>> virtualRefinementAreaWeightsQ; // affine weights for each virtual node
-  virtual void computeVirtualRefinementAreaWeights();
-  virtual Eigen::MatrixXd simplePolygonMassMatrix(const Face& f);
-  virtual Eigen::MatrixXd simplePolygonStiffnessMatrix(const Face& f);
-  virtual SparseMatrix<double> simplePolygonProlongationMatrix();
-  virtual Eigen::MatrixXd polygonPositionMatrix(const Face& f);
-  virtual Eigen::VectorXd simplePolygonVirtualVertex(const Eigen::MatrixXd& poly) const;
+  // // helper functions
+  FaceData<Eigen::VectorXd> computeVirtualRefinementAreaWeights();
+  // FaceData<Eigen::VectorXd> virtualRefinementAreaWeights;
+  // DependentQuantityD<FaceData<Eigen::VectorXd>> virtualRefinementAreaWeightsQ;
+  // virtual void computeVirtualRefinementAreaWeights(); // affine weights for each virtual node
+  // virtual Eigen::MatrixXd simplePolygonMassMatrix(const Face& f);
+  // virtual Eigen::MatrixXd simplePolygonStiffnessMatrix(const Face& f);
+  // virtual SparseMatrix<double> simplePolygonProlongationMatrix();
+  // virtual Eigen::MatrixXd polygonPositionMatrix(const Face& f); virtual
+  // Eigen::VectorXd simplePolygonVirtualVertex(const Eigen::MatrixXd& poly) const;
 
   // = de Goes et al. "Discrete Differential Operators on Polygonal Meshes" (2020), based on the virtual element method.
   // Use of this source code is governed by a LGPL-3.0 license.
@@ -198,33 +199,34 @@ protected:
   VertexData<Eigen::VectorXd> polygonVertexNormals;
   DependentQuantityD<VertexData<Eigen::VectorXd>> polygonVertexNormalsQ;
   virtual void computePolygonVertexNormals(); // area-weighted normals
-  virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f);
-  virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonPerFaceGradientMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonCoGradientMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonAveragingMatrix(const Face& f) const;
-  virtual Eigen::MatrixXd polygonDerivativeMatrix(const Face& f) const;
-  virtual Eigen::MatrixXd polygonEdgeVectorMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonEdgeMidpointMatrix(const Face& f);
-  virtual Eigen::MatrixXd polygonFlat(const Face& f);
-  virtual Eigen::MatrixXd polygonSharp(const Face& f);
-  virtual Eigen::Vector3d polygonCentroid(const Face& f);
-  // connections
-  virtual Eigen::MatrixXd polygonPerFaceConnectionLaplacian(const Face& f);
-  virtual Eigen::MatrixXd polygonBlockConnection(const Face& f);
-  virtual Eigen::MatrixXd polygonCovariantGradient(const Face& f);
-  virtual Eigen::MatrixXd polygonCovariantProjection(const Face& f);
-  // tangent space helpers
-  virtual Eigen::MatrixXd Tv(const Vertex& v);
-  virtual Eigen::MatrixXd Tf(const Face& f);
-  virtual Eigen::Matrix2d Rvf(const Vertex& v, const Face& f);
-  virtual Eigen::Matrix3d Qvf(const Vertex& v, const Face& f);
-  // helpers to the helper functions: generic linear algebra stuff, though probably wouldn't find much use elsewhere
-  // so keeping them here -- also they use Eigen::Vectors here for matrix-multiply compatibility.
-  virtual Eigen::Matrix3d bracket(const Eigen::Vector3d& n) const;
-  virtual Eigen::Vector3d project(const Eigen::Vector3d& u, const Eigen::Vector3d& n) const;
-  virtual Eigen::MatrixXd kroneckerWithI2(const Eigen::MatrixXd& M) const;
+
+  // virtual Eigen::MatrixXd polygonPerFaceLaplacian(const Face& f);
+  // virtual Eigen::MatrixXd polygonPerFaceInnerProductMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonProjectionMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonPerFaceGradientMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonCoGradientMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonAveragingMatrix(const Face& f) const;
+  // virtual Eigen::MatrixXd polygonDerivativeMatrix(const Face& f) const;
+  // virtual Eigen::MatrixXd polygonEdgeVectorMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonEdgeMidpointMatrix(const Face& f);
+  // virtual Eigen::MatrixXd polygonFlat(const Face& f);
+  // virtual Eigen::MatrixXd polygonSharp(const Face& f);
+  // virtual Eigen::Vector3d polygonCentroid(const Face& f);
+  // // connections
+  // virtual Eigen::MatrixXd polygonPerFaceConnectionLaplacian(const Face& f);
+  // virtual Eigen::MatrixXd polygonBlockConnection(const Face& f);
+  // virtual Eigen::MatrixXd polygonCovariantGradient(const Face& f);
+  // virtual Eigen::MatrixXd polygonCovariantProjection(const Face& f);
+  // // tangent space helpers
+  // virtual Eigen::MatrixXd Tv(const Vertex& v);
+  // virtual Eigen::MatrixXd Tf(const Face& f);
+  // virtual Eigen::Matrix2d Rvf(const Vertex& v, const Face& f);
+  // virtual Eigen::Matrix3d Qvf(const Vertex& v, const Face& f);
+  // // helpers to the helper functions: generic linear algebra stuff, though probably wouldn't find much use elsewhere
+  // // so keeping them here -- also they use Eigen::Vectors here for matrix-multiply compatibility.
+  // virtual Eigen::Matrix3d bracket(const Eigen::Vector3d& n) const;
+  // virtual Eigen::Vector3d project(const Eigen::Vector3d& u, const Eigen::Vector3d& n) const;
+  // virtual Eigen::MatrixXd kroneckerWithI2(const Eigen::MatrixXd& M) const;
 };
 
 

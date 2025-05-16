@@ -32,6 +32,7 @@ SET(SRCS
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
   surface/signed_heat_method.cpp
+  surface/polygon_mesh_helpers.cpp
   surface/polygon_mesh_heat_solver.cpp
   surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
