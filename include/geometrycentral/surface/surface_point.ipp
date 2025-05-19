@@ -256,18 +256,17 @@ inline void SurfacePoint::validate() const {
 
 inline bool SurfacePoint::operator==(const SurfacePoint& other) const {
   if (type != other.type) return false;
-  double eps = 1e-5;
   switch (type) {
   case SurfacePointType::Vertex: {
     return vertex == other.vertex;
     break;
   }
   case SurfacePointType::Edge: {
-    return edge == other.edge && abs(tEdge - other.tEdge) < eps;
+    return edge == other.edge && tEdge == other.tEdge;
     break;
   }
   case SurfacePointType::Face: {
-    return face == other.face && (faceCoords - other.faceCoords).norm() < eps;
+    return face == other.face && faceCoords == other.faceCoords;
     break;
   }
   }
@@ -306,8 +305,6 @@ inline Edge sharedEdge(const SurfacePoint& pA, const SurfacePoint& pB) {
 
   if (pA.type == SurfacePointType::Face || pB.type == SurfacePointType::Face) return Edge();
 
-  // This is kind of ugly code, esp. since there's only two options for the switch statement. But a nested-if looks even
-  // worse...
   switch (pA.type) {
   case SurfacePointType::Vertex: {
     switch (pB.type) {

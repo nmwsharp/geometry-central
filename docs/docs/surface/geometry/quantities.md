@@ -426,7 +426,7 @@ All operators are indexed over mesh elements according to the natural iteration 
 
     A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. If and only the underlying geometry is _Delaunay_, the matrix will furthermore have all negative off-diagonal entries, satisfy a maximum principle, and be an _M-matrix_.
 
-    This is the _weak_ Laplace operator, if we use it to evalutae $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
+    This is the _weak_ Laplace operator, if we use it to evaluate $\mathsf{y} \leftarrow \mathsf{L} \mathsf{x}$, $\mathsf{x}$ should hold _pointwise_ quantities at vertices, and the result $\mathsf{y}$ will contain _integrated_ values of the result in the neighborhood of each vertex. If used to solve a Poisson problem, a mass matrix (such as the lumped or Galerkin mass matrices below) are likely necessary on the right hand side.
 
     Only valid on triangular meshes.
 
@@ -543,6 +543,147 @@ In graphics and geometry processing, Crouzeix-Raviart elements have been used, f
     - **member:** `Eigen::SparseMatrix<double> IntrinsicGeometryInterface::crouzeixRaviartConnectionLaplacian`
     - **require:** `void IntrinsicGeometryInterface::requireCrouzeixRaviartConnectionLaplacian()`
 
+## Polygon mesh operators
+
+The following quantities are designed for general polygon meshes, and are defined for any `EmbeddedGeometryInterface`. On triangle meshes, they will reduce to the classical discrete exterior calculus & finite element operators. 
+
+Two classes of polygon operators are provided: those based on [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf), whose discretization is based on virtual refinement of the polygon mesh; and those based on [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf), whose discretization is based on an adaptation of the virtual element method. The former uses [Astrid Bunge and Mario Botsch's implementation of their paper](https://github.com/mbotsch/polygon-laplacian), while the latter uses [David Coeurjolly, Jacques-Olivier Lachaud, and Baptiste Genest's DGtal implementation of de Goes et al.'s paper](https://www.dgtal.org/doc/stable/modulePolygonalCalculus.html). Both methods build local operators whose matrices are assembled per-polygon, so they will run out-of-the-box on non-manifold meshes (but no guarantees are provided!) 
+
+All operators are indexed over mesh elements according to the natural iteration order of the elements, or equivalently the indices from `SurfaceMesh::getVertexIndices()` (etc).
+
+Here are polygon mesh operators from [Bunge et al.'s _Polygon Laplacian Made Simple_](https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf).
+
+??? func "polygon mesh Laplacian (simple)"
+    
+    ##### polygon mesh Laplacian (simple)
+
+    The discrete Laplace operator acting on polygon meshes, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
+
+    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian. 
+
+    This is the _weak_ Laplace operator.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonLaplacian`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonLaplacian()`
+
+??? func "polygon mesh vertex lumped mass matrix (simple)"
+
+    ##### polygon mesh vertex lumped mass matrix (simple)
+
+    A $|V| \times |V|$ real diagonal matrix, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_. Obtained by setting each diagonal entry to the row sum in the Galerkin mass matrix. Bunge et al. note that the lumped mass matrix gives better results than the unlumped Galerkin mass matrix for most applications.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonVertexLumpedMassMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonVertexLumpedMassMatrix()`
+
+??? func "polygon mesh vertex Galerkin mass matrix (simple)"
+
+    ##### polygon mesh vertex Galerkin mass matrix (simple)
+
+    A $|V| \times |V|$ real matrix, using Bunge et al.'s virtual refinement method in _Polygon Laplacian Made Simple_.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::simplePolygonVertexGalerkinMassMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requireSimplePolygonVertexGalerkinMassMatrix()`
+
+And here are polygon mesh operators from [de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_](https://graphics.pixar.com/library/PolyDDG/paper.pdf).
+
+??? func "polygon mesh Laplacian"
+    
+    ##### polygon mesh Laplacian
+
+    The discrete Laplace operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    A $|V| \times |V|$ real matrix. Always symmetric and positive semi-definite. Uses an additional parameter $\lambda$ whose default value is $1$. On triangle meshes, this polygon Laplacian becomes the standard cotan Laplacian.
+
+    This is the _weak_ Laplace operator.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonLaplacian`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonLaplacian()`
+
+??? func "polygon mesh gradient matrix"
+    
+    ##### polygon mesh gradient matrix
+
+    The discrete gradient operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    A $3|F| \times |V|$ real matrix $\mathsf{G}$. If $\mathsf{x}\in\mathbb{R}^{|V|}$ holds pointwise quantities at vertices, then $\mathsf{y} \leftarrow \mathsf{G}\mathsf{x}\in\mathbb{R}^{3|F|}$ gives the face-wise constant gradient of $\mathsf{x}$, where the gradient in face $f$ is the vector $[\mathsf{y}_{3f}, \mathsf{y}_{3f+1}, \mathsf{y}_{3f+2}]^\top$.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonGradientMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonGradientMatrix()`
+
+??? func "polygon mesh divergence matrix"
+    
+    ##### polygon mesh divergence matrix
+
+    The discrete divergence operator acting on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    A $|V| \times 3|F|$ real matrix $\mathsf{D}$. If $\mathsf{x}\in\mathbb{R}^{3|F|}$ defines a face-wise constant vector field whose value in face $f$ is the vector $[\mathsf{x}_{3f}, \mathsf{x}_{3f+1}, \mathsf{x}_{3f+2}]^\top$, then $\mathsf{y} \leftarrow \mathsf{D}\mathsf{x}\in\mathbb{R}^{|V|}$ gives the divergence of $\mathsf{x}$ as _integrated_ quantities at vertices. To obtain pointwise quantities, one would compute $\mathsf{A}^{-1}\mathsf{D}$, where $\mathsf{A}\in\mathbb{R}^{|V|\times|V|}$ is a diagonal mass matrix of local areas at vertices.
+
+    The divergence matrix $\mathsf{D}$ is related to the gradient matrix $\mathsf{G}$ as $\mathsf{D} = \mathsf{G}^\top\mathsf{M}$, where $\mathsf{M}\in\mathbb{R}^{3|F|}$ is a diagonal mass matrix containing face areas. Note that this assumes the convention that inflow corresponds to positive divergence, corresponding to the convention that $\mathsf{D}\mathsf{G}$ yields a positive-semidefinite Laplacian.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonGradientMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonGradientMatrix()`
+
+??? func "polygon mesh vertex lumped mass matrix"
+
+    ##### polygon mesh vertex lumped mass matrix
+
+    A $|V| \times |V|$ real diagonal matrix, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonVertexLumpedMassMatrix`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonVertexLumpedMassMatrix()`
+
+??? func "polygon mesh vertex connection Laplacian"
+
+    ##### polygon mesh vertex connection Laplacian
+
+    A discrete connection Laplacian operator, which applies to vector fields defined in vertex tangent spaces; defined in de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_. Always symmetric and positive-definite.
+
+    A $|V| \times |V|$ complex matrix.
+
+    Given a complex vector $\mathsf{x}$ of tangent vectors at vertices, apply the operator by multiplying $\mathsf{L} * \mathsf{x}$.
+
+    Vertex tangent spaces are defined in a similar manner to [the convention taken on triangle meshes](#vertex-tangent-spaces), namely the local $x$-axis is taken to be in the direction of `vertex.halfedge()`. On polygon meshes, the local $y$-axis is defined to be 90 degrees counterclockwise relative to the $x$-axis, rotated about the vertex normal.
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **member:** `Eigen::SparseMatrix<std::complex<double>> EmbeddedGeometryInterface::polygonVertexConnectionLaplacian`
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonVertexConnectionLaplacian()`
+
+??? func "polygon mesh DEC operators"
+
+    ##### polygon mesh DEC operators
+
+    These operators are the basic building blocks for _discrete exterior calculus_ on polygon meshes, using de Goes et al.'s _Discrete Differential Operators on Polygonal Meshes_. Takes in an additional parameter $\lambda$ defining a stabilization term to ensure inner products of discrete 1-forms remain positive-definite on non-triangular faces.
+
+    **Note:** These quantities slightly deviate from the usual naming scheme for quantities. Rather than `requireD0()`, `requireD1()`, etc, there is a single `requirePolygonDECOperators()` function which manages all 7 of the members listed below. There is no `polygonHodge1Inverse`, since although `polygonHodge1` will be diagonal on triangle meshes, on general polygon meshes it will not be diagonal. Also note that the coboundary operators `polygonD0` and `polygonD1` have row/column dimension equal to the number of halfedges $|H|$ rather than $|E|$.
+
+    The following members are constructed:
+
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge0` A $|V| \times |V|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge0Inverse` A $|V| \times |V|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge1` An $|H| \times |H|$ matrix, not necessarily diagonal
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge2` An $|F| \times |F|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonHodge2Inverse` An $|F| \times |F|$ diagonal matrix
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD0` An $|H| \times |V|$ matrix with $\{-1, 0, 1\}$ entries
+    - `Eigen::SparseMatrix<double> EmbeddedGeometryInterface::polygonD1` An $|F| \times |H|$ matrix with $\{-1, 0, 1\}$ entries
+
+    Only valid on an `EmbeddedGeometryInterface`.
+
+    - **require:** `void EmbeddedGeometryInterface::requirePolygonDECOperators()`
 
 ## Extrinsic angles
 

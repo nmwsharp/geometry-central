@@ -32,6 +32,8 @@ SET(SRCS
   surface/heat_method_distance.cpp
   surface/vector_heat_method.cpp
   surface/signed_heat_method.cpp
+  surface/polygon_mesh_helpers.cpp
+  surface/polygon_mesh_heat_solver.cpp
   surface/geodesic_centroidal_voronoi_tessellation.cpp
   surface/trace_geodesic.cpp
   surface/normal_coordinates.cpp
@@ -125,6 +127,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
   ${INCLUDE_ROOT}/surface/poisson_disk_sampler.h
+  ${INCLUDE_ROOT}/surface/polygon_mesh_heat_solver.h
   ${INCLUDE_ROOT}/surface/quadric_error_simplification.h
   ${INCLUDE_ROOT}/surface/remeshing.h
   ${INCLUDE_ROOT}/surface/rich_surface_mesh_data.h
