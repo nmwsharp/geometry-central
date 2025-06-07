@@ -83,11 +83,11 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         const SurfacePoint& pB = curve[i + 1].first;
         Edge commonEdge = sharedEdge(pA, pB);
         if (commonEdge != Edge()) {
+          // Assign +/- signs to the "third" vertices of each face straddling this edge.
+          // These vertices might themselves lie on the curve, in which case we overwrite them below.
           Halfedge he = commonEdge.halfedge();
           signs[he.next().tipVertex()] = (he.vertex() == pA.vertex) ? 1 : -1;
-          signs[he.twin().next().tipVertex()] = (he.vertex() != pA.vertex) ? 1 : -1;
-          signs[pA.vertex] = 1;
-          signs[pB.vertex] = 1;
+          signs[he.twin().next().tipVertex()] = -signs[he.next().tipVertex()];
         } else {
           Face commonFace = sharedFace(pA, pB);
           if (commonFace == Face()) {
@@ -101,20 +101,31 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           }
         }
       }
-      // Fill in the signs of faces around the fan of any vertices.
+    }
+    // Vertices on the curve are always assumed to have positive sign.
+    for (auto& curve : initialDistances) {
+      size_t nNodes = curve.size();
+      for (size_t i = 0; i < nNodes; i++) {
+        const SurfacePoint& p = curve[i].first;
+        if (p.type != SurfacePointType::Vertex) continue;
+        signs[p.vertex] = 1;
+      }
+    }
+    // Fill in the signs of faces around the fan of any vertices.
+    for (auto& curve : initialDistances) {
+      size_t nNodes = curve.size();
       for (size_t i = 0; i < nNodes; i++) {
         const SurfacePoint& p = curve[i].first;
         if (p.type != SurfacePointType::Vertex) continue;
         Halfedge startHe = p.vertex.halfedge();
-        Halfedge currHe = startHe.next().next().twin();
-        while (currHe != startHe) {
-          if (signs[currHe.tipVertex()] == 0 || signs[currHe.tipVertex()] == signs[p.vertex] ||
-              signs[currHe.next().tipVertex()] != 0) {
-            currHe = currHe.next().next().twin();
-            continue;
+        Halfedge currHe = startHe;
+        while (true) {
+          if (signs[currHe.tipVertex()] != 0 && signs[currHe.tipVertex()] != signs[p.vertex] &&
+              signs[currHe.next().tipVertex()] == 0) {
+            signs[currHe.next().tipVertex()] = -1;
           }
-          signs[currHe.next().tipVertex()] = -1;
           currHe = currHe.next().next().twin();
+          if (currHe == startHe) break;
         }
       }
     }
