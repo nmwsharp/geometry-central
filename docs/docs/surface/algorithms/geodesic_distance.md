@@ -174,11 +174,11 @@ Computing exact geodesic paths also allows one to compute exact [log maps](/surf
 
     Returns the gradient of the distance function at `v` (i.e. the unit tangent vector at `v` which points away from the closest source)
 
-## (Signed) Fast Marching Method for Distance
+## Fast Marching Method for Distance
 
 These routines implement the _fast marching method_ (FMM) for geodesic distance on triangle meshes, as described by [Kimmel and Sethian 1998](https://www.pnas.org/doi/pdf/10.1073/pnas.95.15.8431). 
 
-This implementation allows the user to specify the sign of the initial velocity, allowing one to obtain either signed or unsigned distance to a set of closed curves. 
+This implementation allows you to obtain unsigned distance to a set of points, or signed distance to a set of curves. 
 
 Note that as a wave-based propagation method, if the source curves are not closed, then signed distance output is not guaranteed to be well-behaved; if you're looking for robust signed distance computation, consider the [Signed Heat Method routines](/surface/algorithms/signed_heat_method). If your curves are closed, then FMM will in general be more efficient.
 
@@ -188,13 +188,13 @@ Note that as a wave-based propagation method, if the source curves are not close
 
     Compute the distance from a source set of [Surface Points](/surface/utilities/surface_point/), initialized with the given distance values. 
 
-    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source points as a set of curves and propagating their orientation (gradient is continuous across the source).
+    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source points as a set of curves and propagating their orientation. 
 
 ??? func "`#!cpp VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry, const std::vector<std::pair<Vertex, double>>& initialDistances, bool sign = false)`"
 
     Compute the distance from a set of source vertices, initialized with the given distance values. 
 
-    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source vertices as a set of curves and propagating their orientation (gradient is continuous across the source).
+    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source vertices as a set of curves and propagating their orientation.
 
 Example
 ```cpp
@@ -215,6 +215,8 @@ initialDistances.emplace_back(mesh->vertex(8), 0.);
 VertexData<double> dist = FMMDistance(*geometry, initialDistances);
 /* do something useful */
 ```
+
+If computing signed distance, distances should be initialized to 0 on the source points.
 
 ## Heat Method for Distance
 

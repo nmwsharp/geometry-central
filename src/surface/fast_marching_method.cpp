@@ -127,8 +127,9 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
     }
   }
   // Initialize distances. It's also possible to propagate signed distances and define eikonalDistanceSubroutine()
-  // accordingly, but it gets tricky initializing distances of unvisited vertices as +/-inf. So just compute unsigned
-  // distances, then sign -- rather than try to propagate signed distance.
+  // accordingly, but it gets cumbersome managing directions of inequalities, and initializing distances of unvisited
+  // vertices as +/-inf. So just compute unsigned distances, then sign -- rather than try to actually solve the true
+  // BVP.
   for (auto& curve : initialDistances) {
     for (auto& x : curve) {
       const SurfacePoint& p = x.first;
