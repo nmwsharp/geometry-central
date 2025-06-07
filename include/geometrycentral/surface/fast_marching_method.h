@@ -18,7 +18,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
                                bool sign = false);
 
 VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
-                               const std::vector<std::pair<Vertex, double>>& initialDistances);
+                               const std::vector<std::pair<Vertex, double>>& initialDistances, bool sign = false);
 
 
 } // namespace surface

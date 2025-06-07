@@ -31,20 +31,22 @@ double eikonalDistanceSubroutine(double a, double b, double theta, double dA, do
     if (u < sign * t && a * cTheta < y && y < a / cTheta) {
       return dA + t;
     } else {
-      return std::min(b * sign + dA, a * sign + dB);
+      if (sign) return std::min(b * sign + dA, a * sign + dB);
+      return std::max(b * sign + dA, a * sign + dB);
     }
 
   }
   // Custom by Nick to get acceptable results in obtuse triangles without fancy unfolding
   else {
-
-    double maxDist = std::max(dA, dB); // all points on base are less than this far away, by convexity
+    // all points on base are less than this far away, by convexity
+    double maxDist = (sign > 0) ? std::min(dA, dB) : std::max(dA, dB);
     double c = std::sqrt(a * a + b * b - 2 * a * b * std::cos(theta));
     double area = 0.5 * std::sin(theta) * a * b;
     double altitude = 2 * area / c; // distance to base, must be inside triangle since obtuse
-    double baseDist = maxDist + altitude;
+    double baseDist = maxDist + sign * altitude;
 
-    return std::min({b * sign + dA, a * sign + dB, baseDist});
+    if (sign) return std::min({b * sign + dA, a * sign + dB, baseDist});
+    return std::max({b * sign + dA, a * sign + dB, baseDist});
   }
 }
 
@@ -71,7 +73,12 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
   VertexData<int> signs(mesh, 1);
   VertexData<char> finalized(mesh, false);
 
-  auto cmp = [](Entry left, Entry right) { return std::abs(left.first) > std::abs(right.first); };
+  auto cmp = [&signs](Entry left, Entry right) {
+    if ((signs[left.second] == 1) && (signs[right.second] == 1)) {
+      return left.first > right.first;
+    }
+    return left.first < right.first;
+  };
   std::priority_queue<Entry, std::vector<Entry>, decltype(cmp)> frontierPQ(cmp);
   // Initialize signs
   if (sign) {
@@ -201,7 +208,10 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       if (!finalized[neighVert]) {
         if (signs[neighVert] == 0) signs[neighVert] = signs[currV];
         double newDist = currDist + signs[neighVert] * geometry.edgeLengths[he.edge()];
-        if (std::abs(newDist) < std::abs(distances[neighVert])) {
+        // Even though this is equivalent to (signs[neighVert * (newDist - distances[neighVert]) < 0), the latter seems
+        // more numerically unstable.
+        if ((signs[neighVert] && newDist < distances[neighVert]) ||
+            (!signs[neighVert] && newDist > distances[neighVert])) {
           frontierPQ.push(std::make_pair(newDist, neighVert));
           distances[neighVert] = newDist;
         }
@@ -221,7 +231,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[he.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          if (std::abs(newDist) < std::abs(distances[newVert])) {
+          // if (signs[newVert] * (newDist - distances[newVert]) < 0.) {
+          if ((signs[newVert] && newDist < distances[newVert]) || (!signs[newVert] && newDist > distances[newVert])) {
             frontierPQ.push(std::make_pair(newDist, newVert));
             distances[newVert] = newDist;
           }
@@ -242,7 +253,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[heT.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          if (std::abs(newDist) < std::abs(distances[newVert])) {
+          // if (signs[newVert] * (newDist - distances[newVert]) < 0.) {
+          if ((signs[newVert] && newDist < distances[newVert]) || (!signs[newVert] && newDist > distances[newVert])) {
             frontierPQ.push(std::make_pair(newDist, newVert));
             distances[newVert] = newDist;
           }
@@ -250,7 +262,6 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       }
     }
   }
-  // for (Vertex v : mesh.vertices()) distances[v] = signs[v];
   return distances;
 }
 
