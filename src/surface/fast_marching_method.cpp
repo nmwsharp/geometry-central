@@ -11,7 +11,7 @@ namespace {
 
 // The super fun quadratic distance function in the Fast Marching Method on triangle meshes
 // TODO parameter c isn't actually defined in paper, so I guessed that it was an error
-double eikonalDistanceSubroutine(double a, double b, double theta, double dA, double dB, int sign) {
+double eikonalDistanceSubroutine(double a, double b, double theta, double dA, double dB) {
 
 
   if (theta <= PI / 2.0) {
@@ -24,29 +24,24 @@ double eikonalDistanceSubroutine(double a, double b, double theta, double dA, do
     double quadB = 2 * b * u * (a * cTheta - b);
     double quadC = b * b * (u * u - a * a * sTheta2);
     double sqrtVal = std::sqrt(quadB * quadB - 4 * quadA * quadC);
-    double tVals[] = {(-quadB + sqrtVal) / (2 * quadA), (-quadB - sqrtVal) / (2 * quadA)};
-    double t = sign > 0 ? tVals[0] : tVals[1];
-    // double t = (-quadB + sqrtVal) / (2 * quadA);
-    double y = b * (t - u) / t;
-    if (u < sign * t && a * cTheta < y && y < a / cTheta) {
+    double t = (-quadB + sqrtVal) / (2 * quadA); // always the positive root (negative root corresponds to slope -1)
+    if (u < t && a * cTheta < b * (t - u) / t && b * (t - u) / t < a / cTheta) {
       return dA + t;
     } else {
-      if (sign) return std::min(b * sign + dA, a * sign + dB);
-      return std::max(b * sign + dA, a * sign + dB);
+      return std::min(b + dA, a + dB);
     }
 
   }
   // Custom by Nick to get acceptable results in obtuse triangles without fancy unfolding
   else {
-    // all points on base are less than this far away, by convexity
-    double maxDist = (sign > 0) ? std::min(dA, dB) : std::max(dA, dB);
+
+    double maxDist = std::max(dA, dB); // all points on base are less than this far away, by convexity
     double c = std::sqrt(a * a + b * b - 2 * a * b * std::cos(theta));
     double area = 0.5 * std::sin(theta) * a * b;
     double altitude = 2 * area / c; // distance to base, must be inside triangle since obtuse
-    double baseDist = maxDist + sign * altitude;
+    double baseDist = maxDist + altitude;
 
-    if (sign) return std::min({b * sign + dA, a * sign + dB, baseDist});
-    return std::max({b * sign + dA, a * sign + dB, baseDist});
+    return std::min({b + dA, a + dB, baseDist});
   }
 }
 
@@ -73,13 +68,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
   VertexData<int> signs(mesh, 1);
   VertexData<char> finalized(mesh, false);
 
-  auto cmp = [&signs](Entry left, Entry right) {
-    if ((signs[left.second] == 1) && (signs[right.second] == 1)) {
-      return left.first > right.first;
-    }
-    return left.first < right.first;
-  };
-  std::priority_queue<Entry, std::vector<Entry>, decltype(cmp)> frontierPQ(cmp);
+  std::priority_queue<Entry, std::vector<Entry>, std::greater<Entry>> frontierPQ;
   // Initialize signs
   if (sign) {
     for (Vertex v : mesh.vertices()) signs[v] = 0;
@@ -137,7 +126,9 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       }
     }
   }
-  // Initialize distances
+  // Initialize distances. It's also possible to propagate signed distances and define eikonalDistanceSubroutine()
+  // accordingly, but it gets tricky initializing distances of unvisited vertices as +/-inf. So just compute unsigned
+  // distances, then sign -- rather than try to propagate signed distance.
   for (auto& curve : initialDistances) {
     for (auto& x : curve) {
       const SurfacePoint& p = x.first;
@@ -150,8 +141,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         const Vertex& vA = p.edge.firstVertex();
         const Vertex& vB = p.edge.secondVertex();
         double l = geometry.edgeLengths[p.edge];
-        frontierPQ.push(std::make_pair(x.second + signs[vA] * p.tEdge * l, vA));
-        frontierPQ.push(std::make_pair(x.second + signs[vB] * (1. - p.tEdge) * l, vB));
+        frontierPQ.push(std::make_pair(x.second + p.tEdge * l, vA));
+        frontierPQ.push(std::make_pair(x.second + (1. - p.tEdge) * l, vB));
         break;
       }
       case (SurfacePointType::Face): {
@@ -171,9 +162,9 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         double dist2_A = lAB2 * (v * (1. - u)) + lCA2 * (w * (1. - u)) - lAB2 * v * w; // squared distance from p to vA
         double dist2_B = lAB2 * (u * (1. - v)) + lBC2 * (w * (1. - v)) - lCA2 * u * w; // squared distance from p to vB
         double dist2_C = lCA2 * (u * (1. - w)) + lBC2 * (v * (1. - w)) - lBC2 * u * v; // squared distance from p to vC
-        frontierPQ.push(std::make_pair(x.second + signs[vA] * std::sqrt(dist2_A), vA));
-        frontierPQ.push(std::make_pair(x.second + signs[vB] * std::sqrt(dist2_B), vB));
-        frontierPQ.push(std::make_pair(x.second + signs[vC] * std::sqrt(dist2_C), vC));
+        frontierPQ.push(std::make_pair(x.second + std::sqrt(dist2_A), vA));
+        frontierPQ.push(std::make_pair(x.second + std::sqrt(dist2_B), vB));
+        frontierPQ.push(std::make_pair(x.second + std::sqrt(dist2_C), vC));
         break;
       }
       }
@@ -207,11 +198,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       // Add with length
       if (!finalized[neighVert]) {
         if (signs[neighVert] == 0) signs[neighVert] = signs[currV];
-        double newDist = currDist + signs[neighVert] * geometry.edgeLengths[he.edge()];
-        // Even though this is equivalent to (signs[neighVert * (newDist - distances[neighVert]) < 0), the latter seems
-        // more numerically unstable.
-        if ((signs[neighVert] && newDist < distances[neighVert]) ||
-            (!signs[neighVert] && newDist > distances[neighVert])) {
+        double newDist = currDist + geometry.edgeLengths[he.edge()];
+        if (newDist < distances[neighVert]) {
           frontierPQ.push(std::make_pair(newDist, neighVert));
           distances[neighVert] = newDist;
         }
@@ -230,9 +218,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double distA = distances[neighVert];
           double theta = geometry.cornerAngles[he.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
-          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          // if (signs[newVert] * (newDist - distances[newVert]) < 0.) {
-          if ((signs[newVert] && newDist < distances[newVert]) || (!signs[newVert] && newDist > distances[newVert])) {
+          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
+          if (newDist < distances[newVert]) {
             frontierPQ.push(std::make_pair(newDist, newVert));
             distances[newVert] = newDist;
           }
@@ -252,9 +239,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double distA = distances[neighVert];
           double theta = geometry.cornerAngles[heT.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
-          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          // if (signs[newVert] * (newDist - distances[newVert]) < 0.) {
-          if ((signs[newVert] && newDist < distances[newVert]) || (!signs[newVert] && newDist > distances[newVert])) {
+          double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB);
+          if (newDist < distances[newVert]) {
             frontierPQ.push(std::make_pair(newDist, newVert));
             distances[newVert] = newDist;
           }
@@ -262,6 +248,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       }
     }
   }
+  // Sign unsigned distances. This will probably only do something reasonable if the curves are closed.
+  for (Vertex v : mesh.vertices()) distances[v] *= signs[v];
   return distances;
 }
 
