@@ -174,6 +174,50 @@ Computing exact geodesic paths also allows one to compute exact [log maps](/surf
 
     Returns the gradient of the distance function at `v` (i.e. the unit tangent vector at `v` which points away from the closest source)
 
+## Fast Marching Method for Distance
+
+These routines implement the _fast marching method_ (FMM) for geodesic distance on triangle meshes, as described by [Kimmel and Sethian 1998](https://www.pnas.org/doi/pdf/10.1073/pnas.95.15.8431). 
+
+This implementation allows you to obtain unsigned distance to a source set of points, or signed distance to a source set of curves, where the distance values on the source set may be initialized to any value. (When initial distances are not 0, "signed" means that the gradient of distance is continuous across the source curves.)
+
+Note that as a wave-based propagation method, if the source curves are not closed, then signed distance output is not guaranteed to be well-behaved; if you're looking for robust signed distance computation, consider the [Signed Heat Method routines](/surface/algorithms/signed_heat_method). If your curves are closed, then FMM will in general be more efficient.
+
+`#include "geometrycentral/surface/fast_marching_method.h"`
+
+??? func "`#!cpp VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry, const std::vector<std::vector<std::pair<SurfacePoint, double>>>& initialDistances, bool sign = false)`"
+
+    Compute the distance from a source set of [Surface Points](/surface/utilities/surface_point/), initialized with the given distance values. 
+
+    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source points as a set of curves and propagating their orientation. 
+
+??? func "`#!cpp VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry, const std::vector<std::pair<Vertex, double>>& initialDistances, bool sign = false)`"
+
+    Compute the distance from a set of source vertices, initialized with the given distance values. 
+
+    If `sign` is false, computes unsigned distance. If `sign` is true, computes signed distance by interpreting the source vertices as a set of curves and propagating their orientation.
+
+Example
+```cpp
+#include "geometrycentral/surface/fast_marching_method.h"
+#include "geometrycentral/surface/meshio.h"
+
+// Load a mesh
+std::unique_ptr<SurfaceMesh> mesh;
+std::unique_ptr<VertexPositionGeometry> geometry;
+std::tie(mesh, geometry) = loadMesh(filename);
+
+// Pick some vertices and initial distances.
+std::vector<std::pair<Vertex, double>> initialDistances;
+initialDistances.emplace_back(mesh->vertex(7), 0.);
+initialDistances.emplace_back(mesh->vertex(8), 0.);
+
+// Compute distance
+VertexData<double> dist = FMMDistance(*geometry, initialDistances);
+/* do something useful */
+```
+
+If computing signed distance, distances should be initialized to 0 on the source points.
+
 ## Heat Method for Distance
 
 These routines implement the [Heat Method for Geodesic Distance](http://www.cs.cmu.edu/~kmcrane/Projects/HeatMethod/paper.pdf). This algorithm uses short time heat flow to compute distance on surfaces. Because the main burden is simply solving linear systems of equations, it tends to be faster than polyhedral schemes, especially when computing distance multiple times on the same surface.  In the computational geometry sense, this method is an approximation, as the result is not precisely equal to the polyhedral distance on the surface; nonetheless it is fast and well-suited for many applications.
