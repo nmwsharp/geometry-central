@@ -178,7 +178,7 @@ Computing exact geodesic paths also allows one to compute exact [log maps](/surf
 
 These routines implement the _fast marching method_ (FMM) for geodesic distance on triangle meshes, as described by [Kimmel and Sethian 1998](https://www.pnas.org/doi/pdf/10.1073/pnas.95.15.8431). 
 
-This implementation allows you to obtain unsigned distance to a set of points, or signed distance to a set of curves. 
+This implementation allows you to obtain unsigned distance to a source set of points, or signed distance to a source set of curves, where the distance values on the source set may be initialized to any value. (When initial distances are not 0, "signed" means that the gradient of distance is continuous across the source curves.)
 
 Note that as a wave-based propagation method, if the source curves are not closed, then signed distance output is not guaranteed to be well-behaved; if you're looking for robust signed distance computation, consider the [Signed Heat Method routines](/surface/algorithms/signed_heat_method). If your curves are closed, then FMM will in general be more efficient.
 
