@@ -20,6 +20,7 @@ struct BarycentricVector {
   BarycentricVector(Vertex v);
   BarycentricVector(Edge e, Vector2 edgeCoords);
   BarycentricVector(Face f, Vector3 faceCoords);
+  BarycentricVector(Halfedge he, Face f);
 
   BarycentricVectorType type = BarycentricVectorType::Face;
 

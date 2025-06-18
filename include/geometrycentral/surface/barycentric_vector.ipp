@@ -44,6 +44,23 @@ inline BarycentricVector::BarycentricVector(SurfacePoint pA, SurfacePoint pB) {
   faceCoords = pB_in_face.faceCoords - pA_in_face.faceCoords;
 }
 
+inline BarycentricVector::BarycentricVector(Halfedge he_, Face f) : type(BarycentricVectorType::Face), face(f) {
+
+  int eIdx = 0;
+  double sign = 0.;
+  for (Halfedge he : f.adjacentHalfedges()) {
+    if (he.edge() == he_.edge()) {
+      sign = (he.tailVertex() == he_.tailVertex() && he.tipVertex() == he_.tipVertex()) ? 1. : -1.;
+      break;
+    }
+    eIdx++;
+  }
+  faceCoords = {0, 0, 0};
+  faceCoords[(eIdx + 1) % 3] = 1;
+  faceCoords[eIdx] = -1;
+  faceCoords *= sign;
+}
+
 // == Methods
 
 inline BarycentricVector BarycentricVector::inSomeFace() const {

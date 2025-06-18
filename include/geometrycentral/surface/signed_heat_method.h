@@ -80,7 +80,6 @@ private:
   double lengthOfSegment(const SurfacePoint& pA, const SurfacePoint& pB) const;
   SurfacePoint midSegmentSurfacePoint(const SurfacePoint& pA, const SurfacePoint& pB) const;
   std::complex<double> projectedNormal(const SurfacePoint& pA, const SurfacePoint& pB, const Edge& e) const;
-  BarycentricVector barycentricVectorInFace(const Halfedge& he, const Face& f) const;
   FaceData<BarycentricVector> sampleAtFaceBarycenters(const Vector<std::complex<double>>& Xt);
   Vector<double> integrateWithZeroSetConstraint(const Vector<double>& rhs, const std::vector<Curve>& curves,
                                                 const std::vector<SurfacePoint>& points,
