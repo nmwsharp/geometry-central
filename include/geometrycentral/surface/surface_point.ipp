@@ -151,9 +151,9 @@ inline SurfacePoint SurfacePoint::inEdge(Edge targetEdge) const {
   switch (type) {
   case SurfacePointType::Vertex:
     if (vertex == targetEdge.halfedge().tailVertex()) {
-      return SurfacePoint(targetEdge, 0);
-    } else if (vertex == targetEdge.halfedge().tipVertex()) {
       return SurfacePoint(targetEdge, 1);
+    } else if (vertex == targetEdge.halfedge().tipVertex()) {
+      return SurfacePoint(targetEdge, 0);
     }
     break;
   case SurfacePointType::Edge:
