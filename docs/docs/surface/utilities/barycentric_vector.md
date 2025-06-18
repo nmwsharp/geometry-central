@@ -25,7 +25,7 @@ which indicates what kind of vector it is.
 
 ??? func "`#!cpp BarycentricVector::BarycentricVector(Face f, Vector3 faceCoords)`"
 
-    Construct a barycentric vector that lies along the given face `f`, with the given barycentric coordinates `faceCoords`.
+    Construct a barycentric vector that lies in the given face `f`, with the given barycentric coordinates `faceCoords`.
 
 ??? func "`#!cpp BarycentricVector::BarycentricVector(Edge e, Vector2 edgeCoords)`"
 
@@ -34,6 +34,10 @@ which indicates what kind of vector it is.
 ??? func "`#!cpp BarycentricVector::BarycentricVector(Vertex v)`"
 
     Construct a (zero-length) barycentric vector that lies on the given vertex `v`.
+
+??? func "`#!cpp BarycentricVector::BarycentricVector(Halfedge he, Face f)`"
+
+    Construct a barycentric vector from the given halfedge, that lies in the given face `f`.
 
 ??? func "`#!cpp BarycentricVector::BarycentricVector(SurfacePoint pA, SurfacePoint pB)`"
 

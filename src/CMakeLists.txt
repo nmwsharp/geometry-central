@@ -26,6 +26,7 @@ SET(SRCS
   surface/embedded_geometry_interface.cpp
   surface/edge_length_geometry.cpp
   surface/vertex_position_geometry.cpp
+  surface/marching_triangles.cpp
   surface/mutation_manager.cpp
   surface/mesh_graph_algorithms.cpp
   surface/direction_fields.cpp

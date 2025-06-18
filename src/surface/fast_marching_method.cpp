@@ -92,7 +92,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           // Assign +/- signs to the "third" vertices of each face straddling this edge.
           // These vertices might themselves lie on the curve, in which case we overwrite them below.
           Halfedge he = commonEdge.halfedge();
-          signs[he.next().tipVertex()] = (he.vertex() == pA.vertex) ? 1 : -1;
+          signs[he.next().tipVertex()] = (he.vertex() == pA.vertex) ? -1 : 1;
           signs[he.twin().next().tipVertex()] = -signs[he.next().tipVertex()];
         } else {
           Face commonFace = sharedFace(pA, pB);
@@ -100,9 +100,9 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
             throw std::logic_error("For signed fast marching distance, each curve segment must share a common face.");
           }
           BarycentricVector tangent(pA, pB);
-          BarycentricVector normal = tangent.rotate90(geometry);
+          BarycentricVector normal = -tangent.rotate90(geometry);
           for (Vertex v : commonFace.adjacentVertices()) {
-            BarycentricVector u(SurfacePoint(v), pA);
+            BarycentricVector u(pA, SurfacePoint(v));
             signs[v] = (dot(geometry, normal, u) > 0) ? 1 : -1;
           }
         }

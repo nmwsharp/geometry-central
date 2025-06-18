@@ -113,7 +113,7 @@ Vector<std::complex<double>> SignedHeatSolver::integrateVectorHeatFlow(const std
           for (Edge e : f.adjacentEdges()) {
             size_t eIdx = geom.edgeIndices[e];
             double w = scalarCrouzeixRaviart(b, e);
-            BarycentricVector heVec = barycentricVectorInFace(e.halfedge(), f);
+            BarycentricVector heVec(e.halfedge(), f);
             heVec /= heVec.norm(geom);
             BarycentricVector heVecN = heVec.rotate90(geom);
             triplets.emplace_back(m, eIdx, w * dot(geom, heVec, segTangent));
@@ -162,8 +162,8 @@ VertexData<double> SignedHeatSolver::integrateVectorField(const Vector<std::comp
       Halfedge heA = c.halfedge();
       Halfedge heB = heA.next().next();
       BarycentricVector Yj = Y[f];
-      BarycentricVector e1 = barycentricVectorInFace(heA, f);
-      BarycentricVector e2 = -barycentricVectorInFace(heB, f);
+      BarycentricVector e1(heA, f);
+      BarycentricVector e2 = -BarycentricVector(heB, f);
       double cotTheta1 = geom.halfedgeCotanWeights[heA];
       double cotTheta2 = geom.halfedgeCotanWeights[heB];
       double w1 = cotTheta1 * dot(geom, e1, Yj);
@@ -252,11 +252,11 @@ void SignedHeatSolver::buildUnsignedCurveSource(const Curve& curve, Vector<std::
       // Ordinarily, "double-sided" vector information would cancel out along the edge. So in each face, "smear"
       // the info out a bit by parallel-transporting the initial vectors to other edges in adjacent faces.
       Face f = he.face();
-      BarycentricVector segment = barycentricVectorInFace(he, f);
+      BarycentricVector segment(he, f);
       BarycentricVector segNormal = segment.rotate90(geom);
       for (Edge e : f.adjacentEdges()) {
         if (e == commonEdge) continue;
-        BarycentricVector edgeVec = barycentricVectorInFace(e.halfedge(), f);
+        BarycentricVector edgeVec(e.halfedge(), f);
         edgeVec /= edgeVec.norm(geom);
         double sinTheta = dot(geom, segment, edgeVec);
         double cosTheta = dot(geom, segNormal, edgeVec);
@@ -698,23 +698,6 @@ std::complex<double> SignedHeatSolver::projectedNormal(const SurfacePoint& pA, c
   return normal;
 }
 
-BarycentricVector SignedHeatSolver::barycentricVectorInFace(const Halfedge& he_, const Face& f) const {
-
-  int eIdx = 0;
-  double sign = 0.;
-  for (Halfedge he : f.adjacentHalfedges()) {
-    if (he.edge() == he_.edge()) {
-      sign = (he.tailVertex() == he_.tailVertex() && he.tipVertex() == he_.tipVertex()) ? 1. : -1.;
-      break;
-    }
-    eIdx++;
-  }
-  Vector3 faceCoords = {0, 0, 0};
-  faceCoords[(eIdx + 1) % 3] = 1;
-  faceCoords[eIdx] = -1;
-  return BarycentricVector(f, sign * faceCoords);
-}
-
 FaceData<BarycentricVector> SignedHeatSolver::sampleAtFaceBarycenters(const Vector<std::complex<double>>& Xt) {
 
   geom.requireEdgeIndices();
@@ -724,7 +707,7 @@ FaceData<BarycentricVector> SignedHeatSolver::sampleAtFaceBarycenters(const Vect
     Vector3 faceCoords = {0, 0, 0};
     for (Halfedge he : f.adjacentHalfedges()) {
       size_t eIdx = geom.edgeIndices[he.edge()];
-      BarycentricVector e1 = barycentricVectorInFace(he, f);
+      BarycentricVector e1(he, f);
       if (!he.orientation()) e1 *= -1;
       BarycentricVector e2 = e1.rotate90(geom);
       e1 /= e1.norm(geom);
