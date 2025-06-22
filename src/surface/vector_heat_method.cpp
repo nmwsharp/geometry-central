@@ -268,7 +268,7 @@ VectorHeatMethodSolver::transportTangentVectors(const std::vector<std::tuple<Sur
 }
 
 
-VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVert, double vertexDistanceShift) {
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVert, double vertexDistanceShift, double vertAngleRad) {
   geom.requireFaceAreas();
   geom.requireEdgeLengths();
   geom.requireCornerAngles();
@@ -300,7 +300,7 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVe
 
   // Build rhs
   Vector<std::complex<double>> horizontalRHS = Vector<std::complex<double>>::Zero(mesh.nVertices());
-  horizontalRHS[geom.vertexIndices[sourceVert]] += 1.0;
+  horizontalRHS[geom.vertexIndices[sourceVert]] = -1.0 * (cos(vertAngleRad) + sin(vertAngleRad) * 1i);
 
   // Solve
   Vector<std::complex<double>> horizontalSol = vectorHeatSolver->solve(horizontalRHS);
