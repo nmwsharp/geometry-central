@@ -55,16 +55,16 @@ SurfacePoint findCenter(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& g
   SurfacePoint initialGuess;
 
   // Reasonable initial guess: the vertex with the most stuff at it
-  double biggestVal = -std::numeric_limits<double>::infinity();
-  for (Vertex v : mesh.vertices()) {
-    if (distribution[v] > biggestVal) {
-      biggestVal = distribution[v];
-      initialGuess = SurfacePoint(v);
-    }
-  }
+  // double biggestVal = -std::numeric_limits<double>::infinity();
+  // for (Vertex v : mesh.vertices()) {
+  // if (distribution[v] > biggestVal) {
+  // biggestVal = distribution[v];
+  // initialGuess = SurfacePoint(v);
+  //}
+  //}
 
   // Random initial guess
-  // initialGuess = SurfacePoint(mesh.vertex(randomIndex(mesh.nVertices())));
+  initialGuess = SurfacePoint(mesh.vertex(randomIndex(mesh.nVertices())));
 
   // Compute an approximate mesh diameter to use as parameter in the p=1 case
   double meshDiameter = 1.;
