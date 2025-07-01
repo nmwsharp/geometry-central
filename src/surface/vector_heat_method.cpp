@@ -1,4 +1,5 @@
 #include "geometrycentral/surface/vector_heat_method.h"
+#include "geometrycentral/utilities/vector2.h"
 
 namespace geometrycentral {
 namespace surface {
@@ -71,6 +72,67 @@ void VectorHeatMethodSolver::ensureHaveVectorHeatSolver() {
   geom.unrequireVertexConnectionLaplacian();
 }
 
+void VectorHeatMethodSolver::ensureHaveAffineHeatSolver() {
+  if (affineHeatSolver != nullptr) return;
+
+  geom.requireVertexIndices();
+  geom.requireEdgeCotanWeights();
+  geom.requireTransportVectorsAlongHalfedge();
+  geom.requireHalfedgeVectorsInVertex();
+  geom.requireVertexDualAreas();
+
+  // Get the ingredients
+  std::vector<Eigen::Triplet<double>> triplets;
+  for (Halfedge he : mesh.halfedges()) {
+    size_t iTail = geom.vertexIndices[he.vertex()];
+    size_t iTip = geom.vertexIndices[he.twin().vertex()];
+
+    double weight = geom.edgeCotanWeights[he.edge()];
+
+    Vector2 eij = geom.halfedgeVectorsInVertex[he];
+    Vector2 eji = geom.halfedgeVectorsInVertex[he.twin()];
+
+    Vector2 rot = -eij / eji;
+    Vector2 t = -eij;
+
+    // Rotation from TjM -> TiM, followed by a translation TjM -> TjM
+    // The order matters here!
+    DenseMatrix<double> transport(3, 3);
+    transport << rot.x, -rot.y, t.x, rot.y, rot.x, t.y, 0, 0, 1.;
+
+    for (size_t p = 0; p < 3; p++) {
+      triplets.emplace_back(3 * iTail + p, 3 * iTail + p, weight);
+      for (size_t q = 0; q < 3; q++) {
+        triplets.emplace_back(3 * iTail + p, 3 * iTip + q, -weight * transport(p, q));
+      }
+    }
+  }
+
+  // Build the affine connection Laplacian
+  SparseMatrix<double> L_affineConnection = Eigen::SparseMatrix<double>(3 * mesh.nVertices(), 3 * mesh.nVertices());
+  L_affineConnection.setFromTriplets(triplets.begin(), triplets.end());
+
+  // Build the lumped mass matrix (with 3x identical entries for each 3x3 block)
+  Vector<double> massVec(3 * mesh.nVertices());
+  for (Vertex v : mesh.vertices()) {
+    for (size_t p = 0; p < 3; p++) {
+      massVec(3 * geom.vertexIndices[v] + p) = geom.vertexDualAreas[v];
+    }
+  }
+  SparseMatrix<double> massMat(massVec.asDiagonal());
+
+  // Build (and factor) the short-time heat flow operator
+  SparseMatrix<double> L_affineHeatOp = massMat + shortTime * L_affineConnection;
+  affineHeatSolver.reset(
+      new SquareSolver<double>(L_affineHeatOp)); // not necessarily SPD in the scalar sense, even with Delaunay
+
+  // Bookkeeping
+  geom.unrequireVertexIndices();
+  geom.unrequireEdgeCotanWeights();
+  geom.unrequireTransportVectorsAlongHalfedge();
+  geom.unrequireHalfedgeVectorsInVertex();
+  geom.unrequireVertexDualAreas();
+}
 
 void VectorHeatMethodSolver::ensureHavePoissonSolver() {
   if (poissonSolver != nullptr) return;
@@ -267,8 +329,136 @@ VectorHeatMethodSolver::transportTangentVectors(const std::vector<std::tuple<Sur
   return result;
 }
 
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVert, LogMapStrategy strategy) {
+  switch (strategy) {
+  case LogMapStrategy::VectorHeat:
+    return computeLogMap_VectorHeat(sourceVert, 0.0);
+  case LogMapStrategy::AffineLocal:
+    return computeLogMap_AffineLocal(sourceVert);
+  case LogMapStrategy::AffineAdaptive:
+    return computeLogMap_AffineAdaptive(sourceVert);
+  }
+}
 
-VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVert, double vertexDistanceShift) {
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap_AffineLocal(const Vertex& sourceVert) {
+  ensureHaveVectorHeatSolver();
+  ensureHaveAffineHeatSolver();
+
+  geom.requireVertexIndices();
+
+  // Construct the parallel section
+  VertexData<Vector2> parallel_section = transportTangentVector(sourceVert, Vector2{1, 0});
+
+  // Build rhs
+  Vector<double> horizontalRHS = Vector<double>::Zero(3 * mesh.nVertices());
+  horizontalRHS[3 * geom.vertexIndices[sourceVert] + 2] += 1.0; // (0,0), in homogeneous coordinates
+
+  // Short-time heat flow on of hte affine values
+  Vector<double> horizontalSol = affineHeatSolver->solve(horizontalRHS);
+
+  // Construct the map from the heat-flow'd values
+  VertexData<Vector2> logmap(mesh);
+  for (Vertex v : mesh.vertices()) {
+    size_t vInd = geom.vertexIndices[v];
+
+    Vector2 logCoord = Vector2{horizontalSol(3 * vInd + 0), horizontalSol(3 * vInd + 1)};
+    logCoord /= horizontalSol(3 * vInd + 2); // homogenous division
+
+    // Change of basis to coordinate frame at source
+    logmap[v] = logCoord / parallel_section[v];
+  }
+
+  // Bookkeeping
+  geom.unrequireVertexIndices();
+
+  return logmap;
+}
+
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap_AffineAdaptive(const Vertex& sourceVert) {
+
+  geom.requireVertexIndices();
+  geom.requireFaceAreas();
+  geom.requireVertexDualAreas();
+  geom.requireEdgeLengths();
+  geom.requireEdgeCotanWeights();
+  geom.requireHalfedgeVectorsInVertex();
+
+  // Construct a parallel section using the coordinate from the source
+  VertexData<Vector2> parallel_section = transportTangentVector(sourceVert, Vector2{1., 0.});
+
+  // Build the adaptive connection Laplacian in the coordinate frame
+  // (this depends on the source, so it cannot be prefactored)
+  std::vector<Eigen::Triplet<double>> triplets;
+  for (Halfedge he : mesh.halfedges()) {
+    size_t iTail = geom.vertexIndices[he.vertex()];
+    size_t iTip = geom.vertexIndices[he.twin().vertex()];
+
+    double weight = geom.edgeCotanWeights[he.edge()];
+
+    // Translation in the edge direction in the trivialization induced by the geodesic frame X
+    // We have two options on how to do it. Turns out it doesn't really matter which we pick.
+
+    // Do the translation using the values at i
+    // (we could equivalently do it at j)
+    Vector2 eij = geom.halfedgeVectorsInVertex[he];
+    Vector2 Xi = parallel_section[iTail];
+    Vector2 t = -eij / Xi;
+
+    // The developing connection
+    DenseMatrix<double> transport(3, 3);
+    transport << 1, 0, t.x, 0, 1, t.y, 0, 0, 1.;
+
+    for (size_t p = 0; p < 3; p++) {
+      triplets.emplace_back(3 * iTail + p, 3 * iTail + p, weight);
+      for (size_t q = 0; q < 3; q++) {
+        triplets.emplace_back(3 * iTail + p, 3 * iTip + q, -weight * transport(p, q));
+      }
+    }
+  }
+  SparseMatrix<double> L_affineAdaptive = Eigen::SparseMatrix<double>(3 * mesh.nVertices(), 3 * mesh.nVertices());
+  L_affineAdaptive.setFromTriplets(triplets.begin(), triplets.end());
+
+  // Build the corresponding (lumped) mass matrix, with 3x3 vertex area diagonal blocks
+  Vector<double> massVec(3 * mesh.nVertices());
+  for (Vertex v : mesh.vertices())
+    for (size_t p = 0; p < 3; p++) massVec(3 * geom.vertexIndices[v] + p) = geom.vertexDualAreas[v];
+  SparseMatrix<double> massMat(massVec.asDiagonal());
+
+  // Form the short-time heat flow operator and solver
+  SparseMatrix<double> affineOp = massMat + shortTime * L_affineAdaptive;
+  SquareSolver<double> affineAdaptiveSolver(affineOp);
+
+  // Build rhs, with a homogenous 0 at the source
+  Vector<double> horizontalRHS = Vector<double>::Zero(3 * mesh.nVertices());
+  horizontalRHS[3 * geom.vertexIndices[sourceVert] + 2] += 1.0;
+
+  // Solve
+  Vector<double> horizontalSol = affineAdaptiveSolver.solve(horizontalRHS);
+
+  // Compose the result
+  VertexData<Vector2> logmap(mesh);
+  for (Vertex v : mesh.vertices()) {
+    size_t vInd = geom.vertexIndices[v];
+
+    Vector2 logCoord = Vector2{horizontalSol(3 * vInd + 0), horizontalSol(3 * vInd + 1)};
+    logCoord /= horizontalSol(3 * vInd + 2);
+
+    logmap[v] = logCoord;
+  }
+
+  // Bookkeeping
+  geom.unrequireVertexIndices();
+  geom.unrequireFaceAreas();
+  geom.unrequireVertexDualAreas();
+  geom.unrequireEdgeLengths();
+  geom.unrequireEdgeCotanWeights();
+  geom.unrequireHalfedgeVectorsInVertex();
+
+  return logmap;
+}
+
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap_VectorHeat(const Vertex& sourceVert,
+                                                                     double vertexDistanceShift) {
   geom.requireFaceAreas();
   geom.requireEdgeLengths();
   geom.requireCornerAngles();
@@ -429,14 +619,14 @@ void VectorHeatMethodSolver::addVertexOutwardBall(Vertex vert, Vector<std::compl
   }
 }
 
-VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& sourceP) {
+VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& sourceP, LogMapStrategy strategy) {
   geom.requireHalfedgeVectorsInVertex();
   geom.requireHalfedgeVectorsInFace();
 
   switch (sourceP.type) {
   case SurfacePointType::Vertex: {
 
-    return computeLogMap(sourceP.vertex);
+    return computeLogMap(sourceP.vertex, strategy);
     break;
   }
   case SurfacePointType::Edge: {
@@ -444,8 +634,8 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& so
 
     // Compute logmaps at both adjacent vertices
     Halfedge he = sourceP.edge.halfedge();
-    VertexData<Vector2> logmapTail = computeLogMap(he.vertex());
-    VertexData<Vector2> logmapTip = computeLogMap(he.twin().vertex());
+    VertexData<Vector2> logmapTail = computeLogMap(he.vertex(), strategy);
+    VertexData<Vector2> logmapTip = computeLogMap(he.twin().vertex(), strategy);
 
     // Changes of basis
     Vector2 tailRot = geom.halfedgeVectorsInVertex[he].inv().normalize();
@@ -472,7 +662,7 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const SurfacePoint& so
     for (Halfedge he : sourceP.face.adjacentHalfedges()) {
 
       // Commpute logmap at vertex
-      VertexData<Vector2> logmapVert = computeLogMap(he.vertex());
+      VertexData<Vector2> logmapVert = computeLogMap(he.vertex(), strategy);
 
       // Compute change of basis to bring it back to the face
       Vector2 rot = (geom.halfedgeVectorsInFace[he] / geom.halfedgeVectorsInVertex[he]).normalize();

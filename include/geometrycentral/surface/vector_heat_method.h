@@ -19,6 +19,13 @@ namespace surface {
 
 // Stateful class. Allows efficient repeated solves
 
+enum class LogMapStrategy {
+  VectorHeat,     // the logmap proposed in the original Vector Heat Method paper
+  AffineLocal,    // the logmap from the Affine Heat Method, allows fast prefactoring for repeated solves, more accurate
+                  // near source
+  AffineAdaptive, // the logmap from the Affine Heat Method, no prefactoring for repeated solves, but most accurate
+};
+
 class VectorHeatMethodSolver {
 
 public:
@@ -36,10 +43,9 @@ public:
   VertexData<Vector2> transportTangentVectors(const std::vector<std::tuple<Vertex, Vector2>>& sources);
   VertexData<Vector2> transportTangentVectors(const std::vector<std::tuple<SurfacePoint, Vector2>>& sources);
 
-
   // === The Logarithmic map
-  VertexData<Vector2> computeLogMap(const Vertex& sourceVert, double vertexDistanceShift = 0.);
-  VertexData<Vector2> computeLogMap(const SurfacePoint& sourceP);
+  VertexData<Vector2> computeLogMap(const Vertex& sourceVert, LogMapStrategy strategy = LogMapStrategy::VectorHeat);
+  VertexData<Vector2> computeLogMap(const SurfacePoint& sourceP, LogMapStrategy strategy = LogMapStrategy::VectorHeat);
 
   // === Options and parameters
   const double tCoef; // the time parameter used for heat flow, measured as time = tCoef * mean_edge_length^2
@@ -65,13 +71,20 @@ private:
   // Solvers
   std::unique_ptr<PositiveDefiniteSolver<double>> scalarHeatSolver;
   std::unique_ptr<LinearSolver<std::complex<double>>> vectorHeatSolver;
+  std::unique_ptr<LinearSolver<double>> affineHeatSolver;
   std::unique_ptr<PositiveDefiniteSolver<double>> poissonSolver;
   SparseMatrix<double> massMat;
 
   // Helpers
   void ensureHaveScalarHeatSolver();
   void ensureHaveVectorHeatSolver();
+  void ensureHaveAffineHeatSolver();
   void ensureHavePoissonSolver();
+
+  // Log map approaches, see documentation on the strategy enum
+  VertexData<Vector2> computeLogMap_VectorHeat(const Vertex& sourceVert, double vertexDistanceShift = 0.);
+  VertexData<Vector2> computeLogMap_AffineLocal(const Vertex& sourceVert);
+  VertexData<Vector2> computeLogMap_AffineAdaptive(const Vertex& sourceVert);
 
   void addVertexOutwardBall(Vertex v, Vector<std::complex<double>>& distGradRHS);
 };
