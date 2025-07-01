@@ -1,4 +1,5 @@
 #include "geometrycentral/surface/vector_heat_method.h"
+#include "geometrycentral/numerical/linear_algebra_utilities.h"
 #include "geometrycentral/utilities/vector2.h"
 
 namespace geometrycentral {
@@ -55,7 +56,9 @@ void VectorHeatMethodSolver::ensureHaveVectorHeatSolver() {
   // PositiveDefiniteSolver. Otherwise, we must use a SquareSolver
   geom.requireEdgeCotanWeights();
   bool isDelaunay = true;
+  double minCotanWeight = std::numeric_limits<double>::max();
   for (Edge e : mesh.edges()) {
+    minCotanWeight = std::min(minCotanWeight, geom.edgeCotanWeights[e]);
     if (geom.edgeCotanWeights[e] < -1e-6) {
       isDelaunay = false;
       break;
@@ -64,7 +67,14 @@ void VectorHeatMethodSolver::ensureHaveVectorHeatSolver() {
   geom.unrequireEdgeCotanWeights();
 
   if (isDelaunay) {
-    vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
+    // TODO we said the matrix should be SPD if Delaunay, but SuiteSparse is failing with non-SPD error
+    // (observed by nsharp on intrinsic delaunay RamSkull100k.obj)
+    // workaround with a try-catch for now
+    try {
+      vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
+    } catch (const std::runtime_error&) {
+      vectorHeatSolver.reset(new SquareSolver<std::complex<double>>(vectorOp));
+    }
   } else {
     vectorHeatSolver.reset(new SquareSolver<std::complex<double>>(vectorOp)); // not necessarily SPD without Delaunay
   }
