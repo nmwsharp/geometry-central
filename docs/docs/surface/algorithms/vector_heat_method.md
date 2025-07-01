@@ -126,7 +126,7 @@ These routines compute the logarithmic map using the vector heat method or the a
     VertexData<Vector2> logmap = signpostTri->restrictToInput(logmapIntrinsic);
     ```
 
-    By default, the resulting logarithmic map has coordinates defined in the tangent space of the source point on the intrinsic mesh. At vertices these spaces are the same, but at a general `SurfacePoint` inside some face you might want to align tangent spaces; see the [intrinsic triangulation](/surface/intrinsic_triangulations/basics) documentation for details.
+    By default, the resulting logarithmic map has coordinates defined in the tangent space of the source point on the intrinsic mesh. At vertices these spaces are the same, but at a general `SurfacePoint` inside some face you might want to align tangent spaces; see the [intrinsic triangulation](/surface/intrinsic_triangulations/basics) documentation for details. There may or may not be a builtin method to do the alignment, depending on your setting.
 
 
 
