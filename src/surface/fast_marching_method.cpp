@@ -93,7 +93,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           // These vertices might themselves lie on the curve, in which case we overwrite them below.
           Halfedge he = commonEdge.halfedge();
           signs[he.next().tipVertex()] = (he.vertex() == pA.vertex) ? -1 : 1;
-          signs[he.twin().next().tipVertex()] = -signs[he.next().tipVertex()];
+          if (!commonEdge.isBoundary()) signs[he.twin().next().tipVertex()] = -signs[he.next().tipVertex()];
         } else {
           Face commonFace = sharedFace(pA, pB);
           if (commonFace == Face()) {
