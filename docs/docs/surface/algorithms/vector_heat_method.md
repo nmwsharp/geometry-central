@@ -1,4 +1,4 @@
-This section describes the _Vector Heat Method_ in geometry-central, which computes parallel transport of vectors using heat flow, and applications that follow from it.
+This section describes the _Vector Heat Method_ in geometry-central, which computes parallel transport of vectors using heat flow, and other quantities that follow from it such as the _logarithmic map_.
 
 Note that these quantities all depend on the _intrinsic_ geometry of a surface (via the `IntrinsicGeometryInterface`). Therefore, these routines can be run on abstract geometric domains as well as traditional surfaces in 3D.
 
