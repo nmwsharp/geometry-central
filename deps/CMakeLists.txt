@@ -79,7 +79,7 @@ else()
       FetchContent_GetProperties(eigen)
       if(NOT eigen_POPULATED)
           FetchContent_Populate(eigen) # NOTE: this form was deprecated in 3.30, we set CMP0169 to silence the warning
-          
+
           include(EigenChecker)
           eigen3checker(${eigen_SOURCE_DIR} 3.3)
       endif()
@@ -151,6 +151,13 @@ endif()
 if (NOT TARGET nanort)
     add_library(nanort INTERFACE)
     target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/nanort/include>)
+
+    # For backward compatibility, we need to make a symlink in the build directory.
+    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/nanort)
+    file(CREATE_LINK
+        ${CMAKE_CURRENT_SOURCE_DIR}/nanort/include/nanort.h
+        ${CMAKE_CURRENT_BINARY_DIR}/include/nanort/nanort.h SYMBOLIC)
+    target_include_directories(nanort INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
 if (NOT TARGET nanoflann)
