@@ -179,7 +179,10 @@ SET(HEADERS
 add_library(geometry-central ${SRCS} ${HEADERS})
 
 # Includes from this project
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_include_directories(geometry-central PUBLIC
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+)
 
 # Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
 target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})

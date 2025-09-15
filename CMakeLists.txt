@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.14.0)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
 
 project(geometry-central)
+set(PROJECT_VERSION 0.1.0)
 
 ### Policy settings
 cmake_policy(SET CMP0054 NEW)   # don't implicitly dereference inside if()
@@ -51,15 +54,16 @@ SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 add_subdirectory(src)
 
 # install
-install(
-  TARGETS geometry-central
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib)
 
+configure_package_config_file(geometry-central-config.cmake.in ${CMAKE_CURRENT_BINARY_DIR}/geometry-central-config.cmake INSTALL_DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/geometry-central/cmake)
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/geometry-centralConfigVersion.cmake COMPATIBILITY SameMajorVersion)
+install(TARGETS geometry-central eigen nanort nanoflann happly EXPORT geometry-central-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+
+install(EXPORT geometry-central-targets FILE geometry-centralTargets.cmake DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/geometry-central/cmake)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/geometry-central-config.cmake DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/geometry-central/cmake)
 install(
   DIRECTORY ${CMAKE_SOURCE_DIR}/include/
-  DESTINATION include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "*.ipp")
