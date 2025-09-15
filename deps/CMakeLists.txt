@@ -159,9 +159,9 @@ if (NOT TARGET nanoflann)
 
     # For backward compatibility, we need to make a symlink in the build directory.
     file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann)
-    file(CREATE_LINK
+    file(COPY
         ${CMAKE_CURRENT_SOURCE_DIR}/nanoflann/include/nanoflann.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann/nanoflann.hpp SYMBOLIC)
+        ${CMAKE_CURRENT_BINARY_DIR}/include/nanoflann/nanoflann.hpp)
     target_include_directories(nanoflann INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
 endif()
 
