@@ -3,7 +3,7 @@
 #include "geometrycentral/surface/geometry.h"
 
 
-#include "nanort/nanort.h"
+#include "nanort.h"
 
 namespace geometrycentral {
 namespace surface {
@@ -34,9 +34,7 @@ private:
   // Data for the BVH
   std::vector<double> rawPositions;
   std::vector<unsigned int> rawFaces;
-  nanort::BVHAccel<double, nanort::TriangleMesh<double>, nanort::TriangleSAHPred<double>,
-                   nanort::TriangleIntersector<double>>
-      accel;
+  nanort::BVHAccel<double> accel;
 
   double tFar;
 };
