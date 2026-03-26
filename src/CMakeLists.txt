@@ -178,11 +178,22 @@ SET(HEADERS
 # Create a single library for the project
 add_library(geometry-central ${SRCS} ${HEADERS})
 
-# Includes from this project
-target_include_directories(geometry-central PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+# Public headers include vendored headers directly, so build-tree consumers need
+# those include roots explicitly. The install tree collapses them under the
+# single installed include directory.
+target_include_directories(geometry-central
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../deps/happly>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../deps/nanort/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+  PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../deps/nanoflann/include")
 
-# Add all includes and link libraries from dependencies, which were populated in deps/CMakeLists.txt
-target_link_libraries(geometry-central PUBLIC ${GC_DEP_LIBS})
+# Keep Eigen out of the exported build-tree link interface to avoid exporting the
+# local helper target created in deps/CMakeLists.txt. The installed package adds
+# Eigen3::Eigen back after calling find_dependency(Eigen3).
 
 # Set compiler properties for the library
 target_compile_features(geometry-central PUBLIC cxx_std_11)
