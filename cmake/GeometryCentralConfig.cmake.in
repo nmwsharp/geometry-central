@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(Eigen3 3.3 REQUIRED NO_MODULE)
+
+include("${CMAKE_CURRENT_LIST_DIR}/GeometryCentralTargets.cmake")
+
+# Reattach Eigen after loading the exported target so installed consumers still
+# inherit it transitively without exporting this project's local helper target.
+set_property(TARGET geometry-central::geometry-central APPEND PROPERTY
+  INTERFACE_LINK_LIBRARIES Eigen3::Eigen)

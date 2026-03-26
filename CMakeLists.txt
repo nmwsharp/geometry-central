@@ -17,6 +17,11 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake") # look for stuff in the /cmake directory
 include(UpdateCacheVariable)
+# Install a standard CMake config package so downstream users do not need a custom FindGeometryCentral.cmake module.
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+set(GC_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/GeometryCentral")
 
 # Work with non-standard homebrew installations
 # (from ceres build system)
@@ -50,16 +55,33 @@ SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 ### Recurse to the source code
 add_subdirectory(src)
 
-# install
+# Install the library and export it as an imported target for find_package().
 install(
   TARGETS geometry-central
-  ARCHIVE DESTINATION lib
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib)
+  EXPORT GeometryCentralTargets
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 install(
-  DIRECTORY ${CMAKE_SOURCE_DIR}/include/
-  DESTINATION include
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "*.ipp")
+
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GeometryCentralConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/GeometryCentralConfig.cmake"
+  INSTALL_DESTINATION "${GC_INSTALL_CMAKEDIR}")
+
+# Install the exported target definitions and the package entry point side-by-side.
+install(
+  EXPORT GeometryCentralTargets
+  NAMESPACE geometry-central::
+  DESTINATION "${GC_INSTALL_CMAKEDIR}")
+
+install(
+  FILES "${CMAKE_CURRENT_BINARY_DIR}/GeometryCentralConfig.cmake"
+  DESTINATION "${GC_INSTALL_CMAKEDIR}")
