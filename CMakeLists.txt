@@ -61,8 +61,7 @@ install(
   EXPORT GeometryCentralTargets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
@@ -70,6 +69,16 @@ install(
   FILES_MATCHING
   PATTERN "*.h"
   PATTERN "*.ipp")
+
+# These vendored headers are referenced by installed public headers, so ship them
+# in the install tree rather than relying on downstream postInstall copy steps.
+install(
+  FILES "${CMAKE_CURRENT_SOURCE_DIR}/deps/happly/happly.h"
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(
+  FILES "${CMAKE_CURRENT_SOURCE_DIR}/deps/nanort/include/nanort/nanort.h"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/nanort")
 
 configure_package_config_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GeometryCentralConfig.cmake.in"
