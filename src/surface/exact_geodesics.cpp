@@ -1343,8 +1343,8 @@ IntervalList GeodesicAlgorithmExact::getEdgeIntervals(Edge e) const { return m_e
 void GeodesicAlgorithmExact::set_stop_conditions(const std::vector<SurfacePoint>& stop_points, double stop_distance) {
   m_max_propagation_distance = stop_distance;
 
+  m_stop_vertices.clear();
   if (stop_points.empty()) {
-    m_stop_vertices.clear();
     return;
   }
 
