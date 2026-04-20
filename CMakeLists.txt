@@ -52,6 +52,11 @@ add_subdirectory(deps)
 # copy variables set by deps upward
 SET(GC_HAVE_SUITESPARSE ${GC_HAVE_SUITESPARSE} PARENT_SCOPE)
 
+if(GC_EIGEN_WAS_DOWNLOADED)
+  message(WARNING "Eigen was auto-downloaded into the build tree. Consumers of the installed package will "
+                  "need Eigen 3.3+ available as a system package (e.g. installed via their package manager).")
+endif()
+
 ### Recurse to the source code
 add_subdirectory(src)
 
