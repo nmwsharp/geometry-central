@@ -56,19 +56,15 @@ TEST_F(PolygonMeshSuite, TriangularTest) {
     geometry.requireSimplePolygonLaplacian();
     geometry.requireSimplePolygonVertexLumpedMassMatrix();
     geometry.requireSimplePolygonVertexGalerkinMassMatrix();
-    geometry.requirePolygonLaplacian();
-    geometry.requirePolygonVertexLumpedMassMatrix();
 
     double L = geometry.cotanLaplacian.norm();
     double Mg = geometry.vertexGalerkinMassMatrix.norm();
     double Ml = geometry.vertexLumpedMassMatrix.norm();
 
     EXPECT_LT((geometry.simplePolygonLaplacian - geometry.cotanLaplacian).norm() / L, epsilon);
-    EXPECT_LT((geometry.polygonLaplacian - geometry.cotanLaplacian).norm() / L, epsilon);
     EXPECT_LT((geometry.simplePolygonVertexGalerkinMassMatrix - geometry.vertexGalerkinMassMatrix).norm() / Mg,
               epsilon);
     EXPECT_LT((geometry.simplePolygonVertexLumpedMassMatrix - geometry.vertexLumpedMassMatrix).norm() / Ml, epsilon);
-    EXPECT_LT((geometry.polygonVertexLumpedMassMatrix - geometry.vertexLumpedMassMatrix).norm() / Ml, epsilon);
 
     geometry.unrequireVertexGalerkinMassMatrix();
     geometry.unrequireVertexLumpedMassMatrix();
@@ -76,41 +72,5 @@ TEST_F(PolygonMeshSuite, TriangularTest) {
     geometry.unrequireSimplePolygonLaplacian();
     geometry.unrequireSimplePolygonVertexLumpedMassMatrix();
     geometry.unrequireSimplePolygonVertexGalerkinMassMatrix();
-    geometry.unrequirePolygonLaplacian();
-    geometry.unrequirePolygonVertexLumpedMassMatrix();
-  }
-}
-
-/* Check that Laplacian can be assembled as expected from DEC operators. */
-TEST_F(PolygonMeshSuite, DECTest) {
-
-  double epsilon = 1e-8;
-  for (MeshAsset& a : allMeshes()) {
-    a.printThyName();
-    SurfaceMesh& mesh = *a.mesh;
-    VertexPositionGeometry& geometry = *a.geometry;
-
-    geometry.requirePolygonDECOperators();
-    geometry.requirePolygonLaplacian();
-
-    SparseMatrix<double>& L = geometry.polygonLaplacian;
-    SparseMatrix<double>& h0 = geometry.polygonHodge0;
-    SparseMatrix<double>& h0Inv = geometry.polygonHodge0Inverse;
-    SparseMatrix<double>& h1 = geometry.polygonHodge1;
-    SparseMatrix<double>& h2 = geometry.polygonHodge2;
-    SparseMatrix<double>& h2Inv = geometry.polygonHodge2Inverse;
-    SparseMatrix<double>& d0 = geometry.polygonD0;
-    SparseMatrix<double>& d1 = geometry.polygonD1;
-    EXPECT_LT((L - d0.transpose() * h1 * d0).norm(), epsilon);
-
-    if (mesh.isTriangular()) {
-      geometry.requireDECOperators();
-      EXPECT_LT((h0 - geometry.hodge0).norm(), epsilon);
-      EXPECT_LT((h2 - geometry.hodge2).norm(), epsilon);
-      geometry.unrequireDECOperators();
-    }
-
-    geometry.unrequirePolygonDECOperators();
-    geometry.unrequirePolygonLaplacian();
   }
 }

@@ -16,12 +16,12 @@ PolygonMeshHeatSolver::PolygonMeshHeatSolver(EmbeddedGeometryInterface& geom_, d
   shortTime = tCoef * meanEdgeLength * meanEdgeLength;
   geom.unrequireEdgeLengths();
 
-  geom.requirePolygonVertexLumpedMassMatrix();
-  geom.requirePolygonLaplacian();
-  massMat = geom.polygonVertexLumpedMassMatrix;
-  laplaceMat = geom.polygonLaplacian;
-  geom.unrequirePolygonVertexLumpedMassMatrix();
-  geom.unrequirePolygonLaplacian();
+  geom.requireSimplePolygonVertexLumpedMassMatrix();
+  geom.requireSimplePolygonLaplacian();
+  massMat = geom.simplePolygonVertexLumpedMassMatrix;
+  laplaceMat = geom.simplePolygonLaplacian;
+  geom.unrequireSimplePolygonVertexLumpedMassMatrix();
+  geom.unrequireSimplePolygonLaplacian();
 }
 
 void PolygonMeshHeatSolver::ensureHaveScalarHeatSolver() {
@@ -34,14 +34,14 @@ void PolygonMeshHeatSolver::ensureHaveScalarHeatSolver() {
 void PolygonMeshHeatSolver::ensureHaveVectorHeatSolver() {
   if (vectorHeatSolver != nullptr) return;
 
-  geom.requirePolygonVertexConnectionLaplacian();
+  geom.requireSimplePolygonVertexConnectionLaplacian();
 
-  SparseMatrix<std::complex<double>>& L = geom.polygonVertexConnectionLaplacian;
+  SparseMatrix<std::complex<double>>& L = geom.simplePolygonVertexConnectionLaplacian;
   SparseMatrix<std::complex<double>> vectorOp = massMat.cast<std::complex<double>>() + shortTime * L;
 
   vectorHeatSolver.reset(new PositiveDefiniteSolver<std::complex<double>>(vectorOp));
 
-  geom.unrequirePolygonVertexConnectionLaplacian();
+  geom.unrequireSimplePolygonVertexConnectionLaplacian();
 }
 
 
@@ -59,8 +59,8 @@ VertexData<double> PolygonMeshHeatSolver::computeDistance(const Vertex& sourceVe
 VertexData<double> PolygonMeshHeatSolver::computeDistance(const std::vector<Vertex>& sourceVerts) {
   GC_SAFETY_ASSERT(sourceVerts.size() != 0, "must have at least one source");
 
-  geom.requirePolygonGradientMatrix();
-  geom.requirePolygonDivergenceMatrix();
+  geom.requireSimplePolygonGradientMatrix();
+  geom.requireSimplePolygonDivergenceMatrix();
   geom.requireVertexIndices();
 
   // Flow heat.
@@ -76,23 +76,24 @@ VertexData<double> PolygonMeshHeatSolver::computeDistance(const std::vector<Vert
   Vector<double> X = scalarHeatSolver->solve(rho);
 
   // Normalize gradient.
-  Vector<double> Y = geom.polygonGradientMatrix * X; // 3|F|
-  for (size_t i = 0; i < F; i++) {
-    Vector3 g = {Y[3 * i], Y[3 * i + 1], Y[3 * i + 2]};
+  Vector<double> Y =
+      geom.simplePolygonGradientMatrix * X; // 3|T^f| x 1 (where |T^f| = # of triangles in the refinement)
+  for (int i = 0; i < Y.rows(); i += 3) {
+    Vector3 g = {Y[i], Y[i + 1], Y[i + 2]};
     g /= g.norm();
-    for (int j = 0; j < 3; j++) Y[3 * i + j] = g[j];
+    for (int j = 0; j < 3; j++) Y[i + j] = g[j];
   }
 
   // Integrate.
   ensureHavePoissonSolver();
-  Vector<double> div = -geom.polygonDivergenceMatrix * Y;
+  Vector<double> div = geom.simplePolygonDivergenceMatrix * Y;
   Vector<double> distances = poissonSolver->solve(div);
 
   // Shift solution.
   distances -= distances.minCoeff() * Vector<double>::Ones(V);
 
-  geom.unrequirePolygonGradientMatrix();
-  geom.unrequirePolygonDivergenceMatrix();
+  geom.unrequireSimplePolygonGradientMatrix();
+  geom.unrequireSimplePolygonDivergenceMatrix();
   geom.unrequireVertexIndices();
 
   return VertexData<double>(mesh, distances);
@@ -189,29 +190,47 @@ VertexData<double> PolygonMeshHeatSolver::computeSignedDistance(const std::vecto
   ensureHaveVectorHeatSolver();
   Vector<std::complex<double>> Xt = vectorHeatSolver->solve(X0);
 
-  // Average onto faces, and normalize.
-  size_t F = mesh.nFaces();
-  Vector<double> Y(3 * F);
-  geom.requireFaceIndices();
-  for (Face f : mesh.faces()) {
-    Vector3 Yf = {0, 0, 0};
-    for (Vertex v : f.adjacentVertices()) {
-      size_t vIdx = geom.vertexIndices[v];
-      Yf += std::real(Xt[vIdx]) * geom.vertexTangentBasis[v][0];
-      Yf += std::imag(Xt[vIdx]) * geom.vertexTangentBasis[v][1];
-    }
-    Yf /= Yf.norm();
-    size_t fIdx = geom.faceIndices[f];
+  // Express normalized diffused vectors extrinsically.
+  Eigen::MatrixXd Yt(V, 3);
+  for (size_t i = 0; i < V; i++) {
+    Vector3 g = geom.vertexTangentBasis[i][0] * std::real(Xt[i]) + geom.vertexTangentBasis[i][1] * std::imag(Xt[i]);
+    g / g.norm();
     for (int j = 0; j < 3; j++) {
-      Y[3 * fIdx + j] = Yf[j];
+      Yt(i, j) = g[j];
     }
   }
-  geom.unrequireFaceIndices();
-  geom.unrequireVertexTangentBasis();
 
-  geom.requirePolygonDivergenceMatrix();
-  Vector<double> divYt = geom.polygonDivergenceMatrix * Y;
-  geom.unrequirePolygonDivergenceMatrix();
+  // In order to apply the divergence operator as-is, average onto faces of refinement.
+  geom.requireFaceIndices();
+  geom.requireSimplePolygonDivergenceMatrix();
+  geom.requireSimplePolygonProlongationMatrix();
+  SparseMatrix<double> D = geom.simplePolygonDivergenceMatrix;
+  SparseMatrix<double> P = geom.simplePolygonProlongationMatrix; // (|V| + |F|) x |V|
+  Eigen::MatrixXd PY = P * Yt;                                   // (|V| + |F|) x 3
+  Vector<double> Y(D.cols());                                    // 3|T^f| x 1
+  int c = 0;
+  for (Face f : mesh.faces()) {
+    int i = 0;
+    size_t fIdx = geom.faceIndices[f];
+    Eigen::Vector3d valM = PY.row(V + fIdx);
+    for (Halfedge he : f.adjacentHalfedges()) {
+      size_t v0 = geom.vertexIndices[he.tailVertex()];
+      size_t v1 = geom.vertexIndices[he.tipVertex()];
+      Eigen::Vector3d val1 = PY.row(v0);
+      Eigen::Vector3d val2 = PY.row(v1);
+      Eigen::Vector3d avg = (valM + val1 + val2) / 3.;
+      avg /= avg.norm();
+      for (int j = 0; j < 3; j++) {
+        int idx = c + 3 * i + j;
+        Y[idx] = avg[j];
+      }
+      i++;
+    }
+    c += f.degree() * 3;
+  }
+
+  Vector<double> divYt = D * Y;
+  geom.unrequireSimplePolygonDivergenceMatrix();
 
   Vector<double> phi;
   if (levelSetConstraint == LevelSetConstraint::None) {
