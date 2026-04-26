@@ -27,6 +27,11 @@ public:
   void requireVertexPositions();
   void unrequireVertexPositions();
 
+  // Face centroids
+  FaceData<Vector3> faceCentroids;
+  void requireFaceCentroids();
+  void unrequireFaceCentroids();
+
   // Face normal
   FaceData<Vector3> faceNormals;
   void requireFaceNormals();
@@ -104,6 +109,9 @@ protected:
 
   DependentQuantityD<VertexData<Vector3>> vertexPositionsQ;
   virtual void computeVertexPositions() = 0;
+
+  DependentQuantityD<FaceData<Vector3>> faceCentroidsQ;
+  virtual void computeFaceCentroids();
 
   DependentQuantityD<FaceData<Vector3>> faceNormalsQ;
   virtual void computeFaceNormals();

@@ -13,6 +13,7 @@ EmbeddedGeometryInterface::EmbeddedGeometryInterface(SurfaceMesh& mesh_) :
   ExtrinsicGeometryInterface(mesh_),
 
   vertexPositionsQ                (&vertexPositions,                std::bind(&EmbeddedGeometryInterface::computeVertexPositions, this),                quantities),
+  faceCentroidsQ                  (&faceCentroids,                  std::bind(&EmbeddedGeometryInterface::computeFaceCentroids, this),                  quantities),
   faceNormalsQ                    (&faceNormals,                    std::bind(&EmbeddedGeometryInterface::computeFaceNormals, this),                    quantities),
   vertexNormalsQ                  (&vertexNormals,                  std::bind(&EmbeddedGeometryInterface::computeVertexNormals, this),                  quantities),
   faceTangentBasisQ               (&faceTangentBasis,               std::bind(&EmbeddedGeometryInterface::computeFaceTangentBasis, this),               quantities),
@@ -72,6 +73,25 @@ void EmbeddedGeometryInterface::computeEdgeDihedralAngles() {
 void EmbeddedGeometryInterface::requireVertexPositions() { vertexPositionsQ.require(); }
 void EmbeddedGeometryInterface::unrequireVertexPositions() { vertexPositionsQ.unrequire(); }
 
+// Face centroids
+void EmbeddedGeometryInterface::computeFaceCentroids() {
+  vertexPositionsQ.ensureHave();
+
+  faceCentroids = FaceData<Vector3>(mesh);
+
+  for (Face f : mesh.faces()) {
+    Vector3 centroid = Vector3::zero();
+    size_t n = 0;
+    for (Vertex v : f.adjacentVertices()) {
+      centroid += vertexPositions[v];
+      n++;
+    }
+    centroid /= static_cast<double>(n);
+    faceCentroids[f] = centroid;
+  }
+}
+void EmbeddedGeometryInterface::requireFaceCentroids() { faceCentroidsQ.require(); }
+void EmbeddedGeometryInterface::unrequireFaceCentroids() { faceCentroidsQ.unrequire(); }
 
 void EmbeddedGeometryInterface::computeFaceNormals() {
   vertexPositionsQ.ensureHave();

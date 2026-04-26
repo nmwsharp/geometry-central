@@ -655,6 +655,16 @@ These quantities depend explicitly on an embedding in 3D space (better known as 
     - **require:** `void EmbeddedGeometryInterface::requireVertexPositions()`
 
 
+??? func "face centroid"
+
+    ##### face centroid
+
+    The centroid (geometric center) of each face, computed as the average of its adjacent vertex positions. Works for faces of any degree (triangles, quads, polygons, etc.).
+
+    - **member:** `FaceData<Vector3> EmbeddedGeometryInterface::faceCentroids`
+    - **require:** `void EmbeddedGeometryInterface::requireFaceCentroids()`
+
+
 ??? func "face normal"
 
     ##### face normal
