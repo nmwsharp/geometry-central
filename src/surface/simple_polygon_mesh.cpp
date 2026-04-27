@@ -1,7 +1,8 @@
 #include "geometrycentral/surface/simple_polygon_mesh.h"
 
+#include "geometrycentral/surface/mesh_ray_tracer.h"
+
 #include "happly.h"
-#include "nanort.h"
 
 #include <algorithm>
 #include <deque>
@@ -654,55 +655,16 @@ void SimplePolygonMesh::consistentlyOrientFaces(bool outwardOrient) {
 
   // If we are going to want it, build a raytracing acceleration structure to do the outward orientation step.
   int32_t N_RAYS_PER_FACE = 4;
-  std::vector<double> rawPositions;
-  std::vector<unsigned int> rawFaces;
-  nanort::BVHAccel<double> accel;
-  double lengthScale = -1;
+  std::unique_ptr<MeshRayTracer> tracer;
   auto traceDist = [&](Vector3 root, Vector3 dir) {
-    nanort::Ray<double> ray;
-    ray.min_t = 1e-6 * lengthScale;
-    ray.max_t = 1e1 * lengthScale;
-    for (int i = 0; i < 3; i++) ray.org[i] = root[i];
-    for (int i = 0; i < 3; i++) ray.dir[i] = dir[i];
-    nanort::BVHTraceOptions trace_options;
-    nanort::TriangleIntersection<double> isect;
-    nanort::TriangleIntersector<double> triangle_intersector(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
-    bool hit = accel.Traverse(ray, triangle_intersector, &isect, trace_options);
-    return isect.t;
+    RayHitResult hit = tracer->trace(root, dir);
+    return hit.t; // infinity if no hit
   };
   std::random_device rd;
   std::mt19937 gen(rd()); // we'll use this to generate rays on triangles
   std::uniform_real_distribution<double> realDist(0., 1.);
   if (outwardOrient) {
-
-    double INF = std::numeric_limits<double>::infinity();
-    Vector3 bboxMin{INF, INF, INF};
-    Vector3 bboxMax{-INF, -INF, -INF};
-    for (Vector3 v : vertexCoordinates) {
-      rawPositions.push_back(v.x);
-      rawPositions.push_back(v.y);
-      rawPositions.push_back(v.z);
-      bboxMin = componentwiseMin(bboxMin, v);
-      bboxMax = componentwiseMax(bboxMax, v);
-    }
-    lengthScale = norm(bboxMax - bboxMin);
-    for (const std::vector<size_t>& poly : polygons) {
-      if (poly.size() != 3) {
-        throw std::runtime_error("consistentlyOrientFaces() with outwardOrient=true only supports triangular meshes");
-      }
-      rawFaces.push_back(poly[0]);
-      rawFaces.push_back(poly[1]);
-      rawFaces.push_back(poly[2]);
-    }
-
-
-    nanort::TriangleMesh<double> nanortMesh(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
-    nanort::TriangleSAHPred<double> nanortMeshPred(rawPositions.data(), rawFaces.data(), sizeof(double) * 3);
-    nanort::BVHBuildOptions<double> options; // Use default options
-    bool ret = accel.Build(nFaces(), nanortMesh, nanortMeshPred, options);
-    if (!ret) {
-      throw std::runtime_error("BVH construction failed");
-    }
+    tracer.reset(new MeshRayTracer(*this));
   }
 
   // pre-build a connectivity lookup map
