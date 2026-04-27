@@ -446,18 +446,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
   IntervalWithStop candidates[2];
 
-  int itr = 0;
-  auto _start = std::chrono::high_resolution_clock::now();
-  auto _before = _start;
-
   while (!m_queue.empty()) {
-    itr++;
-
-    auto _now = std::chrono::high_resolution_clock::now();
-    // std::cout << "  " << itr << ": " << std::chrono::duration_cast<std::chrono::microseconds>(_now - _before).count() << "us" << std::endl;
-
-    _before = _now;
-
     m_queue_max_size = std::max(m_queue.size(), m_queue_max_size);
 
     unsigned const check_period = 10;
