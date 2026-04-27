@@ -61,8 +61,6 @@ SET(SRCS
   surface/quadric_error_simplification.cpp
   surface/subdivide.cpp
   surface/poisson_disk_sampler.cpp
-  #surface/detect_symmetry.cpp
-  #surface/mesh_ray_tracer.cpp
   
   pointcloud/point_cloud.cpp
   pointcloud/neighborhoods.cpp
@@ -101,7 +99,6 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/barycentric_coordinate_helpers.ipp
   ${INCLUDE_ROOT}/surface/base_geometry_interface.h
   ${INCLUDE_ROOT}/surface/boundary_first_flattening.h
-  ${INCLUDE_ROOT}/surface/detect_symmetry.h
   ${INCLUDE_ROOT}/surface/direction_fields.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.h
   ${INCLUDE_ROOT}/surface/edge_length_geometry.ipp
@@ -124,7 +121,6 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/manifold_surface_mesh.h
   ${INCLUDE_ROOT}/surface/meshio.h
   ${INCLUDE_ROOT}/surface/mesh_graph_algorithms.h
-  ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/parameterize.h
   ${INCLUDE_ROOT}/surface/poisson_disk_sampler.h
   ${INCLUDE_ROOT}/surface/polygon_mesh_heat_solver.h
