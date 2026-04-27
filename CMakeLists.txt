@@ -81,10 +81,6 @@ install(
   FILES "${CMAKE_CURRENT_SOURCE_DIR}/deps/happly/happly.h"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(
-  FILES "${CMAKE_CURRENT_SOURCE_DIR}/deps/nanort/include/nanort/nanort.h"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/nanort")
-
 configure_package_config_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GeometryCentralConfig.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/GeometryCentralConfig.cmake"
