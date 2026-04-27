@@ -308,7 +308,25 @@ std::unique_ptr<FlipEdgeNetwork> FlipEdgeNetwork::constructFromPiecewiseDijkstra
     halfedges.insert(halfedges.end(), dijkstraPath.begin(), dijkstraPath.end());
   }
 
-  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {halfedges}, extraMark));
+  if (markInterior || halfedges.size() == 0) {
+    return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {halfedges}, extraMark));
+  }
+
+  // Sometimes Dijkstra segments to an intermediate point create a back-and-forth that the FlipOut algorithm
+  // cannot remove, because of an implementation limitation of how we pass it to the stacked representation. This is a
+  // quick filtering pass to collapse and remove such segments when they trivially exist
+  //
+  // NOTE: we can only do this when markInterior==false, because the path will no longer touch the marked vertex.
+  std::vector<Halfedge> heClean;
+  for (Halfedge he : halfedges) {
+    if (!heClean.empty() && heClean.back() == he.twin()) {
+      heClean.pop_back();
+    } else {
+      heClean.push_back(he);
+    }
+  }
+
+  return std::unique_ptr<FlipEdgeNetwork>(new FlipEdgeNetwork(mesh_, geom, {heClean}, extraMark));
 }
 
 

@@ -185,7 +185,6 @@ public:
   SegmentAngleType locallyShortestTest(Halfedge hePrev, Halfedge heNext);
   double minWedgeAngle(Halfedge hePrev, Halfedge heNext);
   double minWedgeAngle(const FlipPathSegment& segment);
-  bool isStraight(double angleThresh = 1e-4);
   double minAngle();        // minimum over all angles
   double minAngleIsotopy(); // minimum over all angles, excluding those blocked by an path endpoint
   struct ShortestReturnBoth {
