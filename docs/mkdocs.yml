@@ -107,8 +107,9 @@ nav:
     - 'Matrix Types' : 'numerical/matrix_types.md'
     - 'Linear Algebra Utilities' : 'numerical/linear_algebra_utilities.md'
     - 'Linear Solvers' : 'numerical/linear_solvers.md'
-  - Utilities: 
+  - Utilities:
     - 'Miscellaneous' : 'utilities/miscellaneous.md'
     - 'Vector2' : 'utilities/vector2.md'
     - 'Vector3' : 'utilities/vector3.md'
+    - 'Nearest Neighbors' : 'utilities/nearest_neighbors.md'
     - 'Utilities for Eigen Interoperability' : 'utilities/eigenmap.md'
