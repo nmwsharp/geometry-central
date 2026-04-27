@@ -107,7 +107,7 @@ public:
   // Run Dijkstra between i'th and (i+1)'th point to initialize path
   static std::unique_ptr<FlipEdgeNetwork>
   constructFromPiecewiseDijkstraPath(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom,
-                                     std::vector<Vertex> points, bool closed = false, bool markInterior = false, bool removeOverlap = true);
+                                     std::vector<Vertex> points, bool closed = false, bool markInterior = false);
 
   // Consturct path(s) from marked edges, heuristically inferring endpoints, loopiness, etc
   static std::unique_ptr<FlipEdgeNetwork> constructFromEdgeSet(ManifoldSurfaceMesh& mesh,
@@ -185,7 +185,6 @@ public:
   SegmentAngleType locallyShortestTest(Halfedge hePrev, Halfedge heNext);
   double minWedgeAngle(Halfedge hePrev, Halfedge heNext);
   double minWedgeAngle(const FlipPathSegment& segment);
-  bool isStraight(double angleThresh = 1e-4);
   double minAngle();        // minimum over all angles
   double minAngleIsotopy(); // minimum over all angles, excluding those blocked by an path endpoint
   struct ShortestReturnBoth {
