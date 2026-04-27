@@ -14,6 +14,7 @@ SET(SRCS
   surface/surface_mesh_factories.cpp
   surface/meshio.cpp
   surface/simple_polygon_mesh.cpp
+  surface/mesh_ray_tracer.cpp
   surface/rich_surface_mesh_data.cpp
 
   surface/base_geometry_interface.cpp
@@ -133,6 +134,7 @@ SET(HEADERS
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.h
   ${INCLUDE_ROOT}/surface/signpost_intrinsic_triangulation.ipp
   ${INCLUDE_ROOT}/surface/simple_idt.h
+  ${INCLUDE_ROOT}/surface/mesh_ray_tracer.h
   ${INCLUDE_ROOT}/surface/simple_polygon_mesh.h
   ${INCLUDE_ROOT}/surface/stripe_patterns.h
   ${INCLUDE_ROOT}/surface/subdivide.h
