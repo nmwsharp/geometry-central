@@ -1,6 +1,22 @@
 #include "geometrycentral/surface/mesh_ray_tracer.h"
 
+// we need to include these for nanort before it tries to include them inside the anonymous namespace.
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <limits>
+#include <memory>
+#include <queue>
+#include <string>
+#include <vector>
+namespace {
+// put it in an anonymous namespace to avoid exposing symbols
 #include "nanort.h"
+} // namespace
 
 namespace geometrycentral {
 namespace surface {

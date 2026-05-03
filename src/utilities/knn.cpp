@@ -1,6 +1,26 @@
 #include "geometrycentral/utilities/knn.h"
 
+// we need to include these for nanoflann before it tries to include them inside the anonymous namespace.
+#include <algorithm>
+#include <array>
+#include <atomic>
+#include <cassert>
+#include <cmath>  // for abs()
+#include <cstdint>
+#include <cstdlib>  // for abs()
+#include <functional>  // std::reference_wrapper
+#include <future>
+#include <istream>
+#include <limits>  // std::numeric_limits
+#include <ostream>
+#include <stack>
+#include <stdexcept>
+#include <unordered_set>
+#include <vector>
+namespace {
+// put it in an anonymous namespace to avoid exposing symbols
 #include "nanoflann.hpp"
+}
 
 using std::vector;
 
