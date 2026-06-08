@@ -1,5 +1,8 @@
 #include "geometrycentral/surface/fast_marching_method.h"
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
 #include <queue>
 #include <tuple>
 
@@ -79,6 +82,20 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
     return signs[left.second] * left.first > signs[right.second] * right.first;
   };
   std::priority_queue<Entry, std::vector<Entry>, decltype(cmp)> frontierPQ(cmp);
+
+  auto candidateImprovesDistance = [&](Vertex v, double candidateDist) {
+    if (!std::isfinite(candidateDist)) return false;
+    if (!std::isfinite(distances[v])) return true;
+    if (signs[v] == 0) return std::abs(candidateDist) < std::abs(distances[v]);
+    return signs[v] * candidateDist < signs[v] * distances[v];
+  };
+
+  auto addCandidateDistance = [&](Vertex v, double candidateDist) {
+    if (!candidateImprovesDistance(v, candidateDist)) return;
+    distances[v] = candidateDist;
+    frontierPQ.push(std::make_pair(candidateDist, v));
+  };
+
   // Initialize signs
   if (sign) {
     for (Vertex v : mesh.vertices()) signs[v] = 0;
@@ -142,7 +159,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       const SurfacePoint& p = x.first;
       switch (p.type) {
       case (SurfacePointType::Vertex): {
-        frontierPQ.push(std::make_pair(x.second, p.vertex));
+        addCandidateDistance(p.vertex, x.second);
         isSource[p.vertex] = true;
         break;
       }
@@ -150,8 +167,8 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         const Vertex& vA = p.edge.firstVertex();
         const Vertex& vB = p.edge.secondVertex();
         double l = geometry.edgeLengths[p.edge];
-        frontierPQ.push(std::make_pair(x.second + signs[vA] * p.tEdge * l, vA));
-        frontierPQ.push(std::make_pair(x.second + signs[vB] * (1. - p.tEdge) * l, vB));
+        addCandidateDistance(vA, x.second + signs[vA] * p.tEdge * l);
+        addCandidateDistance(vB, x.second + signs[vB] * (1. - p.tEdge) * l);
         isSource[vA] = true;
         isSource[vB] = true;
         break;
@@ -173,9 +190,9 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         double dist2_A = lAB2 * (v * (1. - u)) + lCA2 * (w * (1. - u)) - lAB2 * v * w; // squared distance from p to vA
         double dist2_B = lAB2 * (u * (1. - v)) + lBC2 * (w * (1. - v)) - lCA2 * u * w; // squared distance from p to vB
         double dist2_C = lCA2 * (u * (1. - w)) + lBC2 * (v * (1. - w)) - lBC2 * u * v; // squared distance from p to vC
-        frontierPQ.push(std::make_pair(x.second + signs[vA] * std::sqrt(dist2_A), vA));
-        frontierPQ.push(std::make_pair(x.second + signs[vB] * std::sqrt(dist2_B), vB));
-        frontierPQ.push(std::make_pair(x.second + signs[vC] * std::sqrt(dist2_C), vC));
+        addCandidateDistance(vA, x.second + signs[vA] * std::sqrt(dist2_A));
+        addCandidateDistance(vB, x.second + signs[vB] * std::sqrt(dist2_B));
+        addCandidateDistance(vC, x.second + signs[vC] * std::sqrt(dist2_C));
         isSource[vA] = true;
         isSource[vB] = true;
         isSource[vC] = true;
@@ -184,6 +201,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       }
     }
   }
+
   size_t nFound = 0;
   size_t nVert = mesh.nVertices();
 
@@ -213,10 +231,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       if (!finalized[neighVert] && !isSource[neighVert]) {
         if (signs[neighVert] == 0) signs[neighVert] = signs[currV];
         double newDist = currDist + signs[neighVert] * geometry.edgeLengths[he.edge()];
-        if (signs[neighVert] * newDist < signs[neighVert] * distances[neighVert] || std::isinf(distances[neighVert])) {
-          frontierPQ.push(std::make_pair(newDist, neighVert));
-          distances[neighVert] = newDist;
-        }
+        addCandidateDistance(neighVert, newDist);
         continue;
       }
 
@@ -233,10 +248,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[he.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          if (signs[newVert] * newDist < signs[newVert] * distances[newVert] || std::isinf(distances[newVert])) {
-            frontierPQ.push(std::make_pair(newDist, newVert));
-            distances[newVert] = newDist;
-          }
+          addCandidateDistance(newVert, newDist);
         }
       }
 
@@ -254,10 +266,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[heT.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          if (signs[newVert] * newDist < signs[newVert] * distances[newVert] || std::isinf(distances[newVert])) {
-            frontierPQ.push(std::make_pair(newDist, newVert));
-            distances[newVert] = newDist;
-          }
+          addCandidateDistance(newVert, newDist);
         }
       }
     }
