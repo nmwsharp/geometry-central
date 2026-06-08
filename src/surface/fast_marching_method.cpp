@@ -187,12 +187,12 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         double u = p.faceCoords[0];
         double v = p.faceCoords[1];
         double w = p.faceCoords[2];
-        double dist2_A = lAB2 * (v * (1. - u)) + lCA2 * (w * (1. - u)) - lAB2 * v * w; // squared distance from p to vA
+        double dist2_A = lAB2 * (v * (1. - u)) + lCA2 * (w * (1. - u)) - lBC2 * v * w; // squared distance from p to vA
         double dist2_B = lAB2 * (u * (1. - v)) + lBC2 * (w * (1. - v)) - lCA2 * u * w; // squared distance from p to vB
-        double dist2_C = lCA2 * (u * (1. - w)) + lBC2 * (v * (1. - w)) - lBC2 * u * v; // squared distance from p to vC
-        addCandidateDistance(vA, x.second + signs[vA] * std::sqrt(dist2_A));
-        addCandidateDistance(vB, x.second + signs[vB] * std::sqrt(dist2_B));
-        addCandidateDistance(vC, x.second + signs[vC] * std::sqrt(dist2_C));
+        double dist2_C = lCA2 * (u * (1. - w)) + lBC2 * (v * (1. - w)) - lAB2 * u * v; // squared distance from p to vC
+        addCandidateDistance(vA, x.second + signs[vA] * std::sqrt(std::max(0., dist2_A)));
+        addCandidateDistance(vB, x.second + signs[vB] * std::sqrt(std::max(0., dist2_B)));
+        addCandidateDistance(vC, x.second + signs[vC] * std::sqrt(std::max(0., dist2_C)));
         isSource[vA] = true;
         isSource[vB] = true;
         isSource[vC] = true;
