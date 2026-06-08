@@ -56,7 +56,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
                                const std::vector<std::vector<std::pair<SurfacePoint, double>>>& initialDistances,
                                bool sign) {
 
-  typedef std::pair<double, Vertex> Entry;
+  typedef std::tuple<double, Vertex, int> Entry;
 
   SurfaceMesh& mesh = geometry.mesh;
   geometry.requireEdgeLengths();
@@ -72,14 +72,20 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
   VertexData<int> signs(mesh, 1);
   VertexData<char> finalized(mesh, false);
   VertexData<char> isSource(mesh, false);
+  VertexData<int> sourceLabels(mesh, -1);
+  EdgeData<char> isSourceBaseEdge(mesh, false);
+  EdgeData<int> sourceBaseLabels(mesh, -1);
+  int nextSourceLabel = 0;
 
   auto cmp = [&signs](Entry left, Entry right) {
-    if (signs[left.second] != signs[right.second]) {
+    Vertex leftV = std::get<1>(left);
+    Vertex rightV = std::get<1>(right);
+    if (signs[leftV] != signs[rightV]) {
       // We're looking at an edge that intersects the source, which may not have initial distance 0.
       // I *think* this can only happen if the positive vertex lies on the source, in which case it's the "closer" one.
-      return signs[left.second] != 1;
+      return signs[leftV] != 1;
     }
-    return signs[left.second] * left.first > signs[right.second] * right.first;
+    return signs[leftV] * std::get<0>(left) > signs[rightV] * std::get<0>(right);
   };
   std::priority_queue<Entry, std::vector<Entry>, decltype(cmp)> frontierPQ(cmp);
 
@@ -90,10 +96,16 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
     return signs[v] * candidateDist < signs[v] * distances[v];
   };
 
-  auto addCandidateDistance = [&](Vertex v, double candidateDist) {
+  auto addCandidateDistance = [&](Vertex v, double candidateDist, int sourceLabel) {
     if (!candidateImprovesDistance(v, candidateDist)) return;
     distances[v] = candidateDist;
-    frontierPQ.push(std::make_pair(candidateDist, v));
+    sourceLabels[v] = sourceLabel;
+    frontierPQ.push(std::make_tuple(candidateDist, v, sourceLabel));
+  };
+
+  auto markSourceBaseEdge = [&](Edge e, int sourceLabel) {
+    isSourceBaseEdge[e] = true;
+    if (sourceBaseLabels[e] == -1) sourceBaseLabels[e] = sourceLabel;
   };
 
   // Initialize signs
@@ -123,6 +135,13 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
             signs[v] = (dot(geometry, normal, u) > 0) ? 1 : -1;
           }
         }
+      }
+    }
+    for (auto& curve : initialDistances) {
+      size_t nNodes = curve.size();
+      for (size_t i = 0; i < nNodes - 1; i++) {
+        Edge commonEdge = sharedEdge(curve[i].first, curve[i + 1].first);
+        if (commonEdge != Edge()) markSourceBaseEdge(commonEdge, nextSourceLabel++);
       }
     }
     // Vertices on the curve are always assumed to have positive sign.
@@ -157,9 +176,10 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
   for (auto& curve : initialDistances) {
     for (auto& x : curve) {
       const SurfacePoint& p = x.first;
+      int sourceLabel = nextSourceLabel++;
       switch (p.type) {
       case (SurfacePointType::Vertex): {
-        addCandidateDistance(p.vertex, x.second);
+        addCandidateDistance(p.vertex, x.second, sourceLabel);
         isSource[p.vertex] = true;
         break;
       }
@@ -167,10 +187,11 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         const Vertex& vA = p.edge.firstVertex();
         const Vertex& vB = p.edge.secondVertex();
         double l = geometry.edgeLengths[p.edge];
-        addCandidateDistance(vA, x.second + signs[vA] * p.tEdge * l);
-        addCandidateDistance(vB, x.second + signs[vB] * (1. - p.tEdge) * l);
+        addCandidateDistance(vA, x.second + signs[vA] * p.tEdge * l, sourceLabel);
+        addCandidateDistance(vB, x.second + signs[vB] * (1. - p.tEdge) * l, sourceLabel);
         isSource[vA] = true;
         isSource[vB] = true;
+        markSourceBaseEdge(p.edge, sourceLabel);
         break;
       }
       case (SurfacePointType::Face): {
@@ -190,12 +211,15 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
         double dist2_A = lAB2 * (v * (1. - u)) + lCA2 * (w * (1. - u)) - lBC2 * v * w; // squared distance from p to vA
         double dist2_B = lAB2 * (u * (1. - v)) + lBC2 * (w * (1. - v)) - lCA2 * u * w; // squared distance from p to vB
         double dist2_C = lCA2 * (u * (1. - w)) + lBC2 * (v * (1. - w)) - lAB2 * u * v; // squared distance from p to vC
-        addCandidateDistance(vA, x.second + signs[vA] * std::sqrt(std::max(0., dist2_A)));
-        addCandidateDistance(vB, x.second + signs[vB] * std::sqrt(std::max(0., dist2_B)));
-        addCandidateDistance(vC, x.second + signs[vC] * std::sqrt(std::max(0., dist2_C)));
+        addCandidateDistance(vA, x.second + signs[vA] * std::sqrt(std::max(0., dist2_A)), sourceLabel);
+        addCandidateDistance(vB, x.second + signs[vB] * std::sqrt(std::max(0., dist2_B)), sourceLabel);
+        addCandidateDistance(vC, x.second + signs[vC] * std::sqrt(std::max(0., dist2_C)), sourceLabel);
         isSource[vA] = true;
         isSource[vB] = true;
         isSource[vC] = true;
+        markSourceBaseEdge(he.edge(), sourceLabel);
+        markSourceBaseEdge(he.next().edge(), sourceLabel);
+        markSourceBaseEdge(he.next().next().edge(), sourceLabel);
         break;
       }
       }
@@ -211,12 +235,13 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
     // Pop the nearest element
     Entry currPair = frontierPQ.top();
     frontierPQ.pop();
-    Vertex currV = currPair.second;
-    double currDist = currPair.first;
+    double currDist = std::get<0>(currPair);
+    Vertex currV = std::get<1>(currPair);
+    int currSourceLabel = std::get<2>(currPair);
 
 
     // Accept it if not stale
-    if (finalized[currV]) {
+    if (finalized[currV] || currDist != distances[currV] || currSourceLabel != sourceLabels[currV]) {
       continue;
     }
     distances[currV] = currDist;
@@ -231,9 +256,14 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
       if (!finalized[neighVert] && !isSource[neighVert]) {
         if (signs[neighVert] == 0) signs[neighVert] = signs[currV];
         double newDist = currDist + signs[neighVert] * geometry.edgeLengths[he.edge()];
-        addCandidateDistance(neighVert, newDist);
+        addCandidateDistance(neighVert, newDist, currSourceLabel);
         continue;
       }
+
+      bool useSourceBaseEdge = sourceLabels[neighVert] != currSourceLabel && isSource[currV] && isSource[neighVert] &&
+                               isSourceBaseEdge[he.edge()];
+      if (sourceLabels[neighVert] != currSourceLabel && !useSourceBaseEdge) continue;
+      int updateSourceLabel = useSourceBaseEdge ? sourceBaseLabels[he.edge()] : currSourceLabel;
 
       // Check the third point of the "left" triangle straddling this edge
       if (he.isInterior()) {
@@ -248,7 +278,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[he.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          addCandidateDistance(newVert, newDist);
+          addCandidateDistance(newVert, newDist, updateSourceLabel);
         }
       }
 
@@ -266,7 +296,7 @@ VertexData<double> FMMDistance(IntrinsicGeometryInterface& geometry,
           double theta = geometry.cornerAngles[heT.next().next().corner()];
           if (signs[newVert] == 0) signs[newVert] = (signs[currV] != 0) ? signs[currV] : signs[he.next().vertex()];
           double newDist = eikonalDistanceSubroutine(lenA, lenB, theta, distA, distB, signs[newVert]);
-          addCandidateDistance(newVert, newDist);
+          addCandidateDistance(newVert, newDist, updateSourceLabel);
         }
       }
     }
