@@ -104,6 +104,7 @@ set(TEST_SRCS
   src/intrinsic_triangulation_test.cpp
   src/linear_algebra_test.cpp
   src/load_test_meshes.cpp
+  src/marching_triangles_test.cpp
   src/point_cloud_test.cpp
   src/poisson_disk_sampler_test.cpp
   src/polygon_operators_test.cpp
