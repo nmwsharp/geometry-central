@@ -1,9 +1,67 @@
 #include "geometrycentral/surface/marching_triangles.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace geometrycentral {
 namespace surface {
 
 namespace {
+
+enum class IsoSign { Below, Equal, Above, Invalid };
+
+IsoSign isoSign(double x, double iso) {
+  if (!std::isfinite(x) || !std::isfinite(iso)) return IsoSign::Invalid;
+  if (x < iso) return IsoSign::Below;
+  if (x > iso) return IsoSign::Above;
+  return IsoSign::Equal;
+}
+
+void addUniqueHit(std::vector<SurfacePoint>& hits, const SurfacePoint& p) {
+  if (std::find(hits.begin(), hits.end(), p) == hits.end()) {
+    hits.push_back(p);
+  }
+}
+
+void addEdgeIsoHits(Halfedge he, const VertexData<double>& u, double isoval, std::vector<SurfacePoint>& hits) {
+
+  Edge e = he.edge();
+  Vertex v0 = e.firstVertex();
+  Vertex v1 = e.secondVertex();
+
+  double u0 = u[v0];
+  double u1 = u[v1];
+
+  IsoSign s0 = isoSign(u0, isoval);
+  IsoSign s1 = isoSign(u1, isoval);
+
+  if (s0 == IsoSign::Invalid || s1 == IsoSign::Invalid) return;
+
+  // Entire edge is on the contour.
+  if (s0 == IsoSign::Equal && s1 == IsoSign::Equal) {
+    addUniqueHit(hits, SurfacePoint(v0));
+    addUniqueHit(hits, SurfacePoint(v1));
+    return;
+  }
+
+  // One endpoint lies exactly on the contour.
+  if (s0 == IsoSign::Equal) {
+    addUniqueHit(hits, SurfacePoint(v0));
+    return;
+  }
+
+  if (s1 == IsoSign::Equal) {
+    addUniqueHit(hits, SurfacePoint(v1));
+    return;
+  }
+
+  // Strict crossing.
+  if (s0 != s1) {
+    double t = (isoval - u0) / (u1 - u0);
+    t = std::max(0.0, std::min(1.0, t));
+    addUniqueHit(hits, SurfacePoint(e, t));
+  }
+}
 
 std::vector<std::vector<std::array<size_t, 2>>>
 getCurveComponents(SurfaceMesh& mesh, const std::vector<SurfacePoint>& curveNodes,
@@ -70,28 +128,21 @@ std::vector<std::vector<SurfacePoint>> marchingTriangles(IntrinsicGeometryInterf
     std::vector<SurfacePoint> hits;
     BarycentricVector gradient(f);
     for (Halfedge he : f.adjacentHalfedges()) {
-      // Record edge crossings
-      Edge e = he.edge();
-      Vertex v0 = e.firstVertex();
-      Vertex v1 = e.secondVertex();
-      double u0 = u[v0];
-      double u1 = u[v1];
-      double lB = std::min(u0, u1);
-      double uB = std::max(u0, u1);
-      if (lB == uB && lB == isoval) {
-        hits.clear();
-        hits = {SurfacePoint(v0), SurfacePoint(v1)};
-        break;
-      }
-      double t = (isoval - lB) / (uB - lB);
-      if (u0 > u1) t = 1. - t;
-      if (t <= 1. && t >= 0.) hits.emplace_back(e, t);
+
+      // Record edge crossings robustly.
+      addEdgeIsoHits(he, u, isoval, hits);
+
       // Compute gradient of the scalar function.
       BarycentricVector heVec(he.next(), f);
       BarycentricVector ePerp = heVec.rotate90(geom);
       gradient += ePerp * u[he.vertex()];
     }
-    if (hits.size() != 2) continue;
+    if (hits.size() != 2) {
+      // hits.size() == 0: no contour.
+      // hits.size() == 1: contour only touches this face at one vertex.
+      // hits.size() == 3: whole face is iso-valued, so the 1D contour is ambiguous.
+      continue;
+    }
 
     // Orient segments so that smaller values are always on the "inside" of the curve.
     std::array<size_t, 2> seg;
