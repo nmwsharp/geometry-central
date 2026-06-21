@@ -880,6 +880,26 @@ void FlipEdgeNetwork::processSingleEdgeLoop(FlipPathSegment& pathSegment, Segmen
   Halfedge he;
   std::tie(he, UNUSED1, UNUSED2) = edgePath.pathHeInfo[id];
 
+  // Termination guard for contractible closed loops.
+  //
+  // A single self-edge loop is the maximally-collapsed form of a closed loop. The only move
+  // available here -- replacing the self-edge with the two opposite edges of its triangle --
+  // ALWAYS lengthens the loop (triangle inequality), so it is only worthwhile if the subsequent
+  // straightening recovers that length and then some (net progress toward a geodesic).
+  //
+  // For a CONTRACTIBLE loop that never happens: the loop has no geodesic representative (its
+  // length infimum is zero, reached only as it shrinks to a point), so the unfold + reshorten
+  // returns to the very same self-edge and the process loops forever. We detect this by
+  // remembering the shortest length this loop has reached while collapsed to a single edge, and
+  // only unfolding when we are strictly shorter than last time. A non-contractible loop strictly
+  // shortens toward its (positive-length) geodesic on each such round and always passes this
+  // test; a contractible loop stalls and we stop, leaving it as its minimal single-edge form.
+  double curLoopLen = tri->edgeLengths[he.edge()];
+  if (curLoopLen >= edgePath.lastSingleEdgeLoopLen * (1.0 - 1e-12)) {
+    return; // no net progress since the last unfold of this loop; stop to guarantee termination
+  }
+  edgePath.lastSingleEdgeLoopLen = curLoopLen;
+
 
   // == Replace the old segment with the two opposite edges of the triangle
 
