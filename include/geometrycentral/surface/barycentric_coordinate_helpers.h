@@ -23,7 +23,6 @@ double displacementLength2(Vector3 displacement, Vector3 triangleLengths);
 double displacementLength(Vector3 displacement, Vector3 triangleLengths);
 
 // Convert between cartesian and barycentric coordinates
-Vector3 cartesianVectorToBarycentric(const std::array<Vector2, 3>& vertCoords, Vector2 faceVec);
 Vector2 barycentricDisplacementToCartesian(const std::array<Vector2, 3>& vertCoords, Vector3 baryVec);
 
 // Normalize to sum to 1 (does nothing else)
