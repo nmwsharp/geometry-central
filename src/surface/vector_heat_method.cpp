@@ -348,6 +348,8 @@ VertexData<Vector2> VectorHeatMethodSolver::computeLogMap(const Vertex& sourceVe
   case LogMapStrategy::AffineAdaptive:
     return computeLogMap_AffineAdaptive(sourceVert);
   }
+  throw std::logic_error("bad switch");
+  return VertexData<Vector2>();
 }
 
 VertexData<Vector2> VectorHeatMethodSolver::computeLogMap_AffineLocal(const Vertex& sourceVert) {
