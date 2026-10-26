@@ -240,6 +240,30 @@ Additionally, a collection of useful utility functions are provided (see `flip_g
     
     Write the path to file as line entries in an obj file.
 
+## Many point-to-point queries on one mesh
+
+`FlipEdgeNetwork::constructFromDijkstraPath()` builds a new intrinsic triangulation and path network for each query, which dominates the cost when you only want the path between two vertices: on a 50k-vertex mesh, the shortening itself is about 2% of the time. `FlipOutContext` builds a compact intrinsic triangulation once per mesh and answers many vertex-to-vertex queries against it. Each query finds the initial edge path with A\* (Euclidean heuristic, when vertex positions are available), runs the same shortening loop as `iterativeShorten()`, and then undoes its flips, so the next query starts from the original triangulation. It returns the same paths as the `FlipEdgeNetwork` route.
+
+```cpp
+#include "geometrycentral/surface/flip_geodesics_context.h"
+
+FlipOutContext ctx(*mesh, *geometry); // once per mesh
+std::vector<SurfacePoint> path;
+double len = ctx.geodesic(mesh->vertex(a), mesh->vertex(b), path);
+```
+
+??? func "`#!cpp FlipOutContext::FlipOutContext(ManifoldSurfaceMesh& mesh, IntrinsicGeometryInterface& geom)`"
+
+    Build the per-mesh triangulation. If `geom` is a `VertexPositionGeometry`, the initial path uses A\*; otherwise Dijkstra.
+
+??? func "`#!cpp double FlipOutContext::geodesicLength(Vertex start, Vertex end)`"
+
+    Length of the FlipOut geodesic between two vertices (0 if `start == end` or they are not connected).
+
+??? func "`#!cpp double FlipOutContext::geodesic(Vertex start, Vertex end, std::vector<SurfacePoint>& pathOut)`"
+
+    Same, and the path as a sequence of surface points along the input mesh, as `getPathPolyline()` would give.
+
 ## Citation
 
 If these routines contribute to academic work, please cite:
