@@ -6,6 +6,9 @@
 #include <Eigen/Dense>
 
 #include <iomanip>
+#include <array>
+#include <cmath>
+#include <limits>
 
 using std::cout;
 using std::endl;
@@ -873,6 +876,448 @@ bool trimTraceResult(TraceGeodesicResult& traceResult, Vertex targetVertex) {
   }
 
   return false;
+}
+
+
+namespace {
+// Position of a surface point in face f's layout (f.halfedge()'s tail at the origin, as
+// vertexCoordinatesInTriangle); false if the point is not on f.
+bool pointInFace(IntrinsicGeometryInterface& geom, Face f, const SurfacePoint& p, Vector2& pos) {
+  std::array<Vector2, 3> c = vertexCoordinatesInTriangle(geom, f);
+  Halfedge h = f.halfedge();
+  switch (p.type) {
+  case SurfacePointType::Vertex:
+    for (int k = 0; k < 3; k++, h = h.next())
+      if (h.tailVertex() == p.vertex) {
+        pos = c[k];
+        return true;
+      }
+    return false;
+  case SurfacePointType::Edge:
+    for (int k = 0; k < 3; k++, h = h.next())
+      if (h.edge() == p.edge) {
+        Vector2 tail = c[k], tip = c[(k + 1) % 3];
+        if (h != p.edge.halfedge()) std::swap(tail, tip);
+        pos = tail + p.tEdge * (tip - tail);
+        return true;
+      }
+    return false;
+  case SurfacePointType::Face:
+    if (p.face != f) return false;
+    pos = c[0] * p.faceCoords.x + c[1] * p.faceCoords.y + c[2] * p.faceCoords.z;
+    return true;
+  }
+  return false;
+}
+} // namespace
+
+namespace {
+// Whether surface point p lies on face f (vertex of f, edge of f, or in f): pointInFace without the layout.
+bool onFace(const SurfacePoint& p, Face f) {
+  Halfedge h = f.halfedge();
+  switch (p.type) {
+  case SurfacePointType::Vertex:
+    for (int k = 0; k < 3; k++, h = h.next())
+      if (h.tailVertex() == p.vertex) return true;
+    return false;
+  case SurfacePointType::Edge:
+    for (int k = 0; k < 3; k++, h = h.next())
+      if (h.edge() == p.edge) return true;
+    return false;
+  case SurfacePointType::Face:
+    return p.face == f;
+  }
+  return false;
+}
+
+// Whether two consecutive path points share a face, over the faces of a in the order surfacePathLength tries them.
+bool shareFace(const SurfacePoint& a, const SurfacePoint& b) {
+  switch (a.type) {
+  case SurfacePointType::Vertex:
+    for (Face f : a.vertex.adjacentFaces())
+      if (onFace(b, f)) return true;
+    return false;
+  case SurfacePointType::Edge:
+    if (a.edge.halfedge().isInterior() && onFace(b, a.edge.halfedge().face())) return true;
+    if (a.edge.halfedge().twin().isInterior() && onFace(b, a.edge.halfedge().twin().face())) return true;
+    return false;
+  case SurfacePointType::Face:
+    return onFace(b, a.face);
+  }
+  return false;
+}
+} // namespace
+
+double surfacePathLength(IntrinsicGeometryInterface& geom, const std::vector<SurfacePoint>& path) {
+  VertexPositionGeometry* positions = dynamic_cast<VertexPositionGeometry*>(&geom);
+  if (positions) {
+    // from the positions (the edge lengths lose the width of a sliver); a step's face is only checked, so no layout
+    const VertexData<Vector3>& pos = positions->inputVertexPositions;
+    double L = 0.;
+    Vector3 prev = path.empty() ? Vector3::zero() : path[0].interpolate(pos);
+    for (size_t i = 0; i + 1 < path.size(); i++) {
+      if (!shareFace(path[i], path[i + 1])) return std::numeric_limits<double>::quiet_NaN();
+      const Vector3 next = path[i + 1].interpolate(pos);
+      L += norm(next - prev);
+      prev = next;
+    }
+    return L;
+  }
+  geom.requireHalfedgeVectorsInFace();
+  double L = 0.;
+  std::vector<Face> faces;
+  for (size_t i = 0; i + 1 < path.size(); i++) {
+    const SurfacePoint& p = path[i];
+    faces.clear();
+    switch (p.type) {
+    case SurfacePointType::Vertex:
+      for (Face f : p.vertex.adjacentFaces()) faces.push_back(f);
+      break;
+    case SurfacePointType::Edge:
+      if (p.edge.halfedge().isInterior()) faces.push_back(p.edge.halfedge().face());
+      if (p.edge.halfedge().twin().isInterior()) faces.push_back(p.edge.halfedge().twin().face());
+      break;
+    case SurfacePointType::Face:
+      faces.push_back(p.face);
+      break;
+    }
+    bool shared = false;
+    for (Face f : faces) {
+      Vector2 a, b;
+      if (pointInFace(geom, f, p, a) && pointInFace(geom, f, path[i + 1], b)) {
+        L += norm(b - a);
+        shared = true;
+        break;
+      }
+    }
+    if (!shared) {
+      geom.unrequireHalfedgeVectorsInFace();
+      return std::numeric_limits<double>::quiet_NaN();
+    }
+  }
+  geom.unrequireHalfedgeVectorsInFace();
+  return L;
+}
+
+namespace {
+// One unfolding of the line from startVert at tangent-space angle theta (see traceGeodesicByUnfolding).
+// Returns true with the path in out on arrival; otherwise aimOffset is the angle (in the start's corner,
+// radians) of endVert's unfolded position as seen from the start, where it was laid out nearest the line
+// (NaN if it never was).
+bool unfoldLine(IntrinsicGeometryInterface& geom, VertexPositionGeometry* positions, Vertex startVert,
+                double theta, double length, Vertex endVert, double arriveTol, size_t maxIters,
+                std::vector<SurfacePoint>& out, double& aimOffset) {
+  out.clear();
+  aimOffset = std::numeric_limits<double>::quiet_NaN();
+  auto arg = [](Vector2 v) {
+    double t = std::atan2(v.y, v.x);
+    return t < 0. ? t + 2. * M_PI : t;
+  };
+
+  // The corner of startVert holding the direction, and the direction's angle from that corner's first side
+  const double sumScale = geom.vertexAngleSums[startVert] / (startVert.isBoundary() ? M_PI : 2. * M_PI);
+  Halfedge he;
+  double d0 = 0.;
+  {
+    double bestOut = std::numeric_limits<double>::infinity();
+    Halfedge curr = startVert.halfedge();
+    do {
+      if (!curr.isInterior()) break;
+      const double width = geom.cornerAngles[curr.corner()] / sumScale; // in the tangent space's angles
+      double off = theta - arg(geom.halfedgeVectorsInVertex[curr]);
+      off -= 2. * M_PI * std::floor(off / (2. * M_PI));
+      if (off <= width) {
+        he = curr;
+        d0 = off * sumScale;
+        break;
+      }
+      // closest corner, in case rounding leaves the direction in none
+      const double outBy = std::fmin(off - width, 2. * M_PI - off);
+      if (outBy < bestOut) {
+        bestOut = outBy;
+        he = curr;
+        d0 = (2. * M_PI - off < off - width) ? 0. : geom.cornerAngles[curr.corner()];
+      }
+      curr = curr.next().next().twin();
+    } while (curr != startVert.halfedge());
+  }
+  if (he == Halfedge()) return false;
+  double c0 = geom.cornerAngles[he.corner()];
+  if (positions) { // the corner from the positions: from the lengths it is off by about 1e-8 near 0 and pi
+    const Vector3 p0 = positions->inputVertexPositions[startVert];
+    const Vector3 e1 = positions->inputVertexPositions[he.tipVertex()] - p0;
+    const Vector3 e2 = positions->inputVertexPositions[he.next().tipVertex()] - p0;
+    if (norm(e1) > 0. && norm(e2) > 0.) c0 = std::atan2(norm(cross(e1, e2)), dot(e1, e2));
+  }
+  d0 = clamp(d0, 0., c0);
+
+  // The current face: the line enters it at the corner T (first face: the start) or through an edge, and leaves
+  // it through heCross (u -> w, u right of the line, w left). Positions in the segment's frame.
+  struct State {
+    Halfedge heCross;
+    Vertex u, w, T;
+    Vector2 pu, pw, pT;
+    size_t nOut, steps;
+  };
+  State st;
+  st.heCross = he.next();
+  st.u = he.tipVertex();
+  st.w = he.next().tipVertex();
+  st.T = startVert;
+  const double lu = geom.edgeLengths[he.edge()], lw = geom.edgeLengths[he.next().next().edge()];
+  st.pu = Vector2{lu * std::cos(d0), -lu * std::sin(d0)};
+  st.pw = Vector2{lw * std::cos(c0 - d0), lw * std::sin(c0 - d0)};
+  st.pT = Vector2{0., 0.};
+  st.steps = 0;
+  out.push_back(SurfacePoint(startVert));
+  st.nOut = out.size();
+
+  // Where the line passes within rounding of a vertex, the side taken; the other one is tried on failure
+  struct Decision {
+    State before;
+    Halfedge heUR, heRW;
+    Vertex r;
+    Vector2 pr;
+  };
+  std::vector<Decision> decisions;
+  const double hitTol = 1e-9 * length;
+  size_t attempts = 0;
+  const size_t maxAttempts = 64;
+  double nearest = std::numeric_limits<double>::infinity();
+
+  // the edge each crossing lies on, in the segment's frame (out[k + 1] on sides[k]), and whether the crossed
+  // halfedge is its edge's halfedge (the crossing's t from u)
+  std::vector<std::pair<Vector2, Vector2>> sides;
+  std::vector<char> sideForward;
+
+  // endVert laid out at pB: arrived if the chord from the start to pB has the segment's length (within arriveTol)
+  // and crosses every edge crossed so far between its ends, i.e. is a straight line from startVert to endVert
+  // in these faces. The crossings are moved onto the chord, so the path ends exactly at endVert. Otherwise
+  // pB, if nearest the line so far, aims the next unfolding.
+  auto tryArrive = [&](Vector2 pB) {
+    const double lB = norm(pB);
+    if (std::fabs(lB - length) > arriveTol * length) return false;
+    std::vector<double> ts(sides.size());
+    for (size_t k = 0; k < sides.size(); k++) {
+      const Vector2 pu = sides[k].first, pw = sides[k].second, d = pw - pu;
+      const double den = cross(pB, d);
+      if (den == 0.) return false;
+      const double t = -cross(pB, pu) / den;   // along u -> w
+      const double lam = cross(pu, d) / den;   // along the chord
+      const double eps = 1e-9;
+      if (!(t >= -eps && t <= 1. + eps && lam >= -eps && lam <= 1. + eps)) return false;
+      ts[k] = clamp(t, 0., 1.);
+    }
+    for (size_t k = 0; k < sides.size(); k++) out[k + 1].tEdge = sideForward[k] ? ts[k] : 1. - ts[k];
+    out.push_back(SurfacePoint(endVert));
+    return true;
+  };
+  auto noteEnd = [&](Vector2 pB) {
+    if (std::fabs(pB.y) < nearest) {
+      nearest = std::fabs(pB.y);
+      aimOffset = std::atan2(pB.y, pB.x);
+    }
+  };
+
+  // the line takes the side of r given by left (exit through u -> r) or right (through r -> w)
+  auto take = [&](State& s, Halfedge heUR, Halfedge heRW, Vertex r, Vector2 pr, bool left) {
+    if (left) {
+      s.T = s.w;
+      s.pT = s.pw;
+      s.heCross = heUR;
+      s.w = r;
+      s.pw = pr;
+    } else {
+      s.T = s.u;
+      s.pT = s.pu;
+      s.heCross = heRW;
+      s.u = r;
+      s.pu = pr;
+    }
+  };
+  // on failure: back to the last open decision, other side; false if none is left
+  auto backtrack = [&]() {
+    if (decisions.empty() || ++attempts > maxAttempts) return false;
+    Decision d = decisions.back();
+    decisions.pop_back();
+    st = d.before;
+    out.resize(st.nOut);
+    sides.resize(st.nOut - 1);
+    sideForward.resize(st.nOut - 1);
+    take(st, d.heUR, d.heRW, d.r, d.pr, !(d.pr.y > 0.));
+    return true;
+  };
+
+  while (true) {
+    // where the line leaves the current face
+    const double den = st.pu.y - st.pw.y;
+    const double s = clamp(den != 0. ? st.pu.y / den : 0.5, 0., 1.);
+    const double xc = st.pu.x + s * (st.pw.x - st.pu.x);
+    bool failed = false;
+    if (xc >= length * (1. - arriveTol)) {
+      // the line ends in this face (or on its exit edge): endVert should be a corner here
+      const Vertex vs[3] = {st.u, st.w, st.T};
+      const Vector2 ps[3] = {st.pu, st.pw, st.pT};
+      for (int k = 0; k < 3; k++)
+        if (vs[k] == endVert) {
+          if (tryArrive(ps[k])) return true;
+          noteEnd(ps[k]);
+        }
+      failed = xc > length * (1. + arriveTol);
+    }
+    Halfedge heE = st.heCross.twin();
+    if (!failed && (!heE.isInterior() || ++st.steps > maxIters)) failed = true;
+    if (failed) {
+      if (!backtrack()) {
+        out.clear();
+        return false;
+      }
+      continue;
+    }
+    const bool fwd = st.heCross == st.heCross.edge().halfedge();
+    out.push_back(SurfacePoint(st.heCross.edge(), fwd ? s : 1. - s));
+    sides.emplace_back(st.pu, st.pw);
+    sideForward.push_back(fwd);
+
+    // the next face: r beyond u -> w, from the vertex positions if the geometry has them (the edge lengths
+    // lose the width of a sliver), else from the edge lengths
+    Halfedge heUR = heE.next(), heRW = heUR.next();
+    Vertex r = heRW.tailVertex();
+    Vector2 e = st.pw - st.pu;
+    const double L = norm(e);
+    const double a = geom.edgeLengths[heUR.edge()], b = geom.edgeLengths[heRW.edge()];
+    Vector2 pr;
+    if (L > 0.) {
+      const Vector2 eh = e / L, nh{eh.y, -eh.x}; // nh: right of u -> w, away from the current face
+      double along = (a * a - b * b + L * L) / (2. * L);
+      double h = std::sqrt(std::fmax(0., a * a - along * along));
+      if (positions) {
+        const Vector3 pU = positions->inputVertexPositions[st.u];
+        const Vector3 uw = positions->inputVertexPositions[st.w] - pU, ur = positions->inputVertexPositions[r] - pU;
+        const double l3 = norm(uw);
+        if (l3 > 0.) {
+          along = dot(ur, uw) / l3;
+          h = norm(cross(uw, ur)) / l3;
+        }
+      }
+      pr = st.pu + along * eh + h * nh;
+    } else {
+      pr = st.pu + Vector2{a, 0.};
+    }
+    if (r == endVert) {
+      if (tryArrive(pr)) return true;
+      noteEnd(pr);
+    }
+    const bool left = pr.y > 0.;
+    if (std::fabs(pr.y) <= hitTol) {
+      State before = st;
+      before.nOut = out.size(); // the crossing of heCross stays
+      decisions.push_back(Decision{before, heUR, heRW, r, pr});
+    }
+    take(st, heUR, heRW, r, pr, left);
+    st.nOut = out.size();
+  }
+}
+} // namespace
+
+std::vector<SurfacePoint> traceGeodesicByUnfolding(IntrinsicGeometryInterface& geom, Vertex startVert,
+                                                   Vector2 traceVec, Vertex endVert, double arriveTol,
+                                                   size_t maxIters) {
+  std::vector<SurfacePoint> out;
+  const double length = norm(traceVec);
+  if (!(length > 0) || !std::isfinite(length) || startVert == endVert) return out;
+  geom.requireEdgeLengths();
+  geom.requireCornerAngles();
+  geom.requireVertexAngleSums();
+  geom.requireHalfedgeVectorsInVertex();
+  if (maxIters == INVALID_IND) maxIters = 10 * startVert.getMesh()->nFaces();
+  VertexPositionGeometry* positions = dynamic_cast<VertexPositionGeometry*>(&geom);
+
+  // The direction aims the line; where it misses endVert (a direction carried through degenerate
+  // faces can be off while the length is right), it is turned toward endVert's unfolded position and
+  // the line unfolded again
+  const double sumScale = geom.vertexAngleSums[startVert] / (startVert.isBoundary() ? M_PI : 2. * M_PI);
+  double theta = std::atan2(traceVec.y, traceVec.x);
+  const int maxShots = 8;
+  bool ok = false;
+  for (int shot = 0; shot < maxShots && !ok; shot++) {
+    double aim;
+    ok = unfoldLine(geom, positions, startVert, theta, length, endVert, arriveTol, maxIters, out, aim);
+    if (!ok) {
+      if (!std::isfinite(aim)) break;
+      theta += aim / sumScale;
+    }
+  }
+  if (!ok) out.clear();
+
+  geom.unrequireEdgeLengths();
+  geom.unrequireCornerAngles();
+  geom.unrequireVertexAngleSums();
+  geom.unrequireHalfedgeVectorsInVertex();
+  return out;
+}
+
+namespace {
+// An upper bound on the distance from surface point p to vertex v, from the edge lengths: exact on an edge of v,
+// by the triangle inequality over the corners in a face of v; infinite if p is not on an edge or face of v.
+double endDistanceBound(IntrinsicGeometryInterface& geom, const SurfacePoint& p, Vertex v) {
+  const double inf = std::numeric_limits<double>::infinity();
+  switch (p.type) {
+  case SurfacePointType::Vertex:
+    return p.vertex == v ? 0. : inf;
+  case SurfacePointType::Edge: {
+    Halfedge h = p.edge.halfedge();
+    geom.requireEdgeLengths();
+    const double l = geom.edgeLengths[p.edge];
+    geom.unrequireEdgeLengths();
+    if (h.tailVertex() == v) return std::fabs(p.tEdge) * l;
+    if (h.tipVertex() == v) return std::fabs(1. - p.tEdge) * l;
+    return inf;
+  }
+  case SurfacePointType::Face: {
+    Halfedge h = p.face.halfedge();
+    const double b[3] = {p.faceCoords.x, p.faceCoords.y, p.faceCoords.z}; // at h's tail, next's tail, next's tip
+    geom.requireEdgeLengths();
+    double d = inf;
+    for (int k = 0; k < 3; k++, h = h.next()) {
+      if (h.tailVertex() != v) continue;
+      // v at corner k: the other two corners along h (corner k + 1) and along the previous halfedge (k + 2)
+      d = std::fabs(b[(k + 1) % 3]) * geom.edgeLengths[h.edge()] +
+          std::fabs(b[(k + 2) % 3]) * geom.edgeLengths[h.next().next().edge()];
+    }
+    geom.unrequireEdgeLengths();
+    return d;
+  }
+  }
+  return inf;
+}
+} // namespace
+
+std::vector<SurfacePoint> traceGeodesicBetweenVertices(IntrinsicGeometryInterface& geom, Vertex startVert,
+                                                       Vector2 traceVec, Vertex endVert,
+                                                       const TraceOptions& traceOptions, double lengthTol) {
+  TraceOptions options = traceOptions;
+  options.includePath = true;
+  TraceGeodesicResult result = traceGeodesic(geom, SurfacePoint(startVert), traceVec, options);
+  const double len = norm(traceVec);
+  // A trace that ends at endVert and crossed only edge interiors on the way went right: then the trimmed trace is
+  // kept without measuring it. At a vertex (or an edge's end) the trace picks a new direction, and can still end at
+  // endVert by another route (near-coincident vertices), so such a trace is measured.
+  bool atEnd = !result.pathPoints.empty() && endDistanceBound(geom, result.pathPoints.back(), endVert) <= lengthTol * len;
+  for (size_t i = 1; atEnd && i + 1 < result.pathPoints.size(); i++) {
+    const SurfacePoint& p = result.pathPoints[i];
+    if (p.type != SurfacePointType::Edge || !(p.tEdge > 0. && p.tEdge < 1.)) atEnd = false;
+  }
+  const bool trimmed = trimTraceResult(result, endVert);
+  if (trimmed) {
+    result.pathPoints.push_back(SurfacePoint(endVert));
+    if (atEnd) return std::move(result.pathPoints);
+    if (std::fabs(surfacePathLength(geom, result.pathPoints) - len) <= lengthTol * len) return std::move(result.pathPoints);
+  }
+  std::vector<SurfacePoint> unfolded = traceGeodesicByUnfolding(geom, startVert, traceVec, endVert, 1e-6, options.maxIters);
+  if (!unfolded.empty()) return unfolded;
+  if (trimmed) return std::move(result.pathPoints);
+  return traceGeodesic(geom, SurfacePoint(startVert), traceVec, options).pathPoints;
 }
 
 

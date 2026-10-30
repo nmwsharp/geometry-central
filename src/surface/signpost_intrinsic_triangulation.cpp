@@ -75,10 +75,14 @@ std::vector<SurfacePoint> SignpostIntrinsicTriangulation::traceIntrinsicHalfedge
   TraceOptions options;
   options.includePath = true;
   options.maxIters = mesh.nFaces() * 10;
+  Vertex endVert = he.twin().vertex();
+  if (trimEnd && startP.type == SurfacePointType::Vertex && vertexLocations[endVert].type == SurfacePointType::Vertex) {
+    // between two input vertices: trimmed and checked, traced again by unfolding where the trace went off course
+    return traceGeodesicBetweenVertices(inputGeom, startP.vertex, traceVec, vertexLocations[endVert].vertex, options);
+  }
   TraceGeodesicResult result = traceGeodesic(inputGeom, startP, traceVec, options);
 
   // Trim off end crumbs if applicable
-  Vertex endVert = he.twin().vertex();
   if (trimEnd && vertexLocations[endVert].type == SurfacePointType::Vertex) {
     bool success = trimTraceResult(result, endVert);
     if (success) {
