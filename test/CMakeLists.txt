@@ -108,6 +108,7 @@ set(TEST_SRCS
   src/point_cloud_test.cpp
   src/poisson_disk_sampler_test.cpp
   src/polygon_operators_test.cpp
+  src/exact_geodesics_test.cpp
   src/flip_geodesic_test.cpp
   src/stl_reader_test.cpp
   src/surface_misc_test.cpp

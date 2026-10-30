@@ -444,6 +444,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
 
   IntervalWithStop candidates[2];
   geom.requireCornerAngles();
+  geom.requireVertexGaussianCurvatures();
 
   while (!m_queue.empty()) {
     m_queue_max_size = std::max(m_queue.size(), m_queue_max_size);
@@ -469,9 +470,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
     bool const last_interval = min_interval->next() == nullptr;
 
     auto saddleOrBoundary = [&](Vertex v) -> bool {
-      geom.requireVertexGaussianCurvatures();
       bool saddle = geom.vertexGaussianCurvatures[v] < 0;
-      geom.unrequireVertexGaussianCurvatures();
       return saddle || vertexIsBoundary[v];
     };
 
@@ -607,6 +606,7 @@ void GeodesicAlgorithmExact::propagate(const std::vector<SurfacePoint>& sources,
   m_time_consumed = (static_cast<double>(stop) - static_cast<double>(start)) / CLOCKS_PER_SEC;
 
   geom.unrequireCornerAngles();
+  geom.unrequireVertexGaussianCurvatures();
 
   /*	for(unsigned i=0; i<m_edge_interval_lists.size(); ++i)
     {
@@ -631,7 +631,8 @@ bool GeodesicAlgorithmExact::check_stop_conditions(unsigned& index) const {
   }
 
   if (m_stop_vertices.empty()) {
-    return false;
+    // without stop vertices, the distance bound alone stops the propagation
+    return stop_dist < GEODESIC_INF;
   }
 
   while (index < m_stop_vertices.size()) {
