@@ -111,6 +111,7 @@ set(TEST_SRCS
   src/flip_geodesic_test.cpp
   src/stl_reader_test.cpp
   src/surface_misc_test.cpp
+  src/boundary_first_flattening_test.cpp
   src/utilities_test.cpp
 )
 
