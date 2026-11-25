@@ -675,7 +675,7 @@ void SignpostIntrinsicTriangulation::resolveNewVertex(Vertex newV, SurfacePoint 
 
   // Trace from the adjacent vertex selected above to get the position/angle on the input mesh
   SurfacePoint newPositionOnInput;
-  Vector2 outgoingVec;
+  Vector2 outgoingVec = Vector2::zero();
 
   bool boundaryEdgeInsertion = (intrinsicPoint.type == SurfacePointType::Edge && intrinsicPoint.edge.isBoundary());
   if (boundaryEdgeInsertion) {
