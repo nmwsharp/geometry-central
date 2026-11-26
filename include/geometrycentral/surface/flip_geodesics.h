@@ -4,6 +4,7 @@
 #include "geometrycentral/surface/signpost_intrinsic_triangulation.h"
 #include "geometrycentral/surface/vertex_position_geometry.h"
 
+#include <limits>
 #include <list>
 #include <memory>
 #include <queue>
@@ -46,6 +47,11 @@ public:
   // Members
   FlipEdgeNetwork& network; // the parent network of which this path is a part
   bool isClosed;
+
+  // Shortest length this loop has reached while collapsed to a single self-edge (see
+  // FlipEdgeNetwork::processSingleEdgeLoop). Used to guarantee termination on contractible
+  // closed loops, which have no geodesic representative. Infinity until first reached.
+  double lastSingleEdgeLoopLen = std::numeric_limits<double>::infinity();
 
   // Data about the segments in path. For a path segment id, contains the corresponding halfedge, as well as the ID of
   // the previous/next segment (or INVALID_IND if they are path endpoints)
