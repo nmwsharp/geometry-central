@@ -370,6 +370,41 @@ TEST_F(IntrinsicTriangulationSuite, CommonSubdivisionCompareIntegerSignpost) {
 
 
 // TODO: also test with signposts?
+// A single edge flip on a tetrahedron creates a Delta-complex in which two
+// vertices are joined by two distinct edges. interpolateEdgeLengthsA/B used
+// to resolve each common subdivision edge's containing face from its
+// endpoint SurfacePoints alone, which is ambiguous in this configuration
+// and produced lengths of the wrong edge.
+TEST_F(IntrinsicTriangulationSuite, CommonSubdivisionEdgeLengthsDeltaComplex) {
+  for (size_t iE = 0; iE < 6; iE++) {
+    auto a = getAsset("tet.obj", true);
+    ManifoldSurfaceMesh& mesh = *a.manifoldMesh;
+    VertexPositionGeometry& origGeometry = *a.geometry;
+
+    IntegerCoordinatesIntrinsicTriangulation tri(mesh, origGeometry);
+
+    if (!tri.flipEdgeIfPossible(tri.intrinsicMesh->edge(iE))) continue;
+
+    CommonSubdivision& cs = tri.getCommonSubdivision();
+    cs.constructMesh();
+
+    // Ground truth: every common subdivision edge lies in a single face of
+    // both meshes, so extrinsic positions interpolated across mesh A give
+    // exact lengths
+    VertexPositionGeometry csGeo(*cs.mesh, cs.interpolateAcrossA(origGeometry.vertexPositions));
+    csGeo.requireEdgeLengths();
+
+    EdgeData<double> lengthsFromLenB = cs.interpolateEdgeLengthsB(tri.edgeLengths);
+    origGeometry.requireEdgeLengths();
+    EdgeData<double> lengthsFromLenA = cs.interpolateEdgeLengthsA(origGeometry.edgeLengths);
+
+    for (Edge e : cs.mesh->edges()) {
+      EXPECT_NEAR(csGeo.edgeLengths[e], lengthsFromLenB[e], 1e-5);
+      EXPECT_NEAR(csGeo.edgeLengths[e], lengthsFromLenA[e], 1e-5);
+    }
+  }
+}
+
 TEST_F(IntrinsicTriangulationSuite, FunctionTransfer) {
   for (const MeshAsset& a : {getAsset("fox.ply", true)}) {
     a.printThyName();

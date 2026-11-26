@@ -193,7 +193,12 @@ EdgeData<double> CommonSubdivision::interpolateEdgeLengthsA(const EdgeData<doubl
   for (Edge e : mesh->edges()) {
     SurfacePoint tail = sourcePoints[e.halfedge().tailVertex()]->posA;
     SurfacePoint tip = sourcePoints[e.halfedge().tipVertex()]->posA;
-    Face f = sharedFace(tail, tip);
+    // Resolve the containing source face from an adjacent common subdivision
+    // face rather than from the endpoint SurfacePoints: on a Delta-complex,
+    // the endpoints may share several elements (e.g. two vertices joined by
+    // multiple edges), and sharedFace() could pick a face adjacent to the
+    // wrong one, producing a wildly wrong length.
+    Face f = sourceFaceA[e.halfedge().face()];
     GC_SAFETY_ASSERT(f != Face(), "common subdivision edges must be contained in a face");
     tail = tail.inFace(f);
     tip = tip.inFace(f);
@@ -216,7 +221,10 @@ EdgeData<double> CommonSubdivision::interpolateEdgeLengthsB(const EdgeData<doubl
   for (Edge e : mesh->edges()) {
     SurfacePoint tail = sourcePoints[e.halfedge().tailVertex()]->posB;
     SurfacePoint tip = sourcePoints[e.halfedge().tipVertex()]->posB;
-    Face f = sharedFace(tail, tip);
+    // See the comment in interpolateEdgeLengthsA: resolve the containing
+    // source face from an adjacent common subdivision face, since the
+    // endpoint SurfacePoints alone are ambiguous on a Delta-complex.
+    Face f = sourceFaceB[e.halfedge().face()];
     GC_SAFETY_ASSERT(f != Face(), "common subdivision edges must be contained in a face");
     tail = tail.inFace(f);
     tip = tip.inFace(f);
