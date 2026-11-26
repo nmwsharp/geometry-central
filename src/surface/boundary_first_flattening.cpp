@@ -129,7 +129,9 @@ VertexData<Vector2> BFF::flattenFromBoth(const Vector<double>& uBdy, const Vecto
 }
 
 Vector<double> BFF::dirichletToNeumann(const Vector<double>& uBdy) {
-  return Omegab - (Lib.transpose() * Liisolver->solve(Omegai - Lib * uBdy)) - Lbb * uBdy;
+  // Interior: Lii u_i = -(Omegai + Lib u_b) (zero target curvature, lengths scale by e^{+u} as in
+  // computeBoundaryPositions and neumannToDirichlet). Boundary: k = Omegab + Lbi u_i + Lbb u_b.
+  return Omegab - (Lib.transpose() * Liisolver->solve(Omegai + Lib * uBdy)) + Lbb * uBdy;
 }
 
 Vector<double> BFF::neumannToDirichlet(const Vector<double>& kBdy) {
