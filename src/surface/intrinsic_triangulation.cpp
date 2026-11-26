@@ -282,7 +282,30 @@ Vertex IntrinsicTriangulation::insertCircumcenter(Face f) {
   }
 
   // === Phase 3: Add the new vertex
-  return insertVertex(newPositionOnIntrinsic);
+  Vertex newV = insertVertex(newPositionOnIntrinsic);
+
+  // Proximity guard: a traced circumcenter can land coincident with an existing
+  // vertex (it ends as a Face/Edge point on a triangle corner). This happens on
+  // *constrained* triangulations near small input angles, where a bad triangle's
+  // circumcircle is effectively centered on an existing vertex. Inserting such a
+  // point creates a zero-area (needle) triangle that poisons downstream solves.
+  // Detect the resulting near-zero incident edge and undo the insertion;
+  // delaunayRefine() treats a Vertex() return as "insertion failed" and simply
+  // leaves that triangle unrefined (which is the correct behavior near an
+  // unrefinable constrained corner).
+  if (newV != Vertex()) {
+    double minInc = std::numeric_limits<double>::infinity();
+    double maxInc = 0.;
+    for (Edge e : newV.adjacentEdges()) {
+      minInc = std::min(minInc, edgeLengths[e]);
+      maxInc = std::max(maxInc, edgeLengths[e]);
+    }
+    if (minInc <= 1e-9 * maxInc) {
+      removeInsertedVertex(newV);
+      return Vertex();
+    }
+  }
+  return newV;
 }
 
 Vertex IntrinsicTriangulation::insertBarycenter(Face f) {
